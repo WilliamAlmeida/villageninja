@@ -2,6 +2,7 @@ import type { App } from '../app';
 import { BUILDING_LIST, BUILDINGS, type BuildingType } from '../data/buildings';
 import { canBuild, costLabel, placeBuilding } from '../game/commands';
 import { toTile } from '../game/world';
+import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
 
 /** Menu de construção + modo de posicionamento (fantasma no mapa). */
@@ -15,7 +16,7 @@ export class BuildUI {
     for (const d of BUILDING_LIST) {
       if (!d.buildable) continue;
       this.bar.appendChild(
-        el('button', { class: 'bcard', 'data-type': d.type }, `<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span>`),
+        el('button', { class: 'bcard', 'data-type': d.type }, `<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span>`),
       );
     }
     this.bar.addEventListener('click', (e) => {
@@ -52,6 +53,10 @@ export class BuildUI {
       const r = canBuild(this.app.game, c.dataset.type as BuildingType);
       c.classList.toggle('off', !r.ok);
       c.title = r.ok ? '' : r.error;
+      const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;
+      const lock = min > this.app.game.state.level ? `🔒 ${levelDef(min).name}` : '';
+      const le = c.querySelector('.lock')!;
+      if (le.textContent !== lock) le.textContent = lock;
     });
   }
 

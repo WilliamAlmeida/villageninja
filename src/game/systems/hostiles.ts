@@ -87,8 +87,12 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (!hk) return;
   const p = doorPos(hk);
   if (!u.hasGoal || u.timer <= 0) {
-    setDestination(g, u, p.x, p.y + 6);
     u.timer = 3;
+    // sem rota até a vila (ilhado): desiste da invasão
+    if (!setDestination(g, u, p.x, p.y + 6)) {
+      u.dead = true;
+      return;
+    }
   }
   if (followPath(g, u, dt) && Math.hypot(p.x - u.x, p.y - u.y) < 40) {
     const stolen = Math.min(g.state.res.ryo, 40 + g.state.day * 5);

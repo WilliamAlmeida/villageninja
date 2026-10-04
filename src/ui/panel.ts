@@ -11,6 +11,8 @@ import {
   type Result,
 } from '../game/commands';
 import { nextRank } from '../game/progression';
+import { nextLevelStatus, upgradeVillage } from '../game/village';
+import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamOf, teamUnits,
@@ -208,8 +210,10 @@ export class Panel {
     const next = nextRank(u);
     if (next) {
       const r = RANKS[next];
-      const can = n.level >= r.minLevel && g.canAfford(r.promoteCost);
-      html += `<button class="btn" data-act="promote" ${can ? '' : 'disabled'}>🎖 Promover a ${r.name} (${costLabel(r.promoteCost)}) ${n.level < r.minLevel ? `· nível ${r.minLevel}` : ''}</button>`;
+      const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
+      const can = n.level >= r.minLevel && villageOk && g.canAfford(r.promoteCost);
+      const why = n.level < r.minLevel ? `· nível ${r.minLevel}` : !villageOk ? `· requer ${levelDef(r.minVillageLevel!).name}` : '';
+      html += `<button class="btn" data-act="promote" ${can ? '' : 'disabled'}>🎖 Promover a ${r.name} (${costLabel(r.promoteCost)}) ${why}</button>`;
     }
     html += `<button class="btn" data-act="focus-cam">🎯 Centralizar câmera</button></div>`;
     html += `<p class="hint">Abates: ${n.kills}</p>`;
@@ -282,6 +286,7 @@ export class Panel {
       b.prog = Math.min(1, bd.progress / d.buildTime);
       t.prog = `${Math.floor(b.prog * 100)}%`;
     } else {
+      if (bd.type === 'hokage') html += this.villageSection();
       if (d.workers) {
         html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">−</button>
           <b data-t="workers"></b><button class="btn" data-act="workers" data-arg="1">+</button></div>`;
@@ -310,6 +315,24 @@ export class Panel {
   private tabs(active: 'roster' | 'teams') {
     return `<div class="seg tabs"><button data-act="tab" data-arg="roster" class="${active === 'roster' ? 'on' : ''}">🥷 Ninjas</button>
       <button data-act="tab" data-arg="teams" class="${active === 'teams' ? 'on' : ''}">👥 Equipes</button></div>`;
+  }
+
+  /** Nível da vila, benefícios e requisitos do próximo nível (marco). */
+  private villageSection() {
+    const g = this.app.game;
+    const cur = levelDef(g.state.level);
+    let html = `<div class="lvlcard"><div class="lvlname">${cur.icon} ${cur.name}</div>
+      <div class="hint">Nível ${g.state.level} de ${MAX_VILLAGE_LEVEL} · território ${cur.territory} · impostos ${cur.tax}💰/morador</div></div>`;
+    const st = nextLevelStatus(g);
+    if (!st) return html + `<p class="hint">🏆 A vila chegou ao nível máximo!</p>`;
+    html += `<h4>Próximo: ${st.def.icon} ${st.def.name}</h4><ul class="reqs">`;
+    for (const c of st.checks)
+      html += `<li class="${c.ok ? 'ok' : ''}">${c.ok ? '✅' : '⬜'} ${esc(c.label)} <b>${Math.min(c.have, c.need)}/${c.need}</b></li>`;
+    html += `</ul><p class="hint">Benefícios: ${st.def.perks.map(esc).join(' · ')}</p>`;
+    html += `<div class="actions"><button class="btn primary" data-act="upgrade" ${st.ready && st.afford ? '' : 'disabled'}>
+      ⬆ Elevar a ${st.def.name} (${costLabel(st.def.cost)})</button></div>`;
+    if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
+    return html;
   }
 
   private roster(): Built {
@@ -514,6 +537,8 @@ export class Panel {
           return this.report(setDesiredWorkers(g, v.id, Number(arg)));
         case 'recruit':
           return this.report(recruitNinja(g));
+        case 'upgrade':
+          return this.report(upgradeVillage(g));
         case 'demolish':
           if (!this.armedDemolish) {
             this.armedDemolish = 1;

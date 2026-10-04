@@ -172,7 +172,7 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         u.state = 'idle';
         break;
       }
-      L.progress += dt * derive(n.stats).learnMult;
+      L.progress += dt * derive(n.stats).learnMult * (g.findBuilt('library') ? 1.5 : 1);
       if (L.progress >= L.total) {
         n.jutsu[L.slot] = L.jutsuId;
         n.cd[L.slot] = 0;

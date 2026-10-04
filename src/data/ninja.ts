@@ -39,13 +39,15 @@ export interface RankDef {
   promoteCost: Cost;
   vest: string | null;
   unique?: boolean;
+  /** Nível mínimo da vila para promover a este rank. */
+  minVillageLevel?: number;
 }
 
 export const RANKS: Record<Rank, RankDef> = {
   genin: { name: 'Genin', statCap: 5, maxJutsuRank: 2, minLevel: 1, promoteCost: {}, vest: null },
   chunin: { name: 'Chunin', statCap: 7, maxJutsuRank: 3, minLevel: 4, promoteCost: { ryo: 120 }, vest: '#55703d' },
   jounin: { name: 'Jounin', statCap: 9, maxJutsuRank: 4, minLevel: 8, promoteCost: { ryo: 300 }, vest: '#3f5a2c' },
-  kage: { name: 'Kage', statCap: 10, maxJutsuRank: 5, minLevel: 14, promoteCost: { ryo: 800 }, vest: '#f1ece0', unique: true },
+  kage: { name: 'Kage', statCap: 10, maxJutsuRank: 5, minLevel: 14, promoteCost: { ryo: 800 }, vest: '#f1ece0', unique: true, minVillageLevel: 2 },
 };
 
 export const JUTSU_RANK_LABEL = ['E', 'D', 'C', 'B', 'A', 'S'];

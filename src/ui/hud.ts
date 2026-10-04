@@ -1,6 +1,7 @@
 import type { App } from '../app';
 import { bus, type ToastKind } from '../core/events';
 import { clockLabel, isNight } from '../game/time';
+import { levelDef } from '../data/villageLevels';
 import { el, esc, fmt } from './dom';
 
 const MAX_TOASTS = 4;
@@ -26,7 +27,7 @@ export class Hud {
         <span class="chip" title="Ninjas">🥷 <b data-r="ninjas"></b></span>
       </div>
       <div class="spacer"></div>
-      <div class="clock"><span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span></div>
+      <div class="clock"><span data-r="lvl"></span> <span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span></div>
       <div class="speed">
         <button data-speed="0">⏸</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
       </div>
@@ -64,6 +65,8 @@ export class Hud {
     set('pop', `${pop}/${cap}`);
     set('ninjas', String(s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village').length));
     set('day', String(s.day));
+    set('lvl', levelDef(s.level).icon);
+    this.vals.get('lvl')!.title = levelDef(s.level).name;
     set('clock', clockLabel(s));
     set('sun', isNight(s) ? '🌙' : '☀️');
     this.vals.get('food')!.parentElement!.classList.toggle('low', s.res.food < 15);

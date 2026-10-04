@@ -10,7 +10,8 @@ export type BuildingType =
   | 'academy'
   | 'training'
   | 'hospital'
-  | 'tower';
+  | 'tower'
+  | 'library';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant';
 
@@ -34,6 +35,8 @@ export interface BuildingDef {
   healRate?: number;
   /** Desenha janelas acesas à noite. */
   lights?: boolean;
+  /** Nível mínimo da vila para construir (padrão 0). */
+  minLevel?: number;
   roof: string;
   wall: string;
 }
@@ -81,13 +84,18 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'hospital', name: 'Hospital', icon: '⚕️', desc: 'Cura rapidamente ninjas feridos.',
-    w: 3, h: 2, cost: { wood: 50, stone: 40, ryo: 40 }, buildTime: 22, unique: true, buildable: true, healRate: 7, lights: true,
+    w: 3, h: 2, cost: { wood: 50, stone: 40, ryo: 40 }, buildTime: 22, unique: true, buildable: true, healRate: 7, lights: true, minLevel: 1,
     roof: '#2e8b57', wall: '#f4f4f0',
   },
   {
     type: 'tower', name: 'Torre de Vigia', icon: '🗼', desc: 'Arremessa kunais em inimigos próximos.',
     w: 1, h: 1, cost: { wood: 25, stone: 25 }, buildTime: 12, buildable: true,
     roof: '#8e3b2a', wall: '#6b4a2b',
+  },
+  {
+    type: 'library', name: 'Biblioteca de Jutsus', icon: '📚', desc: 'Pergaminhos antigos: ninjas aprendem jutsus 50% mais rápido.',
+    w: 3, h: 2, cost: { wood: 80, stone: 60, ryo: 150 }, buildTime: 24, unique: true, buildable: true, lights: true, minLevel: 2,
+    roof: '#6c3483', wall: '#efe3c8',
   },
 ];
 

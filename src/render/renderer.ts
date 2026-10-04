@@ -4,6 +4,7 @@ import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Game } from '../game/game';
 import { DEFENSES } from '../game/systems/towers';
 import { darkness } from '../game/time';
+import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, ResourceNode, Unit } from '../game/types';
 import { buildingCenter, doorPos } from '../game/world';
 import { drawEffect } from './effects';
@@ -131,7 +132,7 @@ export class Renderer {
     }
 
     for (const d of list) {
-      if (d.b) drawBuilding(ctx, d.b, time, night);
+      if (d.b) drawBuilding(ctx, d.b, time, night, s.level);
       else if (d.n) drawNode(ctx, d.n);
       else if (d.u) {
         const selected = sel?.kind === 'unit' && sel.id === d.u.id;
@@ -161,6 +162,8 @@ export class Renderer {
     for (const p of s.projectiles) if (!p.dead) drawProjectile(ctx, p, time);
     for (const e of s.effects) drawEffect(ctx, e, cam.zoom);
 
+    const hkSel = sel?.kind === 'building' && g.building(sel.id)?.type === 'hokage';
+    if (ghost || hkSel) this.drawTerritory(g, cam, !!ghost);
     if (ghost) this.drawGhost(ctx, ghost, time);
 
     // ---- espaço de tela ----
@@ -178,6 +181,30 @@ export class Renderer {
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
     }
+  }
+
+  /** Limite do território: escurece o que está fora quando se está construindo. */
+  private drawTerritory(g: Game, cam: Camera, dim: boolean) {
+    const c = territoryCenter(g.state);
+    if (!c) return;
+    const ctx = this.ctx;
+    const r = territoryRadius(g.state) * TILE;
+    const cx = c.tx * TILE;
+    const cy = c.ty * TILE;
+    if (dim) {
+      ctx.fillStyle = 'rgba(0,0,0,0.32)';
+      ctx.beginPath();
+      ctx.rect(cam.left - 10, cam.top - 10, cam.viewW / cam.zoom + 20, cam.viewH / cam.zoom + 20);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
+      ctx.fill('evenodd');
+    }
+    ctx.strokeStyle = 'rgba(255,211,77,0.7)';
+    ctx.lineWidth = 2 / cam.zoom;
+    ctx.setLineDash([10 / cam.zoom, 8 / cam.zoom]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   /** Bandeiras de "defender ponto" e linhas de ataque das ordens do jogador. */

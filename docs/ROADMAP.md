@@ -27,10 +27,16 @@ Decisões de design (definidas com o autor):
 - Especificação de arte em `docs/ART.md`: tile 16 px (escala ×2), personagem 16×24, nº de frames por animação, paleta.
 - `render/sprites.ts` passa a desenhar via atlas; desenhos procedurais ficam como fallback.
 
-## Fase 3 — Níveis da vila (marco)
-- **Aldeia → Vila → Vila Oculta → Grande Vila Oculta**, com requisitos (população, prédios, ninjas por rank).
-- Cada nível libera prédios, teto de população, área do mapa e ameaças maiores.
-- Mapa maior (ex.: 128×96) com regiões liberadas por nível; migração de save (`SAVE_VERSION` + migrações).
+## Fase 3 — Níveis da vila (marco) ✅
+- **Aldeia → Vila → Vila Oculta → Grande Vila Oculta** (`data/villageLevels.ts`), com requisitos
+  (população, ninjas, ninjas por rank, prédios, invasões repelidas) e custo para evoluir.
+- Território: só se constrói dentro de um raio da Residência do Hokage (12 → 17 → 23 → mapa todo).
+- Desbloqueios: Hospital (Vila), Biblioteca de Jutsus (Vila Oculta, +50% de velocidade de estudo),
+  Kage só a partir de Vila Oculta; impostos 2 → 3 → 3 → 4 ryo por morador.
+- Ameaças escalam com o nível: invasões maiores e mais fortes, mais animais e feras grandes.
+- **Feito**: `game/village.ts`, `systems/village.ts` (aviso de evolução), painel da vila na Residência do Hokage,
+  botão 🏯 Vila, cadeados no menu de construção, território no mapa, save v3.
+- Decisão: o mapa continua 72×48; o território é que cresce. Aumentar o mapa fica para quando houver missões fora da vila.
 
 ## Fase 4 — Missões no mapa
 - Prédio **Mesa de Missões**; quadro com missões geradas por rank (D → S), prazo e recompensa.

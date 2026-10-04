@@ -30,6 +30,9 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
 - **Campo de Treino**: ninjas ganham atributos e XP. Com nível suficiente, promova a Chunin → Jounin → Kage.
 - **Equipes** (🥷 Ninjas → aba Equipes, ou no painel do ninja): até 3 membros + 1 sensei Chunin+.
   Membros seguem o líder, focam o mesmo alvo, ganham +10% de dano lutando juntos e treinam 50% mais rápido com o sensei.
+- **🏯 Vila**: cumpra os requisitos e evolua de Aldeia → Vila → Vila Oculta → Grande Vila Oculta.
+  Cada nível amplia o território (onde dá para construir), libera prédios (Hospital, Biblioteca), aumenta impostos,
+  permite eleger o Kage (Vila Oculta) e atrai ameaças maiores.
 - **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
   ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.

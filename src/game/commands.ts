@@ -7,6 +7,8 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { nextRank } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
+import { levelDef } from '../data/villageLevels';
+import { inTerritory } from './village';
 import { doorPos } from './world';
 
 export type Result = { ok: true } | { ok: false; error: string };
@@ -19,16 +21,23 @@ export const costLabel = (c: Cost) =>
 export function canBuild(g: Game, type: BuildingType): Result {
   const def = BUILDINGS[type];
   if (!def.buildable) return fail('Não pode ser construído.');
+  if ((def.minLevel ?? 0) > g.state.level) return fail(`Requer nível ${levelDef(def.minLevel!).name}.`);
   if (def.unique && g.state.buildings.some((b) => b.type === type)) return fail('Só pode haver um.');
   if (!g.canAfford(def.cost)) return fail('Recursos insuficientes.');
   return ok;
+}
+
+/** Fora do território → mensagem específica (as outras regras dão "Local inválido"). */
+export function placeError(g: Game, type: BuildingType, tx: number, ty: number) {
+  const d = BUILDINGS[type];
+  return inTerritory(g.state, tx, ty, d.w, d.h + 1) ? 'Local inválido.' : 'Fora do território da vila. Evolua a vila para expandir.';
 }
 
 export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: number): Result {
   const def = BUILDINGS[type];
   const c = canBuild(g, type);
   if (!c.ok) return c;
-  if (!g.world.canPlace(type, tx, ty)) return fail('Local inválido.');
+  if (!g.world.canPlace(type, tx, ty)) return fail(placeError(g, type, tx, ty));
   g.pay(def.cost);
   // árvores no terreno viram madeira
   let wood = 0;
@@ -129,6 +138,7 @@ export function promote(g: Game, unitId: number): Result {
   if (!next) return fail('Rank máximo.');
   const r = RANKS[next];
   if (u.ninja.level < r.minLevel) return fail(`Requer nível ${r.minLevel}.`);
+  if ((r.minVillageLevel ?? 0) > g.state.level) return fail(`A vila precisa ser ${levelDef(r.minVillageLevel!).name}.`);
   if (r.unique && g.state.units.some((o) => o.ninja?.rank === next && o.faction === 'village' && !o.dead))
     return fail(`Já existe um ${r.name}.`);
   if (!g.pay(r.promoteCost)) return fail('Recursos insuficientes.');

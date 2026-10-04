@@ -12,6 +12,9 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.teams = [];
     for (const u of s.units) u.command = null;
   },
+  2: (s) => {
+    s.level = 0;
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

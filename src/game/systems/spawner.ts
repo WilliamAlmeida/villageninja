@@ -1,10 +1,11 @@
 import { DAY_LENGTH, MAP_H, MAP_W } from '../../config';
 import { pick, rand, randi, weightedPick } from '../../core/rng';
 import { ANIMAL_LIST } from '../../data/animals';
+import { levelDef } from '../../data/villageLevels';
 import { createAnimal, createRogue } from '../entities';
 import type { Game } from '../game';
-import { nearestWalkable } from '../pathfinding';
-import { CENTER_TX, CENTER_TY, tileCenter } from '../world';
+import { findPath, nearestWalkable } from '../pathfinding';
+import { CENTER_TX, CENTER_TY, doorTile, tileCenter } from '../world';
 
 /** Surgimento de animais e invasões de renegados + alerta da vila. */
 export function spawnerSystem(g: Game, dt: number) {
@@ -49,28 +50,37 @@ function edgeSpawn(g: Game) {
   if (far.length && Math.random() < 0.7) {
     const n = pick(far);
     const w = nearestWalkable(g.world, n.tx, n.ty + 1);
-    if (w) return { x: tileCenter(w[0]), y: tileCenter(w[1]) };
+    if (w && findPath(g.world, w[0], w[1], CENTER_TX, CENTER_TY + 3)) return { x: tileCenter(w[0]), y: tileCenter(w[1]) };
   }
   return edgePoint(g);
 }
 
+/** Ponto na borda do mapa que tenha caminho até a vila (evita ilhas cercadas de água). */
 function edgePoint(g: Game) {
-  for (let i = 0; i < 20; i++) {
+  const hk = g.hokage();
+  const goal = hk ? doorTile(hk) : { tx: CENTER_TX, ty: CENTER_TY };
+  let fallback: { x: number; y: number } | null = null;
+  for (let i = 0; i < 30; i++) {
     const side = randi(0, 3);
     const tx = side === 0 ? 1 : side === 1 ? MAP_W - 2 : randi(1, MAP_W - 2);
     const ty = side === 2 ? 1 : side === 3 ? MAP_H - 2 : randi(1, MAP_H - 2);
-    if (g.world.walkable(tx, ty)) return { x: tileCenter(tx), y: tileCenter(ty) };
+    if (!g.world.walkable(tx, ty)) continue;
+    const p = { x: tileCenter(tx), y: tileCenter(ty) };
+    if (findPath(g.world, tx, ty, goal.tx, goal.ty)) return p;
+    fallback ??= p;
   }
-  return { x: tileCenter(1), y: tileCenter(1) };
+  return fallback ?? { x: tileCenter(1), y: tileCenter(1) };
 }
 
 function spawnAnimals(g: Game) {
   const s = g.state;
   const wild = s.units.filter((u) => !u.dead && u.kind === 'animal').length;
-  if (wild >= 4 + Math.floor(s.day / 2)) return;
+  const threat = levelDef(s.level).threat;
+  if (wild >= 4 + Math.floor(s.day / 2) + threat * 2) return;
   const def = weightedPick(
-    ANIMAL_LIST.filter((a) => a.minDay <= s.day),
-    (a) => a.weight,
+    ANIMAL_LIST.filter((a) => a.minDay <= s.day + threat * 2),
+    // vilas maiores atraem feras maiores
+    (a) => a.weight + (a.type === 'bear' || a.type === 'snake' ? threat : 0),
   );
   if (!def) return;
   const p = edgeSpawn(g);
@@ -81,9 +91,11 @@ function spawnAnimals(g: Game) {
 
 function spawnRaid(g: Game) {
   const s = g.state;
-  const n = Math.min(5, 1 + Math.floor(s.day / 4));
+  const threat = levelDef(s.level).threat;
+  const n = Math.min(5 + threat, 1 + Math.floor(s.day / 4) + threat);
   const p = edgePoint(g);
-  for (let i = 0; i < n; i++) createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day);
+  // a força dos renegados cresce com os dias e com a fama da vila
+  for (let i = 0; i < n; i++) createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day + threat * 3);
   s.flags.raidActive = true;
   s.flags.raidStole = false;
   g.toast(`⚔ ${n} ninja(s) renegado(s) estão invadindo a vila!`, 'danger', p);

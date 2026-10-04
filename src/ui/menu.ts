@@ -1,4 +1,5 @@
 import type { App } from '../app';
+import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
@@ -53,7 +54,7 @@ export class Menu {
         <button class="btn" data-act="save">💾 Salvar agora</button>
         <button class="btn" data-act="full">⛶ Tela cheia</button>
         <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '🔄 Novo jogo'}</button>
-        <p class="hint">Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Perdas ${s.stats.lost}</p>
+        <p class="hint">${levelDef(s.level).icon} ${levelDef(s.level).name} · Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Perdas ${s.stats.lost}</p>
       </div>
       <div class="col">
         <ul>
@@ -64,6 +65,7 @@ export class Menu {
           <li><b>Campo de Treino</b>: ninjas ganham atributos e XP; promova-os a Chunin/Jounin/Kage.</li>
           <li>Natureza: 火 Fogo › 風 Vento › 雷 Raio › 土 Terra › 水 Água › 火 Fogo (1,5× de dano).</li>
           <li>A partir do dia 3, ninjas renegados invadem a vila. Animais surgem nas florestas.</li>
+          <li><b>🏯 Vila</b>: cumpra os requisitos e evolua de Aldeia até Grande Vila Oculta (mais território e prédios).</li>
           <li>O jogo salva sozinho a cada 20 s.</li>
         </ul>
       </div>

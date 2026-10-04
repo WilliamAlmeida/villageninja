@@ -3,6 +3,7 @@ import { lerp } from '../core/math';
 import { mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Building, GameState, ResourceNode } from './types';
+import { inTerritory } from './village';
 
 export const T = { GRASS: 0, GRASS2: 1, DIRT: 2, SAND: 3, WATER: 4 } as const;
 
@@ -82,7 +83,7 @@ export class World {
       for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER) return false;
     for (const n of this.state.nodes)
       if (n.type === 'rock' && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
-    return true;
+    return inTerritory(this.state, tx, ty, d.w, d.h + 1);
   }
 }
 

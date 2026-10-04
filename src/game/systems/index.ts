@@ -9,6 +9,7 @@ import { statusSystem } from './status';
 import { teamSystem } from './teams';
 import { timeSystem } from './time';
 import { towerSystem } from './towers';
+import { villageSystem } from './village';
 import { villagerSystem } from './villagers';
 
 /**
@@ -27,4 +28,5 @@ export const SYSTEMS: System[] = [
   towerSystem,
   projectileSystem,
   effectSystem,
+  villageSystem,
 ];

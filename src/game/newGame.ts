@@ -12,6 +12,7 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
   const state: GameState = {
     version: SAVE_VERSION,
     seed,
+    level: 0,
     time: (DAY_LENGTH * 2) / 24, // 08:00
     day: 1,
     speed: 1,

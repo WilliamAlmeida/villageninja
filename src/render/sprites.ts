@@ -332,7 +332,7 @@ function drawAnimal(ctx: Ctx, u: Unit, t: number) {
 }
 
 // ---------------------------------------------------------------- prédios
-export function drawBuilding(ctx: Ctx, b: Building, t: number, night: number) {
+export function drawBuilding(ctx: Ctx, b: Building, t: number, night: number, villageLevel = 0) {
   const def = BUILDINGS[b.type];
   const x = b.tx * TILE;
   const y = b.ty * TILE;
@@ -344,6 +344,7 @@ export function drawBuilding(ctx: Ctx, b: Building, t: number, night: number) {
   if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
   paintBuilding(ctx, def, x, y, w, h, t, b.built ? night : 0);
   ctx.restore();
+  if (b.type === 'hokage') paintBanners(ctx, x, y, w, h, t, villageLevel);
 
   if (!b.built) {
     ctx.strokeStyle = '#8a6a3a';
@@ -391,11 +392,11 @@ export function paintBuilding(ctx: Ctx, def: BuildingDef, x: number, y: number, 
     circle(ctx, x + w + 2, y + h - 6, 4);
     circle(ctx, x + w + 7, y + h - 4, 3);
     circle(ctx, x + w + 4, y + h - 11, 3);
-  } else if (def.type === 'academy' || def.type === 'hospital') {
-    const label = def.type === 'academy' ? '忍' : '医';
+  } else if (def.type === 'academy' || def.type === 'hospital' || def.type === 'library') {
+    const label = def.type === 'academy' ? '忍' : def.type === 'hospital' ? '医' : '書';
     ctx.fillStyle = '#f7f1e3';
     ctx.fillRect(x + w / 2 - 7, y + h * 0.18 - 7, 14, 14);
-    ctx.fillStyle = def.type === 'academy' ? '#c0392b' : '#2e8b57';
+    ctx.fillStyle = def.type === 'academy' ? '#c0392b' : def.type === 'hospital' ? '#2e8b57' : '#6c3483';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -455,6 +456,36 @@ function paintHouse(ctx: Ctx, def: BuildingDef, x: number, y: number, w: number,
   ctx.fillStyle = shade(def.roof, -0.25);
   circle(ctx, x - 3, ry, 2.5);
   circle(ctx, x + w + 3, ry, 2.5);
+}
+
+/** Estandartes ao redor da Residência do Hokage: um por nível da vila. */
+function paintBanners(ctx: Ctx, x: number, y: number, w: number, h: number, t: number, level: number) {
+  const spots = [
+    [x - 4, y + h - 6],
+    [x + w + 4, y + h - 6],
+    [x - 4, y + h * 0.35],
+    [x + w + 4, y + h * 0.35],
+  ];
+  for (let i = 0; i < Math.min(level, spots.length); i++) {
+    const [px, py] = spots[i]!;
+    const dir = px < x + w / 2 ? -1 : 1;
+    ctx.strokeStyle = '#3b2a1a';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px, py - 22);
+    ctx.stroke();
+    const wave = Math.sin(t * 4 + i) * 1.5;
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.moveTo(px, py - 22);
+    ctx.lineTo(px + dir * 10, py - 21 + wave);
+    ctx.lineTo(px + dir * 10, py - 11 + wave);
+    ctx.lineTo(px, py - 12);
+    ctx.fill();
+    ctx.fillStyle = '#f7f1e3';
+    circle(ctx, px + dir * 5, py - 16.5 + wave / 2, 2);
+  }
 }
 
 function paintHokage(ctx: Ctx, def: BuildingDef, x: number, y: number, w: number, h: number, night: number) {

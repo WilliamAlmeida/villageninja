@@ -166,6 +166,8 @@ export interface Effect {
 export interface GameState {
   version: number;
   seed: number;
+  /** Nível da vila (0 = Aldeia). Ver data/villageLevels.ts. */
+  level: number;
   time: number;
   day: number;
   speed: number;

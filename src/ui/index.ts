@@ -2,7 +2,7 @@ import type { App } from '../app';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { orderAttack, orderMove } from '../game/teams';
-import { toTile } from '../game/world';
+import { doorPos, toTile } from '../game/world';
 import { BuildUI } from './build';
 import { el } from './dom';
 import { Hud } from './hud';
@@ -19,7 +19,7 @@ export function createUI(app: App, root: HTMLElement) {
   const dock = el(
     'div',
     { id: 'dock' },
-    `<button class="bigbtn" data-act="build">🔨<span>Construir</span></button><button class="bigbtn" data-act="roster">🥷<span>Ninjas</span></button>`,
+    `<button class="bigbtn" data-act="build">🔨<span>Construir</span></button><button class="bigbtn" data-act="roster">🥷<span>Ninjas</span></button><button class="bigbtn" data-act="village">🏯<span>Vila</span></button>`,
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
   const btnRoster = dock.querySelector<HTMLElement>('[data-act="roster"]')!;
@@ -30,6 +30,14 @@ export function createUI(app: App, root: HTMLElement) {
       if (app.buildType) build.exit();
       build.toggle();
       if (build.open) panel.show(null);
+    }
+    if (a === 'village') {
+      const hk = app.game.hokage();
+      if (hk) {
+        app.game.select({ kind: 'building', id: hk.id });
+        const c = doorPos(hk);
+        app.camera.focus(c.x, c.y - 40);
+      }
     }
     if (a === 'roster') {
       build.toggle(false);
