@@ -78,7 +78,9 @@ Sem engine, o bundle fica em ~100 KB, não há API de engine misturada à regra 
 roda nos testes sem browser. Se no futuro precisar de tilemaps do Tiled, partículas pesadas ou WebGL,
 o Phaser pode entrar só na camada `render/`, sem tocar em `game/`.
 
-## Próximos passos sugeridos
+## Próximos passos
+
+Veja o plano completo em [docs/ROADMAP.md](docs/ROADMAP.md). Resumo:
 
 - Missões (enviar ninjas para fora do mapa e voltar com recompensas)
 - Equipes de 3 + sensei, afinidade entre ninjas
