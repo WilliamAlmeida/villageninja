@@ -48,10 +48,16 @@ Decisões de design (definidas com o autor):
 - **Feito**: `game/missions.ts`, `systems/missions.ts`, `game/missionView.ts`, painel do quadro, botão 📋,
   marcadores (◆ alvo, ★ chefe, $ mercador), acampamentos no mapa, setas na borda da tela, save v4.
 
-## Fase 5 — Economia mais profunda
-- Recursos: **ferro**, **ervas**, **papel de selo**.
-- Prédios: mina de ferro, horta de ervas, **ferreiro** (kunais/armas), farmácia (pílulas de chakra), oficina de selos (papel-bomba, armadilhas).
-- Equipamento por ninja: arma, colete, consumível.
+## Fase 5 — Economia mais profunda ✅
+- Recursos: **ferro** 🔩 (veios de minério no mapa), **ervas** 🌿 (horta e missões de coleta), **papel de selo** 🏷️ (madeira).
+- Prédios: Mina de Ferro, Horta de Ervas, Forja, Farmácia (nível Vila) e Oficina de Selos (Vila Oculta).
+- Oficinas com fila de fabricação (até 5, cancelar devolve recursos) e estoque da vila (`data/items.ts`).
+- Equipamento por ninja: arma (dano), colete (vida/defesa) e consumível usado sozinho em combate
+  (pílula de soldado, pílula de chakra, papel-bomba), reposto do estoque ao passar pela vila.
+- Missões passam a render ervas, ferro e papel.
+- Balanceamento: invasões escalam mais com o nível da vila do que com os dias (`raidStrength`).
+- **Feito**: `data/resources.ts`, `data/items.ts`, `game/gear.ts`, `game/gearBonus.ts`, trabalhos novos em
+  `systems/villagers.ts`, painel das oficinas, seção Equipamento no ninja, save v5.
 
 ## Fase 6 — Exame Chunin (marco)
 - Evento periódico quando há genins em equipes: arena no mapa, chaveamento, lutas 1×1 assistíveis.

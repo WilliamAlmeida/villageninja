@@ -17,6 +17,8 @@ import {
 } from '../game/missions';
 import { missionFocus } from '../game/missionView';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
+import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/items';
+import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip } from '../game/gear';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
@@ -198,7 +200,29 @@ export class Panel {
     html += `<button class="btn" data-act="cmd-retreat" data-arg="self">🏃 Recuar</button>`;
     if (u.command) html += `<button class="btn" data-act="cmd-clear" data-arg="self">✕ Cancelar</button>`;
     html += `</div>`;
-    return html + this.teamSection(u, team);
+    return html + this.teamSection(u, team) + this.equipSection(u);
+  }
+
+  /** Arma, colete e consumível: o atual e o que há no estoque para trocar. */
+  private equipSection(u: Unit) {
+    const g = this.app.game;
+    const e = u.ninja!.equip;
+    let html = `<h4>Equipamento</h4>`;
+    for (const slot of ['weapon', 'armor', 'item'] as const) {
+      const cur = e[slot] ? ITEMS[e[slot]!] : undefined;
+      const status = slot === 'item' && cur ? (e.itemReady ? ' (pronto)' : ' (gasto — repõe na vila)') : '';
+      html += `<div class="eqrow"><span class="eqlabel">${SLOT_LABEL[slot]}</span><span class="eqcur">${cur ? `${cur.icon} ${esc(cur.name)}${status}` : '—'}</span>`;
+      if (cur) html += `<button class="btn mini" data-act="unequip" data-arg="${slot}">✕</button>`;
+      html += `</div>`;
+      const opts = ITEM_LIST.filter((d) => d.slot === slot && d.id !== e[slot] && stock(g, d.id) > 0);
+      if (opts.length)
+        html += `<div class="btnrow eqopts">${opts.map((d) => `<button class="btn mini" data-act="equip" data-arg="${d.id}">${d.icon} ${esc(d.name)} ×${stock(g, d.id)}</button>`).join('')}</div>`;
+    }
+    const gb = gearBonus(u);
+    if (gb.melee || gb.defense || gb.hp) html += `<p class="hint">Bônus: +${gb.melee} dano · +${gb.kunai} kunai · ${Math.round(gb.defense * 100)}% defesa · +${gb.hp} vida</p>`;
+    if (!ITEM_LIST.some((d) => stock(g, d.id) > 0)) html += `<p class="hint">Estoque vazio. Fabrique na Forja, Farmácia ou Oficina de Selos.</p>`;
+    else html += `<div class="btnrow"><button class="btn" data-act="autoequip">⚙ Equipar o melhor</button></div>`;
+    return html;
   }
 
   private ninjaControls(u: Unit) {
@@ -293,6 +317,8 @@ export class Panel {
     } else {
       if (bd.type === 'hokage') html += this.villageSection();
       if (bd.type === 'missions') html += this.missionsSection(t, b);
+      if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
+      if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1🏷️ com 4🪵 a cada 8 s (se houver 30🪵 ou mais).</p>`;
       if (d.workers) {
         html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">−</button>
           <b data-t="workers"></b><button class="btn" data-act="workers" data-arg="1">+</button></div>`;
@@ -338,6 +364,34 @@ export class Panel {
     html += `<div class="actions"><button class="btn primary" data-act="upgrade" ${st.ready && st.afford ? '' : 'disabled'}>
       ⬆ Elevar a ${st.def.name} (${costLabel(st.def.cost)})</button></div>`;
     if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
+    return html;
+  }
+
+  /** Oficina: estoque, receitas (fabricar) e fila de produção. */
+  private workshopSection(bd: Building, t: Record<string, string>, b: Record<string, number>) {
+    const g = this.app.game;
+    const recipes = recipesOf(bd.type);
+    let html = `<h4>Estoque</h4><div class="btnrow">`;
+    for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
+    html += `</div>`;
+    const queue = bd.queue ?? [];
+    html += `<h4>Produção (${queue.length + (bd.craft ? 1 : 0)}/${MAX_QUEUE})</h4>`;
+    if (bd.craft) {
+      const d = ITEMS[bd.craft.itemId]!;
+      html += `<div class="hint">${d.icon} ${esc(d.name)}</div><div class="bar pg"><i data-b="craft"></i><span data-t="craft"></span></div>`;
+      b.craft = bd.craft.progress / d.craftTime;
+      t.craft = `${Math.floor(b.craft * 100)}%`;
+    } else html += `<p class="hint">${bd.workers.length ? 'Nada em produção.' : 'Sem artesão: aumente os trabalhadores (+).'}</p>`;
+    if (queue.length) html += `<p class="hint">Na fila: ${queue.map((id) => ITEMS[id]!.icon).join(' ')}</p>`;
+    if (queue.length || bd.craft) html += `<div class="btnrow"><button class="btn" data-act="craft-cancel">↩ Cancelar último (devolve recursos)</button></div>`;
+    html += `<h4>Receitas</h4>`;
+    for (const r of recipes) {
+      const locked = (r.minLevel ?? 0) > g.state.level;
+      const can = !locked && g.canAfford(r.cost) && queue.length + (bd.craft ? 1 : 0) < MAX_QUEUE;
+      html += `<div class="jcard ${locked ? 'locked' : ''}"><div class="jn">${r.icon} ${esc(r.name)} <small>· ${SLOT_LABEL[r.slot]}</small></div>
+        <div class="jm">${costLabel(r.cost)} · ${r.craftTime}s</div><div class="jd">${esc(r.desc)}</div>
+        <div class="jb">${locked ? `<span class="why">🔒 Requer ${levelDef(r.minLevel!).name}</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${can ? '' : 'disabled'}>Fabricar</button>`}</div></div>`;
+    }
     return html;
   }
 
@@ -471,7 +525,8 @@ export class Panel {
       html += `<h4>Ordens para a equipe</h4><div class="btnrow">
         <button class="btn primary" data-act="cmd-mode" data-arg="team">📍 Ordem</button>
         <button class="btn" data-act="cmd-retreat" data-arg="team">🏃 Recuar</button>
-        <button class="btn" data-act="cmd-clear" data-arg="team">✕ Cancelar</button></div>
+        <button class="btn" data-act="cmd-clear" data-arg="team">✕ Cancelar</button>
+        <button class="btn" data-act="team-autoequip">⚙ Equipar equipe</button></div>
         <h4>Rotina da equipe</h4><div class="seg">`;
       for (const [k, label] of [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']] as [NinjaOrder, string][])
         html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}">${label}</button>`;
@@ -558,6 +613,10 @@ export class Panel {
       switch (act) {
         case 'team-mode':
           return this.report(setTeamOrder(g, v.id, arg as NinjaOrder));
+        case 'team-autoequip': {
+          const tm = g.team(v.id);
+          return this.report(tm ? autoEquip(g, teamUnits(g, tm).map((u) => u.id)) : { ok: false, error: 'Equipe inválida.' });
+        }
         case 'team-disband':
           if (!this.armedDemolish) {
             this.armedDemolish = 1;
@@ -593,6 +652,12 @@ export class Panel {
           if (u) this.app.camera.focus(u.x, u.y);
           return;
         }
+        case 'equip':
+          return this.report(equip(g, v.id, arg));
+        case 'unequip':
+          return this.report(unequip(g, v.id, arg as ItemSlot));
+        case 'autoequip':
+          return this.report(autoEquip(g, [v.id]));
         case 'team-join':
           return this.report(btn.dataset.slot === 'sensei' ? joinAsSensei(g, Number(arg), v.id) : joinAsMember(g, Number(arg), v.id));
         case 'team-create-with':
@@ -610,6 +675,10 @@ export class Panel {
           return this.report(recruitNinja(g));
         case 'upgrade':
           return this.report(upgradeVillage(g));
+        case 'craft':
+          return this.report(enqueueCraft(g, v.id, arg));
+        case 'craft-cancel':
+          return this.report(cancelCraft(g, v.id));
         case 'm-accept':
           return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
         case 'm-abandon':

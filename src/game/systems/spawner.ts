@@ -2,6 +2,7 @@ import { DAY_LENGTH, MAP_H, MAP_W } from '../../config';
 import { pick, rand, randi, weightedPick } from '../../core/rng';
 import { ANIMAL_LIST } from '../../data/animals';
 import { levelDef } from '../../data/villageLevels';
+import type { Rank } from '../../data/ninja';
 import { createAnimal, createRogue } from '../entities';
 import type { Game } from '../game';
 import { findPath, nearestWalkable } from '../pathfinding';
@@ -89,13 +90,26 @@ function spawnAnimals(g: Game) {
   if (def.type === 'snake' || def.type === 'bear') g.toast(`🐾 Um(a) ${def.name} foi avistado(a) na floresta!`, 'warn', p);
 }
 
+/**
+ * Força das invasões. Cresce devagar com os dias e mais rápido com a fama
+ * (nível) da vila — assim quem evolui enfrenta ameaças maiores, e uma vila
+ * pequena não é esmagada só porque o tempo passou.
+ */
+export function raidStrength(day: number, threat: number) {
+  const rank: Rank = day >= 18 || threat >= 3 ? 'jounin' : day >= 9 || threat >= 2 ? 'chunin' : 'genin';
+  return {
+    rank,
+    count: Math.min(5 + threat, 1 + Math.floor(day / 5) + threat),
+    stats: Math.min(3, day * 0.07 + threat * 0.5),
+  };
+}
+
 function spawnRaid(g: Game) {
   const s = g.state;
-  const threat = levelDef(s.level).threat;
-  const n = Math.min(5 + threat, 1 + Math.floor(s.day / 4) + threat);
   const p = edgePoint(g);
-  // a força dos renegados cresce com os dias e com a fama da vila
-  for (let i = 0; i < n; i++) createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day + threat * 3);
+  const r = raidStrength(s.day, levelDef(s.level).threat);
+  for (let i = 0; i < r.count; i++) createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day, { rank: r.rank, stats: r.stats });
+  const n = r.count;
   s.flags.raidActive = true;
   s.flags.raidStole = false;
   g.toast(`⚔ ${n} ninja(s) renegado(s) estão invadindo a vila!`, 'danger', p);

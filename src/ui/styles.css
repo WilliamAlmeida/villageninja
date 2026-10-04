@@ -202,6 +202,13 @@ select { width: 100%; margin-top: 4px; padding: 6px; border-radius: 8px; backgro
 .btn.p-bad { box-shadow: inset 0 0 0 1.5px var(--bad); }
 @media (max-width: 760px) { .bigbtn { width: 50px; } #buildbar { left: calc(234px + var(--safe-l)); } }
 
+/* ---------- equipamento ---------- */
+.eqrow { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 12px; }
+.eqlabel { width: 72px; color: var(--muted); flex: 0 0 auto; }
+.eqcur { flex: 1; min-width: 0; }
+.btn.mini { padding: 3px 7px; font-size: 11px; }
+.eqopts { margin: 0 0 4px 78px; }
+
 /* ---------- modal ---------- */
 #modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; }
 #modal .box {
@@ -222,6 +229,12 @@ select { width: 100%; margin-top: 4px; padding: 6px; border-radius: 8px; backgro
 @keyframes rot { 50% { transform: rotate(-90deg); } }
 @media (orientation: portrait) and (max-width: 820px) {
   #rotate { display: flex; }
+}
+@media (max-width: 960px) {
+  .chip { padding: 3px 5px; gap: 2px; font-size: 12px; }
+  #topbar .res { gap: 3px; }
+  .clock .lbl { display: none; }
+  .speed button { padding: 5px 6px; min-width: 28px; }
 }
 @media (max-height: 380px) {
   #topbar { height: 34px; }

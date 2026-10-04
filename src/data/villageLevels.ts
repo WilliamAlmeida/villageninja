@@ -37,13 +37,13 @@ export const VILLAGE_LEVELS: VillageLevelDef[] = [
     level: 1, name: 'Vila', icon: '🏘️', territory: 17, tax: 3, threat: 1,
     req: { population: 14, ninjas: 4, buildings: { house: 3, academy: 1, training: 1 } },
     cost: { wood: 150, stone: 100, ryo: 200 },
-    perks: ['Território maior', 'Libera o Hospital', 'Impostos: 3 ryo por morador'],
+    perks: ['Território maior', 'Libera Hospital, Mina de Ferro, Horta de Ervas, Forja e Farmácia', 'Impostos: 3 ryo por morador'],
   },
   {
     level: 2, name: 'Vila Oculta', icon: '🏯', territory: 23, tax: 3, threat: 2,
     req: { population: 24, ninjas: 7, ranked: { rank: 'chunin', count: 2 }, buildings: { hospital: 1, market: 1, missions: 1 }, raidsRepelled: 2, missionsDone: 2 },
     cost: { wood: 300, stone: 250, ryo: 500 },
-    perks: ['Território maior', 'Libera a Biblioteca de Jutsus', 'Permite eleger um Kage'],
+    perks: ['Território maior', 'Libera Biblioteca, Oficina de Selos, Ninjatō e Colete tático', 'Permite eleger um Kage'],
   },
   {
     level: 3, name: 'Grande Vila Oculta', icon: '🍃', territory: 60, tax: 4, threat: 3,

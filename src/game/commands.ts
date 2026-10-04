@@ -15,8 +15,7 @@ export type Result = { ok: true } | { ok: false; error: string };
 const ok: Result = { ok: true };
 const fail = (error: string): Result => ({ ok: false, error });
 
-export const costLabel = (c: Cost) =>
-  [c.wood && `${c.wood}🪵`, c.stone && `${c.stone}🪨`, c.food && `${c.food}🍙`, c.ryo && `${c.ryo}💰`].filter(Boolean).join(' ') || 'grátis';
+export { costLabel } from '../data/resources';
 
 export function canBuild(g: Game, type: BuildingType): Result {
   const def = BUILDINGS[type];

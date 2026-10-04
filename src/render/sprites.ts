@@ -30,7 +30,7 @@ function shade(hex: string, amt: number) {
 const nodeCache = new Map<string, HTMLCanvasElement>();
 const TREE_COLORS = ['#2f6b2a', '#3a7a30', '#2a5e2e', '#477f2f'];
 
-function nodeSprite(type: 'tree' | 'rock' | 'herb', variant: number) {
+function nodeSprite(type: ResourceNode['type'], variant: number) {
   const key = `${type}${variant}`;
   let c = nodeCache.get(key);
   if (c) return c;
@@ -73,6 +73,7 @@ function nodeSprite(type: 'tree' | 'rock' | 'herb', variant: number) {
     circle(ctx, cx - 3, cy - 8, 5);
     circle(ctx, cx + 4, cy - 4, 3);
   } else {
+    // rocha ou minério
     const r = 9 + (variant % 3);
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ellipse(ctx, cx + 2, cy + 8, r + 2, 5);
@@ -89,6 +90,16 @@ function nodeSprite(type: 'tree' | 'rock' | 'herb', variant: number) {
     ellipse(ctx, cx - 2, cy - 3, r * 0.55, r * 0.35);
     ctx.fillStyle = '#5e6266';
     ellipse(ctx, cx + 3, cy + 3, r * 0.35, r * 0.2);
+    if (type === 'ore') {
+      // veios de ferro (ferrugem + brilho metálico)
+      for (let i = 0; i < 5; i++) {
+        const a = i * 1.7 + variant;
+        ctx.fillStyle = i % 2 ? '#c0622b' : '#8f4a24';
+        ellipse(ctx, cx + Math.cos(a) * r * 0.45, cy + Math.sin(a) * r * 0.3, 2.4, 1.6, a);
+      }
+      ctx.fillStyle = '#e8eef4';
+      circle(ctx, cx - 3, cy - 4, 1.2);
+    }
   }
   nodeCache.set(key, c);
   return c;
@@ -381,6 +392,8 @@ export function paintBuilding(ctx: Ctx, def: BuildingDef, x: number, y: number, 
   switch (def.type) {
     case 'farm':
       return paintFarm(ctx, x, y, w, h, t);
+    case 'herbgarden':
+      return paintHerbGarden(ctx, x, y, w, h, t);
     case 'training':
       return paintTraining(ctx, x, y, w, h);
     case 'tower':
@@ -408,11 +421,34 @@ export function paintBuilding(ctx: Ctx, def: BuildingDef, x: number, y: number, 
     circle(ctx, x + w + 2, y + h - 6, 4);
     circle(ctx, x + w + 7, y + h - 4, 3);
     circle(ctx, x + w + 4, y + h - 11, 3);
-  } else if (def.type === 'academy' || def.type === 'hospital' || def.type === 'library' || def.type === 'missions') {
-    const label = def.type === 'academy' ? '忍' : def.type === 'hospital' ? '医' : def.type === 'library' ? '書' : '任';
+  } else if (def.type === 'forge') {
+    // chaminé com brasa e bigorna na frente
+    ctx.fillStyle = '#4a4440';
+    ctx.fillRect(x + w - 12, y - 8, 8, 14);
+    const glow = 0.5 + 0.3 * Math.sin(t * 6);
+    ctx.fillStyle = `rgba(255,140,40,${glow})`;
+    circle(ctx, x + w - 8, y - 9, 3);
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(x + w + 1, y + h - 10, 9, 4);
+    ctx.fillRect(x + w + 3, y + h - 6, 5, 5);
+  } else if (def.type === 'ironmine') {
+    for (const [ox, oy, r] of [[2, -6, 4], [7, -4, 3], [4, -11, 3]] as const) {
+      ctx.fillStyle = '#6e6e72';
+      circle(ctx, x + w + ox, y + h + oy, r);
+      ctx.fillStyle = '#c0622b';
+      circle(ctx, x + w + ox + 1, y + h + oy - 1, r * 0.4);
+    }
+  }
+  const SIGNS: Partial<Record<BuildingDef['type'], [string, string]>> = {
+    academy: ['忍', '#c0392b'], hospital: ['医', '#2e8b57'], library: ['書', '#6c3483'], missions: ['任', '#2c3e50'],
+    pharmacy: ['薬', '#2e7d6b'], sealshop: ['封', '#8e2a22'], forge: ['鍛', '#5a3a2a'],
+  };
+  const sign = SIGNS[def.type];
+  if (sign) {
+    const [label, color] = sign;
     ctx.fillStyle = '#f7f1e3';
     ctx.fillRect(x + w / 2 - 7, y + h * 0.18 - 7, 14, 14);
-    ctx.fillStyle = def.type === 'academy' ? '#c0392b' : def.type === 'hospital' ? '#2e8b57' : def.type === 'library' ? '#6c3483' : '#2c3e50';
+    ctx.fillStyle = color;
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -557,6 +593,25 @@ function paintFarm(ctx: Ctx, x: number, y: number, w: number, h: number, t: numb
     ctx.fillRect(px - 1, y, 3, 3);
     ctx.fillRect(px - 1, y + h - 3, 3, 3);
   }
+}
+
+function paintHerbGarden(ctx: Ctx, x: number, y: number, w: number, h: number, t: number) {
+  ctx.fillStyle = '#5b4630';
+  ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+  for (let row = 0; row < 4; row++) {
+    const ry = y + 9 + row * ((h - 16) / 3);
+    for (let cx = x + 8; cx < x + w - 5; cx += 9) {
+      const sway = Math.sin(t * 2 + cx + row) * 0.6;
+      ctx.fillStyle = row % 2 ? '#3f8f4a' : '#5fae5a';
+      ellipse(ctx, cx - 2 + sway, ry, 3, 1.6, -0.5);
+      ellipse(ctx, cx + 2 + sway, ry, 3, 1.6, 0.5);
+      ctx.fillStyle = ['#e05ad1', '#ffe14d', '#7fc8ff'][(row + Math.floor(cx)) % 3]!;
+      circle(ctx, cx + sway, ry - 2, 1.3);
+    }
+  }
+  ctx.strokeStyle = '#8fbf6a';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
 }
 
 function paintTraining(ctx: Ctx, x: number, y: number, w: number, h: number) {

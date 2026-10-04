@@ -4,6 +4,7 @@ import { DAY_LENGTH, MAP_H, MAP_W, TILE } from '../config';
 import { pick, rand, weightedPick } from '../core/rng';
 import { MISSION_RANKS, MISSION_TEMPLATES, OFFER_RANKS, type Enemy, type MissionTemplate } from '../data/missions';
 import { randomGiven } from '../data/names';
+import { costLabel } from '../data/resources';
 import { RANKS, STAT_KEYS } from '../data/ninja';
 import { createAnimal, createRogue, createVillager } from './entities';
 import { fx } from './fx';
@@ -259,8 +260,7 @@ export function completeMission(g: Game, m: Mission) {
   if (team) for (const u of teamUnits(g, team)) gainXp(g, u, r.xp);
   clearTeamCommands(g, m);
   cleanup(g, m);
-  const parts = [reward.ryo && `+${reward.ryo}💰`, reward.food && `+${reward.food}🍙`, reward.wood && `+${reward.wood}🪵`, reward.stone && `+${reward.stone}🪨`];
-  g.toast(`✅ Missão cumprida: ${m.title}! ${parts.filter(Boolean).join(' ')} · +${r.rep} reputação`, 'good');
+  g.toast(`✅ Missão cumprida: ${m.title}! +${costLabel(reward)} · +${r.rep} reputação`, 'good');
   archive(g);
 }
 

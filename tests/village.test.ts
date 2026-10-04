@@ -10,7 +10,7 @@ import { SYSTEMS } from '../src/game/systems';
 import type { BuildingType } from '../src/data/buildings';
 import { inTerritory, nextLevelStatus, territoryCenter, upgradeVillage } from '../src/game/village';
 
-const rich = (g: Game) => (g.state.res = { wood: 9999, stone: 9999, food: 9999, ryo: 99999 });
+const rich = (g: Game) => (g.state.res = { wood: 9999, stone: 9999, food: 9999, ryo: 99999, iron: 999, herbs: 999, paper: 999 });
 
 /** Cria prédios já prontos (atalho para testes). */
 function addBuilt(g: Game, type: BuildingType, n: number) {

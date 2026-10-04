@@ -10,6 +10,9 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push } from './movement';
 import { gainXp } from './progression';
+import { consumeItem } from './gear';
+import { gearBonus } from './gearBonus';
+import { ITEMS } from '../data/items';
 import { hasTeammateNear } from './teams';
 import type { Faction, Projectile, ProjectileKind, Unit } from './types';
 
@@ -22,7 +25,7 @@ function meleeStats(u: Unit) {
   }
   if (u.ninja) {
     const d = derive(u.ninja.stats);
-    return { dmg: d.meleeDmg * (u.kind === 'clone' ? 0.5 : 1), cd: d.meleeCd, range: MELEE_RANGE };
+    return { dmg: (d.meleeDmg + gearBonus(u).melee) * (u.kind === 'clone' ? 0.5 : 1), cd: d.meleeCd, range: MELEE_RANGE };
   }
   return { dmg: 2, cd: 1.5, range: MELEE_RANGE };
 }
@@ -50,6 +53,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
   u.hidden = false;
   const d = Math.hypot(t.x - u.x, t.y - u.y);
 
+  if (canUseJutsu(u) && tryConsumable(g, u, t, d)) return;
   if (u.attackCd <= 0 && canUseJutsu(u)) {
     const slot = pickJutsu(g, u, t, d);
     if (slot >= 0) {
@@ -77,6 +81,35 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
       applyDamage(g, u, t, ms.dmg, null, { melee: true });
     }
   }
+}
+
+/** Usa o consumível carregado na hora certa (pílula quase caindo, bomba no alcance). */
+function tryConsumable(g: Game, u: Unit, t: Unit, d: number): boolean {
+  const e = u.ninja?.equip;
+  if (!e?.item || !e.itemReady) return false;
+  const use = ITEMS[e.item]?.use;
+  if (!use) return false;
+  if (use.kind === 'heal' && u.hp < u.maxHp * 0.3) {
+    consumeItem(g, u);
+    u.hp = Math.min(u.maxHp, u.hp + u.maxHp * use.amount);
+    fx(g, 'heal', u.x, u.y, { r: 16, color: '#7dff9a', life: 0.8 });
+    return true;
+  }
+  if (use.kind === 'chakra' && u.chakra < u.maxChakra * 0.15 && u.ninja!.jutsu.some(Boolean)) {
+    consumeItem(g, u);
+    u.chakra = Math.min(u.maxChakra, u.chakra + u.maxChakra * use.amount);
+    fx(g, 'ring', u.x, u.y, { r: 16, color: '#4da6ff', life: 0.6 });
+    return true;
+  }
+  if (use.kind === 'bomb' && u.attackCd <= 0 && d > 40 && d < 130) {
+    consumeItem(g, u);
+    u.attackCd = 0.8;
+    spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
+      damage: use.amount, radius: use.radius ?? 50, nature: null, color: '#ff7a3b', size: 5, speed: 300, kind: 'kunai', stun: 0, range: 140,
+    });
+    return true;
+  }
+  return false;
 }
 
 function pickJutsu(g: Game, u: Unit, t: Unit, d: number): number {
@@ -241,7 +274,7 @@ function throwKunai(g: Game, u: Unit, t: Unit) {
   u.attackCd = 1.6;
   u.anim = 0.2;
   spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
-    damage: d.kunaiDmg, radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 360, kind: 'kunai', stun: 0, range: 160,
+    damage: d.kunaiDmg + gearBonus(u).kunai, radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 360, kind: 'kunai', stun: 0, range: 160,
   });
 }
 
@@ -295,7 +328,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   let dmg = amount * mult;
   // lutar junto da equipe dá +10% de dano
   if (src?.faction === 'village' && src.ninja && hasTeammateNear(g, src)) dmg *= 1.1;
-  if (t.ninja) dmg *= 1 - derive(t.ninja.stats).defense;
+  if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
   if (t.shield > 0) dmg *= 0.4;
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
   t.hp -= dmg;

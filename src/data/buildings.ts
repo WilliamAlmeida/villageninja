@@ -12,9 +12,14 @@ export type BuildingType =
   | 'hospital'
   | 'tower'
   | 'library'
-  | 'missions';
+  | 'missions'
+  | 'ironmine'
+  | 'herbgarden'
+  | 'forge'
+  | 'pharmacy'
+  | 'sealshop';
 
-export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant';
+export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
 export interface BuildingDef {
   type: BuildingType;
@@ -102,6 +107,31 @@ const LIST: BuildingDef[] = [
     type: 'missions', name: 'Mesa de Missões', icon: '📋', desc: 'Recebe pedidos de missões. Envie equipes para cumpri-las.',
     w: 2, h: 2, cost: { wood: 40, stone: 20, ryo: 30 }, buildTime: 14, unique: true, buildable: true, lights: true,
     roof: '#2c3e50', wall: '#e8dcc0',
+  },
+  {
+    type: 'ironmine', name: 'Mina de Ferro', icon: '🔩', desc: '2 mineiros extraem ferro de veios de minério próximos.',
+    w: 2, h: 2, cost: { wood: 40, stone: 30 }, buildTime: 16, workers: 2, job: 'ironminer', buildable: true, minLevel: 1,
+    roof: '#4a4f57', wall: '#8b8378',
+  },
+  {
+    type: 'herbgarden', name: 'Horta de Ervas', icon: '🌿', desc: '2 jardineiros cultivam ervas medicinais.',
+    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 10, workers: 2, job: 'gardener', buildable: true, walkable: true, minLevel: 1,
+    roof: '#3c6e3c', wall: '#8fbf6a',
+  },
+  {
+    type: 'forge', name: 'Forja', icon: '⚒️', desc: 'Um ferreiro fabrica armas e coletes com ferro.',
+    w: 2, h: 2, cost: { wood: 50, stone: 40, ryo: 60 }, buildTime: 18, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 1,
+    roof: '#5a3a2a', wall: '#9a8a7a',
+  },
+  {
+    type: 'pharmacy', name: 'Farmácia', icon: '⚗️', desc: 'Um boticário prepara pílulas com ervas.',
+    w: 2, h: 2, cost: { wood: 40, stone: 20, ryo: 50 }, buildTime: 16, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 1,
+    roof: '#2e7d6b', wall: '#f0ead8',
+  },
+  {
+    type: 'sealshop', name: 'Oficina de Selos', icon: '🏷️', desc: 'Faz papel de selo com madeira e papéis-bomba.',
+    w: 2, h: 2, cost: { wood: 60, stone: 30, ryo: 120 }, buildTime: 20, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 2,
+    roof: '#8e2a22', wall: '#f3e7cf',
   },
 ];
 

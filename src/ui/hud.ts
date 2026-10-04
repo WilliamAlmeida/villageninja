@@ -23,6 +23,9 @@ export class Hud {
         <span class="chip" title="Pedra">🪨 <b data-r="stone"></b></span>
         <span class="chip" title="Comida">🍙 <b data-r="food"></b></span>
         <span class="chip" title="Ryo">💰 <b data-r="ryo"></b></span>
+        <span class="chip adv" title="Ferro">🔩 <b data-r="iron"></b></span>
+        <span class="chip adv" title="Ervas">🌿 <b data-r="herbs"></b></span>
+        <span class="chip adv" title="Papel de selo">🏷️ <b data-r="paper"></b></span>
         <span class="chip" title="População / moradia">👥 <b data-r="pop"></b></span>
         <span class="chip" title="Ninjas">🥷 <b data-r="ninjas"></b></span>
       </div>
@@ -60,6 +63,11 @@ export class Hud {
     set('stone', fmt(s.res.stone));
     set('food', fmt(s.res.food));
     set('ryo', fmt(s.res.ryo));
+    // recursos avançados só aparecem quando a vila já os usa
+    for (const k of ['iron', 'herbs', 'paper'] as const) {
+      set(k, fmt(s.res[k]));
+      this.vals.get(k)!.parentElement!.hidden = s.res[k] <= 0 && s.level < 1;
+    }
     const pop = g.population();
     const cap = g.popCap();
     set('pop', `${pop}/${cap}`);

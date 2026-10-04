@@ -50,7 +50,7 @@ describe('simulação', () => {
 
   test('academia: recrutar e ensinar jutsu', () => {
     const g = createNewGame(SYSTEMS, 7);
-    g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999 };
+    g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999, iron: 999, herbs: 999, paper: 999 };
     expect(placeBuilding(g, 'academy', CENTER_TX - 7, CENTER_TY + 3).ok).toBe(true);
     run(g, 45);
     expect(g.findBuilt('academy')).toBeDefined();

@@ -82,7 +82,7 @@ export class World {
     for (let y = ty; y <= ty + d.h; y++)
       for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER) return false;
     for (const n of this.state.nodes)
-      if (n.type === 'rock' && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
+      if ((n.type === 'rock' || n.type === 'ore') && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
     return inTerritory(this.state, tx, ty, d.w, d.h + 1);
   }
 }
@@ -154,7 +154,9 @@ export function generateMap(seed: number, nextId: () => number): { tiles: number
       } else if (d > 7 && rng() < 0.025) {
         nodes.push({ id: nextId(), type: 'tree', tx: x, ty: y, amount: 25, max: 25, variant: Math.floor(rng() * 4) });
       } else if (d > 9 && ((n3(x + 31, y + 17) > 0.7 && rng() < 0.5) || rng() < 0.006)) {
-        nodes.push({ id: nextId(), type: 'rock', tx: x, ty: y, amount: 40, max: 40, variant: Math.floor(rng() * 4) });
+        // parte das rochas tem veios de minério de ferro
+        const ore = d > 12 && rng() < 0.25;
+        nodes.push({ id: nextId(), type: ore ? 'ore' : 'rock', tx: x, ty: y, amount: 40, max: 40, variant: Math.floor(rng() * 4) });
       }
     }
   return { tiles, nodes };

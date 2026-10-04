@@ -1,13 +1,13 @@
 import { bus, type ToastKind } from '../core/events';
 import { dist2 } from '../core/math';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
-import type { Building, Cost, Faction, GameState, ResKey, ResourceNode, Selection, Team, Unit } from './types';
+import { RES_KEYS } from '../data/resources';
+import type { Building, Cost, Faction, GameState, ResourceNode, Selection, Team, Unit } from './types';
 import { isHostile } from './factions';
 import { World } from './world';
 
 export type System = (g: Game, dt: number) => void;
 
-const RES_KEYS: ResKey[] = ['wood', 'stone', 'food', 'ryo'];
 
 /**
  * Fachada da simulação: guarda o estado, índices auxiliares e helpers de consulta.

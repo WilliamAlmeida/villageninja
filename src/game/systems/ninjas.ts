@@ -9,6 +9,7 @@ import { fx, fxText } from '../fx';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
 import { trainTick } from '../progression';
+import { refillItem } from '../gear';
 import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits } from '../teams';
 import { isNight } from '../time';
 import type { Unit } from '../types';
@@ -27,6 +28,8 @@ export function ninjaSystem(g: Game, dt: number) {
       continue;
     }
     if (!u.hidden) trySupport(g, u);
+    // consumível gasto: pega outro do estoque ao passar pela vila
+    if (u.ninja!.equip.item && !u.ninja!.equip.itemReady && g.world.inVillage(u.x, u.y)) refillItem(g, u);
     if (u.command && runCommand(g, u, dt)) continue;
 
     const threat = findThreat(g, u);

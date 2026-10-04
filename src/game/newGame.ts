@@ -1,4 +1,5 @@
 import { DAY_LENGTH, SAVE_VERSION } from '../config';
+import { emptyRes } from '../data/resources';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { createNinja, createVillager, rollInnateCount } from './entities';
 import { Game, type System } from './game';
@@ -26,7 +27,8 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     missionDay: 0,
     projectiles: [],
     effects: [],
-    res: { wood: 120, stone: 60, food: 80, ryo: 150 },
+    res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
+    items: {},
     nextId,
     timers: { animal: 35, raid: DAY_LENGTH * 2.6, birth: 30, jobs: 0, homes: 0 },
     flags: { starving: false, alert: false, raidActive: false, raidStole: false },

@@ -2,6 +2,8 @@ import { TILE } from '../../config';
 import { pick, rand, randi } from '../../core/rng';
 import { BUILDINGS } from '../../data/buildings';
 import { fx, fxText } from '../fx';
+import { advanceCraft } from '../gear';
+import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
 import { followPath, setDestination } from '../movement';
 import { isNight } from '../time';
@@ -9,6 +11,20 @@ import type { Building, ResKey, Unit } from '../types';
 import { doorPos, tileCenter, toTile } from '../world';
 
 const FLEE_RADIUS = 170;
+
+/** O que cada tipo de recurso no mapa rende por viagem. */
+const NODE_YIELD = {
+  tree: { res: 'wood' as ResKey, amount: 5, chips: '#c8a26a' },
+  rock: { res: 'stone' as ResKey, amount: 4, chips: '#bfbfbf' },
+  ore: { res: 'iron' as ResKey, amount: 3, chips: '#c0622b' },
+};
+/** Produção dos campos (fazenda / horta). */
+const FIELD_OUTPUT = {
+  farmer: { res: 'food' as ResKey, amount: 2 },
+  gardener: { res: 'herbs' as ResKey, amount: 1 },
+};
+/** Oficina de Selos ociosa: transforma madeira em papel. */
+const PAPER = { wood: 4, time: 8, minWood: 30 };
 const NODE_SEARCH = 14 * TILE;
 
 /** Pessoas comuns: trabalham, constroem, passeiam, dormem e fogem do perigo. */
@@ -116,8 +132,10 @@ function work(g: Game, u: Unit, dt: number) {
       u.moving = false;
       u.anim = 0.2;
       if (u.timer <= 0) {
-        g.state.res.food += 2;
-        fxText(g, u.x, u.y - 20, '+2🍙', '#ffe08a');
+        const job = g.building(u.jobId);
+        const out = job && BUILDINGS[job.type].job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
+        g.state.res[out.res] += out.amount;
+        fxText(g, u.x, u.y - 20, `+${out.amount}${RES_INFO[out.res].icon}`, '#ffe08a');
         u.state = 'idle';
       }
       break;
@@ -139,12 +157,17 @@ function work(g: Game, u: Unit, dt: number) {
       }
       u.moving = false;
       u.anim = 0.2;
-      if (Math.random() < dt * 2.5) fx(g, 'chips', tileCenter(n.tx), tileCenter(n.ty), { color: n.type === 'tree' ? '#c8a26a' : '#bfbfbf', life: 0.4 });
+      const yieldOf = NODE_YIELD[n.type as keyof typeof NODE_YIELD];
+      if (!yieldOf) {
+        u.state = 'idle';
+        break;
+      }
+      if (Math.random() < dt * 2.5) fx(g, 'chips', tileCenter(n.tx), tileCenter(n.ty), { color: yieldOf.chips, life: 0.4 });
       if (u.timer <= 0) {
-        const amount = Math.min(n.amount, n.type === 'tree' ? 5 : 4);
+        const amount = Math.min(n.amount, yieldOf.amount);
         n.amount -= amount;
         if (n.amount <= 0) g.removeNode(n.id);
-        u.carry = { res: (n.type === 'tree' ? 'wood' : 'stone') as ResKey, amount };
+        u.carry = { res: yieldOf.res, amount };
         deposit(g, u);
       }
       break;
@@ -153,7 +176,7 @@ function work(g: Game, u: Unit, dt: number) {
       if (followPath(g, u, dt)) {
         if (u.carry) {
           g.state.res[u.carry.res] += u.carry.amount;
-          fxText(g, u.x, u.y - 20, `+${u.carry.amount}${u.carry.res === 'wood' ? '🪵' : '🪨'}`, '#ffe08a');
+          fxText(g, u.x, u.y - 20, `+${u.carry.amount}${RES_INFO[u.carry.res].icon}`, '#ffe08a');
         }
         u.carry = null;
         u.state = 'idle';
@@ -175,6 +198,35 @@ function work(g: Game, u: Unit, dt: number) {
         u.timer = 8;
       }
       break;
+    case 'toCraft':
+      if (followPath(g, u, dt)) {
+        u.state = 'craft';
+        u.timer = 0;
+      }
+      break;
+    case 'craft': {
+      const b = g.building(u.jobId);
+      if (!b?.built) {
+        u.state = 'idle';
+        break;
+      }
+      u.moving = false;
+      u.facing = -Math.PI / 2;
+      if (advanceCraft(g, b.id, dt)) {
+        u.anim = 0.2;
+        if (Math.random() < dt * 2) fx(g, 'chips', u.x, u.y - 14, { color: b.type === 'forge' ? '#ffb347' : '#cfe8ff', life: 0.35 });
+      } else if (b.type === 'sealshop' && g.state.res.wood >= PAPER.minWood) {
+        // sem pedidos: a oficina de selos faz papel com madeira
+        u.anim = 0.2;
+        if (u.timer <= 0) u.timer = PAPER.time;
+        else if (u.timer <= dt) {
+          g.state.res.wood -= PAPER.wood;
+          g.state.res.paper += 1;
+          fxText(g, u.x, u.y - 20, `+1${RES_INFO.paper.icon}`, '#ffe08a');
+        }
+      }
+      break;
+    }
     case 'toSite': {
       const b = g.building(u.taskId);
       if (!b || b.built) u.state = 'idle';
@@ -234,24 +286,33 @@ function decide(g: Game, u: Unit) {
 function startJob(g: Game, u: Unit, b: Building) {
   const def = BUILDINGS[b.type];
   switch (def.job) {
-    case 'farmer': {
+    case 'farmer':
+    case 'gardener': {
       const x = (b.tx + rand(0.3, def.w - 0.3)) * TILE;
       const y = (b.ty + rand(0.3, def.h - 0.3)) * TILE;
       if (setDestination(g, u, x, y)) u.state = 'toField';
       break;
     }
     case 'lumber':
-    case 'miner': {
-      const n = findNode(g, b, def.job === 'lumber' ? 'tree' : 'rock');
+    case 'miner':
+    case 'ironminer': {
+      const nodeType = def.job === 'lumber' ? 'tree' : def.job === 'miner' ? 'rock' : 'ore';
+      const n = findNode(g, b, nodeType);
       if (!n) {
         u.state = 'idle';
         u.timer = 6;
-        if (Math.random() < 0.15) g.toast(`${def.icon} Não há ${def.job === 'lumber' ? 'árvores' : 'rochas'} perto de ${def.name}.`, 'warn', doorPos(b));
+        const what = { tree: 'árvores', rock: 'rochas', ore: 'veios de minério' }[nodeType];
+        if (Math.random() < 0.15) g.toast(`${def.icon} Não há ${what} perto de ${def.name}.`, 'warn', doorPos(b));
         wander(g, u);
         return;
       }
       u.taskId = n.id;
       if (setDestination(g, u, tileCenter(n.tx), tileCenter(n.ty) + 12)) u.state = 'toNode';
+      break;
+    }
+    case 'crafter': {
+      const p = doorPos(b);
+      if (setDestination(g, u, p.x, p.y + 4)) u.state = 'toCraft';
       break;
     }
     case 'merchant': {
@@ -272,7 +333,7 @@ function deposit(g: Game, u: Unit) {
   else u.state = 'idle';
 }
 
-function findNode(g: Game, b: Building, type: 'tree' | 'rock') {
+function findNode(g: Game, b: Building, type: 'tree' | 'rock' | 'ore') {
   const p = doorPos(b);
   const near = g.state.nodes
     .filter((n) => n.type === type && n.amount > 0)

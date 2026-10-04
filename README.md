@@ -36,6 +36,9 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
 - **📋 Missões**: construa a Mesa de Missões, escolha uma missão do quadro (renova todo dia) e envie uma equipe.
   Compare a força da equipe (⚔) com a dificuldade: borda verde = seguro, amarela = arriscado, vermelha = perigoso.
   Missões rendem ryo, recursos, XP e reputação, e contam para evoluir a vila.
+- **Economia (nível Vila)**: Mina de Ferro 🔩 perto de veios de minério, Horta de Ervas 🌿, Forja (armas e coletes),
+  Farmácia (pílulas) e, em Vila Oculta, Oficina de Selos (papel 🏷️ e papel-bomba). Cada ninja tem arma, colete e
+  um consumível que ele usa sozinho em combate e repõe do estoque ao voltar à vila.
 - **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
   ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.

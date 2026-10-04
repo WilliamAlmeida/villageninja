@@ -6,7 +6,8 @@ import type { MissionType } from '../data/missions';
 import type { Nature } from '../data/natures';
 import type { Rank, StatKey, Stats } from '../data/ninja';
 
-export type ResKey = 'wood' | 'stone' | 'food' | 'ryo';
+export type { ResKey } from '../data/resources';
+import type { ResKey } from '../data/resources';
 export type Cost = Partial<Record<ResKey, number>>;
 export type Faction = 'village' | 'wild' | 'enemy';
 export type UnitKind = 'villager' | 'ninja' | 'animal' | 'rogue' | 'clone';
@@ -40,6 +41,15 @@ export interface NinjaInfo {
   learning: Learning | null;
   focus: StatKey | null;
   order: NinjaOrder;
+  equip: Equip;
+}
+
+export interface Equip {
+  weapon: string | null;
+  armor: string | null;
+  /** Consumível escolhido; `itemReady` diz se o ninja está carregando um. */
+  item: string | null;
+  itemReady: boolean;
 }
 
 export interface Unit {
@@ -145,11 +155,14 @@ export interface Building {
   desired: number;
   workers: number[];
   cd: number;
+  /** Oficinas: itens na fila e o que está sendo feito agora. */
+  queue?: string[];
+  craft?: { itemId: string; progress: number } | null;
 }
 
 export interface ResourceNode {
   id: number;
-  type: 'tree' | 'rock' | 'herb';
+  type: 'tree' | 'rock' | 'herb' | 'ore';
   missionId?: number;
   tx: number;
   ty: number;
@@ -216,6 +229,8 @@ export interface GameState {
   projectiles: Projectile[];
   effects: Effect[];
   res: Record<ResKey, number>;
+  /** Estoque de itens fabricados (id → quantidade). */
+  items: Record<string, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
   flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean };

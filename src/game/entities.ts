@@ -7,6 +7,7 @@ import { NATURE_KEYS, type Nature } from '../data/natures';
 import { derive, RANKS, STAT_KEYS, type Rank, type Stats } from '../data/ninja';
 import { randomName, randomRogueName } from '../data/names';
 import type { Game } from './game';
+import { gearBonus } from './gearBonus';
 import type { Faction, Look, NinjaInfo, Unit, UnitKind } from './types';
 
 const SKINS = ['#f2d0a9', '#e8b98a', '#d9a066', '#c68a5a', '#f5dcc0'];
@@ -60,9 +61,10 @@ export function refreshDerived(u: Unit) {
   const d = derive(u.ninja.stats);
   const hpR = u.maxHp > 0 ? u.hp / u.maxHp : 1;
   const ckR = u.maxChakra > 0 ? u.chakra / u.maxChakra : 1;
-  u.maxHp = d.maxHp;
+  const maxHp = d.maxHp + gearBonus(u).hp;
+  u.maxHp = maxHp;
   u.maxChakra = d.maxChakra;
-  u.hp = Math.max(1, Math.round(d.maxHp * hpR));
+  u.hp = Math.max(1, Math.round(maxHp * hpR));
   u.chakra = d.maxChakra * ckR;
   u.speed = d.speed;
 }
@@ -82,6 +84,7 @@ export function makeNinjaInfo(rank: Rank, stats: Stats, innate: number): NinjaIn
   const n: NinjaInfo = {
     rank, nature, stats, jutsu: [null, null], cd: [0, 0], level: 1, xp: 0, kills: 0,
     learning: null, focus: null, order: 'auto',
+    equip: { weapon: null, armor: null, item: null, itemReady: false },
   };
   const maxRank = Math.min(RANKS[rank].maxJutsuRank, 2);
   for (let i = 0; i < innate; i++) n.jutsu[i] = innateJutsu(nature, maxRank, n.jutsu);

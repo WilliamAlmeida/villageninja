@@ -1,5 +1,6 @@
 import type { AnimalType } from './animals';
 import type { Rank } from './ninja';
+import type { ResKey } from './resources';
 
 export type MissionType = 'herbs' | 'hunt' | 'escort' | 'camp' | 'wanted';
 
@@ -33,7 +34,7 @@ export interface MissionTemplate {
   enemies?: Enemy[];
   /** Escolta: bandidos que emboscam no meio do caminho. */
   ambush?: Enemy[];
-  bonus?: { food?: number; wood?: number; stone?: number };
+  bonus?: Partial<Record<ResKey, number>>;
 }
 
 /** Bandidos comuns são mais fracos que ninjas do mesmo rank. */
@@ -48,7 +49,7 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
   // ---- D
   {
     type: 'herbs', rank: 0, title: 'Coleta de ervas medicinais', site: 'forest', herbs: 3,
-    animals: { type: 'wolf', count: 2 }, bonus: { food: 30 },
+    animals: { type: 'wolf', count: 2 }, bonus: { food: 20, herbs: 12 },
     desc: 'O hospital precisa de ervas raras da floresta. Cuidado com os lobos da região.',
   },
   {
@@ -69,18 +70,18 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
   },
   {
     type: 'camp', rank: 1, title: 'Acampamento de bandidos', site: 'edge',
-    enemies: [bandit(), bandit(), bandit()],
+    enemies: [bandit(), bandit(), bandit()], bonus: { iron: 12 },
     desc: 'Bandidos montaram acampamento perto da estrada. Desmonte o grupo.',
   },
   {
     type: 'herbs', rank: 1, title: 'Ervas do vale dos lobos', site: 'forest', herbs: 4,
-    animals: { type: 'wolf', count: 4 }, bonus: { food: 50 },
+    animals: { type: 'wolf', count: 4 }, bonus: { food: 30, herbs: 25 },
     desc: 'Ervas valiosas crescem num vale infestado de lobos.',
   },
   // ---- B
   {
     type: 'camp', rank: 2, title: 'Covil de bandidos', site: 'edge',
-    enemies: [bandit(), bandit(), bandit('genin', 1), { rank: 'chunin', stats: 1, hpMult: 1.5, jutsu: 2, boss: true }],
+    enemies: [bandit(), bandit(), bandit('genin', 1), { rank: 'chunin', stats: 1, hpMult: 1.5, jutsu: 2, boss: true }], bonus: { iron: 25 },
     desc: 'Um ninja renegado lidera um bando de saqueadores. Derrote todos.',
   },
   {
@@ -96,6 +97,7 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
   {
     type: 'wanted', rank: 2, title: 'Procurado: desertor', site: 'edge',
     enemies: [{ rank: 'chunin', stats: 1.5, hpMult: 2, jutsu: 2, boss: true }],
+    bonus: { paper: 6 },
     desc: 'Um chunin desertor está escondido nos arredores. Capture-o (vivo ou não).',
   },
   // ---- A
@@ -107,6 +109,7 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
   {
     type: 'camp', rank: 3, title: 'Fortaleza dos mercenários', site: 'edge',
     enemies: [bandit('chunin', 1), bandit('chunin', 1), bandit('chunin', 1), bandit('chunin', 2), { rank: 'jounin', stats: 1.5, hpMult: 2.5, jutsu: 2, boss: true }],
+    bonus: { iron: 50, paper: 10 },
     desc: 'Mercenários fortificados ameaçam todas as rotas de comércio.',
   },
   // ---- S

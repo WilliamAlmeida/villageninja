@@ -21,6 +21,16 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.missionDay = 0;
     s.stats.missionsDone = 0;
   },
+  4: (s) => {
+    s.res.iron = 0;
+    s.res.herbs = 0;
+    s.res.paper = 0;
+    s.items = {};
+    for (const u of s.units) if (u.ninja) u.ninja.equip = { weapon: null, armor: null, item: null, itemReady: false };
+    // parte das rochas longe do centro vira veio de minério de ferro
+    let i = 0;
+    for (const n of s.nodes) if (n.type === 'rock' && i++ % 4 === 0) n.type = 'ore';
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
