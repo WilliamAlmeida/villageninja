@@ -41,6 +41,9 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
   um consumível que ele usa sozinho em combate e repõe do estoque ao voltar à vila.
 - **🏟️ Exame Chunin (nível Vila)**: construa a Arena e convoque o exame com 2+ genins de nível 2+. Eles lutam 1×1
   contra colegas e convidados de outras vilas (ninguém morre). O campeão e quem lutar bem viram Chunin de graça.
+- **🏯 Clãs e kekkei genkai**: filhos nascem de casais e herdam talentos. Um Chunin+ de nível 5+ funda um clã com
+  o próprio sobrenome; em Vila Oculta, um clã com ninjas de duas naturezas compatíveis desperta uma kekkei genkai
+  (Gelo, Madeira, Lava, Tempestade, Calor) com jutsu exclusivo. Veja em 🥷 Ninjas → Clãs.
 - **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
   ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.

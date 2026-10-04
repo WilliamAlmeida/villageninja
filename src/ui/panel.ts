@@ -16,6 +16,8 @@ import {
   abandonMission, acceptMission, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, teamPower, templateOf,
 } from '../game/missions';
 import { missionFocus } from '../game/missionView';
+import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
+import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/items';
@@ -34,7 +36,8 @@ type View =
   | { kind: 'building'; id: number }
   | { kind: 'team'; id: number }
   | { kind: 'roster' }
-  | { kind: 'teams' };
+  | { kind: 'teams' }
+  | { kind: 'clans' };
 
 interface Built {
   html: string;
@@ -81,6 +84,7 @@ export class Panel {
     let built: Built | null = null;
     if (this.view.kind === 'roster') built = this.roster();
     else if (this.view.kind === 'teams') built = this.teamsList();
+    else if (this.view.kind === 'clans') built = this.clansList();
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamView(tm);
@@ -125,8 +129,9 @@ export class Panel {
       const title = u.kind === 'clone' ? `Clone de ${esc(u.name)}` : esc(u.name);
       html += `<div class="ph"><div class="title">${title}</div><div class="badges">
         <span class="badge ${u.faction === 'enemy' ? 'enemy' : 'rank'}">${u.faction === 'enemy' ? 'Renegado · ' : ''}${RANKS[n.rank].name}</span>
-        <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span></div></div>`;
+        <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div></div>`;
       html += `<div class="sub">Nível ${n.level} · <span data-t="state"></span></div>`;
+      if (u.heritage?.parents) html += `<p class="hint">Filho(a) de ${esc(u.heritage.parents.join(' e '))}</p>`;
       html += `<div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
       html += `<div class="bar ck"><i data-b="ck"></i><span data-t="ck"></span></div>`;
       t.ck = `Chakra ${Math.floor(u.chakra)} / ${u.maxChakra}`;
@@ -185,9 +190,19 @@ export class Panel {
     // morador
     const job = this.app.game.building(u.jobId);
     const jobDef = job ? BUILDINGS[job.type] : null;
-    html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge">Morador(a)</span></div></div>`;
+    html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge">Morador(a)</span>${this.lineageBadges(u)}</div></div>`;
     html += `<div class="sub">${jobDef?.job ? JOB_LABEL[jobDef.job] : 'Sem emprego (ajuda nas obras)'} · <span data-t="state"></span></div>`;
     html += `<div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
+    const h = u.heritage;
+    if (h?.parents) html += `<p class="hint">Filho(a) de ${esc(h.parents.join(' e '))}</p>`;
+    if (h && (h.nature || h.bias || h.kekkei)) {
+      const parts = [
+        h.nature && `${NATURES[h.nature].kanji} ${NATURES[h.nature].name}`,
+        h.bias && STAT_INFO[h.bias].label,
+        h.kekkei && `${KEKKEI[h.kekkei].kanji} ${KEKKEI[h.kekkei].name}!`,
+      ].filter(Boolean);
+      html += `<div class="warnbox">🧬 Talento de família: ${parts.join(' · ')}. Recrute na Academia para aproveitar.</div>`;
+    }
     html += `<p class="hint">Moradores trabalham de dia, dormem à noite e fogem para casa quando há perigo. Recrute-os como ninjas na Academia.</p>`;
     return { html, t, b };
   }
@@ -244,6 +259,10 @@ export class Panel {
       const can = n.level >= r.minLevel && villageOk && g.canAfford(r.promoteCost);
       const why = n.level < r.minLevel ? `· nível ${r.minLevel}` : !villageOk ? `· requer ${levelDef(r.minVillageLevel!).name}` : '';
       html += `<button class="btn" data-act="promote" ${can ? '' : 'disabled'}>🎖 Promover a ${r.name} (${costLabel(r.promoteCost)}) ${why}</button>`;
+    }
+    if (n.rank !== 'genin' && !clanOf(g, u)) {
+      const fc = canFoundClan(g, u);
+      html += `<button class="btn" data-act="found-clan" ${fc.ok ? '' : 'disabled'}>🏯 Fundar clã ${esc(surname(u))} (${costLabel(FOUND_COST)})${fc.ok ? '' : ` · ${esc(fc.error)}`}</button>`;
     }
     html += `<button class="btn" data-act="focus-cam">🎯 Centralizar câmera</button></div>`;
     html += `<p class="hint">Abates: ${n.kills}</p>`;
@@ -346,9 +365,54 @@ export class Panel {
     return { html, t, b };
   }
 
-  private tabs(active: 'roster' | 'teams') {
+  private tabs(active: 'roster' | 'teams' | 'clans') {
     return `<div class="seg tabs"><button data-act="tab" data-arg="roster" class="${active === 'roster' ? 'on' : ''}">🥷 Ninjas</button>
-      <button data-act="tab" data-arg="teams" class="${active === 'teams' ? 'on' : ''}">👥 Equipes</button></div>`;
+      <button data-act="tab" data-arg="teams" class="${active === 'teams' ? 'on' : ''}">👥 Equipes</button>
+      <button data-act="tab" data-arg="clans" class="${active === 'clans' ? 'on' : ''}">🏯 Clãs</button></div>`;
+  }
+
+  /** Insígnias de clã e kekkei genkai. */
+  private lineageBadges(u: Unit) {
+    const clan = clanOf(this.app.game, u);
+    const kk = u.ninja?.kekkei;
+    return (
+      (clan ? `<span class="badge nat" style="--c:${clan.color}">家 ${esc(clan.name)}</span>` : '') +
+      (kk ? `<span class="badge nat" style="--c:${KEKKEI[kk].color}">${KEKKEI[kk].kanji} ${KEKKEI[kk].name}</span>` : '')
+    );
+  }
+
+  private clansList(): Built {
+    const g = this.app.game;
+    let html = this.tabs('clans');
+    html += `<p class="hint">Um Chunin+ de nível ${FOUND_MIN_LEVEL}+ pode fundar um clã com o próprio sobrenome (nível Vila). Parentes entram no clã,
+      filhos herdam a especialidade e a natureza, e em Vila Oculta o clã pode despertar uma kekkei genkai.</p>`;
+    if (!g.state.clans.length) html += `<p class="hint">Nenhum clã ainda.</p>`;
+    for (const c of g.state.clans) {
+      const members = clanMembers(g, c);
+      const ninjas = members.filter((u) => u.ninja);
+      const nat = NATURES[c.nature];
+      html += `<div class="mcard" style="--c:${c.color}"><div class="mt"><span class="dot"></span>Clã ${esc(c.name)}
+        ${c.kekkei ? `<span class="badge nat" style="--c:${KEKKEI[c.kekkei].color}">${KEKKEI[c.kekkei].kanji} ${KEKKEI[c.kekkei].name}</span>` : ''}</div>
+        <div class="jm">Fundador: ${esc(c.founderName)} (dia ${c.day}) · ${members.length} membro(s), ${ninjas.length} ninja(s)</div>
+        <div class="jd">Especialidade: ${STAT_INFO[c.specialty].label} · natureza ${nat.kanji} ${nat.name}</div>
+        <div class="jm">Naturezas dos ninjas: ${[...new Set(ninjas.map((u) => NATURES[u.ninja!.nature].kanji))].join(' ') || '—'}</div>`;
+      if (!c.kekkei) {
+        const opts = awakenOptions(g, c);
+        html += `<div class="btnrow">`;
+        if (g.state.level < 2) html += `<span class="why">Kekkei genkai: requer ${levelDef(2).name}.</span>`;
+        else if (!opts.length) html += `<span class="why">Para despertar, o clã precisa de ninjas de duas naturezas compatíveis (ex.: 風+水 = 氷 Gelo).</span>`;
+        else
+          for (const k of opts)
+            html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${g.canAfford(AWAKEN_COST) ? '' : 'disabled'}>${k.kanji} Despertar ${k.name} (${k.pt}) · ${costLabel(AWAKEN_COST)}</button>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `<h4>Kekkei genkai</h4><ul class="reqs">`;
+    for (const k of KEKKEI_LIST)
+      html += `<li>${k.kanji} ${k.name} (${k.pt}) <b>${NATURES[k.natures[0]].kanji} + ${NATURES[k.natures[1]].kanji}</b></li>`;
+    html += `</ul>`;
+    return { html, t: {}, b: {} };
   }
 
   /** Nível da vila, benefícios e requisitos do próximo nível (marco). */
@@ -626,8 +690,10 @@ export class Panel {
       }
       case 'tab':
         g.select(null);
-        this.show({ kind: arg === 'teams' ? 'teams' : 'roster' });
+        this.show({ kind: arg === 'teams' ? 'teams' : arg === 'clans' ? 'clans' : 'roster' });
         return;
+      case 'awaken':
+        return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
       case 'open-team':
         g.select({ kind: 'team', id: Number(arg) });
         return;
@@ -692,6 +758,8 @@ export class Panel {
           if (u) this.app.camera.focus(u.x, u.y);
           return;
         }
+        case 'found-clan':
+          return this.report(foundClan(g, v.id));
         case 'equip':
           return this.report(equip(g, v.id, arg));
         case 'unequip':

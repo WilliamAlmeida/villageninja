@@ -183,7 +183,7 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
         const a = base + (count > 1 ? (i / (count - 1) - 0.5) * 0.6 : 0);
         spawnProjectile(g, u, u.faction, u.x, u.y - 4, u.x + Math.cos(a) * def.range, u.y + Math.sin(a) * def.range, {
           damage: power, radius: 0, nature: def.nature, color: def.color, size: 5,
-          speed: def.projSpeed ?? 260, kind: def.projKind ?? 'orb', stun: 0, range: def.range,
+          speed: def.projSpeed ?? 260, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range,
         });
       }
       break;
@@ -232,6 +232,12 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
       }
       break;
     }
+    case 'bind':
+      // raízes prendem o alvo e causam dano
+      fx(g, 'swirl', t.x, t.y, { r: 22, color: def.color, life: 1.2 });
+      fx(g, 'burst', t.x, t.y, { r: 20, color: def.color, life: 0.5 });
+      applyDamage(g, u, t, power, null, { stun: def.duration ?? 2 });
+      break;
     case 'shield':
       u.shield = def.duration ?? 6;
       fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });

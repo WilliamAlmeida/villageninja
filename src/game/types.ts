@@ -3,6 +3,7 @@
 import type { AnimalType } from '../data/animals';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
+import type { KekkeiId } from '../data/kekkei';
 import type { Nature } from '../data/natures';
 import type { Rank, StatKey, Stats } from '../data/ninja';
 
@@ -42,6 +43,32 @@ export interface NinjaInfo {
   focus: StatKey | null;
   order: NinjaOrder;
   equip: Equip;
+  /** Kekkei genkai despertada (natureza combinada). */
+  kekkei: KekkeiId | null;
+}
+
+/** Herança de família: o que um morador traz de berço (usado ao virar ninja). */
+export interface Heritage {
+  clanId: number | null;
+  nature: Nature | null;
+  /** Atributo em que tem talento natural. */
+  bias: StatKey | null;
+  kekkei: KekkeiId | null;
+  parents: [string, string] | null;
+}
+
+export interface Clan {
+  id: number;
+  /** Sobrenome da família. */
+  name: string;
+  color: string;
+  founderId: number;
+  founderName: string;
+  /** Atributo forte do clã (herdado pelos recrutas). */
+  specialty: StatKey;
+  nature: Nature;
+  kekkei: KekkeiId | null;
+  day: number;
 }
 
 export interface Equip {
@@ -102,6 +129,7 @@ export interface Unit {
   homeY?: number;
   /** Exame Chunin: 0 = participante aguardando, 1/2 = lado no duelo atual. */
   arenaSide?: number;
+  heritage?: Heritage;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }
@@ -231,6 +259,7 @@ export interface GameState {
   /** Dia em que o quadro de missões foi renovado pela última vez. */
   missionDay: number;
   exam: Exam | null;
+  clans: Clan[];
   /** Dia a partir do qual um novo Exame Chunin pode ser convocado. */
   examNextDay: number;
   lastExam: ExamResult | null;

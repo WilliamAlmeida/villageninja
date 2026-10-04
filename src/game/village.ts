@@ -53,6 +53,7 @@ export function checkRequirements(g: Game, req: LevelReq): ReqCheck[] {
     add(BUILDINGS[type].name, s.buildings.filter((b) => b.type === type && b.built).length, n);
   if (req.raidsRepelled) add('Invasões repelidas', s.stats.raidsRepelled, req.raidsRepelled);
   if (req.missionsDone) add('Missões cumpridas', s.stats.missionsDone, req.missionsDone);
+  if (req.clans) add('Clãs fundados', s.clans.length, req.clans);
   return out;
 }
 

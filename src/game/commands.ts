@@ -102,7 +102,8 @@ export interface JutsuOption {
 /** Lista de jutsus com o motivo de poder/não poder aprender. */
 export function jutsuOptions(u: Unit): JutsuOption[] {
   const n = u.ninja!;
-  return JUTSU_LIST.filter((j) => j.nature === null || j.nature === n.nature).map((def) => {
+  const allowed = (j: JutsuDef) => (j.kekkei ? n.kekkei === j.kekkei : j.nature === null || j.nature === n.nature);
+  return JUTSU_LIST.filter(allowed).map((def) => {
     const known = n.jutsu.includes(def.id);
     if (known) return { def, ok: false, reason: 'Já conhece', known };
     if (def.rank > RANKS[n.rank].maxJutsuRank) return { def, ok: false, reason: `Requer rank maior`, known };

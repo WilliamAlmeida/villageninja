@@ -1,5 +1,6 @@
 import type { Cost, ProjectileKind } from '../game/types';
 import type { Nature } from './natures';
+import type { KekkeiId } from './kekkei';
 import type { StatKey, Stats } from './ninja';
 
 export type JutsuType = 'ninjutsu' | 'taijutsu' | 'genjutsu' | 'iryo';
@@ -12,7 +13,8 @@ export type JutsuEffect =
   | 'stun' // paralisa (genjutsu)
   | 'clone' // invoca clones temporários
   | 'heal' // cura um aliado
-  | 'shield'; // reduz dano recebido
+  | 'shield' // reduz dano recebido
+  | 'bind'; // dano + prende o alvo (Mokuton)
 
 export interface JutsuDef {
   id: string;
@@ -21,6 +23,8 @@ export interface JutsuDef {
   shout: string;
   desc: string;
   nature: Nature | null;
+  /** Só quem tem esta kekkei genkai pode aprender. */
+  kekkei?: KekkeiId;
   type: JutsuType;
   /** 0=E 1=D 2=C 3=B 4=A 5=S */
   rank: number;
@@ -114,6 +118,32 @@ const LIST: JutsuDef[] = [
     nature: null, type: 'iryo', rank: 3, chakra: 24, cooldown: 6, range: 110, power: 30, effect: 'heal',
     color: '#7dff9a', req: { ninjutsu: 4, inteligencia: 5 }, cost: { ryo: 160 }, learnTime: 38,
   },
+  // ---- kekkei genkai (exclusivos)
+  {
+    id: 'sensatsu', name: 'Hyōton: Sensatsu Suishō', shout: 'Sensatsu Suishō!', desc: 'Agulhas de gelo em leque que congelam por instantes.',
+    nature: null, kekkei: 'hyoton', type: 'ninjutsu', rank: 2, chakra: 22, cooldown: 6, range: 150, power: 11, effect: 'multi',
+    count: 6, stun: 0.5, projSpeed: 320, projKind: 'blade', color: '#9fe8ff', req: { ninjutsu: 3 }, cost: { ryo: 120 }, learnTime: 30,
+  },
+  {
+    id: 'jukai', name: 'Mokuton: Jukai Kōtan', shout: 'Jukai Kōtan!', desc: 'Raízes gigantes prendem e esmagam o alvo.',
+    nature: null, kekkei: 'mokuton', type: 'ninjutsu', rank: 3, chakra: 30, cooldown: 10, range: 150, power: 22, effect: 'bind',
+    duration: 2.5, color: '#8fcf6a', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+  },
+  {
+    id: 'yokai', name: 'Yōton: Yōkai no Jutsu', shout: 'Yōkai no Jutsu!', desc: 'Lava ardente que explode numa área enorme.',
+    nature: null, kekkei: 'yoton', type: 'ninjutsu', rank: 3, chakra: 34, cooldown: 9, range: 160, power: 36, effect: 'projectile',
+    radius: 56, projSpeed: 190, projKind: 'rock', color: '#ff5a1f', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+  },
+  {
+    id: 'reiza', name: 'Ranton: Reiza Sākasu', shout: 'Reiza Sākasu!', desc: 'Feixes de tempestade velozes que paralisam.',
+    nature: null, kekkei: 'ranton', type: 'ninjutsu', rank: 3, chakra: 28, cooldown: 7, range: 170, power: 15, effect: 'multi',
+    count: 4, stun: 0.35, projSpeed: 380, projKind: 'spark', color: '#c8a6ff', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+  },
+  {
+    id: 'kajosatsu', name: 'Shakuton: Kajōsatsu', shout: 'Kajōsatsu!', desc: 'Esferas de calor que queimam tudo ao redor do alvo.',
+    nature: null, kekkei: 'shakuton', type: 'ninjutsu', rank: 3, chakra: 30, cooldown: 8, range: 130, power: 30, effect: 'aoe',
+    radius: 70, color: '#ffb347', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+  },
 ];
 
 export const JUTSUS: Record<string, JutsuDef> = Object.fromEntries(LIST.map((j) => [j.id, j]));
@@ -143,4 +173,4 @@ export const jutsuDuration = (def: JutsuDef, s: Stats) =>
 export const jutsuCooldown = (def: JutsuDef, s: Stats) => def.cooldown * Math.max(0.55, 1.15 - s.selos * 0.05);
 export const jutsuChakra = (def: JutsuDef, s: Stats) => Math.round(def.chakra * Math.max(0.6, 1.1 - s.inteligencia * 0.04));
 export const isRangedJutsu = (def: JutsuDef) =>
-  def.effect === 'projectile' || def.effect === 'multi' || def.effect === 'aoe' || def.effect === 'stun' || def.effect === 'dash';
+  def.effect === 'projectile' || def.effect === 'multi' || def.effect === 'aoe' || def.effect === 'stun' || def.effect === 'dash' || def.effect === 'bind';

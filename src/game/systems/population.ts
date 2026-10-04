@@ -1,5 +1,6 @@
 import { pick } from '../../core/rng';
 import { BUILDINGS } from '../../data/buildings';
+import { childOf, clanOf } from '../clans';
 import { createVillager } from '../entities';
 import type { Game } from '../game';
 import type { Unit } from '../types';
@@ -32,13 +33,36 @@ function births(g: Game) {
   if (g.population() >= g.popCap() || s.res.food < 40 || s.flags.starving) return;
   const houses = s.buildings.filter((b) => b.built && BUILDINGS[b.type].housing);
   if (!houses.length) return;
-  const h = pick(houses);
+  // casas com um casal (2+ moradores) têm filhos; sem casal, chega um migrante
+  const people = g.villagers();
+  const couples = houses
+    .map((h) => ({ h, res: people.filter((u) => u.homeId === h.id) }))
+    .filter((x) => x.res.length >= 2);
+  const home = couples.length ? pick(couples) : null;
+  const h = home?.h ?? pick(houses);
   const p = doorPos(h);
   const u = createVillager(g, p.x, p.y);
   u.homeId = h.id;
   s.res.food -= 15;
   s.stats.born++;
-  g.toast(`👶 ${u.name} chegou à vila!`, 'good', u);
+  if (home) {
+    const [a, b] = shuffle(home.res).slice(0, 2) as [Unit, Unit];
+    const child = childOf(g, a, b);
+    u.name = child.name;
+    u.heritage = child.heritage;
+    u.look = { ...u.look, ...child.look };
+    const clan = clanOf(g, u);
+    g.toast(`👶 ${u.name} nasceu (filho(a) de ${a.name.split(' ').pop()} e ${b.name.split(' ').pop()})${clan ? ` · clã ${clan.name}` : ''}!`, 'good', u);
+  } else g.toast(`🧳 ${u.name} chegou à vila!`, 'good', u);
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  return a;
 }
 
 function assignHomes(g: Game) {

@@ -49,7 +49,7 @@ export function createUI(app: App, root: HTMLElement) {
     }
     if (a === 'roster') {
       build.toggle(false);
-      if (panel.kind === 'roster' || panel.kind === 'teams') panel.show(null);
+      if (panel.kind === 'roster' || panel.kind === 'teams' || panel.kind === 'clans') panel.show(null);
       else {
         app.game.select(null);
         panel.show({ kind: 'roster' });
@@ -86,7 +86,7 @@ export function createUI(app: App, root: HTMLElement) {
     if (sel) {
       build.toggle(false);
       panel.show({ kind: sel.kind, id: sel.id });
-    } else if (panel.kind !== 'roster' && panel.kind !== 'teams') panel.show(null);
+    } else if (panel.kind !== 'roster' && panel.kind !== 'teams' && panel.kind !== 'clans') panel.show(null);
   });
   bus.on('newGame', () => {
     setOrderMode(false);
@@ -159,7 +159,7 @@ export function createUI(app: App, root: HTMLElement) {
     build.update();
     build.refreshGhost();
     btnBuild.classList.toggle('on', build.open || !!app.buildType);
-    btnRoster.classList.toggle('on', panel.kind === 'roster' || panel.kind === 'teams');
+    btnRoster.classList.toggle('on', panel.kind === 'roster' || panel.kind === 'teams' || panel.kind === 'clans');
     if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }
 

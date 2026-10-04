@@ -2,6 +2,7 @@
 import { DAY_LENGTH } from '../config';
 import { chance, pick, rand } from '../core/rng';
 import { ANIMALS, type AnimalType } from '../data/animals';
+import { KEKKEI } from '../data/kekkei';
 import { JUTSU_LIST } from '../data/jutsus';
 import { NATURE_KEYS, type Nature } from '../data/natures';
 import { derive, RANKS, STAT_KEYS, type Rank, type Stats } from '../data/ninja';
@@ -72,7 +73,7 @@ export function refreshDerived(u: Unit) {
 /** Jutsus que um ninja "nasce sabendo" (nem todos nascem com algum). */
 function innateJutsu(nature: Nature, maxRank: number, exclude: (string | null)[] = []) {
   const pool = JUTSU_LIST.filter(
-    (j) => j.rank <= maxRank && (j.nature === null || j.nature === nature) && j.effect !== 'clone' && j.effect !== 'heal' && !exclude.includes(j.id),
+    (j) => j.rank <= maxRank && !j.kekkei && (j.nature === null || j.nature === nature) && j.effect !== 'clone' && j.effect !== 'heal' && !exclude.includes(j.id),
   );
   // jutsus da própria natureza são mais prováveis
   const weighted = pool.flatMap((j) => (j.nature ? [j, j, j] : [j]));
@@ -85,6 +86,7 @@ export function makeNinjaInfo(rank: Rank, stats: Stats, innate: number): NinjaIn
     rank, nature, stats, jutsu: [null, null], cd: [0, 0], level: 1, xp: 0, kills: 0,
     learning: null, focus: null, order: 'auto',
     equip: { weapon: null, armor: null, item: null, itemReady: false },
+    kekkei: null,
   };
   const maxRank = Math.min(RANKS[rank].maxJutsuRank, 2);
   for (let i = 0; i < innate; i++) n.jutsu[i] = innateJutsu(nature, maxRank, n.jutsu);
@@ -110,7 +112,19 @@ export function createNinja(g: Game, x: number, y: number, rank: Rank = 'genin',
 /** Transforma um morador em ninja (recrutamento na Academia). */
 export function convertToNinja(g: Game, u: Unit) {
   u.kind = 'ninja';
-  u.ninja = makeNinjaInfo('genin', randomStats('genin'), rollInnateCount());
+  const h = u.heritage;
+  const stats = randomStats('genin');
+  // talento de família: atributo forte herdado e especialidade do clã
+  if (h?.bias) stats[h.bias] = Math.min(RANKS.genin.statCap, stats[h.bias] + 1.2);
+  const clan = h?.clanId != null ? g.state.clans.find((c) => c.id === h.clanId) : undefined;
+  if (clan) stats[clan.specialty] = Math.min(RANKS.genin.statCap, stats[clan.specialty] + 0.5);
+  u.ninja = makeNinjaInfo('genin', stats, rollInnateCount());
+  if (h?.nature) u.ninja.nature = h.nature;
+  if (h?.kekkei) {
+    u.ninja.kekkei = h.kekkei;
+    // metade já nasce sabendo o jutsu da linhagem
+    if (Math.random() < 0.5) u.ninja.jutsu[0] = KEKKEI[h.kekkei].jutsu;
+  }
   u.look = { ...u.look, cloth: pick(NINJA_CLOTHS) };
   u.jobId = null;
   u.carry = null;

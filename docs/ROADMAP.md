@@ -69,10 +69,16 @@ Decisões de design (definidas com o autor):
 - **Feito**: `game/exam.ts`, `systems/exam.ts`, `game/examStats.ts`, painel da arena (convocar, duelo ao vivo,
   participantes, último resultado), faixa "assistir", save v6.
 
-## Fase 7 — Clãs e kekkei genkai
-- Famílias: moradores formam casais, filhos herdam aparência, natureza e talentos.
-- Clãs fundados por ninjas notáveis; kekkei genkai como natureza combinada
-  (ex.: Gelo = Vento+Água, Madeira = Terra+Água, Lava = Fogo+Terra) e técnicas exclusivas.
+## Fase 7 — Clãs e kekkei genkai ✅
+- Nascimentos vêm de casais que moram na mesma casa: o filho herda sobrenome, aparência e um **talento de família**
+  (natureza, atributo forte e, às vezes, kekkei genkai), aplicado quando é recrutado como ninja.
+- **Clãs** (nível Vila): um Chunin+ de nível 5+ funda o clã com o próprio sobrenome (150💰); parentes entram e
+  recrutas ganham a especialidade do clã. Até 4 clãs. Grande Vila Oculta exige 1 clã.
+- **Kekkei genkai** (Vila Oculta, 300💰): clã com ninjas de duas naturezas compatíveis desperta Hyōton (風+水),
+  Mokuton (土+水), Yōton (火+土), Ranton (雷+水) ou Shakuton (火+風). Cada uma tem um jutsu exclusivo
+  (Mokuton tem o efeito novo "prender"); descendentes têm 30% de chance de nascer com ela.
+- **Feito**: `data/kekkei.ts`, `game/clans.ts`, nascimentos em `systems/population.ts`, herança em `convertToNinja`,
+  aba Clãs, insígnias de clã/kekkei, talento no painel do morador, save v7.
 
 ## Fase 8 — Kage e ameaças chefes (marcos)
 - **Eleger o Kage**: ninja nível alto + Vila Oculta → cerimônia, Monte dos Kages, bônus globais.

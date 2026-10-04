@@ -36,6 +36,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.examNextDay = 0;
     s.lastExam = null;
   },
+  6: (s) => {
+    s.clans = [];
+    for (const u of s.units) if (u.ninja) u.ninja.kekkei = null;
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

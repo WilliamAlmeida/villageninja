@@ -26,6 +26,7 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     reputation: 0,
     missionDay: 0,
     exam: null,
+    clans: [],
     examNextDay: 0,
     lastExam: null,
     projectiles: [],
