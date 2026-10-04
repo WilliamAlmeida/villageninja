@@ -1,6 +1,7 @@
 import type { App } from '../app';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
+import { orderAttack, orderMove } from '../game/teams';
 import { toTile } from '../game/world';
 import { BuildUI } from './build';
 import { el } from './dom';
@@ -32,7 +33,7 @@ export function createUI(app: App, root: HTMLElement) {
     }
     if (a === 'roster') {
       build.toggle(false);
-      if (panel.kind === 'roster') panel.show(null);
+      if (panel.kind === 'roster' || panel.kind === 'teams') panel.show(null);
       else {
         app.game.select(null);
         panel.show({ kind: 'roster' });
@@ -40,16 +41,39 @@ export function createUI(app: App, root: HTMLElement) {
     }
   });
 
+  // barra do modo "dar ordem"
+  const orderBar = el(
+    'div',
+    { id: 'orderbar', hidden: '' },
+    `<span class="hint" data-t="label"></span><button class="btn" data-act="cancel">✕</button>`,
+  );
+  orderBar.addEventListener('pointerdown', (e) => e.stopPropagation());
+  orderBar.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('[data-act="cancel"]')) setOrderMode(false);
+  });
+  function setOrderMode(on: boolean) {
+    if (!on) app.orderMode = null;
+    orderBar.hidden = !app.orderMode;
+    if (app.orderMode) {
+      build.exit();
+      build.toggle(false);
+      orderBar.querySelector('[data-t="label"]')!.textContent =
+        `📍 Ordem (${app.orderMode.label}): toque no chão para mover/defender ou num inimigo para atacar`;
+    }
+  }
+  panel.onOrderMode = () => setOrderMode(true);
+
   hud.onMenu = () => menu.open();
-  root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, panel.root, menu.root);
+  root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, orderBar, panel.root, menu.root);
 
   bus.on('select', (sel) => {
     if (sel) {
       build.toggle(false);
-      panel.show(sel.kind === 'unit' ? { kind: 'unit', id: sel.id } : { kind: 'building', id: sel.id });
-    } else if (panel.kind !== 'roster') panel.show(null);
+      panel.show({ kind: sel.kind, id: sel.id });
+    } else if (panel.kind !== 'roster' && panel.kind !== 'teams') panel.show(null);
   });
   bus.on('newGame', () => {
+    setOrderMode(false);
     build.exit();
     build.toggle(false);
     panel.show(null);
@@ -61,6 +85,19 @@ export function createUI(app: App, root: HTMLElement) {
     const w = app.camera.screenToWorld(sx, sy);
     if (app.buildType) {
       build.tapWorld(w.x, w.y);
+      return;
+    }
+    if (app.orderMode) {
+      const ids = app.orderMode.ids;
+      const tol = 22 / Math.min(1, app.camera.zoom);
+      const enemy = g.state.units
+        .filter((u) => !u.dead && !u.hidden && u.faction !== 'village')
+        .map((u) => ({ u, d: Math.hypot(u.x - w.x, u.y - 4 - w.y) }))
+        .filter((e) => e.d < tol)
+        .sort((a, b) => a.d - b.d)[0]?.u;
+      const r = enemy ? orderAttack(g, ids, enemy.id) : orderMove(g, ids, w.x, w.y);
+      if (!r.ok) g.toast(r.error, 'warn');
+      setOrderMode(false);
       return;
     }
     if (build.open) build.toggle(false);
@@ -106,7 +143,8 @@ export function createUI(app: App, root: HTMLElement) {
     build.update();
     build.refreshGhost();
     btnBuild.classList.toggle('on', build.open || !!app.buildType);
-    btnRoster.classList.toggle('on', panel.kind === 'roster');
+    btnRoster.classList.toggle('on', panel.kind === 'roster' || panel.kind === 'teams');
+    if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }
 
   return { onTap, update };

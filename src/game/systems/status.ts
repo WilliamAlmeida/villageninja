@@ -36,7 +36,7 @@ export function statusSystem(g: Game, dt: number) {
       if (starving) u.hp = Math.max(1, u.hp - 0.15 * dt);
       else if (u.combatTimer <= 0) {
         let regen = 0.5;
-        if (u.state === 'rest' || u.hidden)
+        if (u.state === 'rest' || u.state === 'cmdRest' || u.hidden)
           for (const h of healers) if (Math.hypot(h.x - u.x, h.y - u.y) < 48) regen = Math.max(regen, h.rate);
         u.hp = Math.min(u.maxHp, u.hp + regen * dt);
       }

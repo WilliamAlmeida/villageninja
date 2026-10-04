@@ -6,6 +6,7 @@ import { populationSystem } from './population';
 import { projectileSystem } from './projectiles';
 import { spawnerSystem } from './spawner';
 import { statusSystem } from './status';
+import { teamSystem } from './teams';
 import { timeSystem } from './time';
 import { towerSystem } from './towers';
 import { villagerSystem } from './villagers';
@@ -19,6 +20,7 @@ export const SYSTEMS: System[] = [
   statusSystem,
   spawnerSystem,
   populationSystem,
+  teamSystem,
   villagerSystem,
   ninjaSystem,
   hostileSystem,

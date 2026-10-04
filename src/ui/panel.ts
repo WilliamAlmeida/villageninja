@@ -11,11 +11,20 @@ import {
   type Result,
 } from '../game/commands';
 import { nextRank } from '../game/progression';
-import type { Building, NinjaOrder, Unit } from '../game/types';
+import {
+  clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
+  setTeamOrder, teamOf, teamUnits,
+} from '../game/teams';
+import type { Building, NinjaOrder, Team, Unit } from '../game/types';
 import { esc, el } from './dom';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
-type View = { kind: 'unit'; id: number; teach?: boolean } | { kind: 'building'; id: number } | { kind: 'roster' };
+type View =
+  | { kind: 'unit'; id: number; teach?: boolean }
+  | { kind: 'building'; id: number }
+  | { kind: 'team'; id: number }
+  | { kind: 'roster' }
+  | { kind: 'teams' };
 
 interface Built {
   html: string;
@@ -29,6 +38,8 @@ export class Panel {
   private view: View | null = null;
   private lastHtml = '';
   private armedDemolish = 0;
+  /** Chamado quando o jogador entra no modo "dar ordem". */
+  onOrderMode: () => void = () => {};
 
   constructor(private app: App) {
     this.root = el('aside', { id: 'panel', hidden: '' }, '<button class="close" data-act="close">✕</button><div class="body"></div>');
@@ -59,7 +70,11 @@ export class Panel {
     const g = this.app.game;
     let built: Built | null = null;
     if (this.view.kind === 'roster') built = this.roster();
-    else if (this.view.kind === 'unit') {
+    else if (this.view.kind === 'teams') built = this.teamsList();
+    else if (this.view.kind === 'team') {
+      const tm = g.team(this.view.id);
+      if (tm) built = this.teamView(tm);
+    } else if (this.view.kind === 'unit') {
       const u = g.unit(this.view.id);
       if (u) built = this.view.teach && u.ninja && u.faction === 'village' && u.kind === 'ninja' ? this.teach(u) : this.unit(u);
     } else {
@@ -110,6 +125,7 @@ export class Panel {
         html += `<div class="bar xp"><i data-b="xp"></i><span data-t="xp"></span></div>`;
         t.xp = `XP ${Math.floor(n.xp)} / ${xpToNext(n.level)}`;
         b.xp = n.xp / xpToNext(n.level);
+        html += this.ninjaQuick(u);
       }
       html += `<h4>Atributos <small>(máx ${RANKS[n.rank].statCap})</small></h4><div class="stats">`;
       for (const k of STAT_KEYS) {
@@ -138,7 +154,10 @@ export class Panel {
         b.learn = n.learning.progress / n.learning.total;
         t.learn = `${Math.floor(b.learn * 100)}%`;
       }
-      if (isOwn) html += this.ninjaControls(u);
+      if (isOwn) {
+        html += this.ninjaControls(u);
+        t.cmd = commandLabel(u);
+      }
       else if (u.kind === 'clone') html += `<p class="hint">Clone das sombras. Some em <span data-t="life"></span>s.</p>`;
       if (u.kind === 'clone') t.life = String(Math.ceil(u.life ?? 0));
       return { html, t, b };
@@ -163,13 +182,26 @@ export class Panel {
     return { html, t, b };
   }
 
+  /** Equipe + ordens: o que mais importa em combate, logo abaixo das barras. */
+  private ninjaQuick(u: Unit) {
+    const team = teamOf(this.app.game, u);
+    let html = `<h4>Ordens</h4><p class="hint">Atual: <b data-t="cmd"></b></p><div class="btnrow">
+      <button class="btn primary" data-act="cmd-mode" data-arg="self">📍 Ordem</button>`;
+    if (team) html += `<button class="btn primary" data-act="cmd-mode" data-arg="team">📍 Equipe</button>`;
+    html += `<button class="btn" data-act="cmd-retreat" data-arg="self">🏃 Recuar</button>`;
+    if (u.command) html += `<button class="btn" data-act="cmd-clear" data-arg="self">✕ Cancelar</button>`;
+    html += `</div>`;
+    return html + this.teamSection(u, team);
+  }
+
   private ninjaControls(u: Unit) {
     const n = u.ninja!;
     const g = this.app.game;
-    let html = `<h4>Ordem</h4><div class="seg">`;
+    const team = teamOf(g, u);
+    let html = `<h4>Rotina</h4><div class="seg">`;
     for (const [k, label] of [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']] as [NinjaOrder, string][])
       html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}">${label}</button>`;
-    html += `</div><label class="hint">Foco do treino<select data-act="focus"><option value="">Aleatório</option>`;
+    html += `</div><label class="hint">Foco do treino<select data-act="focus"><option value="">${team?.senseiId != null && team.senseiId !== u.id ? 'Sensei decide / aleatório' : 'Aleatório'}</option>`;
     for (const k of STAT_KEYS) html += `<option value="${k}" ${n.focus === k ? 'selected' : ''}>${STAT_INFO[k].label}</option>`;
     html += `</select></label><div class="actions">`;
     html += `<button class="btn primary" data-act="teach-open">📜 Ensinar jutsu</button>`;
@@ -181,6 +213,28 @@ export class Panel {
     }
     html += `<button class="btn" data-act="focus-cam">🎯 Centralizar câmera</button></div>`;
     html += `<p class="hint">Abates: ${n.kills}</p>`;
+    return html;
+  }
+
+  private teamSection(u: Unit, team: Team | undefined) {
+    const g = this.app.game;
+    let html = `<h4>Equipe</h4>`;
+    if (team) {
+      const role = team.senseiId === u.id ? 'Sensei' : 'Membro';
+      html += `<div class="teamtag" style="--c:${team.color}"><span class="dot"></span><b>${esc(team.name)}</b> · ${role}</div>
+        <div class="btnrow"><button class="btn" data-act="open-team" data-arg="${team.id}">👥 Ver equipe</button><button class="btn" data-act="team-leave">Sair</button></div>`;
+      return html;
+    }
+    if (u.ninja!.rank === 'kage') return html + `<p class="hint">O Kage não entra em equipes.</p>`;
+    const lead = u.ninja!.rank !== 'genin';
+    html += `<div class="btnrow">`;
+    for (const t of g.state.teams) {
+      if (lead && t.senseiId == null)
+        html += `<button class="btn" data-act="team-join" data-arg="${t.id}" data-slot="sensei" style="--c:${t.color}"><span class="dot"></span>Sensei de ${esc(t.name)}</button>`;
+      if (t.memberIds.length < MAX_MEMBERS)
+        html += `<button class="btn" data-act="team-join" data-arg="${t.id}" data-slot="member" style="--c:${t.color}"><span class="dot"></span>${esc(t.name)} (${t.memberIds.length}/${MAX_MEMBERS})</button>`;
+    }
+    html += `<button class="btn" data-act="team-create-with">＋ Nova equipe</button></div>`;
     return html;
   }
 
@@ -253,29 +307,101 @@ export class Panel {
     return { html, t, b };
   }
 
+  private tabs(active: 'roster' | 'teams') {
+    return `<div class="seg tabs"><button data-act="tab" data-arg="roster" class="${active === 'roster' ? 'on' : ''}">🥷 Ninjas</button>
+      <button data-act="tab" data-arg="teams" class="${active === 'teams' ? 'on' : ''}">👥 Equipes</button></div>`;
+  }
+
   private roster(): Built {
     const g = this.app.game;
     const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
-    let html = `<div class="ph"><div class="title">🥷 Ninjas (${ninjas.length})</div></div>`;
+    let html = this.tabs('roster');
+    html += `<p class="hint">${ninjas.length} ninja(s). Toque para selecionar.</p>`;
     if (!ninjas.length) html += `<p class="hint">Nenhum ninja. Construa a Academia e recrute moradores.</p>`;
     html += `<div class="roster">`;
-    for (const u of ninjas) {
-      const n = u.ninja!;
-      const nat = NATURES[n.nature];
-      const js = n.jutsu.filter(Boolean).map((id) => JUTSUS[id!]!.shout.replace('!', '')).join(', ') || 'sem jutsu';
-      html += `<button class="rrow" data-act="pick" data-arg="${u.id}"><span class="rn">${esc(u.name)}</span>
-        <span class="badges"><span class="badge rank">${RANKS[n.rank].name}</span><span class="badge nat" style="--c:${nat.color}">${nat.kanji}</span><span class="badge">Nv ${n.level}</span></span>
-        <span class="rm">${esc(js)} · <span data-t="st${u.id}"></span></span><span class="mini"><i data-b="hp${u.id}"></i></span></button>`;
-      t[`st${u.id}`] = STATE_LABEL[u.state] ?? u.state;
-      b[`hp${u.id}`] = u.hp / u.maxHp;
-    }
+    for (const u of ninjas) html += this.ninjaRow(u, t, b);
     html += `</div>`;
     return { html, t, b };
   }
 
+  private ninjaRow(u: Unit, t: Record<string, string>, b: Record<string, number>, extra = '') {
+    const n = u.ninja!;
+    const nat = NATURES[n.nature];
+    const team = teamOf(this.app.game, u);
+    const js = n.jutsu.filter(Boolean).map((id) => JUTSUS[id!]!.shout.replace('!', '')).join(', ') || 'sem jutsu';
+    t[`st${u.id}`] = STATE_LABEL[u.state] ?? u.state;
+    b[`hp${u.id}`] = u.hp / u.maxHp;
+    return `<button class="rrow" data-act="pick" data-arg="${u.id}" ${team ? `style="--c:${team.color}"` : ''}>
+      <span class="rn">${team ? '<span class="dot"></span>' : ''}${extra}${esc(u.name)}</span>
+      <span class="badges"><span class="badge rank">${RANKS[n.rank].name}</span><span class="badge nat" style="--c:${nat.color}">${nat.kanji}</span><span class="badge">Nv ${n.level}</span></span>
+      <span class="rm">${esc(js)} · <span data-t="st${u.id}"></span></span><span class="mini"><i data-b="hp${u.id}"></i></span></button>`;
+  }
+
+  private teamsList(): Built {
+    const g = this.app.game;
+    let html = this.tabs('teams');
+    html += `<p class="hint">Equipes treinam e lutam juntas: membros seguem o líder, focam o mesmo alvo (+10% de dano juntos) e treinam 50% mais rápido com um sensei Chunin+.</p>`;
+    html += `<div class="roster">`;
+    for (const tm of g.state.teams) {
+      const sensei = g.unit(tm.senseiId);
+      html += `<button class="rrow" data-act="open-team" data-arg="${tm.id}" style="--c:${tm.color}">
+        <span class="rn"><span class="dot"></span>${esc(tm.name)}</span><span class="badge">${tm.memberIds.length}/${MAX_MEMBERS}</span>
+        <span class="rm">Sensei: ${sensei ? esc(sensei.name) : '—'} · ${tm.memberIds.map((id) => esc(g.unit(id)?.name.split(' ').pop() ?? '?')).join(', ') || 'sem membros'}</span></button>`;
+    }
+    html += `</div><div class="actions"><button class="btn primary" data-act="team-new">＋ Nova equipe</button></div>`;
+    if (!g.state.teams.length) html += `<p class="hint">Nenhuma equipe ainda.</p>`;
+    return { html, t: {}, b: {} };
+  }
+
+  private teamView(tm: Team): Built {
+    const g = this.app.game;
+    const t: Record<string, string> = {};
+    const b: Record<string, number> = {};
+    const sensei = g.unit(tm.senseiId);
+    const units = teamUnits(g, tm);
+    let html = `<div class="ph"><div class="row"><button class="btn" data-act="tab" data-arg="teams">←</button>
+      <div class="title teamtag" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)}</div></div></div>`;
+    html += `<h4>Sensei</h4>`;
+    html += sensei ? `<div class="roster">${this.ninjaRow(sensei, t, b, '👑 ')}</div>` : `<p class="hint">Sem sensei. Selecione um Chunin/Jounin e toque em "Sensei de ${esc(tm.name)}".</p>`;
+    html += `<h4>Membros (${tm.memberIds.length}/${MAX_MEMBERS})</h4><div class="roster">`;
+    for (const id of tm.memberIds) {
+      const u = g.unit(id);
+      if (u) html += this.ninjaRow(u, t, b);
+    }
+    html += `</div>`;
+    if (tm.memberIds.length < MAX_MEMBERS) html += `<p class="hint">Para adicionar: selecione um ninja → seção Equipe.</p>`;
+    if (units.length) {
+      const n0 = units[0]!.ninja!;
+      html += `<h4>Ordens para a equipe</h4><div class="btnrow">
+        <button class="btn primary" data-act="cmd-mode" data-arg="team">📍 Ordem</button>
+        <button class="btn" data-act="cmd-retreat" data-arg="team">🏃 Recuar</button>
+        <button class="btn" data-act="cmd-clear" data-arg="team">✕ Cancelar</button></div>
+        <h4>Rotina da equipe</h4><div class="seg">`;
+      for (const [k, label] of [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']] as [NinjaOrder, string][])
+        html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}">${label}</button>`;
+      html += `</div>`;
+    }
+    html += `<div class="actions"><button class="btn danger" data-act="team-disband">${this.armedDemolish ? 'Toque de novo para confirmar' : '🗑 Desfazer equipe'}</button></div>`;
+    return { html, t, b };
+  }
+
   // ------------------------------------------------------------------ ações
+  private commandIds(v: View, arg: string): number[] {
+    const g = this.app.game;
+    if (v.kind === 'team') {
+      const tm = g.team(v.id);
+      return tm ? teamUnits(g, tm).map((u) => u.id) : [];
+    }
+    if (v.kind !== 'unit') return [];
+    if (arg === 'team') {
+      const tm = teamOf(g, v.id);
+      return tm ? teamUnits(g, tm).map((u) => u.id) : [v.id];
+    }
+    return [v.id];
+  }
+
   private report(r: Result) {
     if (!r.ok) this.app.game.toast(r.error, 'warn');
     this.lastHtml = '';
@@ -309,6 +435,46 @@ export class Panel {
         }
         return;
       }
+      case 'tab':
+        g.select(null);
+        this.show({ kind: arg === 'teams' ? 'teams' : 'roster' });
+        return;
+      case 'open-team':
+        g.select({ kind: 'team', id: Number(arg) });
+        return;
+      case 'team-new': {
+        const tm = createTeam(g);
+        g.select({ kind: 'team', id: tm.id });
+        return;
+      }
+    }
+    // ordens valem tanto para a tela do ninja quanto para a da equipe
+    if ((v?.kind === 'unit' || v?.kind === 'team') && act?.startsWith('cmd-')) {
+      const ids = this.commandIds(v, arg);
+      if (act === 'cmd-mode') {
+        if (!ids.length) return this.report({ ok: false, error: 'Nenhum ninja para receber a ordem.' });
+        this.app.orderMode = { ids, label: arg === 'team' || v.kind === 'team' ? 'equipe' : 'ninja' };
+        this.onOrderMode();
+        return;
+      }
+      if (act === 'cmd-retreat') return this.report(orderRetreat(g, ids));
+      if (act === 'cmd-clear') return this.report(clearCommand(g, ids));
+    }
+    if (v?.kind === 'team') {
+      switch (act) {
+        case 'team-mode':
+          return this.report(setTeamOrder(g, v.id, arg as NinjaOrder));
+        case 'team-disband':
+          if (!this.armedDemolish) {
+            this.armedDemolish = 1;
+            this.lastHtml = '';
+            this.update();
+            return;
+          }
+          disbandTeam(g, v.id);
+          this.show({ kind: 'teams' });
+          return;
+      }
     }
     if (v?.kind === 'unit') {
       switch (act) {
@@ -333,6 +499,13 @@ export class Panel {
           if (u) this.app.camera.focus(u.x, u.y);
           return;
         }
+        case 'team-join':
+          return this.report(btn.dataset.slot === 'sensei' ? joinAsSensei(g, Number(arg), v.id) : joinAsMember(g, Number(arg), v.id));
+        case 'team-create-with':
+          return this.report(createTeamWith(g, v.id));
+        case 'team-leave':
+          leaveTeam(g, v.id);
+          return this.report({ ok: true });
       }
     }
     if (v?.kind === 'building') {

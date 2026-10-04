@@ -12,13 +12,14 @@ Decisões de design (definidas com o autor):
 
 ---
 
-## Fase 1 — Equipes, sensei e ordens
+## Fase 1 — Equipes, sensei e ordens ✅
 - `Team { id, nome, senseiId, membros[3], ordem }` no estado; tela **Equipes** (formar/desfazer, escolher sensei Chunin+).
 - Comportamento: membros seguem o sensei em patrulha/treino; em combate focam o mesmo alvo.
 - Bônus: treino com sensei rende +50% e puxa para os atributos fortes dele; +10% de dano com aliados próximos.
 - **Ordens** (ninja ou equipe selecionada): tocar no chão = mover/defender ponto; tocar inimigo = atacar; botão **Recuar**.
   Implementação: campo `command` na unidade que sobrepõe a IA até concluir ou expirar.
 - Testes: formação de equipe, ordem de ataque, bônus aplicados.
+- **Feito**: `game/teams.ts`, `systems/teams.ts`, IA em `systems/ninjas.ts`, UI (painel do ninja, aba Equipes, modo de ordem), migração de save v1→v2.
 
 ## Fase 2 — Pipeline de sprites (placeholder)
 - `SpriteSheet` + atlas JSON; `Animator` com estados `idle/walk/attack/cast/hurt/die` × 4 direções.

@@ -7,8 +7,9 @@ import { engage, trySupport } from '../combat';
 import { isHostile } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
-import { followPath, setDestination } from '../movement';
+import { chase, followPath, setDestination } from '../movement';
 import { trainTick } from '../progression';
+import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits } from '../teams';
 import { isNight } from '../time';
 import type { Unit } from '../types';
 import { doorPos, tileCenter, toTile } from '../world';
@@ -26,6 +27,7 @@ export function ninjaSystem(g: Game, dt: number) {
       continue;
     }
     if (!u.hidden) trySupport(g, u);
+    if (u.command && runCommand(g, u, dt)) continue;
 
     const threat = findThreat(g, u);
     const lowHp = u.hp < u.maxHp * 0.2;
@@ -45,9 +47,97 @@ export function ninjaSystem(g: Game, dt: number) {
   }
 }
 
+/** Executa a ordem do jogador. Retorna true se a ordem controlou a unidade neste tick. */
+function runCommand(g: Game, u: Unit, dt: number): boolean {
+  const c = u.command!;
+  switch (c.kind) {
+    case 'retreat': {
+      // abrigado dentro do hospital / residência até se curar
+      if (u.state === 'cmdRest') {
+        if (u.hp >= u.maxHp * 0.95) {
+          u.command = null;
+          u.hidden = false;
+          u.state = 'idle';
+        }
+        return true;
+      }
+      u.hidden = false;
+      if (u.state !== 'cmdRetreat') {
+        const p = restPoint(g);
+        if (!p || !setDestination(g, u, p.x, p.y)) {
+          u.command = null;
+          return false;
+        }
+        u.state = 'cmdRetreat';
+      }
+      if (followPath(g, u, dt, 1.2)) {
+        u.state = 'cmdRest';
+        u.hidden = true;
+        u.moving = false;
+        u.targetId = null;
+      }
+      return true;
+    }
+    case 'attack': {
+      const t = g.unit(c.targetId);
+      if (!t || t.dead || t.hidden) {
+        u.command = null;
+        u.state = 'idle';
+        return false;
+      }
+      u.state = 'fight';
+      engage(g, u, t, dt);
+      return true;
+    }
+    case 'move': {
+      c.time -= dt;
+      if (c.time <= 0) {
+        u.command = null;
+        u.state = 'idle';
+        return false;
+      }
+      // defende o ponto: luta com quem chegar perto dele (ou de si)
+      const threat = g.nearestHostileAt(u.faction, c.x, c.y, 170) ?? g.nearestHostile(u, 110);
+      if (threat && u.hp >= u.maxHp * 0.2) {
+        u.hidden = false;
+        u.state = 'fight';
+        engage(g, u, threat, dt);
+        return true;
+      }
+      if (u.state === 'fight') {
+        u.state = 'idle';
+        u.targetId = null;
+      }
+      if (Math.hypot(c.x - u.x, c.y - u.y) > 8) {
+        if (u.state !== 'cmdMove' || !u.hasGoal) {
+          if (!setDestination(g, u, c.x, c.y)) {
+            u.command = null;
+            return false;
+          }
+          u.state = 'cmdMove';
+        }
+        followPath(g, u, dt, 1.1);
+      } else {
+        u.moving = false;
+        u.state = 'guard';
+      }
+      return true;
+    }
+  }
+}
+
 function findThreat(g: Game, u: Unit): Unit | null {
   const current = g.unit(u.targetId);
   if (current && !current.dead && !current.hidden && Math.hypot(current.x - u.x, current.y - u.y) < DEFEND_RADIUS * 1.5) return current;
+  // equipe foca o mesmo alvo
+  const team = teamOf(g, u);
+  if (team) {
+    for (const m of teamUnits(g, team)) {
+      if (m.id === u.id || m.state !== 'fight') continue;
+      const t = g.unit(m.targetId);
+      if (t && !t.dead && !t.hidden && t.faction !== 'village' && Math.hypot(t.x - u.x, t.y - u.y) < DEFEND_RADIUS * 1.5) return t;
+    }
+  }
   let best: Unit | null = null;
   let bd = Infinity;
   for (const o of g.state.units) {
@@ -116,10 +206,21 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         fx(g, 'slash', u.x + Math.cos(u.facing) * 12, u.y + Math.sin(u.facing) * 12, { r: 10, color: '#ffffff', life: 0.25 });
       }
       if (u.timer <= 0) {
-        trainTick(g, u);
+        trainTick(g, u, senseiNear(g, u));
         u.state = 'idle';
       }
       break;
+    case 'follow': {
+      const t = teamOf(g, u);
+      const leader = t ? teamLeader(g, t) : undefined;
+      if (!t || !leader || leader === u || leader.hidden || u.timer <= 0) {
+        u.state = 'idle';
+        break;
+      }
+      const o = formationOffset(Math.max(0, t.memberIds.filter((id) => id !== leader.id).indexOf(u.id)));
+      chase(g, u, leader.x + o.x, leader.y + o.y, dt, 6);
+      break;
+    }
     case 'patrol':
       if (followPath(g, u, dt, 0.8)) {
         u.state = 'idle';
@@ -170,6 +271,7 @@ function decide(g: Game, u: Unit, night: boolean) {
       }
     }
   }
+  if (n.order === 'auto' && followLeader(g, u)) return;
   const tg = g.builtOf('training');
   const wantsTrain = n.order === 'train' || (n.order === 'auto' && chance(0.65));
   if (tg.length && wantsTrain && !night) {
@@ -183,6 +285,27 @@ function decide(g: Game, u: Unit, night: boolean) {
     }
   }
   patrol(g, u);
+}
+
+/** Membros de equipe acompanham o líder: treinam junto ou seguem em formação. */
+function followLeader(g: Game, u: Unit): boolean {
+  const t = teamOf(g, u);
+  if (!t) return false;
+  const leader = teamLeader(g, t);
+  if (!leader || leader === u || leader.hidden || leader.command?.kind === 'retreat') return false;
+  const i = Math.max(0, t.memberIds.filter((id) => id !== leader.id).indexOf(u.id));
+  const o = formationOffset(i);
+  if (leader.state === 'train' || leader.state === 'toTrain') {
+    const x = (leader.hasGoal ? leader.goalX : leader.x) + o.x;
+    const y = (leader.hasGoal ? leader.goalY : leader.y) + o.y;
+    if (setDestination(g, u, x, y)) {
+      u.state = 'toTrain';
+      return true;
+    }
+  }
+  u.state = 'follow';
+  u.timer = rand(4, 7);
+  return true;
 }
 
 function goRest(g: Game, u: Unit) {

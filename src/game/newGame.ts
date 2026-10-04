@@ -2,6 +2,7 @@ import { DAY_LENGTH, SAVE_VERSION } from '../config';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { createNinja, createVillager, rollInnateCount } from './entities';
 import { Game, type System } from './game';
+import { createTeam, joinAsMember } from './teams';
 import type { GameState } from './types';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
@@ -18,6 +19,7 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     nodes,
     buildings: [],
     units: [],
+    teams: [],
     projectiles: [],
     effects: [],
     res: { wood: 120, stone: 60, food: 80, ryo: 150 },
@@ -42,7 +44,11 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
   const d = doorPos(hk);
   for (let i = 0; i < 6; i++) createVillager(g, d.x + (i - 3) * 14, d.y + 12 + (i % 2) * 10);
   // dois ninjas iniciais: um talentoso e um sem jutsu (precisa estudar)
-  createNinja(g, d.x - 20, d.y + 34, 'genin', Math.max(1, rollInnateCount()));
-  createNinja(g, d.x + 20, d.y + 34, 'genin', 0);
+  const a = createNinja(g, d.x - 20, d.y + 34, 'genin', Math.max(1, rollInnateCount()));
+  const b = createNinja(g, d.x + 20, d.y + 34, 'genin', 0);
+  // primeira equipe já formada (ainda sem sensei)
+  const team = createTeam(g, 'Time 1');
+  joinAsMember(g, team.id, a.id);
+  joinAsMember(g, team.id, b.id);
   return g;
 }

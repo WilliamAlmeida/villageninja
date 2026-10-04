@@ -120,11 +120,31 @@ export class Renderer {
     }
     list.sort((a, b) => a.y - b.y);
 
+    // cor da equipe de cada ninja + quem está "em foco" (selecionado ou da equipe selecionada)
+    const teamColor = new Map<number, string>();
+    for (const t of s.teams) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) teamColor.set(id, t.color);
+    const focus = new Set<number>();
+    if (sel?.kind === 'unit') focus.add(sel.id);
+    if (sel?.kind === 'team') {
+      const t = g.team(sel.id);
+      if (t) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) focus.add(id);
+    }
+
     for (const d of list) {
       if (d.b) drawBuilding(ctx, d.b, time, night);
       else if (d.n) drawNode(ctx, d.n);
       else if (d.u) {
         const selected = sel?.kind === 'unit' && sel.id === d.u.id;
+        const tc = teamColor.get(d.u.kind === 'clone' ? (d.u.ownerId ?? -1) : d.u.id);
+        if (tc) {
+          ctx.strokeStyle = tc;
+          ctx.lineWidth = focus.has(d.u.id) ? 2.5 : 1.3;
+          ctx.globalAlpha = focus.has(d.u.id) ? 1 : 0.75;
+          ctx.beginPath();
+          ctx.ellipse(d.u.x, d.u.y + 7, 9, 4, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
         if (selected) {
           ctx.strokeStyle = '#ffd34d';
           ctx.lineWidth = 2;
@@ -137,6 +157,7 @@ export class Renderer {
       }
     }
 
+    this.drawCommands(g, focus, teamColor, time);
     for (const p of s.projectiles) if (!p.dead) drawProjectile(ctx, p, time);
     for (const e of s.effects) drawEffect(ctx, e, cam.zoom);
 
@@ -156,6 +177,59 @@ export class Renderer {
       gr.addColorStop(1, `rgba(200,0,0,${a})`);
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
+    }
+  }
+
+  /** Bandeiras de "defender ponto" e linhas de ataque das ordens do jogador. */
+  private drawCommands(g: Game, focus: Set<number>, teamColor: Map<number, string>, time: number) {
+    const ctx = this.ctx;
+    for (const u of g.state.units) {
+      const c = u.command;
+      if (!c || u.dead) continue;
+      const color = teamColor.get(u.id) ?? '#ffd34d';
+      const show = focus.has(u.id);
+      if (c.kind === 'move') {
+        if (show && !u.hidden) {
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 0.6;
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(u.x, u.y + 4);
+          ctx.lineTo(c.x, c.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        }
+        ctx.strokeStyle = '#3b2a1a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y + 4);
+        ctx.lineTo(c.x, c.y - 14);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        const wave = Math.sin(time * 5 + u.id) * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y - 14);
+        ctx.lineTo(c.x + 10, c.y - 11 + wave);
+        ctx.lineTo(c.x, c.y - 8);
+        ctx.fill();
+      } else if (c.kind === 'attack' && show) {
+        const t = g.unit(c.targetId);
+        if (!t || t.dead) continue;
+        ctx.strokeStyle = '#ff5a5a';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y);
+        ctx.lineTo(t.x, t.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const r = 12 + Math.sin(time * 8) * 2;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
 

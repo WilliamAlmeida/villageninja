@@ -10,6 +10,7 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push } from './movement';
 import { gainXp } from './progression';
+import { hasTeammateNear } from './teams';
 import type { Faction, Projectile, ProjectileKind, Unit } from './types';
 
 export const MELEE_RANGE = 22;
@@ -292,6 +293,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   }
   const mult = natureMultiplier(nature, t.ninja?.nature);
   let dmg = amount * mult;
+  // lutar junto da equipe dá +10% de dano
+  if (src?.faction === 'village' && src.ninja && hasTeammateNear(g, src)) dmg *= 1.1;
   if (t.ninja) dmg *= 1 - derive(t.ninja.stats).defense;
   if (t.shield > 0) dmg *= 0.4;
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));

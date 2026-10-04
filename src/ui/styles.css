@@ -99,7 +99,12 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; }
   display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line);
   padding: 6px 8px 6px 12px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); white-space: nowrap;
 }
-#placebar .hint { color: var(--muted); font-size: 12px; }
+#placebar .hint, #orderbar .hint { color: var(--muted); font-size: 12px; white-space: normal; }
+#orderbar {
+  position: fixed; left: 50%; bottom: calc(10px + var(--safe-b)); transform: translateX(-50%); z-index: 12; max-width: min(560px, 70vw);
+  display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid #ffd34d;
+  padding: 6px 8px 6px 12px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
 .btn { padding: 7px 12px; border-radius: 9px; background: rgba(255, 255, 255, 0.1); font-weight: 600; }
 .btn.primary { background: var(--accent); color: #1a1008; }
 .btn.danger { background: #8e2a22; }
@@ -160,11 +165,22 @@ select { width: 100%; margin-top: 4px; padding: 6px; border-radius: 8px; backgro
 .roster { display: flex; flex-direction: column; gap: 5px; }
 .rrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; padding: 6px 8px; border-radius: 9px; background: rgba(255, 255, 255, 0.06); text-align: left; }
 .rrow .rn { font-weight: 700; }
+.rrow .badges { flex-wrap: nowrap; align-self: start; }
+.badge { white-space: nowrap; }
 .rrow .rm { font-size: 10.5px; color: var(--muted); grid-column: 1 / -1; }
 .rrow .mini { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .rrow .mini i { display: block; height: 100%; background: var(--good); }
 .workers { display: flex; align-items: center; gap: 8px; }
 .workers .btn { width: 34px; padding: 6px 0; text-align: center; }
+
+/* ---------- equipes ---------- */
+.btnrow { display: flex; flex-wrap: wrap; gap: 5px; }
+.btnrow .btn { padding: 6px 9px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c, #888); flex: 0 0 auto; margin-right: 4px; vertical-align: middle; }
+.teamtag { display: flex; align-items: center; gap: 2px; color: var(--c, inherit); }
+.teamtag b { color: var(--c, inherit); }
+.rrow[style*="--c"] { border-left: 3px solid var(--c); }
+.tabs { margin-right: 30px; margin-bottom: 4px; }
 
 /* ---------- modal ---------- */
 #modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; }

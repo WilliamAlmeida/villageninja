@@ -6,7 +6,8 @@ export const STATE_LABEL: Record<string, string> = {
   build: 'Construindo', flee: 'Fugindo!', shelter: 'Abrigado', goHome: 'Indo para casa', sleep: 'Dormindo',
   fight: 'Em combate!', toLearn: 'Indo à Academia', learn: 'Estudando jutsu', toRest: 'Indo descansar', rest: 'Descansando',
   toTrain: 'Indo treinar', train: 'Treinando', patrol: 'Patrulhando', roam: 'Vagando', march: 'Marchando para a vila',
-  escape: 'Fugindo com o saque',
+  escape: 'Fugindo com o saque', follow: 'Seguindo o líder', cmdMove: 'Indo ao ponto (ordem)', guard: 'Defendendo ponto',
+  cmdRetreat: 'Recuando (ordem)', cmdRest: 'Abrigado se curando',
 };
 
 export const JOB_LABEL: Record<JobType, string> = {

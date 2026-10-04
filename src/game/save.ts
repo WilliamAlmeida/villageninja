@@ -2,6 +2,30 @@ import { SAVE_KEY, SAVE_VERSION } from '../config';
 import { Game, type System } from './game';
 import type { GameState } from './types';
 
+/**
+ * Migrações de save: cada entrada transforma a versão N na N+1.
+ * Assim saves antigos continuam funcionando quando o estado ganha campos novos.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MIGRATIONS: Record<number, (s: any) => void> = {
+  1: (s) => {
+    s.teams = [];
+    for (const u of s.units) u.command = null;
+  },
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function migrate(s: any): GameState | null {
+  if (typeof s?.version !== 'number') return null;
+  while (s.version < SAVE_VERSION) {
+    const m = MIGRATIONS[s.version];
+    if (!m) return null;
+    m(s);
+    s.version++;
+  }
+  return s.version === SAVE_VERSION ? (s as GameState) : null;
+}
+
 /** Salva o estado no localStorage (o jogo é local por enquanto). */
 export function saveGame(g: Game): boolean {
   try {
@@ -17,9 +41,8 @@ export function loadGame(systems: System[]): Game | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    const state = JSON.parse(raw) as GameState;
-    if (state.version !== SAVE_VERSION) return null;
-    return new Game(state, systems);
+    const state = migrate(JSON.parse(raw));
+    return state ? new Game(state, systems) : null;
   } catch {
     return null;
   }

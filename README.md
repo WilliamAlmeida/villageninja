@@ -28,6 +28,10 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
 - **Academia Ninja**: recrute moradores como Genin. Alguns nascem com 0, 1 ou 2 jutsus.
   Selecione um ninja → **Ensinar jutsu** (ele vai até a Academia estudar).
 - **Campo de Treino**: ninjas ganham atributos e XP. Com nível suficiente, promova a Chunin → Jounin → Kage.
+- **Equipes** (🥷 Ninjas → aba Equipes, ou no painel do ninja): até 3 membros + 1 sensei Chunin+.
+  Membros seguem o líder, focam o mesmo alvo, ganham +10% de dano lutando juntos e treinam 50% mais rápido com o sensei.
+- **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
+  ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.
 - À noite, todos vão para casa (as janelas acendem). Em perigo, os moradores correm para se abrigar.
 - O jogo salva sozinho a cada 20 s (localStorage).

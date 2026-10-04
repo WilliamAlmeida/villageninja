@@ -84,6 +84,23 @@ export interface Unit {
   /** Tempo de vida restante (clones). */
   life?: number;
   ownerId?: number;
+  /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
+  command: Command | null;
+}
+
+export type Command =
+  | { kind: 'move'; x: number; y: number; time: number }
+  | { kind: 'attack'; targetId: number }
+  | { kind: 'retreat' };
+
+export interface Team {
+  id: number;
+  name: string;
+  color: string;
+  /** Jounin/Chunin responsável (opcional). */
+  senseiId: number | null;
+  /** Até 3 membros. */
+  memberIds: number[];
 }
 
 export interface Building {
@@ -156,6 +173,7 @@ export interface GameState {
   nodes: ResourceNode[];
   buildings: Building[];
   units: Unit[];
+  teams: Team[];
   projectiles: Projectile[];
   effects: Effect[];
   res: Record<ResKey, number>;
@@ -165,4 +183,4 @@ export interface GameState {
   stats: { kills: number; raidsRepelled: number; born: number; lost: number };
 }
 
-export type Selection = { kind: 'unit' | 'building'; id: number };
+export type Selection = { kind: 'unit' | 'building' | 'team'; id: number };

@@ -21,6 +21,7 @@ const app: App = {
   camera,
   ghost: null,
   buildType: null,
+  orderMode: null,
   newGame() {
     clearSave();
     app.game = createNewGame(SYSTEMS);

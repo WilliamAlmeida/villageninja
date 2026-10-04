@@ -1,7 +1,7 @@
 import { bus, type ToastKind } from '../core/events';
 import { dist2 } from '../core/math';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
-import type { Building, Cost, GameState, ResKey, ResourceNode, Selection, Unit } from './types';
+import type { Building, Cost, Faction, GameState, ResKey, ResourceNode, Selection, Team, Unit } from './types';
 import { isHostile } from './factions';
 import { World } from './world';
 
@@ -67,6 +67,9 @@ export class Game {
   node(id: number | null | undefined) {
     return id == null ? undefined : this.nodeMap.get(id);
   }
+  team(id: number | null | undefined): Team | undefined {
+    return id == null ? undefined : this.state.teams.find((t) => t.id === id);
+  }
 
   addUnit(u: Unit) {
     this.state.units.push(u);
@@ -126,11 +129,16 @@ export class Game {
 
   /** Inimigo mais próximo de `u` (visível) dentro do raio. */
   nearestHostile(u: Unit, radius: number): Unit | null {
+    return this.nearestHostileAt(u.faction, u.x, u.y, radius);
+  }
+
+  /** Inimigo visível mais próximo de um ponto, do ponto de vista de uma facção. */
+  nearestHostileAt(faction: Faction, x: number, y: number, radius: number): Unit | null {
     let best: Unit | null = null;
     let bd = radius * radius;
     for (const o of this.state.units) {
-      if (o.dead || o.hidden || !isHostile(u.faction, o.faction)) continue;
-      const d = dist2(u.x, u.y, o.x, o.y);
+      if (o.dead || o.hidden || !isHostile(faction, o.faction)) continue;
+      const d = dist2(x, y, o.x, o.y);
       if (d < bd) {
         bd = d;
         best = o;

@@ -1,0 +1,228 @@
+// Equipes (time de até 3 ninjas + sensei) e ordens diretas do jogador.
+import { fx } from './fx';
+import type { Game } from './game';
+import type { Team, Unit } from './types';
+import { doorPos } from './world';
+
+export const MAX_MEMBERS = 3;
+export const TEAM_COLORS = ['#ff8a2b', '#4da6ff', '#7ddc6b', '#e05ad1', '#ffe14d', '#5ad1c8', '#ff5a5a', '#b39cff'];
+/** Distância para os bônus de equipe valerem. */
+export const TEAM_BONUS_RANGE = 110;
+export const SENSEI_TRAIN_RANGE = 140;
+export const GUARD_TIME = 90;
+
+type Result = { ok: true } | { ok: false; error: string };
+const ok: Result = { ok: true };
+const fail = (error: string): Result => ({ ok: false, error });
+
+// ------------------------------------------------------------------ consultas
+/** Equipe de uma unidade (clones contam como o dono). */
+export function teamOf(g: Game, u: Unit | number | undefined | null): Team | undefined {
+  if (u == null) return undefined;
+  const unit = typeof u === 'number' ? g.unit(u) : u;
+  if (!unit) return undefined;
+  const id = unit.kind === 'clone' ? unit.ownerId : unit.id;
+  if (id == null) return undefined;
+  return g.state.teams.find((t) => t.senseiId === id || t.memberIds.includes(id));
+}
+
+export const isSensei = (t: Team | undefined, u: Unit) => !!t && t.senseiId === u.id;
+
+export function teamUnits(g: Game, t: Team): Unit[] {
+  const ids = t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds;
+  return ids.map((id) => g.unit(id)).filter((u): u is Unit => !!u && !u.dead);
+}
+
+/** Quem os outros seguem: o sensei, ou o primeiro membro se não houver sensei. */
+export function teamLeader(g: Game, t: Team): Unit | undefined {
+  return g.unit(t.senseiId) ?? t.memberIds.map((id) => g.unit(id)).find((u) => u && !u.dead);
+}
+
+/** Posição de formação (atrás do líder) para o i-ésimo seguidor. */
+export function formationOffset(i: number) {
+  const slots = [
+    { x: -18, y: 16 },
+    { x: 18, y: 16 },
+    { x: 0, y: 30 },
+  ];
+  return slots[i % slots.length]!;
+}
+
+/** Há algum colega de equipe vivo e visível por perto? */
+export function hasTeammateNear(g: Game, u: Unit, range = TEAM_BONUS_RANGE): boolean {
+  const t = teamOf(g, u);
+  if (!t) return false;
+  const self = u.kind === 'clone' ? u.ownerId : u.id;
+  for (const o of teamUnits(g, t)) {
+    if (o.id === self || o.hidden) continue;
+    if (Math.hypot(o.x - u.x, o.y - u.y) <= range) return true;
+  }
+  return false;
+}
+
+/** O sensei da equipe está perto (para o bônus de treino)? */
+export function senseiNear(g: Game, u: Unit): Unit | null {
+  const t = teamOf(g, u);
+  if (!t || t.senseiId == null || t.senseiId === u.id) return null;
+  const s = g.unit(t.senseiId);
+  if (!s || s.dead || s.hidden) return null;
+  return Math.hypot(s.x - u.x, s.y - u.y) <= SENSEI_TRAIN_RANGE ? s : null;
+}
+
+const canBeSensei = (u: Unit) => !!u.ninja && u.ninja.rank !== 'genin';
+
+// ------------------------------------------------------------------ gestão
+export function createTeam(g: Game, name?: string): Team {
+  const used = new Set(g.state.teams.map((t) => t.color));
+  let n = 1;
+  while (g.state.teams.some((t) => t.name === `Time ${n}`)) n++;
+  const t: Team = {
+    id: g.newId(),
+    name: name ?? `Time ${n}`,
+    color: TEAM_COLORS.find((c) => !used.has(c)) ?? TEAM_COLORS[g.state.teams.length % TEAM_COLORS.length]!,
+    senseiId: null,
+    memberIds: [],
+  };
+  g.state.teams.push(t);
+  return t;
+}
+
+function validNinja(g: Game, unitId: number) {
+  const u = g.unit(unitId);
+  return u && !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja ? u : null;
+}
+
+export function leaveTeam(g: Game, unitId: number) {
+  for (const t of g.state.teams) {
+    if (t.senseiId === unitId) t.senseiId = null;
+    t.memberIds = t.memberIds.filter((id) => id !== unitId);
+  }
+}
+
+export function joinAsMember(g: Game, teamId: number, unitId: number): Result {
+  const t = g.team(teamId);
+  const u = validNinja(g, unitId);
+  if (!t || !u) return fail('Inválido.');
+  if (u.ninja!.rank === 'kage') return fail('O Kage não entra em equipes.');
+  if (t.memberIds.includes(u.id)) return ok;
+  if (t.memberIds.length >= MAX_MEMBERS) return fail(`${t.name} já tem ${MAX_MEMBERS} membros.`);
+  leaveTeam(g, u.id);
+  t.memberIds.push(u.id);
+  return ok;
+}
+
+export function joinAsSensei(g: Game, teamId: number, unitId: number): Result {
+  const t = g.team(teamId);
+  const u = validNinja(g, unitId);
+  if (!t || !u) return fail('Inválido.');
+  if (!canBeSensei(u)) return fail('O sensei precisa ser Chunin ou superior.');
+  if (t.senseiId != null && t.senseiId !== u.id) return fail(`${t.name} já tem sensei.`);
+  leaveTeam(g, u.id);
+  t.senseiId = u.id;
+  return ok;
+}
+
+/** Cria uma equipe nova já com este ninja (sensei se Chunin+, senão membro). */
+export function createTeamWith(g: Game, unitId: number): Result {
+  const u = validNinja(g, unitId);
+  if (!u) return fail('Inválido.');
+  if (u.ninja!.rank === 'kage') return fail('O Kage não entra em equipes.');
+  const t = createTeam(g);
+  const r = canBeSensei(u) ? joinAsSensei(g, t.id, u.id) : joinAsMember(g, t.id, u.id);
+  if (!r.ok) disbandTeam(g, t.id);
+  return r;
+}
+
+export function disbandTeam(g: Game, teamId: number): Result {
+  const t = g.team(teamId);
+  if (!t) return fail('Equipe não encontrada.');
+  g.state.teams = g.state.teams.filter((x) => x.id !== teamId);
+  if (g.selected?.kind === 'team' && g.selected.id === teamId) g.select(null);
+  return ok;
+}
+
+export function setTeamOrder(g: Game, teamId: number, order: 'auto' | 'train' | 'patrol'): Result {
+  const t = g.team(teamId);
+  if (!t) return fail('Equipe não encontrada.');
+  for (const u of teamUnits(g, t)) {
+    u.ninja!.order = order;
+    if (!u.command && u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn') {
+      u.state = 'idle';
+      u.timer = 0;
+      u.hidden = false;
+    }
+  }
+  return ok;
+}
+
+// ------------------------------------------------------------------ ordens
+function commandable(g: Game, ids: number[]) {
+  return ids.map((id) => validNinja(g, id)).filter((u): u is Unit => !!u);
+}
+
+/** Mover e defender um ponto. Vários ninjas se espalham em formação. */
+export function orderMove(g: Game, ids: number[], x: number, y: number): Result {
+  const us = commandable(g, ids);
+  if (!us.length) return fail('Nenhum ninja para receber a ordem.');
+  us.forEach((u, i) => {
+    const o = i === 0 ? { x: 0, y: 0 } : formationOffset(i - 1);
+    u.command = { kind: 'move', x: x + o.x, y: y + o.y, time: GUARD_TIME };
+    u.state = 'idle';
+    u.hidden = false;
+    u.hasGoal = false;
+  });
+  fx(g, 'ring', x, y, { r: 18, color: '#ffd34d', life: 0.6 });
+  return ok;
+}
+
+export function orderAttack(g: Game, ids: number[], targetId: number): Result {
+  const t = g.unit(targetId);
+  if (!t || t.dead || t.faction === 'village') return fail('Alvo inválido.');
+  const us = commandable(g, ids);
+  if (!us.length) return fail('Nenhum ninja para receber a ordem.');
+  for (const u of us) {
+    u.command = { kind: 'attack', targetId };
+    u.hidden = false;
+    u.targetId = targetId;
+  }
+  fx(g, 'ring', t.x, t.y, { r: 18, color: '#ff5a5a', life: 0.6 });
+  return ok;
+}
+
+export function orderRetreat(g: Game, ids: number[]): Result {
+  const us = commandable(g, ids);
+  if (!us.length) return fail('Nenhum ninja para receber a ordem.');
+  for (const u of us) {
+    u.command = { kind: 'retreat' };
+    u.state = 'idle';
+    u.hasGoal = false;
+    u.targetId = null;
+  }
+  return ok;
+}
+
+export function clearCommand(g: Game, ids: number[]): Result {
+  for (const u of commandable(g, ids)) {
+    u.command = null;
+    if (u.state === 'cmdMove' || u.state === 'guard' || u.state === 'cmdRetreat' || u.state === 'cmdRest') {
+      u.state = 'idle';
+      u.hidden = false;
+    }
+  }
+  return ok;
+}
+
+/** Ponto de descanso usado pelo "Recuar". */
+export function restPoint(g: Game) {
+  const b = g.findBuilt('hospital') ?? g.hokage();
+  return b ? doorPos(b) : null;
+}
+
+export const commandLabel = (u: Unit) => {
+  const c = u.command;
+  if (!c) return 'Nenhuma (IA automática)';
+  if (c.kind === 'move') return `Defender ponto (${Math.ceil(c.time)}s)`;
+  if (c.kind === 'attack') return 'Atacar alvo';
+  return u.state === 'cmdRest' ? 'Recuado (curando)' : 'Recuar';
+};
+

@@ -9,6 +9,8 @@ export interface App {
   camera: Camera;
   ghost: Ghost | null;
   buildType: BuildingType | null;
+  /** Modo "dar ordem": o próximo toque no mapa vira ordem para estes ninjas. */
+  orderMode: { ids: number[]; label: string } | null;
   newGame(): void;
   save(): boolean;
 }

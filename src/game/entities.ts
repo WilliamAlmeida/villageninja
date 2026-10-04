@@ -31,6 +31,7 @@ function baseUnit(g: Game, kind: UnitKind, faction: Faction, x: number, y: numbe
     state: 'idle', timer: Math.random(), targetId: null, taskId: null, homeId: null, jobId: null, carry: null,
     attackCd: 0, stun: 0, shield: 0, hitFlash: 0, combatTimer: 0, anim: 0, hidden: false, dead: false,
     look: randomLook(kind),
+    command: null,
   };
 }
 

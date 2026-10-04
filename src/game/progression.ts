@@ -32,18 +32,27 @@ export function gainXp(g: Game, u: Unit, amount: number) {
   }
 }
 
-/** Uma sessão de treino no Campo de Treino. */
-export function trainTick(g: Game, u: Unit) {
+/** Uma sessão de treino no Campo de Treino. Com o sensei por perto rende 50% a mais. */
+export function trainTick(g: Game, u: Unit, sensei: Unit | null = null) {
   const n = u.ninja!;
   const cap = RANKS[n.rank].statCap;
   const open = STAT_KEYS.filter((k) => n.stats[k] < cap);
-  const key = n.focus && n.stats[n.focus] < cap ? n.focus : open.length ? pick(open) : null;
+  // sem foco definido, o sensei puxa o treino para os pontos fortes dele
+  const senseiPick = sensei?.ninja && !n.focus && Math.random() < 0.5 ? topStats(sensei).find((k) => open.includes(k)) : undefined;
+  const key = n.focus && n.stats[n.focus] < cap ? n.focus : (senseiPick ?? (open.length ? pick(open) : null));
+  const mult = sensei ? 1.5 : 1;
   if (key) {
-    const gain = addStat(u, key, 0.12 * (0.8 + n.stats.inteligencia * 0.05));
+    const gain = addStat(u, key, 0.12 * mult * (0.8 + n.stats.inteligencia * 0.05));
     if (gain > 0) fxText(g, u.x, u.y - 22, `+${STAT_INFO[key].short}`, STAT_INFO[key].color);
     refreshDerived(u);
   }
-  gainXp(g, u, 5);
+  gainXp(g, u, Math.round(5 * mult));
+  if (sensei) gainXp(g, sensei, 1);
+}
+
+function topStats(u: Unit): StatKey[] {
+  const s = u.ninja!.stats;
+  return [...STAT_KEYS].sort((a, b) => s[b] - s[a]).slice(0, 2);
 }
 
 export function nextRank(u: Unit) {
