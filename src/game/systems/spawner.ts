@@ -33,14 +33,14 @@ export function spawnerSystem(g: Game, dt: number) {
   }
   if (alert !== s.flags.alert) {
     s.flags.alert = alert;
-    if (alert) g.toast('⚠ Inimigos dentro da vila!', 'danger');
+    if (alert) g.toast('{alert} Inimigos dentro da vila!', 'danger');
   }
   if (s.flags.raidActive && rogues === 0) {
     s.flags.raidActive = false;
     if (s.flags.raidStole) g.toast('Os renegados fugiram…', 'warn');
     else {
       s.stats.raidsRepelled++;
-      g.toast('🎉 Invasão repelida! A vila está segura.', 'good');
+      g.toast('{party} Invasão repelida! A vila está segura.', 'good');
     }
   }
 }
@@ -87,7 +87,7 @@ function spawnAnimals(g: Game) {
   const p = edgeSpawn(g);
   const count = randi(def.pack[0], def.pack[1]);
   for (let i = 0; i < count; i++) createAnimal(g, def.type, p.x + rand(-14, 14), p.y + rand(-14, 14));
-  if (def.type === 'snake' || def.type === 'bear') g.toast(`🐾 Um(a) ${def.name} foi avistado(a) na floresta!`, 'warn', p);
+  if (def.type === 'snake' || def.type === 'bear') g.toast(`{paw} Um(a) ${def.name} foi avistado(a) na floresta!`, 'warn', p);
 }
 
 /**
@@ -112,5 +112,5 @@ function spawnRaid(g: Game) {
   const n = r.count;
   s.flags.raidActive = true;
   s.flags.raidStole = false;
-  g.toast(`⚔ ${n} ninja(s) renegado(s) estão invadindo a vila!`, 'danger', p);
+  g.toast(`{swords} ${n} ninja(s) renegado(s) estão invadindo a vila!`, 'danger', p);
 }

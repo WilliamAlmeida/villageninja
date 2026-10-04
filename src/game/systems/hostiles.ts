@@ -100,8 +100,8 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (followPath(g, u, dt) && Math.hypot(p.x - u.x, p.y - u.y) < 40) {
     const stolen = Math.min(g.state.res.ryo, 40 + g.state.day * 5);
     g.state.res.ryo -= stolen;
-    fxText(g, u.x, u.y - 30, `-${stolen}💰`, '#ff5a5a', true);
-    g.toast(`💰 ${u.name} roubou ${stolen} ryo da Residência do Hokage!`, 'danger', u);
+    fxText(g, u.x, u.y - 30, `-${stolen}{ryo}`, '#ff5a5a', true);
+    g.toast(`{ryo} ${u.name} roubou ${stolen} ryo da Residência do Hokage!`, 'danger', u);
     g.state.flags.raidStole = true;
     u.state = 'escape';
     const e = nearestEdge(u.x, u.y);

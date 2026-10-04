@@ -20,7 +20,7 @@ export function missionSystem(g: Game, dt: number) {
     const first = s.missionDay === 0;
     s.missionDay = s.day;
     generateOffers(g);
-    if (!first) g.toast('📋 Novas missões no quadro da Mesa de Missões.', 'info');
+    if (!first) g.toast('{clipboard} Novas missões no quadro da Mesa de Missões.', 'info');
   }
   for (const m of s.missions) if (m.status === 'active') runMission(g, m, dt);
 }
@@ -137,7 +137,7 @@ function runEscort(g: Game, m: Mission, members: Unit[], dt: number) {
         m.phase = 'travel';
         m.goal = Math.max(1, merchant.path.length);
         merchant.state = 'escort';
-        g.toast(`🛒 ${merchant.name}: "Obrigado! Vamos para a vila."`, 'info', merchant);
+        g.toast(`{cart} ${merchant.name}: "Obrigado! Vamos para a vila."`, 'info', merchant);
       }
     }
     return;

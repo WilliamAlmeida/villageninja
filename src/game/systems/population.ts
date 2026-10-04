@@ -52,8 +52,8 @@ function births(g: Game) {
     u.heritage = child.heritage;
     u.look = { ...u.look, ...child.look };
     const clan = clanOf(g, u);
-    g.toast(`👶 ${u.name} nasceu (filho(a) de ${a.name.split(' ').pop()} e ${b.name.split(' ').pop()})${clan ? ` · clã ${clan.name}` : ''}!`, 'good', u);
-  } else g.toast(`🧳 ${u.name} chegou à vila!`, 'good', u);
+    g.toast(`{baby} ${u.name} nasceu (filho(a) de ${a.name.split(' ').pop()} e ${b.name.split(' ').pop()})${clan ? ` · clã ${clan.name}` : ''}!`, 'good', u);
+  } else g.toast(`{luggage} ${u.name} chegou à vila!`, 'good', u);
 }
 
 function shuffle<T>(arr: T[]): T[] {

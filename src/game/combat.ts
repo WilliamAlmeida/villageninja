@@ -397,13 +397,13 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
     }
   } else {
     g.state.stats.lost++;
-    g.toast(t.kind === 'ninja' ? `💀 O ninja ${t.name} caiu em combate!` : `💀 ${t.name} foi morto(a).`, 'danger', t);
+    g.toast(t.kind === 'ninja' ? `{skull} O ninja ${t.name} caiu em combate!` : `{skull} ${t.name} foi morto(a).`, 'danger', t);
   }
 }
 
 function rewardText(g: Game, t: Unit, r: { food?: number; ryo?: number; wood?: number; stone?: number }) {
   const parts: string[] = [];
-  if (r.food) parts.push(`+${r.food}🍙`);
-  if (r.ryo) parts.push(`+${r.ryo}💰`);
+  if (r.food) parts.push(`+${r.food}{food}`);
+  if (r.ryo) parts.push(`+${r.ryo}{ryo}`);
   if (parts.length) fxText(g, t.x, t.y - 30, parts.join(' '), '#ffe08a');
 }

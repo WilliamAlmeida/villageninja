@@ -1,3 +1,4 @@
+import { plainTokens } from '../core/tokens';
 import type { Effect } from '../game/types';
 
 type Ctx = CanvasRenderingContext2D;
@@ -26,9 +27,10 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number) {
       ctx.scale(s, s);
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-      ctx.strokeText(e.text ?? '', 0, 0);
+      const text = plainTokens(e.text ?? '');
+      ctx.strokeText(text, 0, 0);
       ctx.fillStyle = e.color;
-      ctx.fillText(e.text ?? '', 0, 0);
+      ctx.fillText(text, 0, 0);
       ctx.restore();
       break;
     }

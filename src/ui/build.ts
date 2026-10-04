@@ -3,7 +3,9 @@ import { BUILDING_LIST, BUILDINGS, type BuildingType } from '../data/buildings';
 import { canBuild, costLabel, placeBuilding } from '../game/commands';
 import { toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
+import { plainTokens } from '../core/tokens';
 import { el } from './dom';
+import { rich } from './icons';
 
 /** Menu de construção + modo de posicionamento (fantasma no mapa). */
 export class BuildUI {
@@ -16,7 +18,7 @@ export class BuildUI {
     for (const d of BUILDING_LIST) {
       if (!d.buildable) continue;
       this.bar.appendChild(
-        el('button', { class: 'bcard', 'data-type': d.type }, `<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span>`),
+        el('button', { class: 'bcard', 'data-type': d.type }, rich(`<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span>`)),
       );
     }
     this.bar.addEventListener('click', (e) => {
@@ -28,7 +30,7 @@ export class BuildUI {
     this.place = el(
       'div',
       { id: 'placebar', hidden: '' },
-      `<span class="hint" data-t="name"></span><button class="btn" data-act="cancel">✕</button><button class="btn primary" data-act="ok">✓ Construir</button>`,
+      rich(`<span class="hint" data-t="name"></span><button class="btn icon" data-act="cancel" title="Cancelar">{x}</button><button class="btn primary" data-act="ok">{check} Construir</button>`),
     );
     this.place.addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
@@ -52,11 +54,14 @@ export class BuildUI {
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const r = canBuild(this.app.game, c.dataset.type as BuildingType);
       c.classList.toggle('off', !r.ok);
-      c.title = r.ok ? '' : r.error;
+      c.title = r.ok ? '' : plainTokens(r.error);
       const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;
-      const lock = min > this.app.game.state.level ? `🔒 ${levelDef(min).name}` : '';
+      const lock = min > this.app.game.state.level ? `{lock} ${levelDef(min).name}` : '';
       const le = c.querySelector('.lock')!;
-      if (le.textContent !== lock) le.textContent = lock;
+      if (le.getAttribute('data-raw') !== lock) {
+        le.setAttribute('data-raw', lock);
+        le.innerHTML = rich(lock);
+      }
     });
   }
 
@@ -72,7 +77,7 @@ export class BuildUI {
     this.setGhost(toTile(cam.x) - Math.floor(d.w / 2), toTile(cam.y) - Math.floor(d.h / 2));
     this.bar.hidden = true;
     this.place.hidden = false;
-    this.place.querySelector('[data-t="name"]')!.textContent = `${d.icon} ${d.name} — toque no mapa para posicionar`;
+    this.place.querySelector('[data-t="name"]')!.innerHTML = rich(`${d.icon} ${d.name} — toque no mapa para posicionar`);
   }
 
   /** Chamado pelo toque no mapa durante o modo de construção. */

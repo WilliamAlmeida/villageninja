@@ -14,7 +14,7 @@ export function statusSystem(g: Game, dt: number) {
   const starving = s.res.food <= 0 && pop > 0;
   if (starving !== s.flags.starving) {
     s.flags.starving = starving;
-    if (starving) g.toast('🍙 A vila está passando fome! Construa fazendas.', 'danger');
+    if (starving) g.toast('{food} A vila está passando fome! Construa fazendas.', 'danger');
   }
 
   const healers = s.buildings.filter((b) => b.built && BUILDINGS[b.type].healRate).map((b) => ({ ...doorPos(b), rate: BUILDINGS[b.type].healRate! }));

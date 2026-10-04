@@ -24,6 +24,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v8.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
+- **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token
+  `{nome}`; a UI passa por `rich()`, o canvas e `title` por `plainTokens()` (`core/tokens.ts`). Ícone novo = entrada
+  em `icons.ts` (o teste `ui-text` confere que todo ícone dos dados existe).
+- CSS em `rem`: o tamanho de texto (P/M/G no menu, `ui/settings.ts`) escala a interface inteira. Nada de `<select>`
+  (lista nativa fica ilegível no desktop) — usar `.seg` ou `.chips`.
+- Estado só de interface (grupo selecionado, hover, caixa de seleção) fica em `App`, não no `GameState`.
 - Validar visualmente com Playwright em 844×390 (celular deitado) quando mexer na UI.
 
 ## Decisões de design (do autor)
@@ -33,5 +39,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Estado atual
 - Fases 1 e 3–8 do roadmap prontas (equipes/ordens, níveis da vila, missões, economia/equipamento,
-  Exame Chunin, clãs/kekkei genkai, Kage/ameaças chefes). 56 testes.
+  Exame Chunin, clãs/kekkei genkai, Kage/ameaças chefes). 59 testes.
+- Desktop: cursor por contexto, Shift+arrastar (ou botão Selecionar) marca vários ninjas, botão direito dá ordem,
+  hover em lista destaca o ninja no mapa. Prédios mostram o interior e quem está dentro (`game/interior.ts`).
+- Roda local via PM2 (`ecosystem.local.config.cjs`, porta 3010).
 - Próximos passos possíveis: sprites (Fase 2), playtest/balanceamento, sons, PWA instalável.

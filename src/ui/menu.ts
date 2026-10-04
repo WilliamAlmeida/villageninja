@@ -1,6 +1,8 @@
 import type { App } from '../app';
 import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
+import { rich } from './icons';
+import { FONT_SIZES, fontSize, setFontSize, type FontSize } from './settings';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
 export class Menu {
@@ -16,9 +18,13 @@ export class Menu {
       if (a === 'resume') this.close();
       if (a === 'save') {
         const ok = this.app.save();
-        this.app.game.toast(ok ? '💾 Jogo salvo!' : 'Não foi possível salvar.', ok ? 'good' : 'warn');
+        this.app.game.toast(ok ? '{save} Jogo salvo!' : 'Não foi possível salvar.', ok ? 'good' : 'warn');
       }
       if (a === 'full') this.fullscreen();
+      if (a === 'font') {
+        setFontSize((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg as FontSize);
+        this.render();
+      }
       if (a === 'new') {
         if (!this.armedNew) {
           this.armedNew = true;
@@ -47,18 +53,21 @@ export class Menu {
 
   private render() {
     const s = this.app.game.state;
-    this.root.innerHTML = `<div class="box">
-      <h2>🍃 Vila Ninja <small style="color:var(--muted);font-weight:400">— protótipo</small></h2>
+    const fs = fontSize();
+    this.root.innerHTML = rich(`<div class="box">
+      <h2>{leaf} Vila Ninja <small style="color:var(--muted);font-weight:400">— protótipo</small></h2>
       <div class="col">
-        <button class="btn primary" data-act="resume">▶ Continuar</button>
-        <button class="btn" data-act="save">💾 Salvar agora</button>
-        <button class="btn" data-act="full">⛶ Tela cheia</button>
-        <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '🔄 Novo jogo'}</button>
+        <button class="btn primary" data-act="resume">{play} Continuar</button>
+        <button class="btn" data-act="save">{save} Salvar agora</button>
+        <button class="btn" data-act="full">{fullscreen} Tela cheia</button>
+        <div class="setrow">{text} Texto<div class="seg">${FONT_SIZES.map((f) => `<button data-act="font" data-arg="${f.id}" class="${f.id === fs ? 'on' : ''}">${f.label}</button>`).join('')}</div></div>
+        <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
         <p class="hint">${levelDef(s.level).icon} ${levelDef(s.level).name} · Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Chefes ${s.stats.bossesDefeated} · Missões ${s.stats.missionsDone} · Perdas ${s.stats.lost}</p>
       </div>
       <div class="col">
         <ul>
-          <li><b>Arraste</b> para mover, <b>pinça</b> para zoom, <b>toque</b> para selecionar.</li>
+          <li><b>Arraste</b> para mover, <b>pinça</b>/roda do mouse para zoom, <b>toque</b> para selecionar.</li>
+          <li><b>Selecionar</b> (ou Shift + arrastar): marque vários ninjas com uma caixa. <b>Botão direito</b> no mapa manda mover ou atacar.</li>
           <li>Moradores trabalham sozinhos. Sem emprego, eles constroem as obras.</li>
           <li>Construa <b>Lenhador</b> perto de árvores e <b>Pedreira</b> perto de rochas.</li>
           <li><b>Academia</b>: recrute ninjas e ensine jutsus (cada ninja tem 2 slots).</li>
@@ -66,11 +75,11 @@ export class Menu {
           <li>Natureza: 火 Fogo › 風 Vento › 雷 Raio › 土 Terra › 水 Água › 火 Fogo (1,5× de dano).</li>
           <li>A partir do dia 3, ninjas renegados invadem a vila. Animais surgem nas florestas.</li>
           <li>A partir de Vila surgem <b>ameaças chefes</b> (com aviso prévio). Em Vila Oculta, eleja um <b>Kage</b>.</li>
-          <li><b>🏯 Vila</b>: cumpra os requisitos e evolua de Aldeia até Grande Vila Oculta (mais território e prédios).</li>
+          <li><b>{castle} Vila</b>: cumpra os requisitos e evolua de Aldeia até Grande Vila Oculta (mais território e prédios).</li>
           <li>O jogo salva sozinho a cada 20 s.</li>
         </ul>
       </div>
-    </div>`;
+    </div>`);
   }
 
   private async fullscreen() {

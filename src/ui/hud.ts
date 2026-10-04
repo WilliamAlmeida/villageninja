@@ -5,6 +5,7 @@ import { levelDef } from '../data/villageLevels';
 import { arenaSpots, examLabel } from '../game/exam';
 import { BOSSES } from '../data/bosses';
 import { el, esc, fmt } from './dom';
+import { rich } from './icons';
 
 const MAX_TOASTS = 4;
 
@@ -20,23 +21,23 @@ export class Hud {
     this.top = el(
       'div',
       { id: 'topbar' },
-      `<div class="res">
-        <span class="chip" title="Madeira">🪵 <b data-r="wood"></b></span>
-        <span class="chip" title="Pedra">🪨 <b data-r="stone"></b></span>
-        <span class="chip" title="Comida">🍙 <b data-r="food"></b></span>
-        <span class="chip" title="Ryo">💰 <b data-r="ryo"></b></span>
-        <span class="chip adv" title="Ferro">🔩 <b data-r="iron"></b></span>
-        <span class="chip adv" title="Ervas">🌿 <b data-r="herbs"></b></span>
-        <span class="chip adv" title="Papel de selo">🏷️ <b data-r="paper"></b></span>
-        <span class="chip" title="População / moradia">👥 <b data-r="pop"></b></span>
-        <span class="chip" title="Ninjas">🥷 <b data-r="ninjas"></b></span>
+      rich(`<div class="res">
+        <span class="chip" title="Madeira">{wood} <b data-r="wood"></b></span>
+        <span class="chip" title="Pedra">{stone} <b data-r="stone"></b></span>
+        <span class="chip" title="Comida">{food} <b data-r="food"></b></span>
+        <span class="chip" title="Ryo">{ryo} <b data-r="ryo"></b></span>
+        <span class="chip adv" title="Ferro">{iron} <b data-r="iron"></b></span>
+        <span class="chip adv" title="Ervas">{herbs} <b data-r="herbs"></b></span>
+        <span class="chip adv" title="Papel de selo">{paper} <b data-r="paper"></b></span>
+        <span class="chip" title="População / moradia">{users} <b data-r="pop"></b></span>
+        <span class="chip" title="Ninjas">{ninja} <b data-r="ninjas"></b></span>
       </div>
       <div class="spacer"></div>
       <div class="clock"><span data-r="lvl"></span> <span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span></div>
       <div class="speed">
-        <button data-speed="0">⏸</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
+        <button data-speed="0" title="Pausar">{pause}</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
       </div>
-      <button class="iconbtn" data-act="menu">☰</button>`,
+      <button class="iconbtn" data-act="menu" title="Menu">{menu}</button>`),
     );
     this.top.querySelectorAll<HTMLElement>('[data-r]').forEach((e) => this.vals.set(e.dataset.r!, e));
     this.top.addEventListener('click', (e) => {
@@ -48,7 +49,7 @@ export class Hud {
     this.top.addEventListener('pointerdown', (e) => e.stopPropagation());
 
     this.alert = el('div', { id: 'banners' });
-    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, '⚠ Inimigos na vila — toque para ver');
+    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, rich('{alert} Inimigos na vila — toque para ver'));
     threat.addEventListener('click', () => this.focusThreat());
     const exam = el('button', { class: 'banner exam', 'data-b': 'exam', hidden: '' });
     exam.addEventListener('click', () => this.focusArena());
@@ -89,10 +90,10 @@ export class Hud {
     set('pop', `${pop}/${cap}`);
     set('ninjas', String(s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village').length));
     set('day', String(s.day));
-    set('lvl', levelDef(s.level).icon);
+    this.html(this.vals.get('lvl')!, levelDef(s.level).icon);
     this.vals.get('lvl')!.title = levelDef(s.level).name;
     set('clock', clockLabel(s));
-    set('sun', isNight(s) ? '🌙' : '☀️');
+    this.html(this.vals.get('sun')!, isNight(s) ? '{moon}' : '{sun}');
     this.vals.get('food')!.parentElement!.classList.toggle('low', s.res.food < 15);
     this.vals.get('pop')!.parentElement!.classList.toggle('low', pop >= cap);
     this.top.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === s.speed));
@@ -101,8 +102,8 @@ export class Hud {
     warn.hidden = !s.pendingBoss;
     if (s.pendingBoss) {
       const d = BOSSES[s.pendingBoss.kind];
-      const label = `🔔 ${d.icon} ${d.name} chega em ${Math.ceil(s.pendingBoss.t)}s — ver`;
-      if (warn.textContent !== label) warn.textContent = label;
+      const label = `{bell} ${d.icon} ${d.name} chega em ${Math.ceil(s.pendingBoss.t)}s — ver`;
+      this.html(warn, label);
     }
     const bosses = s.units.filter((u) => u.boss && !u.dead);
     const bossEl = this.alert.querySelector<HTMLElement>('[data-b="boss"]')!;
@@ -110,15 +111,22 @@ export class Hud {
     if (bosses.length) {
       const hp = bosses.reduce((a, u) => a + u.hp, 0) / bosses.reduce((a, u) => a + u.maxHp, 0);
       const name = bosses.length > 1 ? `${bosses[0]!.name.split(' ')[0]} ×${bosses.length}` : bosses[0]!.name;
-      bossEl.querySelector('[data-t="name"]')!.textContent = `☠ ${name}`;
+      this.html(bossEl.querySelector<HTMLElement>('[data-t="name"]')!, `{skull} ${name}`);
       bossEl.querySelector<HTMLElement>('.bossbar i')!.style.width = `${Math.max(0, hp) * 100}%`;
     }
     const examBtn = this.alert.querySelector<HTMLElement>('[data-b="exam"]')!;
     examBtn.hidden = !s.exam;
     if (s.exam) {
-      const label = `🏟️ Exame Chunin — ${examLabel(g)} · assistir`;
-      if (examBtn.textContent !== label) examBtn.textContent = label;
+      const label = `{arena} Exame Chunin — ${examLabel(g)} · assistir`;
+      this.html(examBtn, label);
     }
+  }
+
+  /** Texto com ícones ({token}); só mexe no DOM quando o texto muda. */
+  private html(e: HTMLElement, text: string) {
+    if (e.dataset.raw === text) return;
+    e.dataset.raw = text;
+    e.innerHTML = rich(esc(text));
   }
 
   private focusArena() {
@@ -137,8 +145,12 @@ export class Hud {
   }
 
   toast(text: string, kind: ToastKind, x?: number, y?: number) {
-    const t = el('div', { class: `toast ${kind}` }, esc(text));
-    if (x != null && y != null) t.addEventListener('click', () => this.app.camera.focus(x, y));
+    const t = el('div', { class: `toast ${kind}` }, rich(esc(text)));
+    if (x != null && y != null) {
+      t.classList.add('go');
+      t.title = 'Ir até o local';
+      t.addEventListener('click', () => this.app.camera.focus(x, y));
+    }
     this.toasts.prepend(t);
     while (this.toasts.children.length > MAX_TOASTS) this.toasts.lastElementChild!.remove();
     setTimeout(() => t.classList.add('out'), 3600);

@@ -11,15 +11,15 @@ export interface BossDef {
 
 export const BOSSES: Record<BossKind, BossDef> = {
   titan: {
-    kind: 'titan', name: 'Fera Colossal', icon: '🐲', minLevel: 1,
+    kind: 'titan', name: 'Fera Colossal', icon: '{beast}', minLevel: 1,
     desc: 'Uma fera gigantesca desperta e marcha até a vila, esmagando tudo com pisões.',
   },
   order: {
-    kind: 'order', name: 'Ordem da Lua Vermelha', icon: '🌙', minLevel: 2,
+    kind: 'order', name: 'Ordem da Lua Vermelha', icon: '{moon}', minLevel: 2,
     desc: 'Dois ninjas de elite de uma organização criminosa vêm testar a força da vila.',
   },
   war: {
-    kind: 'war', name: 'Invasão da Vila da Rocha Negra', icon: '⚔️', minLevel: 3,
+    kind: 'war', name: 'Invasão da Vila da Rocha Negra', icon: '{swords}', minLevel: 3,
     desc: 'Uma vila rival declara guerra: um esquadrão inteiro liderado por um comandante.',
   },
 };

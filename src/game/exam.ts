@@ -118,7 +118,7 @@ export function startExam(g: Game): Result {
     timer: 25,
   };
   s.exam = exam;
-  g.toast(`🏟️ O Exame Chunin começou! ${village.length} genin(s) da vila e ${total - village.length} convidado(s).`, 'good', spots.center);
+  g.toast(`{arena} O Exame Chunin começou! ${village.length} genin(s) da vila e ${total - village.length} convidado(s).`, 'good', spots.center);
   return { ok: true };
 }
 
@@ -169,7 +169,7 @@ export function finishExam(g: Game) {
   s.exam = null;
   s.examNextDay = s.day + EXAM_COOLDOWN_DAYS;
   g.toast(
-    `🏆 ${champ?.name ?? '?'} venceu o Exame Chunin! ${promoted.length ? `Promovidos: ${promoted.join(', ')}.` : 'Ninguém da vila foi promovido.'} +${ryo}💰`,
+    `{trophy} ${champ?.name ?? '?'} venceu o Exame Chunin! ${promoted.length ? `Promovidos: ${promoted.join(', ')}.` : 'Ninguém da vila foi promovido.'} +${ryo}{ryo}`,
     'good',
   );
 }

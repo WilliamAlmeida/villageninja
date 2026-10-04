@@ -107,7 +107,7 @@ function startMatch(g: Game, exam: Exam) {
   exam.phase = 'walk';
   exam.timer = 15;
   const label = exam.bracket.length === 2 ? 'Final' : exam.bracket.length === 4 ? 'Semifinal' : `Rodada ${exam.round}`;
-  g.toast(`🏟️ ${label}: ${a.name} × ${b.name}`, 'info', a);
+  g.toast(`{arena} ${label}: ${a.name} × ${b.name}`, 'info', a);
 }
 
 /** Registra o resultado do duelo e chama o próximo (ou encerra o exame). */

@@ -20,6 +20,14 @@ export interface Ghost {
   valid: boolean;
 }
 
+/** Estado de interface que o render mostra por cima do mundo. */
+export interface Overlay {
+  group: number[];
+  hoverUnitId: number | null;
+  selectBox: { x0: number; y0: number; x1: number; y1: number } | null;
+}
+const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
+
 type Drawable = { y: number; b?: Building; n?: ResourceNode; u?: Unit };
 
 export class Renderer {
@@ -41,7 +49,7 @@ export class Renderer {
     this.canvas.style.height = `${h}px`;
   }
 
-  render(g: Game, cam: Camera, ghost: Ghost | null, time: number) {
+  render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
     if (!this.terrain || this.terrainSeed !== s.seed) {
       this.terrain = renderTerrain(s);
@@ -128,6 +136,8 @@ export class Renderer {
     for (const t of s.teams) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) teamColor.set(id, t.color);
     const focus = new Set<number>();
     if (sel?.kind === 'unit') focus.add(sel.id);
+    for (const id of ov.group) focus.add(id);
+    const group = new Set(ov.group);
     if (sel?.kind === 'team') {
       const t = g.team(sel.id);
       if (t) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) focus.add(id);
@@ -138,7 +148,7 @@ export class Renderer {
       if (d.b) drawBuilding(ctx, d.b, time, night, s.level);
       else if (d.n) drawNode(ctx, d.n);
       else if (d.u) {
-        const selected = sel?.kind === 'unit' && sel.id === d.u.id;
+        const selected = (sel?.kind === 'unit' && sel.id === d.u.id) || group.has(d.u.id);
         const tc = teamColor.get(d.u.kind === 'clone' ? (d.u.ownerId ?? -1) : d.u.id);
         if (tc) {
           ctx.strokeStyle = tc;
@@ -158,10 +168,11 @@ export class Renderer {
         }
         drawUnit(ctx, d.u, time, selected);
         if (d.u.missionId != null) this.missionBadge(d.u, time);
-        if (selected) this.label(ctx, d.u.name, d.u.x, d.u.y - 34, cam.zoom);
+        if (selected && !group.has(d.u.id)) this.label(ctx, d.u.name, d.u.x, d.u.y - 34, cam.zoom);
       }
     }
 
+    this.drawHover(g, ov.hoverUnitId, sel?.kind === 'unit' ? sel.id : null, cam, time);
     this.drawCommands(g, focus, teamColor, time);
     this.drawObjectives(g, time);
     for (const p of s.projectiles) if (!p.dead) drawProjectile(ctx, p, time);
@@ -179,6 +190,20 @@ export class Renderer {
       this.lights(g, cam, night);
     }
     this.missionArrows(g, cam);
+    if (ov.selectBox) {
+      const b = ov.selectBox;
+      const x = Math.min(b.x0, b.x1);
+      const y = Math.min(b.y0, b.y1);
+      const w = Math.abs(b.x1 - b.x0);
+      const h = Math.abs(b.y1 - b.y0);
+      ctx.fillStyle = 'rgba(255,211,77,0.12)';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#ffd34d';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+    }
     if (s.flags.alert) {
       const a = 0.25 + 0.15 * Math.sin(time * 6);
       const gr = ctx.createRadialGradient(cam.viewW / 2, cam.viewH / 2, Math.min(cam.viewW, cam.viewH) * 0.45, cam.viewW / 2, cam.viewH / 2, Math.max(cam.viewW, cam.viewH) * 0.7);
@@ -187,6 +212,30 @@ export class Renderer {
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
     }
+  }
+
+  /** Destaque da unidade sob o mouse (no mapa ou na lista do painel): anel pulsante, seta e nome. */
+  private drawHover(g: Game, id: number | null, selectedId: number | null, cam: Camera, time: number) {
+    const u = g.unit(id);
+    if (!u || u.dead) return;
+    const ctx = this.ctx;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 7);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.65 + 0.35 * pulse;
+    ctx.beginPath();
+    ctx.ellipse(u.x, u.y + 7, 12 + pulse * 2, 5.5 + pulse, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // dentro de um prédio só o anel na porta e o nome aparecem
+    const top = u.y - (u.hidden ? 20 : 40) - pulse * 3;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(u.x - 5, top - 6);
+    ctx.lineTo(u.x + 5, top - 6);
+    ctx.lineTo(u.x, top);
+    ctx.fill();
+    if (u.id !== selectedId) this.label(ctx, u.hidden ? `${u.name} (dentro)` : u.name, u.x, top - 13, cam.zoom);
   }
 
   /** Barracas e fogueira dos acampamentos/covis de missões ativas. */

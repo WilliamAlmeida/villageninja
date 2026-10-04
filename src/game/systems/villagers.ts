@@ -195,7 +195,7 @@ function work(g: Game, u: Unit, dt: number) {
       if (!g.building(u.jobId)?.built) u.state = 'idle';
       else if (u.timer <= 0) {
         g.state.res.ryo += 3;
-        fxText(g, u.x, u.y - 20, '+3💰', '#ffe08a');
+        fxText(g, u.x, u.y - 20, '+3{ryo}', '#ffe08a');
         u.timer = 8;
       }
       break;

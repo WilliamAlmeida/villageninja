@@ -60,5 +60,5 @@ export function bossDefeated(g: Game, u: Unit) {
   g.state.reputation += 5;
   g.state.stats.bossesDefeated++;
   fx(g, 'ring', u.x, u.y, { r: 50, color: '#ffd34d', life: 1 });
-  g.toast(`🏆 ${u.name} foi derrotado(a)!${ryo ? ` +${ryo}💰` : ''} +5 reputação`, 'good', u);
+  g.toast(`{trophy} ${u.name} foi derrotado(a)!${ryo ? ` +${ryo}{ryo}` : ''} +5 reputação`, 'good', u);
 }

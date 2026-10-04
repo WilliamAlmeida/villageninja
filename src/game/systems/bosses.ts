@@ -23,5 +23,5 @@ export function bossSystem(g: Game, dt: number) {
   const kind = weightedPick(BOSS_WEIGHTS[Math.min(3, s.level)]!, ([, w]) => w)![0];
   const p = edgePoint(g);
   s.pendingBoss = { kind, x: p.x, y: p.y, t: BOSS_WARNING };
-  g.toast(`🔔 Batedores avistaram: ${BOSSES[kind].icon} ${BOSSES[kind].name}! Chega em ${BOSS_WARNING}s — prepare os ninjas.`, 'danger', p);
+  g.toast(`{bell} Batedores avistaram: ${BOSSES[kind].icon} ${BOSSES[kind].name}! Chega em ${BOSS_WARNING}s — prepare os ninjas.`, 'danger', p);
 }

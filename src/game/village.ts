@@ -79,6 +79,6 @@ export function upgradeVillage(g: Game): Result {
     for (let i = 0; i < 3; i++) fx(g, 'ring', c.x, c.y, { r: 60 + i * 40, color: '#ffd34d', life: 0.8 + i * 0.3 });
     fxText(g, c.x, c.y - 50, `${st.def.icon} ${st.def.name}!`, '#ffd34d', true);
   }
-  g.toast(`🎉 Agora somos uma ${st.def.name}! ${st.def.perks.join(' · ')}`, 'good');
+  g.toast(`{party} Agora somos uma ${st.def.name}! ${st.def.perks.join(' · ')}`, 'good');
   return { ok: true };
 }

@@ -26,10 +26,10 @@ export function gainXp(g: Game, u: Unit, amount: number) {
     refreshDerived(u);
     u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.3);
     fxText(g, u.x, u.y - 30, `Nível ${n.level}!`, '#ffd34d', true);
-    g.toast(`⬆ ${u.name} alcançou o nível ${n.level}`, 'good');
+    g.toast(`{up} ${u.name} alcançou o nível ${n.level}`, 'good');
     const next = nextRank(u);
     if (next && n.level === RANKS[next].minLevel)
-      g.toast(next === 'kage' ? `👑 ${u.name} pode ser eleito Kage (Residência do Hokage).` : `🎖 ${u.name} pode ser promovido a ${RANKS[next].name}!`, 'good');
+      g.toast(next === 'kage' ? `{crown} ${u.name} pode ser eleito Kage (Residência do Hokage).` : `{medal} ${u.name} pode ser promovido a ${RANKS[next].name}!`, 'good');
   }
 }
 

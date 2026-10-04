@@ -13,7 +13,7 @@ export function kageSystem(g: Game, dt: number) {
     const k = g.unit(s.kageId);
     if (!k || k.dead) {
       s.kageId = null;
-      g.toast('🕯️ O Kage caiu. A vila precisa eleger um novo Kage.', 'danger');
+      g.toast('{candle} O Kage caiu. A vila precisa eleger um novo Kage.', 'danger');
     }
   }
   const c = s.ceremony;

@@ -109,7 +109,7 @@ export function acceptMission(g: Game, missionId: number, teamId: number): Resul
   m.teamId = teamId;
   m.timeLeft = MISSION_TIME * (m.type === 'escort' ? 1.3 : 1);
   spawnObjective(g, m);
-  g.toast(`📋 ${team.name} partiu: ${m.title} (rank ${MISSION_RANKS[m.rank]!.label}).`, 'info', m);
+  g.toast(`{clipboard} ${team.name} partiu: ${m.title} (rank ${MISSION_RANKS[m.rank]!.label}).`, 'info', m);
   return { ok: true };
 }
 
@@ -216,7 +216,7 @@ export function spawnAmbush(g: Game, m: Mission, merchant: Unit) {
     m.targetIds.push(u.id);
     fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#bbb' });
   }
-  g.toast(`⚔ Emboscada! Bandidos bloqueiam a estrada do ${merchant.name}!`, 'danger', { x: ax, y: ay });
+  g.toast(`{swords} Emboscada! Bandidos bloqueiam a estrada do ${merchant.name}!`, 'danger', { x: ax, y: ay });
 }
 
 // ------------------------------------------------------------------ fim
@@ -260,7 +260,7 @@ export function completeMission(g: Game, m: Mission) {
   if (team) for (const u of teamUnits(g, team)) gainXp(g, u, r.xp);
   clearTeamCommands(g, m);
   cleanup(g, m);
-  g.toast(`✅ Missão cumprida: ${m.title}! +${costLabel(reward)} · +${r.rep} reputação`, 'good');
+  g.toast(`{check} Missão cumprida: ${m.title}! +${costLabel(reward)} · +${r.rep} reputação`, 'good');
   archive(g);
 }
 
@@ -270,7 +270,7 @@ export function failMission(g: Game, m: Mission, reason: string) {
   g.state.reputation = Math.max(0, g.state.reputation - (m.rank + 1));
   clearTeamCommands(g, m);
   cleanup(g, m);
-  g.toast(`❌ Missão falhou: ${m.title} — ${reason}.`, 'danger');
+  g.toast(`{fail} Missão falhou: ${m.title} — ${reason}.`, 'danger');
   archive(g);
 }
 

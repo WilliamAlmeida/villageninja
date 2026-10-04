@@ -89,7 +89,7 @@ export function recruitNinja(g: Game): Result {
   const known = n.jutsu.filter(Boolean).length;
   fx(g, 'smoke', u.x, u.y, { r: 18, life: 0.6, color: '#e8e8e8' });
   fxText(g, u.x, u.y - 30, 'Novo ninja!', '#ffd34d', true);
-  g.toast(known ? `🥷 ${u.name} virou ninja e já nasceu sabendo ${known} jutsu(s)!` : `🥷 ${u.name} virou ninja (ainda sem jutsu).`, 'good', u);
+  g.toast(known ? `{ninja} ${u.name} virou ninja e já nasceu sabendo ${known} jutsu(s)!` : `{ninja} ${u.name} virou ninja (ainda sem jutsu).`, 'good', u);
   return ok;
 }
 
@@ -128,7 +128,7 @@ export function teachJutsu(g: Game, unitId: number, jutsuId: string, slot: 0 | 1
     u.state = 'idle';
     u.timer = 0;
   }
-  g.toast(`📜 ${u.name} foi estudar ${def.name}.`, 'info', u);
+  g.toast(`{scroll} ${u.name} foi estudar ${def.name}.`, 'info', u);
   return ok;
 }
 
@@ -148,7 +148,7 @@ export function promote(g: Game, unitId: number): Result {
   refreshDerived(u);
   fxText(g, u.x, u.y - 30, `${r.name}!`, '#ffd34d', true);
   fx(g, 'ring', u.x, u.y, { r: 28, color: '#ffd34d', life: 0.6 });
-  g.toast(`🎖 ${u.name} foi promovido a ${r.name}!`, 'good', u);
+  g.toast(`{medal} ${u.name} foi promovido a ${r.name}!`, 'good', u);
   return ok;
 }
 

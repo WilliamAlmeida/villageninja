@@ -185,7 +185,7 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         u.state = 'idle';
         const def = JUTSUS[L.jutsuId]!;
         fxText(g, u.x, u.y - 30, def.shout, def.color, true);
-        g.toast(`📜 ${u.name} aprendeu ${def.name}!`, 'good', u);
+        g.toast(`{scroll} ${u.name} aprendeu ${def.name}!`, 'good', u);
       }
       break;
     }

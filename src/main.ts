@@ -9,10 +9,12 @@ import { SYSTEMS } from './game/systems';
 import { doorPos } from './game/world';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
+import { applySettings } from './ui/settings';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui')!;
 
+applySettings();
 const camera = new Camera();
 const renderer = new Renderer(canvas);
 
@@ -22,6 +24,10 @@ const app: App = {
   ghost: null,
   buildType: null,
   orderMode: null,
+  group: [],
+  hoverUnitId: null,
+  selectBox: null,
+  selectTool: false,
   newGame() {
     clearSave();
     app.game = createNewGame(SYSTEMS);
@@ -56,6 +62,11 @@ camera.resize(window.innerWidth, window.innerHeight);
 const ui = createUI(app, uiRoot);
 const input = new Input(canvas, camera);
 input.onTap = ui.onTap;
+input.onContext = ui.onContext;
+input.onBox = ui.onBox;
+input.onBoxCancel = () => (app.selectBox = null);
+input.boxMode = () => app.selectTool && !app.buildType && !app.orderMode;
+input.onHover = (sx, sy) => input.setCursor(ui.onHover(sx, sy));
 
 // salvamento automático
 let saveTimer = 0;
@@ -71,7 +82,8 @@ let clock = 0;
 function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  clock += dt;
+  // relógio das animações: congela junto com a simulação quando o jogo está pausado
+  if (app.game.state.speed > 0) clock += dt;
   const g = app.game;
   acc += dt * g.state.speed;
   let steps = 0;
@@ -89,8 +101,8 @@ function frame(now: number) {
   }
 
   camera.update(dt);
-  renderer.render(g, camera, app.ghost, clock);
-  ui.update(dt);
+  renderer.render(g, camera, app.ghost, clock, app);
+  ui.update(dt, clock);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -87,7 +87,7 @@ export function foundClan(g: Game, unitId: number): Result {
   }
   fx(g, 'ring', u.x, u.y, { r: 30, color: clan.color, life: 0.8 });
   fxText(g, u.x, u.y - 32, `Clã ${clan.name}!`, clan.color, true);
-  g.toast(`🏯 ${u.name} fundou o clã ${clan.name} (${clanMembers(g, clan).length} membro(s)).`, 'good', u);
+  g.toast(`{castle} ${u.name} fundou o clã ${clan.name} (${clanMembers(g, clan).length} membro(s)).`, 'good', u);
   return { ok: true };
 }
 

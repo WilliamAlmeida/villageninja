@@ -15,5 +15,5 @@ export function villageSystem(g: Game, dt: number) {
   const st = nextLevelStatus(g);
   if (!st || !st.ready || n.level >= st.def.level) return;
   n.level = st.def.level;
-  g.toast(`🏯 A vila pode evoluir para ${st.def.name}! Toque em 🏯 Vila.`, 'good');
+  g.toast(`{castle} A vila pode evoluir para ${st.def.name}! Toque em {castle} Vila.`, 'good');
 }

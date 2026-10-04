@@ -22,31 +22,31 @@ export interface ItemDef {
 
 const LIST: ItemDef[] = [
   {
-    id: 'kunai', name: 'Kunais afiadas', icon: '🗡️', slot: 'weapon', building: 'forge', craftTime: 20,
+    id: 'kunai', name: 'Kunais afiadas', icon: '{kunai}', slot: 'weapon', building: 'forge', craftTime: 20,
     cost: { iron: 6, wood: 4 }, bonus: { melee: 3, kunai: 3 }, desc: '+3 de dano corpo a corpo e +3 nas kunais.',
   },
   {
-    id: 'ninjato', name: 'Ninjatō', icon: '⚔️', slot: 'weapon', building: 'forge', craftTime: 35, minLevel: 2,
+    id: 'ninjato', name: 'Ninjatō', icon: '{swords}', slot: 'weapon', building: 'forge', craftTime: 35, minLevel: 2,
     cost: { iron: 15, wood: 6 }, bonus: { melee: 7, kunai: 2 }, desc: 'Espada ninja: +7 de dano corpo a corpo.',
   },
   {
-    id: 'vest', name: 'Colete leve', icon: '🦺', slot: 'armor', building: 'forge', craftTime: 25,
+    id: 'vest', name: 'Colete leve', icon: '{vest}', slot: 'armor', building: 'forge', craftTime: 25,
     cost: { iron: 6, wood: 10 }, bonus: { defense: 0.08, hp: 15 }, desc: '+15 de vida e 8% menos dano recebido.',
   },
   {
-    id: 'flakvest', name: 'Colete tático', icon: '🛡️', slot: 'armor', building: 'forge', craftTime: 40, minLevel: 2,
+    id: 'flakvest', name: 'Colete tático', icon: '{shield}', slot: 'armor', building: 'forge', craftTime: 40, minLevel: 2,
     cost: { iron: 18, wood: 10 }, bonus: { defense: 0.15, hp: 30 }, desc: '+30 de vida e 15% menos dano recebido.',
   },
   {
-    id: 'soldierpill', name: 'Pílula de soldado', icon: '💊', slot: 'item', building: 'pharmacy', craftTime: 15,
+    id: 'soldierpill', name: 'Pílula de soldado', icon: '{pill}', slot: 'item', building: 'pharmacy', craftTime: 15,
     cost: { herbs: 4 }, use: { kind: 'heal', amount: 0.45 }, desc: 'Recupera 45% da vida quando o ninja está quase caindo.',
   },
   {
-    id: 'chakrapill', name: 'Pílula de chakra', icon: '🔵', slot: 'item', building: 'pharmacy', craftTime: 15,
+    id: 'chakrapill', name: 'Pílula de chakra', icon: '{drop}', slot: 'item', building: 'pharmacy', craftTime: 15,
     cost: { herbs: 5 }, use: { kind: 'chakra', amount: 0.6 }, desc: 'Recupera 60% do chakra quando ele acaba.',
   },
   {
-    id: 'bombtag', name: 'Papel-bomba', icon: '🧨', slot: 'item', building: 'sealshop', craftTime: 20,
+    id: 'bombtag', name: 'Papel-bomba', icon: '{bomb}', slot: 'item', building: 'sealshop', craftTime: 20,
     cost: { paper: 2, iron: 1 }, use: { kind: 'bomb', amount: 38, radius: 52 }, desc: 'Kunai com selo explosivo: 38 de dano em área.',
   },
 ];
