@@ -95,9 +95,23 @@ function assignJobs(g: Game) {
   for (const u of villagers) if (u.jobId != null && !g.building(u.jobId)?.built) u.jobId = null;
 
   const unemployed: Unit[] = villagers.filter((u) => u.jobId == null);
-  // se há obras, reserva até 2 construtores
+  // se há obras, reserva até 2 construtores — tirando gente do emprego se todos estiverem trabalhando
+  // (antes a obra ficava parada para sempre quando não sobrava ninguém desempregado)
   const pending = s.buildings.filter((b) => !b.built).length;
-  let free = unemployed.length - Math.min(2, pending);
+  const builders = Math.min(2, pending, villagers.length);
+  if (unemployed.length < builders) {
+    const food = (u: Unit) => (BUILDINGS[g.building(u.jobId)!.type].job === 'farmer' ? 1 : 0);
+    const employed = villagers.filter((u) => u.jobId != null).sort((a, b) => food(a) - food(b));
+    for (const u of employed.slice(0, builders - unemployed.length)) {
+      const job = g.building(u.jobId)!;
+      job.workers = job.workers.filter((id) => id !== u.id);
+      u.jobId = null;
+      if (!u.hidden) u.state = 'idle';
+      u.carry = null;
+      unemployed.push(u);
+    }
+  }
+  let free = unemployed.length - builders;
 
   for (const b of s.buildings) {
     if (!b.built) continue;
