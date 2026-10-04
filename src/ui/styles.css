@@ -240,6 +240,36 @@ h4 small { text-transform: none; letter-spacing: 0; }
 .cand { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 0.45rem; align-items: center; padding: 0.45rem 0.6rem; border-radius: 0.65rem; background: var(--card); }
 .cand .rn { font-weight: 700; }
 .cand .btnrow { grid-column: 1 / -1; }
+/* ---------- janela central (telas de gestão) ---------- */
+#win { position: fixed; inset: 0; z-index: 15; background: rgba(8, 6, 4, 0.55); display: flex; align-items: center; justify-content: center; animation: fade 0.12s ease-out; }
+@keyframes fade { from { opacity: 0; } }
+#win .box {
+  position: relative; width: min(62rem, 94vw); height: min(46rem, 86vh); display: flex; flex-direction: column;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6);
+}
+#win .close { position: absolute; top: 0.6rem; right: 0.6rem; width: 2.2rem; height: 2.2rem; border-radius: 0.6rem; background: var(--card-hi); z-index: 2; display: grid; place-items: center; }
+#win .body { overflow-y: auto; padding: 0.9rem 1.1rem 1.2rem; flex: 1; touch-action: pan-y; scrollbar-width: thin; scrollbar-color: rgba(255,214,150,0.25) transparent; }
+#win .tabs { position: sticky; top: -0.9rem; z-index: 1; margin: -0.9rem -1.1rem 0.8rem; padding: 0.6rem 3.4rem 0.6rem 1.1rem; border-radius: 1rem 1rem 0 0; background: var(--bg2); border-bottom: 1px solid var(--line); }
+#win .tabs button { flex: 0 1 auto; padding: 0.45rem 1rem; }
+/* listas viram grade de cards na janela larga */
+#win .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 0.5rem; }
+#win .mcard, #win .jcard { margin-bottom: 0.5rem; }
+.cols { display: grid; grid-template-columns: 1fr; gap: 0 1.5rem; }
+#win .cols { grid-template-columns: 1fr 1fr; }
+@media (max-width: 700px) { #win .cols { grid-template-columns: 1fr; } }
+.statgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.5rem; }
+.statcard { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.6rem 0.75rem; border-radius: 0.65rem; background: var(--card); }
+.statcard span { color: var(--muted); font-size: 0.82rem; }
+.statcard b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+/* botão grande com custo à direita (não quebra no meio do custo) */
+.btn.big { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem 0.8rem; padding: 0.7rem 0.9rem; }
+.btn.big .cost { white-space: nowrap; font-weight: 700; }
+.actions .btn { justify-content: flex-start; }
+@media (max-height: 520px) {
+  #win .box { width: 100vw; height: 100vh; border-radius: 0; }
+  #win .tabs { border-radius: 0; }
+}
+
 .workers { display: flex; align-items: center; gap: 0.6rem; }
 .workers .btn { width: 2.6rem; padding: 0.45rem 0; justify-content: center; }
 

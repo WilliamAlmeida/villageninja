@@ -40,7 +40,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   recupera); árvore vira toco e rocha racha conforme se esgotam; colheita deixa um canteiro (`fx 'harvest'`) que rebrota.
 - Efeitos visuais extras ficam em `render/particles.ts` (só visual, fora do estado): rastro de projétil e explosão por natureza.
 - Prédios podem ser movidos de graça (`canMove`/`moveBuilding` em commands.ts; o Hokage só se ninguém sair do território).
-- `src/ui/` DOM sobre o canvas. Painel lateral (`panel.ts`) recria HTML só quando a estrutura muda;
+- `src/ui/` DOM sobre o canvas. `Panel` (`panel.ts`) tem dois modos: **drawer** (lateral, para o que foi tocado no mapa:
+  ninja, prédio, grupo — compacto, com abas) e **window** (janela central com abas, para telas de gestão: Vila/Kage/
+  Estatísticas, Ninjas/Equipes/Clãs, Missões; tela cheia no celular). Botões de baixo e atalhos (B, N, V, M, S, Esp,
+  Esc) abrem a janela. Não criar outro tipo de painel: telas novas de gestão viram aba da janela.
+  O painel recria HTML só quando a estrutura muda;
   valores dinâmicos usam `data-t` / `data-b`. Ações via `data-act` (delegação de eventos).
 
 ## Convenções

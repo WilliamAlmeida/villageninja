@@ -38,8 +38,12 @@ import { JOB_LABEL, STATE_LABEL } from './labels';
 
 type UnitTab = 'info' | 'cmd' | 'gear';
 
-type View =
+export type View =
   | { kind: 'unit'; id: number; teach?: boolean }
+  | { kind: 'village' }
+  | { kind: 'kage' }
+  | { kind: 'stats' }
+  | { kind: 'missions' }
   | { kind: 'group' }
   | { kind: 'building'; id: number }
   | { kind: 'team'; id: number }
@@ -53,6 +57,20 @@ interface Built {
   b: Record<string, number>;
 }
 
+/** Abas da janela central: cada grupo de telas de gestão. */
+const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
+  ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
+  village: [['village', '{castle} Vila'], ['kage', '{crown} Kage'], ['stats', '{trophy} Estatísticas']],
+};
+const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village' };
+
+type BuildingTab = 'main' | 'inside';
+
+/**
+ * Painel de detalhes em dois modos:
+ * - `drawer`: lateral, para o que foi tocado no mapa (ninja, prédio, grupo), compacto e com abas;
+ * - `window`: janela central com abas, para as telas de gestão (Vila, Ninjas/Equipes/Clãs, Missões).
+ */
 export class Panel {
   readonly root: HTMLElement;
   private body: HTMLElement;
@@ -61,6 +79,10 @@ export class Panel {
   private armedDemolish = 0;
   /** Aba do painel do ninja (mantida ao trocar de ninja). */
   private unitTab: UnitTab = 'info';
+  /** Aba do painel do prédio (geral × lá dentro). */
+  private buildingTab: BuildingTab = 'main';
+  /** Pedido para abrir uma tela de gestão na janela central. */
+  onWindow: (view: View) => void = () => {};
   /** Ninja sob o mouse numa lista do painel (destacado no mapa). */
   hoverId: number | null = null;
   private lastTime = 0;
@@ -70,10 +92,20 @@ export class Panel {
   onOrderMode: () => void = () => {};
   onHover: (id: number | null) => void = () => {};
 
-  constructor(private app: App) {
-    this.root = el('aside', { id: 'panel', hidden: '' }, rich('<button class="close" data-act="close" title="Fechar">{x}</button><div class="body"></div>'));
+  constructor(
+    private app: App,
+    readonly mode: 'drawer' | 'window' = 'drawer',
+  ) {
+    const inner = '<button class="close" data-act="close" title="Fechar (Esc)">{x}</button><div class="body"></div>';
+    this.root =
+      mode === 'window'
+        ? el('div', { id: 'win', hidden: '' }, rich(`<div class="box">${inner}</div>`))
+        : el('aside', { id: 'panel', hidden: '' }, rich(inner));
     this.body = this.root.querySelector('.body')!;
-    this.root.addEventListener('click', (e) => this.onClick(e));
+    this.root.addEventListener('click', (e) => {
+      if (e.target === this.root) return this.show(null); // clique fora da janela fecha
+      this.onClick(e);
+    });
     // passar o mouse numa linha de ninja destaca o ninja no mapa
     this.root.addEventListener('pointerover', (e) => {
       if (e.pointerType !== 'mouse') return;
@@ -118,6 +150,7 @@ export class Panel {
   show(view: View | null) {
     if (view?.kind !== 'group') this.app.group = [];
     this.setHover(null);
+    if (view?.kind !== this.view?.kind || (view && 'id' in view && this.view && 'id' in this.view && view.id !== this.view.id)) this.buildingTab = 'main';
     this.view = view;
     this.lastHtml = '';
     this.armedDemolish = 0;
@@ -134,6 +167,10 @@ export class Panel {
     else if (this.view.kind === 'teams') built = this.teamsList();
     else if (this.view.kind === 'clans') built = this.clansList();
     else if (this.view.kind === 'group') built = this.groupView();
+    else if (this.view.kind === 'village') built = this.villageView();
+    else if (this.view.kind === 'kage') built = { html: this.tabs('kage') + this.kageSection(), t: {}, b: {} };
+    else if (this.view.kind === 'stats') built = this.statsView();
+    else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamView(tm);
@@ -390,14 +427,29 @@ export class Panel {
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
     let html = `<div class="ph"><div class="title">${d.icon} ${d.name}</div></div><p class="hint">${d.desc}</p>`;
+    // aba "Lá dentro" para prédios com interior (moradia ou alguém dentro agora)
+    const inside = d.walkable ? [] : occupantsOf(g, bd);
+    const hasInside = bd.built && !d.walkable && (inside.length > 0 || !!d.housing);
+    if (hasInside) {
+      html += `<div class="seg subtabs"><button data-act="btab" data-arg="main" class="${this.buildingTab === 'main' ? 'on' : ''}">{scroll} Geral</button>
+        <button data-act="btab" data-arg="inside" class="${this.buildingTab === 'inside' ? 'on' : ''}">{eye} Lá dentro (${inside.length})</button></div>`;
+      if (this.buildingTab === 'inside') {
+        if (d.housing) {
+          const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
+          html += `<p class="hint">Moradia: <span data-t="res"></span> moradores</p>`;
+          t.res = `${residents} / ${d.housing}`;
+        }
+        return { html: html + this.interiorSection(bd, t, b), t, b };
+      }
+    }
     if (!bd.built) {
       html += `<h4>Em construção</h4><div class="bar pg"><i data-b="prog"></i><span data-t="prog"></span></div>`;
       html += `<p class="hint">Moradores sem emprego vão até a obra para construir.</p>`;
       b.prog = Math.min(1, bd.progress / d.buildTime);
       t.prog = `${Math.floor(b.prog * 100)}%`;
     } else {
-      if (bd.type === 'hokage') html += this.villageSection();
-      if (bd.type === 'missions') html += this.missionsSection(t, b);
+      if (bd.type === 'hokage') html += this.villageSummary();
+      if (bd.type === 'missions') html += this.missionsSummary();
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
       if (bd.type === 'arena') html += this.arenaSection(b);
       if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).</p>`;
@@ -411,7 +463,6 @@ export class Panel {
         html += `<h4>Moradia</h4><p class="hint"><span data-t="res"></span> moradores</p>`;
         t.res = `${residents} / ${d.housing}`;
       }
-      html += this.interiorSection(bd, t, b);
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
         html += `<h4>Recrutamento</h4><p class="hint">Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.</p>`;
@@ -434,7 +485,7 @@ export class Panel {
     if (d.walkable) return '';
     const inside = occupantsOf(this.app.game, bd);
     if (!inside.length && !d.housing) return '';
-    let html = `<h4>{eye} Lá dentro (${inside.length})</h4><canvas class="interior"></canvas>`;
+    let html = `<canvas class="interior"></canvas>`;
     if (!inside.length) return html + `<p class="hint">Ninguém aqui agora. À noite os moradores voltam para dormir.</p>`;
     html += `<div class="roster">`;
     for (const u of inside) {
@@ -468,10 +519,65 @@ export class Panel {
     return { html, t, b };
   }
 
-  private tabs(active: 'roster' | 'teams' | 'clans') {
-    return `<div class="seg tabs"><button data-act="tab" data-arg="roster" class="${active === 'roster' ? 'on' : ''}">{ninja} Ninjas</button>
-      <button data-act="tab" data-arg="teams" class="${active === 'teams' ? 'on' : ''}">{users} Equipes</button>
-      <button data-act="tab" data-arg="clans" class="${active === 'clans' ? 'on' : ''}">{castle} Clãs</button></div>`;
+  /** Barra de abas do grupo de telas da view (Ninjas/Equipes/Clãs ou Vila/Kage/Estatísticas). */
+  private tabs(active: View['kind']) {
+    const tabs = WINDOW_TABS[TAB_GROUP[active] ?? ''];
+    if (!tabs) return '';
+    return `<div class="seg tabs">${tabs.map(([k, label]) => `<button data-act="tab" data-arg="${k}" class="${active === k ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+  }
+
+  /** Resumo da vila no painel da Residência do Hokage; o detalhe abre na janela. */
+  private villageSummary() {
+    const g = this.app.game;
+    const cur = levelDef(g.state.level);
+    const st = nextLevelStatus(g);
+    let html = `<div class="lvlcard"><div class="lvlname">${cur.icon} ${cur.name}</div><div class="hint">Nível ${g.state.level} de ${MAX_VILLAGE_LEVEL}${
+      st ? ` · próximo: ${st.def.name} (${st.checks.filter((c) => c.ok).length}/${st.checks.length} requisitos)` : ''
+    }</div></div>`;
+    html += `<div class="actions"><button class="btn primary" data-act="win" data-arg="village">{castle} Abrir painel da Vila</button></div>`;
+    return html;
+  }
+
+  /** Resumo da Mesa de Missões; o quadro completo abre na janela. */
+  private missionsSummary() {
+    const g = this.app.game;
+    const ms = g.state.missions;
+    const active = ms.filter((m) => m.status === 'active').length;
+    const offered = ms.filter((m) => m.status === 'offered').length;
+    return `<div class="lvlcard"><div class="lvlname">{star} Reputação ${g.state.reputation}</div>
+      <div class="hint">${offered} missão(ões) no quadro · ${active}/${maxActiveMissions(g)} em andamento</div></div>
+      <div class="actions"><button class="btn primary" data-act="win" data-arg="missions">{clipboard} Abrir quadro de missões</button></div>`;
+  }
+
+  private villageView(): Built {
+    return { html: this.tabs('village') + this.villageSection(), t: {}, b: {} };
+  }
+
+  private missionsView(): Built {
+    const t: Record<string, string> = {};
+    const b: Record<string, number> = {};
+    let html = `<div class="ph"><div class="title">{clipboard} Quadro de missões</div></div>`;
+    if (!this.app.game.findBuilt('missions')) return { html: html + `<div class="warnbox">Construa a {clipboard} Mesa de Missões (menu Construir) para receber pedidos.</div>`, t, b };
+    html += this.missionsSection(t, b);
+    return { html, t, b };
+  }
+
+  /** Números da vila. */
+  private statsView(): Built {
+    const g = this.app.game;
+    const s = g.state;
+    const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
+    const byRank = Object.entries(RANKS)
+      .map(([k, r]) => [r.name, ninjas.filter((u) => u.ninja!.rank === k).length] as const)
+      .filter(([, n]) => n > 0);
+    const cell = (label: string, v: string | number) => `<div class="statcard"><span>${label}</span><b>${v}</b></div>`;
+    let html = this.tabs('stats') + `<div class="statgrid">`;
+    html += cell('Dia', s.day) + cell('População', `${g.population()} / ${g.popCap()}`) + cell('Ninjas', ninjas.length) + cell('Reputação', s.reputation);
+    html += cell('Abates', s.stats.kills) + cell('Invasões repelidas', s.stats.raidsRepelled) + cell('Chefes derrotados', s.stats.bossesDefeated);
+    html += cell('Missões cumpridas', s.stats.missionsDone) + cell('Nascimentos', s.stats.born) + cell('Perdas', s.stats.lost) + cell('Clãs', s.clans.length) + cell('Equipes', s.teams.length);
+    html += `</div>`;
+    if (byRank.length) html += `<h4>Ninjas por patente</h4><div class="statgrid">${byRank.map(([n, c]) => cell(n, c)).join('')}</div>`;
+    return { html, t: {}, b: {} };
   }
 
   /** Insígnias de clã e kekkei genkai. */
@@ -550,15 +656,15 @@ export class Panel {
     const cur = levelDef(g.state.level);
     let html = `<div class="lvlcard"><div class="lvlname">${cur.icon} ${cur.name}</div>
       <div class="hint">Nível ${g.state.level} de ${MAX_VILLAGE_LEVEL} · território ${cur.territory} · impostos ${cur.tax}{ryo}/morador</div></div>`;
-    html += this.kageSection();
     const st = nextLevelStatus(g);
     if (!st) return html + `<p class="hint">{trophy} A vila chegou ao nível máximo!</p>`;
-    html += `<h4>Próximo: ${st.def.icon} ${st.def.name}</h4><ul class="reqs">`;
+    // duas colunas na janela larga: o que falta (esquerda) e o que se ganha (direita)
+    html += `<div class="cols"><div><h4>Próximo: ${st.def.icon} ${st.def.name}</h4><ul class="reqs">`;
     for (const c of st.checks)
       html += `<li class="${c.ok ? 'ok' : ''}">${c.ok ? '{check}' : '{todo}'} ${esc(c.label)} <b>${Math.min(c.have, c.need)}/${c.need}</b></li>`;
-    html += `</ul><p class="hint">Benefícios: ${st.def.perks.map(esc).join(' · ')}</p>`;
-    html += `<div class="actions"><button class="btn primary" data-act="upgrade" ${st.ready && st.afford ? '' : 'disabled'}>
-      {up} Elevar a ${st.def.name} (${costLabel(st.def.cost)})</button></div>`;
+    html += `</ul></div><div><h4>Benefícios</h4><ul class="reqs perks">${st.def.perks.map((p) => `<li class="ok">{star} ${esc(p)}</li>`).join('')}</ul></div></div>`;
+    html += `<div class="actions"><button class="btn primary big" data-act="upgrade" ${st.ready && st.afford ? '' : 'disabled'}>
+      <span>{up} Elevar a ${st.def.name}</span><span class="cost">${costLabel(st.def.cost)}</span></button></div>`;
     if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
     return html;
   }
@@ -833,29 +939,57 @@ export class Panel {
     const v = this.view;
     switch (act) {
       case 'close':
-        g.select(null);
+        if (this.mode === 'drawer') g.select(null);
         this.show(null);
         return;
       case 'pick': {
+        // da janela: fecha e abre o ninja no painel lateral, com a câmera nele
         const u = g.unit(Number(arg));
         if (u) {
+          if (this.mode === 'window') this.show(null);
           g.select({ kind: 'unit', id: u.id });
           this.app.camera.focus(u.x, u.y);
         }
         return;
       }
       case 'tab':
-        g.select(null);
-        this.show({ kind: arg === 'teams' ? 'teams' : arg === 'clans' ? 'clans' : 'roster' });
+        if (this.mode === 'drawer') g.select(null);
+        this.show({ kind: arg as 'roster' });
         return;
+      case 'win':
+        this.onWindow({ kind: arg as 'village' });
+        return;
+      case 'btab':
+        this.buildingTab = arg as BuildingTab;
+        return this.report({ ok: true });
       case 'awaken':
         return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
       case 'open-team':
-        g.select({ kind: 'team', id: Number(arg) });
+        if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
+        else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
       case 'team-new': {
         const tm = createTeam(g);
-        g.select({ kind: 'team', id: tm.id });
+        if (this.mode === 'window') this.show({ kind: 'team', id: tm.id });
+        else this.onWindow({ kind: 'team', id: tm.id });
+        return;
+      }
+      // vila e missões (valem no painel do prédio e na janela)
+      case 'upgrade':
+        return this.report(upgradeVillage(g));
+      case 'elect':
+        return this.report(electKage(g, Number(arg)));
+      case 'm-accept':
+        return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
+      case 'm-abandon':
+        return this.report(abandonMission(g, Number(arg)));
+      case 'm-view': {
+        const m = g.state.missions.find((x) => x.id === Number(arg));
+        if (m) {
+          const p = missionFocus(g, m);
+          this.app.camera.focus(p.x, p.y);
+          if (this.mode === 'window') this.show(null);
+        }
         return;
       }
     }
@@ -950,10 +1084,6 @@ export class Panel {
           return this.report(setDesiredWorkers(g, v.id, Number(arg)));
         case 'recruit':
           return this.report(recruitNinja(g));
-        case 'upgrade':
-          return this.report(upgradeVillage(g));
-        case 'elect':
-          return this.report(electKage(g, Number(arg)));
         case 'craft':
           return this.report(enqueueCraft(g, v.id, arg));
         case 'exam-start':
@@ -968,18 +1098,6 @@ export class Panel {
         }
         case 'craft-cancel':
           return this.report(cancelCraft(g, v.id));
-        case 'm-accept':
-          return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
-        case 'm-abandon':
-          return this.report(abandonMission(g, Number(arg)));
-        case 'm-view': {
-          const m = g.state.missions.find((x) => x.id === Number(arg));
-          if (m) {
-            const p = missionFocus(g, m);
-            this.app.camera.focus(p.x, p.y);
-          }
-          return;
-        }
         case 'move':
           this.onMove(v.id);
           return;

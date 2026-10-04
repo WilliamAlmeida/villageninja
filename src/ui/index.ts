@@ -3,13 +3,13 @@ import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { orderAttack, orderMove, teamUnits } from '../game/teams';
 import type { Building, Unit } from '../game/types';
-import { doorPos, toTile } from '../game/world';
+import { toTile } from '../game/world';
 import { BuildUI } from './build';
 import { el } from './dom';
 import { Hud } from './hud';
 import { rich } from './icons';
 import { Menu } from './menu';
-import { Panel } from './panel';
+import { Panel, type View } from './panel';
 
 const isOwnNinja = (u: Unit) => !u.dead && u.kind === 'ninja' && u.faction === 'village';
 
@@ -17,52 +17,52 @@ const isOwnNinja = (u: Unit) => !u.dead && u.kind === 'ninja' && u.faction === '
 export function createUI(app: App, root: HTMLElement) {
   const hud = new Hud(app);
   const panel = new Panel(app);
+  /** Janela central (telas de gestão com abas). */
+  const win = new Panel(app, 'window');
   const build = new BuildUI(app);
+  const NINJA_VIEWS = ['roster', 'teams', 'clans', 'team'];
+  const VILLAGE_VIEWS = ['village', 'kage', 'stats'];
+  /** Abre (ou fecha, se já estiver nela) uma tela da janela central. */
+  function toggleWindow(view: View, group: string[]) {
+    build.toggle(false);
+    if (win.kind && group.includes(win.kind)) win.show(null);
+    else win.show(view);
+  }
+  panel.onWindow = (v) => win.show(v);
+  win.onWindow = (v) => win.show(v);
   const menu = new Menu(app);
 
   const dock = el(
     'div',
     { id: 'dock' },
     rich(
-      `<button class="bigbtn" data-act="build">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (atalho: Shift + arrastar)">{select}<span>Selecionar</span></button>`,
+      `<button class="bigbtn" data-act="build" title="Construir (B)">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">{select}<span>Selecionar</span></button>`,
     ),
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
   const btnRoster = dock.querySelector<HTMLElement>('[data-act="roster"]')!;
+  const btnVillage = dock.querySelector<HTMLElement>('[data-act="village"]')!;
+  const btnMissions = dock.querySelector<HTMLElement>('[data-act="missions"]')!;
   const btnSelect = dock.querySelector<HTMLElement>('[data-act="select"]')!;
   dock.addEventListener('pointerdown', (e) => e.stopPropagation());
   dock.addEventListener('click', (e) => {
     const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
+    if (a) dockAction(a);
+  });
+
+  function dockAction(a: string) {
     if (a !== 'select') app.selectTool = false;
     if (a === 'build') {
       if (app.buildType) build.exit();
       build.toggle();
-      if (build.open) panel.show(null);
-    }
-    if (a === 'village') {
-      const hk = app.game.hokage();
-      if (hk) {
-        app.game.select({ kind: 'building', id: hk.id });
-        const c = doorPos(hk);
-        app.camera.focus(c.x, c.y - 40);
+      if (build.open) {
+        panel.show(null);
+        win.show(null);
       }
     }
-    if (a === 'missions') {
-      const desk = app.game.state.buildings.find((b) => b.type === 'missions');
-      if (!desk) app.game.toast('Construa a {clipboard} Mesa de Missões (menu Construir).', 'warn');
-      else {
-        app.game.select({ kind: 'building', id: desk.id });
-        if (!desk.built) app.game.toast('A Mesa de Missões ainda está em construção.', 'info');
-      }
-    }
-    if (a === 'roster') {
-      build.toggle(false);
-      if (panel.kind === 'roster' || panel.kind === 'teams' || panel.kind === 'clans') panel.show(null);
-      else {
-        app.game.select(null);
-        panel.show({ kind: 'roster' });
-      }
-    }
+    if (a === 'village') toggleWindow({ kind: 'village' }, VILLAGE_VIEWS);
+    if (a === 'missions') toggleWindow({ kind: 'missions' }, ['missions']);
+    if (a === 'roster') toggleWindow({ kind: 'roster' }, NINJA_VIEWS);
     if (a === 'select') {
       app.selectTool = !app.selectTool;
       if (app.selectTool) {
@@ -71,6 +71,34 @@ export function createUI(app: App, root: HTMLElement) {
         setOrderMode(false);
         app.game.toast('Arraste no mapa para marcar os ninjas.', 'info');
       }
+    }
+  }
+
+  // atalhos de teclado (desktop)
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest('input, textarea')) return;
+    const k = e.key.toLowerCase();
+    if (k === 'escape') {
+      // fecha a camada mais de cima: janela → modos de mapa → painel lateral
+      if (!win.root.hidden) win.show(null);
+      else if (app.buildType) build.cancel();
+      else if (app.orderMode || app.selectTool) {
+        setOrderMode(false);
+        app.selectTool = false;
+      } else if (build.open) build.toggle(false);
+      else {
+        app.game.select(null);
+        panel.show(null);
+      }
+      return;
+    }
+    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', s: 'select' };
+    if (map[k]) dockAction(map[k]);
+    if (k === ' ') {
+      // espaço: pausa/continua
+      e.preventDefault();
+      const s = app.game.state;
+      s.speed = s.speed ? 0 : 1;
     }
   });
 
@@ -108,7 +136,7 @@ export function createUI(app: App, root: HTMLElement) {
   };
 
   hud.onMenu = () => menu.open();
-  root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, orderBar, panel.root, menu.root);
+  root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, orderBar, panel.root, win.root, menu.root);
 
   bus.on('select', (sel) => {
     if (sel) {
@@ -282,10 +310,13 @@ export function createUI(app: App, root: HTMLElement) {
     acc = 0;
     hud.update();
     panel.update();
+    win.update();
     build.update();
     build.refreshGhost();
     btnBuild.classList.toggle('on', build.open || !!app.buildType);
-    btnRoster.classList.toggle('on', panel.kind === 'roster' || panel.kind === 'teams' || panel.kind === 'clans');
+    btnRoster.classList.toggle('on', NINJA_VIEWS.includes(win.kind ?? ''));
+    btnVillage.classList.toggle('on', VILLAGE_VIEWS.includes(win.kind ?? ''));
+    btnMissions.classList.toggle('on', win.kind === 'missions');
     btnSelect.classList.toggle('on', app.selectTool);
     if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }

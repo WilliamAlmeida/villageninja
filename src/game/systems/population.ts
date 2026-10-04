@@ -71,6 +71,7 @@ function assignHomes(g: Game) {
   for (const u of people) {
     const h = g.building(u.homeId);
     if (!h || !h.built) u.homeId = null;
+    else if ((used.get(h.id) ?? 0) >= (BUILDINGS[h.type].housing ?? 0)) u.homeId = null; // casa cheia: procura outra
     else used.set(h.id, (used.get(h.id) ?? 0) + 1);
   }
   for (const u of people) {
