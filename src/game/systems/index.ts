@@ -1,0 +1,28 @@
+import type { System } from '../game';
+import { effectSystem } from './effects';
+import { hostileSystem } from './hostiles';
+import { ninjaSystem } from './ninjas';
+import { populationSystem } from './population';
+import { projectileSystem } from './projectiles';
+import { spawnerSystem } from './spawner';
+import { statusSystem } from './status';
+import { timeSystem } from './time';
+import { towerSystem } from './towers';
+import { villagerSystem } from './villagers';
+
+/**
+ * Ordem de execução por tick. Para adicionar uma mecânica nova
+ * (ex.: missões, clima, comércio), crie um arquivo em systems/ e registre aqui.
+ */
+export const SYSTEMS: System[] = [
+  timeSystem,
+  statusSystem,
+  spawnerSystem,
+  populationSystem,
+  villagerSystem,
+  ninjaSystem,
+  hostileSystem,
+  towerSystem,
+  projectileSystem,
+  effectSystem,
+];

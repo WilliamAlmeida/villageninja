@@ -1,0 +1,158 @@
+import { bus, type ToastKind } from '../core/events';
+import { dist2 } from '../core/math';
+import { BUILDINGS, type BuildingType } from '../data/buildings';
+import type { Building, Cost, GameState, ResKey, ResourceNode, Selection, Unit } from './types';
+import { isHostile } from './factions';
+import { World } from './world';
+
+export type System = (g: Game, dt: number) => void;
+
+const RES_KEYS: ResKey[] = ['wood', 'stone', 'food', 'ryo'];
+
+/**
+ * Fachada da simulação: guarda o estado, índices auxiliares e helpers de consulta.
+ * Não conhece DOM nem canvas — roda igual no browser e nos testes.
+ */
+export class Game {
+  readonly world: World;
+  readonly bus = bus;
+  selected: Selection | null = null;
+  private unitMap = new Map<number, Unit>();
+  private buildingMap = new Map<number, Building>();
+  private nodeMap = new Map<number, ResourceNode>();
+
+  constructor(
+    public state: GameState,
+    private systems: System[] = [],
+  ) {
+    this.world = new World(state);
+    this.reindex();
+  }
+
+  reindex() {
+    this.unitMap.clear();
+    this.buildingMap.clear();
+    this.nodeMap.clear();
+    for (const u of this.state.units) this.unitMap.set(u.id, u);
+    for (const b of this.state.buildings) this.buildingMap.set(b.id, b);
+    for (const n of this.state.nodes) this.nodeMap.set(n.id, n);
+  }
+
+  newId() {
+    return this.state.nextId++;
+  }
+
+  step(dt: number) {
+    for (const s of this.systems) s(this, dt);
+    this.cleanup();
+  }
+
+  private cleanup() {
+    const s = this.state;
+    if (s.units.some((u) => u.dead)) {
+      for (const u of s.units) if (u.dead) this.unitMap.delete(u.id);
+      s.units = s.units.filter((u) => !u.dead);
+      if (this.selected?.kind === 'unit' && !this.unitMap.has(this.selected.id)) this.select(null);
+    }
+    if (s.projectiles.some((p) => p.dead)) s.projectiles = s.projectiles.filter((p) => !p.dead);
+  }
+
+  // ---------- lookup ----------
+  unit(id: number | null | undefined) {
+    return id == null ? undefined : this.unitMap.get(id);
+  }
+  building(id: number | null | undefined) {
+    return id == null ? undefined : this.buildingMap.get(id);
+  }
+  node(id: number | null | undefined) {
+    return id == null ? undefined : this.nodeMap.get(id);
+  }
+
+  addUnit(u: Unit) {
+    this.state.units.push(u);
+    this.unitMap.set(u.id, u);
+    return u;
+  }
+  addBuilding(b: Building) {
+    this.state.buildings.push(b);
+    this.buildingMap.set(b.id, b);
+    this.world.rebuild();
+    return b;
+  }
+  removeBuilding(id: number) {
+    this.state.buildings = this.state.buildings.filter((b) => b.id !== id);
+    this.buildingMap.delete(id);
+    for (const u of this.state.units) {
+      if (u.jobId === id) u.jobId = null;
+      if (u.homeId === id) u.homeId = null;
+      if (u.taskId === id) u.taskId = null;
+    }
+    if (this.selected?.kind === 'building' && this.selected.id === id) this.select(null);
+    this.world.rebuild();
+  }
+  removeNode(id: number) {
+    this.state.nodes = this.state.nodes.filter((n) => n.id !== id);
+    this.nodeMap.delete(id);
+  }
+
+  select(sel: Selection | null) {
+    this.selected = sel;
+    this.bus.emit('select', sel);
+  }
+
+  // ---------- consultas ----------
+  findBuilt(type: BuildingType) {
+    return this.state.buildings.find((b) => b.type === type && b.built);
+  }
+  builtOf(type: BuildingType) {
+    return this.state.buildings.filter((b) => b.type === type && b.built);
+  }
+  hokage() {
+    return this.state.buildings.find((b) => b.type === 'hokage');
+  }
+  villagers() {
+    return this.state.units.filter((u) => !u.dead && u.faction === 'village' && (u.kind === 'villager' || u.kind === 'ninja'));
+  }
+  population() {
+    let n = 0;
+    for (const u of this.state.units) if (!u.dead && u.faction === 'village' && (u.kind === 'villager' || u.kind === 'ninja')) n++;
+    return n;
+  }
+  popCap() {
+    let n = 0;
+    for (const b of this.state.buildings) if (b.built) n += BUILDINGS[b.type].housing ?? 0;
+    return n;
+  }
+
+  /** Inimigo mais próximo de `u` (visível) dentro do raio. */
+  nearestHostile(u: Unit, radius: number): Unit | null {
+    let best: Unit | null = null;
+    let bd = radius * radius;
+    for (const o of this.state.units) {
+      if (o.dead || o.hidden || !isHostile(u.faction, o.faction)) continue;
+      const d = dist2(u.x, u.y, o.x, o.y);
+      if (d < bd) {
+        bd = d;
+        best = o;
+      }
+    }
+    return best;
+  }
+
+  // ---------- recursos ----------
+  canAfford(cost: Cost) {
+    return RES_KEYS.every((k) => (this.state.res[k] ?? 0) >= (cost[k] ?? 0));
+  }
+  pay(cost: Cost) {
+    if (!this.canAfford(cost)) return false;
+    for (const k of RES_KEYS) this.state.res[k] -= cost[k] ?? 0;
+    return true;
+  }
+  give(cost: Cost, mult = 1) {
+    for (const k of RES_KEYS) this.state.res[k] += Math.round((cost[k] ?? 0) * mult);
+  }
+
+  toast(text: string, kind: ToastKind = 'info', at?: { x: number; y: number }) {
+    this.bus.emit('toast', { text, kind, x: at?.x, y: at?.y });
+  }
+}

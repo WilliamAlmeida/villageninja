@@ -1,0 +1,322 @@
+import { TILE } from '../../config';
+import { pick, rand, randi } from '../../core/rng';
+import { BUILDINGS } from '../../data/buildings';
+import { fx, fxText } from '../fx';
+import type { Game } from '../game';
+import { followPath, setDestination } from '../movement';
+import { isNight } from '../time';
+import type { Building, ResKey, Unit } from '../types';
+import { doorPos, tileCenter, toTile } from '../world';
+
+const FLEE_RADIUS = 170;
+const NODE_SEARCH = 14 * TILE;
+
+/** Pessoas comuns: trabalham, constroem, passeiam, dormem e fogem do perigo. */
+export function villagerSystem(g: Game, dt: number) {
+  const night = isNight(g.state);
+  for (const u of g.state.units) {
+    if (u.dead || u.kind !== 'villager') continue;
+    u.timer -= dt;
+    if (u.stun > 0) {
+      u.moving = false;
+      continue;
+    }
+    if (u.state !== 'flee' && u.state !== 'shelter' && !u.hidden && g.nearestHostile(u, FLEE_RADIUS)) {
+      flee(g, u);
+      continue;
+    }
+    switch (u.state) {
+      case 'flee':
+        if (followPath(g, u, dt, 1.3)) hide(u, 'shelter', 3);
+        break;
+      case 'shelter':
+        if (u.timer <= 0) {
+          if (!g.nearestHostile(u, 200)) unhide(u);
+          else u.timer = 2;
+        }
+        break;
+      case 'sleep':
+        if (!night) unhide(u);
+        break;
+      case 'goHome':
+        if (!night) u.state = 'idle';
+        else if (followPath(g, u, dt)) hide(u, 'sleep', 0);
+        break;
+      default:
+        if (night) goHome(g, u);
+        else work(g, u, dt);
+    }
+  }
+}
+
+function hide(u: Unit, state: string, timer: number) {
+  u.hidden = true;
+  u.moving = false;
+  u.state = state;
+  u.timer = timer;
+}
+function unhide(u: Unit) {
+  u.hidden = false;
+  u.state = 'idle';
+  u.timer = rand(0, 1.5);
+}
+
+function shelterFor(g: Game, u: Unit): Building | undefined {
+  let best: Building | undefined;
+  let bd = Infinity;
+  for (const b of g.state.buildings) {
+    if (!b.built || !(BUILDINGS[b.type].housing ?? 0)) continue;
+    const p = doorPos(b);
+    const d = Math.hypot(p.x - u.x, p.y - u.y);
+    if (d < bd) {
+      bd = d;
+      best = b;
+    }
+  }
+  return best;
+}
+
+function flee(g: Game, u: Unit) {
+  const s = shelterFor(g, u);
+  u.carry = null;
+  u.state = 'flee';
+  if (s) {
+    const p = doorPos(s);
+    setDestination(g, u, p.x, p.y);
+  }
+  fxText(g, u.x, u.y - 20, '!', '#ff5a5a');
+}
+
+function goHome(g: Game, u: Unit) {
+  const home = g.building(u.homeId) ?? g.hokage();
+  if (!home) return;
+  const p = doorPos(home);
+  if (setDestination(g, u, p.x, p.y)) u.state = 'goHome';
+}
+
+function work(g: Game, u: Unit, dt: number) {
+  switch (u.state) {
+    case 'idle':
+      u.moving = false;
+      if (u.timer <= 0) decide(g, u);
+      break;
+    case 'wander':
+      if (followPath(g, u, dt, 0.6)) {
+        u.state = 'idle';
+        u.timer = rand(1.5, 4);
+      }
+      break;
+    case 'toField':
+      if (followPath(g, u, dt)) {
+        u.state = 'farming';
+        u.timer = 5;
+      }
+      break;
+    case 'farming':
+      u.moving = false;
+      u.anim = 0.2;
+      if (u.timer <= 0) {
+        g.state.res.food += 2;
+        fxText(g, u.x, u.y - 20, '+2🍙', '#ffe08a');
+        u.state = 'idle';
+      }
+      break;
+    case 'toNode': {
+      const n = g.node(u.taskId);
+      if (!n) u.state = 'idle';
+      else if (followPath(g, u, dt)) {
+        u.state = 'gather';
+        u.timer = 4;
+        u.facing = Math.atan2(tileCenter(n.ty) - u.y, tileCenter(n.tx) - u.x);
+      }
+      break;
+    }
+    case 'gather': {
+      const n = g.node(u.taskId);
+      if (!n) {
+        u.state = 'idle';
+        break;
+      }
+      u.moving = false;
+      u.anim = 0.2;
+      if (Math.random() < dt * 2.5) fx(g, 'chips', tileCenter(n.tx), tileCenter(n.ty), { color: n.type === 'tree' ? '#c8a26a' : '#bfbfbf', life: 0.4 });
+      if (u.timer <= 0) {
+        const amount = Math.min(n.amount, n.type === 'tree' ? 5 : 4);
+        n.amount -= amount;
+        if (n.amount <= 0) g.removeNode(n.id);
+        u.carry = { res: (n.type === 'tree' ? 'wood' : 'stone') as ResKey, amount };
+        deposit(g, u);
+      }
+      break;
+    }
+    case 'toDeposit':
+      if (followPath(g, u, dt)) {
+        if (u.carry) {
+          g.state.res[u.carry.res] += u.carry.amount;
+          fxText(g, u.x, u.y - 20, `+${u.carry.amount}${u.carry.res === 'wood' ? '🪵' : '🪨'}`, '#ffe08a');
+        }
+        u.carry = null;
+        u.state = 'idle';
+        u.timer = 0.3;
+      }
+      break;
+    case 'toShop':
+      if (followPath(g, u, dt)) {
+        u.state = 'shop';
+        u.timer = 8;
+      }
+      break;
+    case 'shop':
+      u.moving = false;
+      if (!g.building(u.jobId)?.built) u.state = 'idle';
+      else if (u.timer <= 0) {
+        g.state.res.ryo += 3;
+        fxText(g, u.x, u.y - 20, '+3💰', '#ffe08a');
+        u.timer = 8;
+      }
+      break;
+    case 'toSite': {
+      const b = g.building(u.taskId);
+      if (!b || b.built) u.state = 'idle';
+      else if (followPath(g, u, dt)) u.state = 'build';
+      break;
+    }
+    case 'build': {
+      const b = g.building(u.taskId);
+      if (!b || b.built) {
+        u.state = 'idle';
+        break;
+      }
+      u.moving = false;
+      u.anim = 0.2;
+      const p = doorPos(b);
+      u.facing = Math.atan2(p.y - 16 - u.y, p.x - u.x);
+      b.progress += dt;
+      if (Math.random() < dt * 2) fx(g, 'chips', u.x + Math.cos(u.facing) * 10, u.y + Math.sin(u.facing) * 10, { color: '#d9b77a', life: 0.4 });
+      if (b.progress >= BUILDINGS[b.type].buildTime) completeBuilding(g, b);
+      break;
+    }
+    default:
+      u.state = 'idle';
+  }
+}
+
+export function completeBuilding(g: Game, b: Building) {
+  const def = BUILDINGS[b.type];
+  b.built = true;
+  b.progress = def.buildTime;
+  g.toast(`${def.icon} ${def.name} concluída!`, 'good', doorPos(b));
+}
+
+function decide(g: Game, u: Unit) {
+  const job = g.building(u.jobId);
+  if (u.jobId != null && (!job || !job.built)) u.jobId = null;
+  if (u.carry && job) {
+    deposit(g, u);
+    return;
+  }
+  if (job) {
+    startJob(g, u, job);
+    return;
+  }
+  const site = nearestSite(g, u);
+  if (site) {
+    const spot = siteSpot(g, site);
+    u.taskId = site.id;
+    if (setDestination(g, u, spot.x, spot.y)) {
+      u.state = 'toSite';
+      return;
+    }
+  }
+  wander(g, u);
+}
+
+function startJob(g: Game, u: Unit, b: Building) {
+  const def = BUILDINGS[b.type];
+  switch (def.job) {
+    case 'farmer': {
+      const x = (b.tx + rand(0.3, def.w - 0.3)) * TILE;
+      const y = (b.ty + rand(0.3, def.h - 0.3)) * TILE;
+      if (setDestination(g, u, x, y)) u.state = 'toField';
+      break;
+    }
+    case 'lumber':
+    case 'miner': {
+      const n = findNode(g, b, def.job === 'lumber' ? 'tree' : 'rock');
+      if (!n) {
+        u.state = 'idle';
+        u.timer = 6;
+        if (Math.random() < 0.15) g.toast(`${def.icon} Não há ${def.job === 'lumber' ? 'árvores' : 'rochas'} perto de ${def.name}.`, 'warn', doorPos(b));
+        wander(g, u);
+        return;
+      }
+      u.taskId = n.id;
+      if (setDestination(g, u, tileCenter(n.tx), tileCenter(n.ty) + 12)) u.state = 'toNode';
+      break;
+    }
+    case 'merchant': {
+      const p = doorPos(b);
+      if (setDestination(g, u, p.x + rand(-6, 6), p.y + 4)) u.state = 'toShop';
+      break;
+    }
+    default:
+      wander(g, u);
+  }
+}
+
+function deposit(g: Game, u: Unit) {
+  const b = g.building(u.jobId) ?? g.hokage();
+  if (!b) return;
+  const p = doorPos(b);
+  if (setDestination(g, u, p.x, p.y)) u.state = 'toDeposit';
+  else u.state = 'idle';
+}
+
+function findNode(g: Game, b: Building, type: 'tree' | 'rock') {
+  const p = doorPos(b);
+  const near = g.state.nodes
+    .filter((n) => n.type === type && n.amount > 0)
+    .map((n) => ({ n, d: Math.hypot(tileCenter(n.tx) - p.x, tileCenter(n.ty) - p.y) }))
+    .filter((e) => e.d < NODE_SEARCH)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 4);
+  return near.length ? pick(near).n : null;
+}
+
+function nearestSite(g: Game, u: Unit) {
+  let best: Building | undefined;
+  let bd = Infinity;
+  for (const b of g.state.buildings) {
+    if (b.built) continue;
+    const p = doorPos(b);
+    const d = Math.hypot(p.x - u.x, p.y - u.y);
+    if (d < bd) {
+      bd = d;
+      best = b;
+    }
+  }
+  return best;
+}
+
+/** Um ponto livre ao redor do canteiro de obras. */
+function siteSpot(g: Game, b: Building) {
+  const def = BUILDINGS[b.type];
+  const spots: { x: number; y: number }[] = [];
+  for (let x = b.tx - 1; x <= b.tx + def.w; x++)
+    for (const y of [b.ty - 1, b.ty + def.h]) if (g.world.walkable(x, y)) spots.push({ x: tileCenter(x), y: tileCenter(y) });
+  for (let y = b.ty; y < b.ty + def.h; y++)
+    for (const x of [b.tx - 1, b.tx + def.w]) if (g.world.walkable(x, y)) spots.push({ x: tileCenter(x), y: tileCenter(y) });
+  return spots.length ? pick(spots) : doorPos(b);
+}
+
+function wander(g: Game, u: Unit) {
+  const home = g.building(u.homeId) ?? g.hokage();
+  const base = home ? doorPos(home) : { x: u.x, y: u.y };
+  const tx = toTile(base.x) + randi(-4, 4);
+  const ty = toTile(base.y) + randi(-1, 4);
+  if (setDestination(g, u, tileCenter(tx), tileCenter(ty))) u.state = 'wander';
+  else {
+    u.state = 'idle';
+    u.timer = 2;
+  }
+}
