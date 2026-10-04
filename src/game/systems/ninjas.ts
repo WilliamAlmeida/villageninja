@@ -46,6 +46,7 @@ export function ninjaSystem(g: Game, dt: number) {
       u.hasGoal = false;
       if (lowHp) goRest(g, u);
     }
+    if (u.state === 'ceremony') continue; // cerimônia do Kage
     run(g, u, dt, night);
   }
 }

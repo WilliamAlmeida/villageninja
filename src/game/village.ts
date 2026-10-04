@@ -54,6 +54,7 @@ export function checkRequirements(g: Game, req: LevelReq): ReqCheck[] {
   if (req.raidsRepelled) add('Invasões repelidas', s.stats.raidsRepelled, req.raidsRepelled);
   if (req.missionsDone) add('Missões cumpridas', s.stats.missionsDone, req.missionsDone);
   if (req.clans) add('Clãs fundados', s.clans.length, req.clans);
+  if (req.kage) add('Kage eleito', g.unit(s.kageId) && !g.unit(s.kageId)!.dead ? 1 : 0, 1);
   return out;
 }
 

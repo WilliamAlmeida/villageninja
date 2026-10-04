@@ -8,7 +8,7 @@ export const STATE_LABEL: Record<string, string> = {
   toTrain: 'Indo treinar', train: 'Treinando', patrol: 'Patrulhando', roam: 'Vagando', march: 'Marchando para a vila',
   escape: 'Fugindo com o saque', follow: 'Seguindo o líder', cmdMove: 'Indo ao ponto (ordem)', guard: 'Defendendo ponto',
   cmdRetreat: 'Recuando (ordem)', cmdRest: 'Abrigado se curando', escortWait: 'Esperando escolta', escort: 'Viajando com escolta',
-  cower: 'Escondido (emboscada!)', toCraft: 'Indo à oficina', exam: 'No Exame Chunin', duel: 'Duelando na arena', ko: 'Nocauteado', craft: 'Fabricando', craftIdle: 'Esperando pedidos',
+  cower: 'Escondido (emboscada!)', toCraft: 'Indo à oficina', exam: 'No Exame Chunin', ceremony: 'Na cerimônia do Kage', rampage: 'Em fúria!', duel: 'Duelando na arena', ko: 'Nocauteado', craft: 'Fabricando', craftIdle: 'Esperando pedidos',
 };
 
 export const JOB_LABEL: Record<JobType, string> = {

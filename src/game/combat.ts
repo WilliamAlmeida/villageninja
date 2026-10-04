@@ -15,6 +15,8 @@ import { consumeItem } from './gear';
 import { gearBonus } from './gearBonus';
 import { ITEMS } from '../data/items';
 import { hasTeammateNear } from './teams';
+import { KAGE_DAMAGE_BONUS } from './kage';
+import { bossDefeated } from './bosses';
 import type { Faction, Projectile, ProjectileKind, Unit } from './types';
 
 export const MELEE_RANGE = 22;
@@ -337,6 +339,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   let dmg = amount * mult;
   // lutar junto da equipe dá +10% de dano
   if (src?.faction === 'village' && src.ninja && hasTeammateNear(g, src)) dmg *= 1.1;
+  // "Vontade" do Kage: com um Kage vivo, todos os ninjas da vila batem mais forte
+  if (src?.faction === 'village' && src.ninja && !src.arenaSide && g.state.kageId != null && !g.unit(g.state.kageId)?.dead) dmg *= KAGE_DAMAGE_BONUS;
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
   if (t.shield > 0) dmg *= 0.4;
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
@@ -373,6 +377,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   }
   fx(g, 'burst', t.x, t.y, { r: 18, color: '#ffffff', life: 0.4 });
   const killer = src?.kind === 'clone' ? g.unit(src.ownerId) : src;
+  if (t.boss) bossDefeated(g, t);
   if (t.faction !== 'village') {
     // killer nulo = torre / Residência do Hokage
     if (!killer || killer.faction === 'village') {

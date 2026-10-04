@@ -12,6 +12,8 @@ export interface LevelReq {
   raidsRepelled?: number;
   missionsDone?: number;
   clans?: number;
+  /** Exige um Kage eleito e vivo. */
+  kage?: boolean;
 }
 
 export interface VillageLevelDef {
@@ -48,9 +50,9 @@ export const VILLAGE_LEVELS: VillageLevelDef[] = [
   },
   {
     level: 3, name: 'Grande Vila Oculta', icon: '🍃', territory: 60, tax: 4, threat: 3,
-    req: { population: 36, ninjas: 12, ranked: { rank: 'jounin', count: 1 }, buildings: { library: 1, tower: 3 }, raidsRepelled: 5, missionsDone: 6, clans: 1 },
+    req: { population: 36, ninjas: 12, ranked: { rank: 'jounin', count: 1 }, buildings: { library: 1, tower: 3 }, raidsRepelled: 5, missionsDone: 6, clans: 1, kage: true },
     cost: { wood: 600, stone: 500, ryo: 1200 },
-    perks: ['Território: o mapa inteiro', 'Impostos: 4 ryo por morador', 'Ameaças muito maiores'],
+    perks: ['Território: o mapa inteiro', 'Impostos: 4 ryo por morador', 'Guerra entre vilas e ameaças muito maiores'],
   },
 ];
 

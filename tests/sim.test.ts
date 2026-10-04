@@ -72,7 +72,9 @@ describe('simulação', () => {
     const rogue = createRogue(g, d.x - 140, d.y + 40, 1);
     run(g, 2);
     const ninjas = g.state.units.filter((u) => u.kind === 'ninja');
-    expect(ninjas.every((n) => n.state === 'fight')).toBe(true);
+    // (um ninja pode ter sido paralisado por genjutsu antes de reagir)
+    expect(ninjas.every((n) => n.state === 'fight' || n.stun > 0)).toBe(true);
+    expect(ninjas.some((n) => n.state === 'fight')).toBe(true);
     expect(rogue.hp).toBeLessThan(rogue.maxHp);
   });
 

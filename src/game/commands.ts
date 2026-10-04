@@ -21,6 +21,7 @@ export function canBuild(g: Game, type: BuildingType): Result {
   const def = BUILDINGS[type];
   if (!def.buildable) return fail('Não pode ser construído.');
   if ((def.minLevel ?? 0) > g.state.level) return fail(`Requer nível ${levelDef(def.minLevel!).name}.`);
+  if (type === 'monument' && !g.state.kageHistory.length) return fail('Requer um Kage eleito.');
   if (def.unique && g.state.buildings.some((b) => b.type === type)) return fail('Só pode haver um.');
   if (!g.canAfford(def.cost)) return fail('Recursos insuficientes.');
   return ok;
@@ -136,6 +137,7 @@ export function promote(g: Game, unitId: number): Result {
   if (!u?.ninja) return fail('Inválido.');
   const next = nextRank(u);
   if (!next) return fail('Rank máximo.');
+  if (next === 'kage') return fail('O Kage é eleito em cerimônia, na Residência do Hokage.');
   const r = RANKS[next];
   if (u.ninja.level < r.minLevel) return fail(`Requer nível ${r.minLevel}.`);
   if ((r.minVillageLevel ?? 0) > g.state.level) return fail(`A vila precisa ser ${levelDef(r.minVillageLevel!).name}.`);

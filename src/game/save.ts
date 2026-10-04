@@ -40,6 +40,15 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.clans = [];
     for (const u of s.units) if (u.ninja) u.ninja.kekkei = null;
   },
+  7: (s) => {
+    const kage = s.units.find((u: { ninja?: { rank: string }; faction: string }) => u.ninja?.rank === 'kage' && u.faction === 'village');
+    s.kageId = kage ? kage.id : null;
+    s.kageHistory = kage ? [{ name: kage.name, day: s.day }] : [];
+    s.ceremony = null;
+    s.bossTimer = 180 * 6;
+    s.pendingBoss = null;
+    s.stats.bossesDefeated = 0;
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

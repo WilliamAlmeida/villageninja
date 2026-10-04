@@ -16,6 +16,7 @@ import {
   abandonMission, acceptMission, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, teamPower, templateOf,
 } from '../game/missions';
 import { missionFocus } from '../game/missionView';
+import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
@@ -253,7 +254,9 @@ export class Panel {
     html += `</select></label><div class="actions">`;
     html += `<button class="btn primary" data-act="teach-open">📜 Ensinar jutsu</button>`;
     const next = nextRank(u);
-    if (next) {
+    if (next === 'kage') {
+      html += `<p class="hint">👑 Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na 🏯 Residência do Hokage.</p>`;
+    } else if (next) {
       const r = RANKS[next];
       const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
       const can = n.level >= r.minLevel && villageOk && g.canAfford(r.promoteCost);
@@ -415,12 +418,39 @@ export class Panel {
     return { html, t: {}, b: {} };
   }
 
+  /** Kage atual ou eleição (cerimônia). */
+  private kageSection() {
+    const g = this.app.game;
+    const k = currentKage(g);
+    let html = `<h4>👑 Kage</h4>`;
+    if (k) {
+      html += `<p class="hint"><b>${esc(k.name)}</b> governa a vila · ninjas +10% de dano${
+        g.state.buildings.some((b) => b.type === 'monument') ? '' : ' · construa o 🗿 Monte dos Kages'
+      }</p>`;
+    } else if (g.state.ceremony) {
+      html += `<p class="hint">🎆 Cerimônia em andamento…</p>`;
+    } else {
+      const st = electionStatus(g);
+      html += `<p class="hint">Um Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage (${costLabel(KAGE_COST)}). Com Kage vivo, todos os ninjas causam +10% de dano.</p>`;
+      if (st.candidates.length && st.ready)
+        html += `<div class="btnrow">${st.candidates
+          .slice(0, 3)
+          .map((c) => `<button class="btn primary" data-act="elect" data-arg="${c.id}">👑 Eleger ${esc(c.name.split(' ').pop()!)} (Nv ${c.ninja!.level})</button>`)
+          .join('')}</div>`;
+      else html += `<p class="why">${esc(st.reason)}</p>`;
+    }
+    if (g.state.kageHistory.length)
+      html += `<p class="hint">Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
+    return html;
+  }
+
   /** Nível da vila, benefícios e requisitos do próximo nível (marco). */
   private villageSection() {
     const g = this.app.game;
     const cur = levelDef(g.state.level);
     let html = `<div class="lvlcard"><div class="lvlname">${cur.icon} ${cur.name}</div>
       <div class="hint">Nível ${g.state.level} de ${MAX_VILLAGE_LEVEL} · território ${cur.territory} · impostos ${cur.tax}💰/morador</div></div>`;
+    html += this.kageSection();
     const st = nextLevelStatus(g);
     if (!st) return html + `<p class="hint">🏆 A vila chegou ao nível máximo!</p>`;
     html += `<h4>Próximo: ${st.def.icon} ${st.def.name}</h4><ul class="reqs">`;
@@ -783,6 +813,8 @@ export class Panel {
           return this.report(recruitNinja(g));
         case 'upgrade':
           return this.report(upgradeVillage(g));
+        case 'elect':
+          return this.report(electKage(g, Number(arg)));
         case 'craft':
           return this.report(enqueueCraft(g, v.id, arg));
         case 'exam-start':

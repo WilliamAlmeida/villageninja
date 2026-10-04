@@ -57,7 +57,7 @@ function edgeSpawn(g: Game) {
 }
 
 /** Ponto na borda do mapa que tenha caminho até a vila (evita ilhas cercadas de água). */
-function edgePoint(g: Game) {
+export function edgePoint(g: Game) {
   const hk = g.hokage();
   const goal = hk ? doorTile(hk) : { tx: CENTER_TX, ty: CENTER_TY };
   let fallback: { x: number; y: number } | null = null;

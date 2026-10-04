@@ -1,7 +1,9 @@
 import type { System } from '../game';
 import { effectSystem } from './effects';
 import { hostileSystem } from './hostiles';
+import { bossSystem } from './bosses';
 import { examSystem } from './exam';
+import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
 import { populationSystem } from './population';
@@ -26,6 +28,8 @@ export const SYSTEMS: System[] = [
   teamSystem,
   missionSystem,
   examSystem,
+  kageSystem,
+  bossSystem,
   villagerSystem,
   ninjaSystem,
   hostileSystem,

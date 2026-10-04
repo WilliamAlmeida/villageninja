@@ -3,6 +3,7 @@ import { bus, type ToastKind } from '../core/events';
 import { clockLabel, isNight } from '../game/time';
 import { levelDef } from '../data/villageLevels';
 import { arenaSpots, examLabel } from '../game/exam';
+import { BOSSES } from '../data/bosses';
 import { el, esc, fmt } from './dom';
 
 const MAX_TOASTS = 4;
@@ -51,7 +52,17 @@ export class Hud {
     threat.addEventListener('click', () => this.focusThreat());
     const exam = el('button', { class: 'banner exam', 'data-b': 'exam', hidden: '' });
     exam.addEventListener('click', () => this.focusArena());
-    this.alert.append(threat, exam);
+    const warn = el('button', { class: 'banner danger', 'data-b': 'bosswarn', hidden: '' });
+    warn.addEventListener('click', () => {
+      const p = this.app.game.state.pendingBoss;
+      if (p) this.app.camera.focus(p.x, p.y);
+    });
+    const boss = el('button', { class: 'banner boss', 'data-b': 'boss', hidden: '' }, '<span data-t="name"></span><span class="bossbar"><i></i></span>');
+    boss.addEventListener('click', () => {
+      const b = this.app.game.state.units.find((u) => u.boss && !u.dead);
+      if (b) this.app.camera.focus(b.x, b.y);
+    });
+    this.alert.append(threat, exam, warn, boss);
 
     this.toasts = el('div', { id: 'toasts' });
     bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y));
@@ -86,6 +97,22 @@ export class Hud {
     this.vals.get('pop')!.parentElement!.classList.toggle('low', pop >= cap);
     this.top.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === s.speed));
     this.alert.querySelector<HTMLElement>('[data-b="alert"]')!.hidden = !s.flags.alert;
+    const warn = this.alert.querySelector<HTMLElement>('[data-b="bosswarn"]')!;
+    warn.hidden = !s.pendingBoss;
+    if (s.pendingBoss) {
+      const d = BOSSES[s.pendingBoss.kind];
+      const label = `🔔 ${d.icon} ${d.name} chega em ${Math.ceil(s.pendingBoss.t)}s — ver`;
+      if (warn.textContent !== label) warn.textContent = label;
+    }
+    const bosses = s.units.filter((u) => u.boss && !u.dead);
+    const bossEl = this.alert.querySelector<HTMLElement>('[data-b="boss"]')!;
+    bossEl.hidden = !bosses.length;
+    if (bosses.length) {
+      const hp = bosses.reduce((a, u) => a + u.hp, 0) / bosses.reduce((a, u) => a + u.maxHp, 0);
+      const name = bosses.length > 1 ? `${bosses[0]!.name.split(' ')[0]} ×${bosses.length}` : bosses[0]!.name;
+      bossEl.querySelector('[data-t="name"]')!.textContent = `☠ ${name}`;
+      bossEl.querySelector<HTMLElement>('.bossbar i')!.style.width = `${Math.max(0, hp) * 100}%`;
+    }
     const examBtn = this.alert.querySelector<HTMLElement>('[data-b="exam"]')!;
     examBtn.hidden = !s.exam;
     if (s.exam) {

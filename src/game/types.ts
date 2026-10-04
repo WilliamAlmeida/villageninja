@@ -4,6 +4,7 @@ import type { AnimalType } from '../data/animals';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
 import type { KekkeiId } from '../data/kekkei';
+import type { BossKind } from '../data/bosses';
 import type { Nature } from '../data/natures';
 import type { Rank, StatKey, Stats } from '../data/ninja';
 
@@ -130,6 +131,10 @@ export interface Unit {
   /** Exame Chunin: 0 = participante aguardando, 1/2 = lado no duelo atual. */
   arenaSide?: number;
   heritage?: Heritage;
+  /** Chefe de ameaça (aparece na barra de vida da tela). */
+  boss?: boolean;
+  /** Recarga de habilidade especial (pisão da Fera Colossal). */
+  abilityCd?: number;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }
@@ -260,6 +265,13 @@ export interface GameState {
   missionDay: number;
   exam: Exam | null;
   clans: Clan[];
+  /** Kage atual (id) e os anteriores (para o Monte dos Kages). */
+  kageId: number | null;
+  kageHistory: { name: string; day: number }[];
+  ceremony: { candidateId: number; timer: number } | null;
+  /** Segundos até a próxima ameaça chefe e a que está a caminho. */
+  bossTimer: number;
+  pendingBoss: { kind: BossKind; x: number; y: number; t: number } | null;
   /** Dia a partir do qual um novo Exame Chunin pode ser convocado. */
   examNextDay: number;
   lastExam: ExamResult | null;
@@ -271,7 +283,7 @@ export interface GameState {
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
   flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean };
-  stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number };
+  stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 
 export interface ExamEntrant {

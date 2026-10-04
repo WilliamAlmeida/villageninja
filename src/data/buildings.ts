@@ -18,7 +18,8 @@ export type BuildingType =
   | 'forge'
   | 'pharmacy'
   | 'sealshop'
-  | 'arena';
+  | 'arena'
+  | 'monument';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
@@ -138,6 +139,11 @@ const LIST: BuildingDef[] = [
     type: 'arena', name: 'Arena do Exame', icon: '🏟️', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',
     w: 4, h: 4, cost: { wood: 80, stone: 60, ryo: 50 }, buildTime: 22, unique: true, buildable: true, walkable: true, minLevel: 1,
     roof: '#8a6a3a', wall: '#c9a66b',
+  },
+  {
+    type: 'monument', name: 'Monte dos Kages', icon: '🗿', desc: 'Rostos dos Kages esculpidos na rocha: +30% de XP no treino e +1 de reputação por dia.',
+    w: 4, h: 2, cost: { wood: 100, stone: 250, ryo: 200 }, buildTime: 30, unique: true, buildable: true, minLevel: 2,
+    roof: '#8d8174', wall: '#6e6358',
   },
 ];
 

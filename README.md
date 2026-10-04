@@ -44,6 +44,9 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
 - **🏯 Clãs e kekkei genkai**: filhos nascem de casais e herdam talentos. Um Chunin+ de nível 5+ funda um clã com
   o próprio sobrenome; em Vila Oculta, um clã com ninjas de duas naturezas compatíveis desperta uma kekkei genkai
   (Gelo, Madeira, Lava, Tempestade, Calor) com jutsu exclusivo. Veja em 🥷 Ninjas → Clãs.
+- **👑 Kage e ameaças chefes**: em Vila Oculta, eleja um Jounin de nível 10+ como Kage (cerimônia na praça,
+  +10% de dano para os ninjas e Monte dos Kages). A partir de Vila surgem ameaças chefes com aviso prévio:
+  Fera Colossal, Ordem da Lua Vermelha e, em Grande Vila Oculta, invasão de outra vila.
 - **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
   ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.
@@ -98,11 +101,6 @@ o Phaser pode entrar só na camada `render/`, sem tocar em `game/`.
 
 ## Próximos passos
 
-Veja o plano completo em [docs/ROADMAP.md](docs/ROADMAP.md). Resumo:
-
-- Missões (enviar ninjas para fora do mapa e voltar com recompensas)
-- Equipes de 3 + sensei, afinidade entre ninjas
-- Clãs com kekkei genkai (natureza dupla)
-- Spritesheets / animações reais e sons
-- Mais recursos (ervas medicinais, ferro) e cadeias de produção
-- Eventos (exame Chunin, festival), clima
+As fases 1 e 3–8 do [roadmap](docs/ROADMAP.md) estão prontas. Pendente: **Fase 2 (sprites e animações)**,
+adiada até haver arte. Ideias para depois: sons e música, mais tipos de missão e chefes, balanceamento com
+playtest real, PWA instalável, e trocar nomes do anime por nomes originais caso o jogo seja publicado.

@@ -17,6 +17,8 @@ const run = (g: Game, seconds: number) => {
 const rich = (g: Game) => Object.assign(g.state.res, { ryo: 9999, food: 999, wood: 999, stone: 999 });
 
 function founder(g: Game, nature: 'fuuton' | 'suiton' | 'katon' = 'fuuton'): Unit {
+  // nomes são aleatórios: garante que ninguém mais seja "Hoshino" por acaso
+  for (const o of g.state.units) if (o.name.startsWith('Hoshino')) o.name = `Outro ${o.name}`;
   const u = createNinja(g, 1100, 800, 'chunin', 0);
   u.name = 'Hoshino Kenta';
   u.ninja!.level = 6;

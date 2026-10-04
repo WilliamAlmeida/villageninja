@@ -14,5 +14,6 @@ function onNewDay(g: Game) {
   const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
   const tax = villagers * levelDef(g.state.level).tax;
   g.state.res.ryo += tax;
+  if (g.state.buildings.some((b) => b.type === 'monument' && b.built)) g.state.reputation += 1;
   g.toast(`☀ Dia ${g.state.day} — impostos: +${tax} 💰`, 'info');
 }

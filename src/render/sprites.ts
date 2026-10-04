@@ -142,7 +142,7 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean) {
 }
 
 function drawBars(ctx: Ctx, u: Unit, selected: boolean) {
-  const w = u.animal ? 22 : 18;
+  const w = u.boss ? 44 : u.animal ? 22 : 18;
   const x = u.x - w / 2;
   const y = u.y - (u.animal ? ANIMALS[u.animal].size + 14 : 24);
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -319,6 +319,16 @@ function drawAnimal(ctx: Ctx, u: Unit, t: number) {
   // cauda
   ctx.fillStyle = col;
   if (u.animal === 'wolf') ellipse(ctx, -s * 1.35, Math.sin(t * 8) * 1.5, s * 0.5, s * 0.22);
+  if (u.animal === 'titan') {
+    // várias caudas em chamas balançando
+    for (let i = -1; i <= 1; i++) {
+      const a = i * 0.45 + Math.sin(t * 3 + i) * 0.2;
+      ctx.fillStyle = i ? shade(def.color, 0.1) : col;
+      ellipse(ctx, -s * 1.1 - Math.cos(a) * s * 0.6, Math.sin(a) * s * 0.9, s * 0.75, s * 0.22, a);
+      ctx.fillStyle = 'rgba(255,140,60,0.7)';
+      circle(ctx, -s * 1.1 - Math.cos(a) * s * 1.25, Math.sin(a) * s * 1.6, s * 0.14);
+    }
+  }
   // corpo
   ellipse(ctx, 0, 0, s * 1.1, s * (u.animal === 'bear' ? 0.8 : 0.6));
   ctx.fillStyle = shade(def.color, 0.1);
@@ -347,6 +357,15 @@ function drawAnimal(ctx: Ctx, u: Unit, t: number) {
     ctx.moveTo(s * 1.4 + lunge, s * 0.2);
     ctx.lineTo(s * 1.7 + lunge, s * 0.4);
     ctx.stroke();
+  } else if (u.animal === 'titan') {
+    ctx.fillStyle = '#f2ead8';
+    for (const sy of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * 0.9 + lunge, sy * s * 0.3);
+      ctx.lineTo(s * 0.55 + lunge, sy * s * 0.85);
+      ctx.lineTo(s * 1.05 + lunge, sy * s * 0.4);
+      ctx.fill();
+    }
   } else if (u.animal === 'bear') {
     ctx.fillStyle = shade(def.color, -0.15);
     circle(ctx, s * 0.95 + lunge, -s * 0.45, s * 0.18);
@@ -396,6 +415,8 @@ export function paintBuilding(ctx: Ctx, def: BuildingDef, x: number, y: number, 
       return paintHerbGarden(ctx, x, y, w, h, t);
     case 'arena':
       return paintArena(ctx, x, y, w, h);
+    case 'monument':
+      return paintMonument(ctx, x, y, w, h);
     case 'training':
       return paintTraining(ctx, x, y, w, h);
     case 'tower':
@@ -614,6 +635,34 @@ function paintHerbGarden(ctx: Ctx, x: number, y: number, w: number, h: number, t
   ctx.strokeStyle = '#8fbf6a';
   ctx.lineWidth = 2;
   ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+}
+
+function paintMonument(ctx: Ctx, x: number, y: number, w: number, h: number) {
+  // paredão de rocha com rostos esculpidos
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(x + 4, y + 6, w, h);
+  ctx.fillStyle = '#7a6e62';
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + 4, y - 14);
+  ctx.lineTo(x + w * 0.3, y - 22);
+  ctx.lineTo(x + w * 0.6, y - 18);
+  ctx.lineTo(x + w - 3, y - 24);
+  ctx.lineTo(x + w, y + h);
+  ctx.closePath();
+  ctx.fill();
+  for (let i = 0; i < 4; i++) {
+    const cx = x + w * (0.15 + i * 0.23);
+    const cy = y + 4;
+    ctx.fillStyle = '#9a8e80';
+    ellipse(ctx, cx, cy, 11, 14);
+    ctx.fillStyle = '#5e544a';
+    circle(ctx, cx - 4, cy - 2, 1.6);
+    circle(ctx, cx + 4, cy - 2, 1.6);
+    ctx.fillRect(cx - 3, cy + 6, 6, 1.5);
+    ctx.fillStyle = '#6e6358';
+    ctx.fillRect(cx - 9, cy - 10, 18, 3);
+  }
 }
 
 function paintArena(ctx: Ctx, x: number, y: number, w: number, h: number) {

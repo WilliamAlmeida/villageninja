@@ -27,6 +27,11 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     missionDay: 0,
     exam: null,
     clans: [],
+    kageId: null,
+    kageHistory: [],
+    ceremony: null,
+    bossTimer: DAY_LENGTH * 6,
+    pendingBoss: null,
     examNextDay: 0,
     lastExam: null,
     projectiles: [],
@@ -36,7 +41,7 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     nextId,
     timers: { animal: 35, raid: DAY_LENGTH * 2.6, birth: 30, jobs: 0, homes: 0 },
     flags: { starving: false, alert: false, raidActive: false, raidStole: false },
-    stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0, missionsDone: 0 },
+    stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0, missionsDone: 0, bossesDefeated: 0 },
   };
   const g = new Game(state, systems);
 

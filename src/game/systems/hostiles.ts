@@ -1,7 +1,7 @@
 import { MAP_H, MAP_W, TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
 import { ANIMALS } from '../../data/animals';
-import { engage, trySupport } from '../combat';
+import { areaDamage, engage, trySupport } from '../combat';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
@@ -36,6 +36,7 @@ function animal(g: Game, u: Unit, dt: number) {
     return;
   }
   if (u.missionId != null) return guardHome(g, u, dt, def.aggro);
+  if (u.boss) return titan(g, u, dt, def.aggro);
   const t = validTarget(g, u, def.aggro * 2.5) ?? g.nearestHostile(u, def.aggro);
   if (t) {
     engage(g, u, t, dt);
@@ -132,6 +133,33 @@ function guardHome(g: Game, u: Unit, dt: number, aggro: number) {
     }
     followPath(g, u, dt, 0.7);
   } else u.moving = false;
+}
+
+/** Fera Colossal: marcha até a vila e dá pisões que atingem todos ao redor. */
+function titan(g: Game, u: Unit, dt: number, aggro: number) {
+  u.abilityCd = (u.abilityCd ?? 0) - dt;
+  const near = g.nearestHostile(u, 90);
+  if (near && u.abilityCd <= 0) {
+    u.abilityCd = 5;
+    u.anim = 0.4;
+    fx(g, 'ring', u.x, u.y, { r: 95, color: '#ff8a5a', life: 0.6 });
+    fx(g, 'burst', u.x, u.y, { r: 50, color: '#a0522d', life: 0.5 });
+    areaDamage(g, u, u.faction, u.x, u.y, 95, 22 + g.state.level * 4, null, 50);
+    return;
+  }
+  const t = validTarget(g, u, aggro * 1.5) ?? g.nearestHostile(u, aggro);
+  if (t) {
+    engage(g, u, t, dt);
+    return;
+  }
+  const hk = g.hokage();
+  if (!hk) return;
+  const p = doorPos(hk);
+  if (!u.hasGoal || u.timer <= 0) {
+    setDestination(g, u, p.x, p.y + 20);
+    u.timer = 3;
+  }
+  followPath(g, u, dt);
 }
 
 function nearestEdge(x: number, y: number) {

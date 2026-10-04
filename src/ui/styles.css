@@ -54,6 +54,9 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; }
 .banner { pointer-events: auto; padding: 5px 12px; border-radius: 999px; font-weight: 700; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .banner.danger { background: #b3261e; animation: pulse 0.9s infinite alternate; }
 .banner.exam { background: #7a5a1a; border: 1px solid #ffd34d; font-size: 12px; }
+.banner.boss { background: #2a0f12; border: 1px solid #ff4d4d; display: flex; flex-direction: column; gap: 3px; min-width: 260px; border-radius: 12px; font-size: 12px; }
+.bossbar { display: block; height: 7px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.bossbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff4d4d, #ff8a2b); }
 @keyframes pulse { to { background: #e5392f; } }
 #toasts {
   position: fixed; top: 44px; left: calc(8px + var(--safe-l)); z-index: 11;

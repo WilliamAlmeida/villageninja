@@ -9,6 +9,7 @@ import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import type { BuildingType } from '../src/data/buildings';
 import { inTerritory, nextLevelStatus, territoryCenter, upgradeVillage } from '../src/game/village';
+import { electionStatus } from '../src/game/kage';
 
 const rich = (g: Game) => (g.state.res = { wood: 9999, stone: 9999, food: 9999, ryo: 99999, iron: 999, herbs: 999, paper: 999 });
 
@@ -62,16 +63,16 @@ describe('níveis da vila', () => {
     expect(canBuild(g, 'library').ok).toBe(false);
   });
 
-  test('Kage só pode ser eleito em Vila Oculta', () => {
+  test('Kage só pode ser eleito em Vila Oculta (e não por promoção comum)', () => {
     const g = createNewGame(SYSTEMS, 4);
     rich(g);
     const n = createNinja(g, 100, 100, 'jounin', 0);
     n.ninja!.level = 20;
-    const r = promote(g, n.id);
-    expect(r.ok).toBe(false);
+    expect(promote(g, n.id).ok).toBe(false);
+    expect(electionStatus(g).ready).toBe(false);
     g.state.level = 2;
-    expect(promote(g, n.id).ok).toBe(true);
-    expect(n.ninja!.rank).toBe('kage');
+    expect(promote(g, n.id).ok).toBe(false);
+    expect(electionStatus(g).ready).toBe(true);
   });
 
   test('migra saves da versão 2', () => {

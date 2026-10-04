@@ -41,6 +41,7 @@ export function villagerSystem(g: Game, dt: number) {
       flee(g, u);
       continue;
     }
+    if (u.state === 'ceremony') continue; // cerimônia do Kage: controlado pelo kageSystem
     switch (u.state) {
       case 'flee':
         if (followPath(g, u, dt, 1.3)) hide(u, 'shelter', 3);

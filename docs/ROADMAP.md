@@ -21,7 +21,7 @@ Decisões de design (definidas com o autor):
 - Testes: formação de equipe, ordem de ataque, bônus aplicados.
 - **Feito**: `game/teams.ts`, `systems/teams.ts`, IA em `systems/ninjas.ts`, UI (painel do ninja, aba Equipes, modo de ordem), migração de save v1→v2.
 
-## Fase 2 — Pipeline de sprites (placeholder)
+## Fase 2 — Pipeline de sprites (placeholder) ⏸ adiada até haver arte
 - `SpriteSheet` + atlas JSON; `Animator` com estados `idle/walk/attack/cast/hurt/die` × 4 direções.
 - Sprites provisórios gerados em runtime num atlas (mesmo caminho de código da arte final).
 - Especificação de arte em `docs/ART.md`: tile 16 px (escala ×2), personagem 16×24, nº de frames por animação, paleta.
@@ -80,9 +80,16 @@ Decisões de design (definidas com o autor):
 - **Feito**: `data/kekkei.ts`, `game/clans.ts`, nascimentos em `systems/population.ts`, herança em `convertToNinja`,
   aba Clãs, insígnias de clã/kekkei, talento no painel do morador, save v7.
 
-## Fase 8 — Kage e ameaças chefes (marcos)
-- **Eleger o Kage**: ninja nível alto + Vila Oculta → cerimônia, Monte dos Kages, bônus globais.
-- Ameaças raras escalando com o nível da vila: fera gigante, organização criminosa, invasão de outra vila.
+## Fase 8 — Kage e ameaças chefes (marcos) ✅
+- **Eleger o Kage** (Vila Oculta): Jounin de nível 10+ eleito por 500💰 na Residência do Hokage; cerimônia na praça
+  com a vila reunida e fogos. Com Kage vivo, ninjas causam +10% de dano. Se o Kage cair, elege-se outro.
+  A promoção comum não leva mais a Kage. Grande Vila Oculta exige Kage eleito.
+- **Monte dos Kages** (liberado após a primeira eleição): +30% de XP no treino e +1 de reputação por dia.
+- **Ameaças chefes** a partir de Vila e do dia 5, a cada 4–6 dias, com 30 s de aviso:
+  🐲 Fera Colossal (pisão em área, vida escala com o nível), 🌙 Ordem da Lua Vermelha (2 jounin de elite, Vila Oculta),
+  ⚔️ Invasão da Vila da Rocha Negra (comandante + 6, Grande Vila Oculta). Recompensas grandes e reputação.
+- **Feito**: `data/bosses.ts`, `game/kage.ts`, `game/bosses.ts`, `systems/kage.ts`, `systems/bosses.ts`,
+  faixas de aviso e barra de vida do chefe, seção Kage na Residência, save v8.
 
 ---
 
