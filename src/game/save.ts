@@ -15,6 +15,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   2: (s) => {
     s.level = 0;
   },
+  3: (s) => {
+    s.missions = [];
+    s.reputation = 0;
+    s.missionDay = 0;
+    s.stats.missionsDone = 0;
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -12,12 +12,17 @@ import {
 } from '../game/commands';
 import { nextRank } from '../game/progression';
 import { nextLevelStatus, upgradeVillage } from '../game/village';
+import {
+  abandonMission, acceptMission, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, teamPower, templateOf,
+} from '../game/missions';
+import { missionFocus } from '../game/missionView';
+import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamOf, teamUnits,
 } from '../game/teams';
-import type { Building, NinjaOrder, Team, Unit } from '../game/types';
+import type { Building, Mission, NinjaOrder, Team, Unit } from '../game/types';
 import { esc, el } from './dom';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
@@ -287,6 +292,7 @@ export class Panel {
       t.prog = `${Math.floor(b.prog * 100)}%`;
     } else {
       if (bd.type === 'hokage') html += this.villageSection();
+      if (bd.type === 'missions') html += this.missionsSection(t, b);
       if (d.workers) {
         html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">−</button>
           <b data-t="workers"></b><button class="btn" data-act="workers" data-arg="1">+</button></div>`;
@@ -333,6 +339,67 @@ export class Panel {
       ⬆ Elevar a ${st.def.name} (${costLabel(st.def.cost)})</button></div>`;
     if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
     return html;
+  }
+
+  /** Quadro de missões: ativas (com progresso), oferecidas (com envio de equipe) e histórico. */
+  private missionsSection(t: Record<string, string>, b: Record<string, number>) {
+    const g = this.app.game;
+    const ms = g.state.missions;
+    const active = ms.filter((m) => m.status === 'active');
+    const offered = ms.filter((m) => m.status === 'offered');
+    const ended = ms.filter((m) => m.status === 'done' || m.status === 'failed').slice(-3).reverse();
+    let html = `<div class="lvlcard"><div class="lvlname">⭐ Reputação ${g.state.reputation}</div>
+      <div class="hint">Missões cumpridas: ${g.state.stats.missionsDone} · em andamento ${active.length}/${maxActiveMissions(g)} · o quadro renova todo dia</div></div>`;
+    if (active.length) {
+      html += `<h4>Em andamento</h4>`;
+      for (const m of active) {
+        const team = g.team(m.teamId);
+        const r = MISSION_RANKS[m.rank]!;
+        html += `<div class="mcard" style="--c:${r.color}"><div class="mt"><span class="mrank">${r.label}</span>${esc(m.title)}</div>
+          <div class="hint">${team ? `<span class="dot" style="--c:${team.color}"></span>${esc(team.name)}` : '—'} · ${this.missionPhase(m)} · ⏳ <span data-t="mt${m.id}"></span></div>
+          <div class="bar pg"><i data-b="mp${m.id}"></i><span data-t="mpl${m.id}"></span></div>
+          <div class="btnrow"><button class="btn" data-act="m-view" data-arg="${m.id}">📍 Ver</button><button class="btn" data-act="m-abandon" data-arg="${m.id}">Abandonar</button></div></div>`;
+        t[`mt${m.id}`] = `${Math.ceil(m.timeLeft)}s`;
+        b[`mp${m.id}`] = m.progress / Math.max(1, m.goal);
+        t[`mpl${m.id}`] = `${m.progress}/${m.goal}`;
+      }
+    }
+    html += `<h4>Missões disponíveis</h4>`;
+    if (!offered.length) html += `<p class="hint">Nenhuma missão no quadro hoje. Volte amanhã.</p>`;
+    const teams = g.state.teams.filter((tm) => teamUnits(g, tm).length && !missionOfTeam(g, tm.id));
+    const full = active.length >= maxActiveMissions(g);
+    for (const m of offered) {
+      const tpl = templateOf(m);
+      const r = MISSION_RANKS[m.rank]!;
+      html += `<div class="mcard" style="--c:${r.color}"><div class="mt"><span class="mrank">${r.label}</span>${esc(m.title)}</div>
+        <div class="jm">${MISSION_TYPE_LABEL[m.type]} · dificuldade ⚔${missionPower(m)} · ${Math.round(MISSION_TIME)}s · recompensa ${costLabel(missionReward(tpl))} + ${r.xp} XP</div>
+        <div class="jd">${esc(tpl.desc)}</div><div class="btnrow">`;
+      if (full) html += `<span class="why">Limite de missões simultâneas atingido.</span>`;
+      else if (!teams.length) html += `<span class="why">Nenhuma equipe livre. Forme uma em 🥷 Ninjas → Equipes.</span>`;
+      else
+        for (const tm of teams) {
+          const p = teamPower(g, tm);
+          const risk = p >= missionPower(m) ? 'p-ok' : p >= missionPower(m) * 0.7 ? 'p-risk' : 'p-bad';
+          html += `<button class="btn ${risk}" data-act="m-accept" data-arg="${m.id}" data-team="${tm.id}"><span class="dot" style="--c:${tm.color}"></span>${esc(tm.name)} ⚔${p}</button>`;
+        }
+      html += `</div></div>`;
+    }
+    if (ended.length) {
+      html += `<h4>Recentes</h4><ul class="reqs">`;
+      for (const m of ended) html += `<li class="${m.status === 'done' ? 'ok' : ''}">${m.status === 'done' ? '✅' : '❌'} ${esc(m.title)} <b>${esc(m.result ?? '')}</b></li>`;
+      html += `</ul>`;
+    }
+    return html;
+  }
+
+  private missionPhase(m: Mission) {
+    const g = this.app.game;
+    const team = g.team(m.teamId);
+    const lead = team ? teamUnits(g, team)[0] : undefined;
+    const far = lead && Math.hypot(lead.x - m.x, lead.y - m.y) > 300;
+    if (m.type === 'escort') return m.phase === 'meet' ? 'indo encontrar o mercador' : m.phase === 'ambushed' ? 'emboscada!' : 'escoltando';
+    if (far) return 'a caminho';
+    return m.type === 'herbs' ? 'coletando' : 'em combate';
   }
 
   private roster(): Built {
@@ -395,6 +462,10 @@ export class Panel {
     }
     html += `</div>`;
     if (tm.memberIds.length < MAX_MEMBERS) html += `<p class="hint">Para adicionar: selecione um ninja → seção Equipe.</p>`;
+    const mission = missionOfTeam(g, tm.id);
+    html += `<h4>Missão</h4>` + (mission
+      ? `<p class="hint">📋 ${esc(mission.title)} (rank ${MISSION_RANKS[mission.rank]!.label}) · ${this.missionPhase(mission)}</p>`
+      : `<p class="hint">Livre · força ⚔${teamPower(g, tm)}. Envie em uma missão pela 📋 Mesa de Missões.</p>`);
     if (units.length) {
       const n0 = units[0]!.ninja!;
       html += `<h4>Ordens para a equipe</h4><div class="btnrow">
@@ -539,6 +610,18 @@ export class Panel {
           return this.report(recruitNinja(g));
         case 'upgrade':
           return this.report(upgradeVillage(g));
+        case 'm-accept':
+          return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
+        case 'm-abandon':
+          return this.report(abandonMission(g, Number(arg)));
+        case 'm-view': {
+          const m = g.state.missions.find((x) => x.id === Number(arg));
+          if (m) {
+            const p = missionFocus(g, m);
+            this.app.camera.focus(p.x, p.y);
+          }
+          return;
+        }
         case 'demolish':
           if (!this.armedDemolish) {
             this.armedDemolish = 1;

@@ -52,6 +52,7 @@ export function checkRequirements(g: Game, req: LevelReq): ReqCheck[] {
   for (const [type, n] of Object.entries(req.buildings ?? {}) as [keyof typeof BUILDINGS, number][])
     add(BUILDINGS[type].name, s.buildings.filter((b) => b.type === type && b.built).length, n);
   if (req.raidsRepelled) add('Invasões repelidas', s.stats.raidsRepelled, req.raidsRepelled);
+  if (req.missionsDone) add('Missões cumpridas', s.stats.missionsDone, req.missionsDone);
   return out;
 }
 

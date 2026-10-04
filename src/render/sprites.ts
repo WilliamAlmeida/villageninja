@@ -30,7 +30,7 @@ function shade(hex: string, amt: number) {
 const nodeCache = new Map<string, HTMLCanvasElement>();
 const TREE_COLORS = ['#2f6b2a', '#3a7a30', '#2a5e2e', '#477f2f'];
 
-function nodeSprite(type: 'tree' | 'rock', variant: number) {
+function nodeSprite(type: 'tree' | 'rock' | 'herb', variant: number) {
   const key = `${type}${variant}`;
   let c = nodeCache.get(key);
   if (c) return c;
@@ -41,7 +41,23 @@ function nodeSprite(type: 'tree' | 'rock', variant: number) {
   ctx.scale(2, 2);
   const cx = 24;
   const cy = 26;
-  if (type === 'tree') {
+  if (type === 'herb') {
+    // erva medicinal brilhante
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 16);
+    g.addColorStop(0, 'rgba(125,255,154,0.55)');
+    g.addColorStop(1, 'rgba(125,255,154,0)');
+    ctx.fillStyle = g;
+    circle(ctx, cx, cy, 16);
+    ctx.fillStyle = '#2f7d3a';
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
+      ellipse(ctx, cx + Math.cos(a) * 5, cy + Math.sin(a) * 4, 4.5, 2, a);
+    }
+    ctx.fillStyle = ['#e05ad1', '#ffe14d', '#7fc8ff', '#ff8a8a'][variant % 4]!;
+    circle(ctx, cx, cy - 1, 2.5);
+    circle(ctx, cx + 4, cy - 4, 1.8);
+    circle(ctx, cx - 4, cy - 3, 1.8);
+  } else if (type === 'tree') {
     const col = TREE_COLORS[variant % 4]!;
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ellipse(ctx, cx + 3, cy + 12, 13, 6);
@@ -392,11 +408,11 @@ export function paintBuilding(ctx: Ctx, def: BuildingDef, x: number, y: number, 
     circle(ctx, x + w + 2, y + h - 6, 4);
     circle(ctx, x + w + 7, y + h - 4, 3);
     circle(ctx, x + w + 4, y + h - 11, 3);
-  } else if (def.type === 'academy' || def.type === 'hospital' || def.type === 'library') {
-    const label = def.type === 'academy' ? '忍' : def.type === 'hospital' ? '医' : '書';
+  } else if (def.type === 'academy' || def.type === 'hospital' || def.type === 'library' || def.type === 'missions') {
+    const label = def.type === 'academy' ? '忍' : def.type === 'hospital' ? '医' : def.type === 'library' ? '書' : '任';
     ctx.fillStyle = '#f7f1e3';
     ctx.fillRect(x + w / 2 - 7, y + h * 0.18 - 7, 14, 14);
-    ctx.fillStyle = def.type === 'academy' ? '#c0392b' : def.type === 'hospital' ? '#2e8b57' : '#6c3483';
+    ctx.fillStyle = def.type === 'academy' ? '#c0392b' : def.type === 'hospital' ? '#2e8b57' : def.type === 'library' ? '#6c3483' : '#2c3e50';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

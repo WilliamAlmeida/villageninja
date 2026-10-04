@@ -4,6 +4,8 @@ import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Game } from '../game/game';
 import { DEFENSES } from '../game/systems/towers';
 import { darkness } from '../game/time';
+import { missionFocus } from '../game/missionView';
+import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, ResourceNode, Unit } from '../game/types';
 import { buildingCenter, doorPos } from '../game/world';
@@ -131,6 +133,7 @@ export class Renderer {
       if (t) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) focus.add(id);
     }
 
+    this.drawCamps(g, time);
     for (const d of list) {
       if (d.b) drawBuilding(ctx, d.b, time, night, s.level);
       else if (d.n) drawNode(ctx, d.n);
@@ -154,11 +157,13 @@ export class Renderer {
           ctx.stroke();
         }
         drawUnit(ctx, d.u, time, selected);
+        if (d.u.missionId != null) this.missionBadge(d.u, time);
         if (selected) this.label(ctx, d.u.name, d.u.x, d.u.y - 34, cam.zoom);
       }
     }
 
     this.drawCommands(g, focus, teamColor, time);
+    this.drawObjectives(g, time);
     for (const p of s.projectiles) if (!p.dead) drawProjectile(ctx, p, time);
     for (const e of s.effects) drawEffect(ctx, e, cam.zoom);
 
@@ -173,6 +178,7 @@ export class Renderer {
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
       this.lights(g, cam, night);
     }
+    this.missionArrows(g, cam);
     if (s.flags.alert) {
       const a = 0.25 + 0.15 * Math.sin(time * 6);
       const gr = ctx.createRadialGradient(cam.viewW / 2, cam.viewH / 2, Math.min(cam.viewW, cam.viewH) * 0.45, cam.viewW / 2, cam.viewH / 2, Math.max(cam.viewW, cam.viewH) * 0.7);
@@ -180,6 +186,139 @@ export class Renderer {
       gr.addColorStop(1, `rgba(200,0,0,${a})`);
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
+    }
+  }
+
+  /** Barracas e fogueira dos acampamentos/covis de missões ativas. */
+  private drawCamps(g: Game, time: number) {
+    const ctx = this.ctx;
+    for (const m of g.state.missions) {
+      if (m.status !== 'active' || (m.type !== 'camp' && m.type !== 'wanted')) continue;
+      for (const [ox, oy, c] of [[-34, -18, '#8a6a4a'], [30, -14, '#6f5a7a'], [-6, -40, '#7a5a3a']] as const) {
+        const x = m.x + ox;
+        const y = m.y + oy;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(x + 3, y + 10, 16, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(x - 15, y + 9);
+        ctx.lineTo(x, y - 12);
+        ctx.lineTo(x + 15, y + 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y + 9);
+        ctx.lineTo(x, y - 2);
+        ctx.lineTo(x + 3, y + 9);
+        ctx.fill();
+      }
+      // fogueira
+      ctx.fillStyle = '#5a3b22';
+      ctx.fillRect(m.x - 7, m.y - 1, 14, 3);
+      const f = 1 + Math.sin(time * 12) * 0.15;
+      const gr = ctx.createRadialGradient(m.x, m.y - 4, 0, m.x, m.y - 4, 9 * f);
+      gr.addColorStop(0, '#fff3b0');
+      gr.addColorStop(0.5, '#ff8a2b');
+      gr.addColorStop(1, 'rgba(255,90,0,0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y - 4, 9 * f, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /** Marca alvos de missão (losango vermelho; chefe = estrela dourada; mercador = moeda). */
+  private missionBadge(u: Unit, time: number) {
+    const ctx = this.ctx;
+    const y = u.y - (u.animal ? 30 : 34) + Math.sin(time * 4 + u.id) * 1.5;
+    if (u.faction === 'village') {
+      ctx.fillStyle = '#ffd34d';
+      ctx.beginPath();
+      ctx.arc(u.x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#8a6a00';
+      ctx.font = 'bold 6px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', u.x, y + 0.5);
+      return;
+    }
+    const boss = u.name.startsWith('★');
+    ctx.fillStyle = boss ? '#ffd34d' : '#ff4d4d';
+    ctx.beginPath();
+    if (boss)
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const r = i % 2 ? 2.3 : 5.5;
+        ctx.lineTo(u.x + Math.cos(a) * r, y + Math.sin(a) * r);
+      }
+    else {
+      ctx.moveTo(u.x, y - 4);
+      ctx.lineTo(u.x + 3, y);
+      ctx.lineTo(u.x, y + 4);
+      ctx.lineTo(u.x - 3, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** Anel pulsante no ponto de interesse de cada missão ativa. */
+  private drawObjectives(g: Game, time: number) {
+    const ctx = this.ctx;
+    for (const m of g.state.missions) {
+      if (m.status !== 'active') continue;
+      const p = missionFocus(g, m);
+      const k = (time * 0.8) % 1;
+      ctx.strokeStyle = MISSION_RANKS[m.rank]!.color;
+      ctx.globalAlpha = 1 - k;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 10 + k * 22, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /** Setas na borda da tela apontando para missões fora de vista. */
+  private missionArrows(g: Game, cam: Camera) {
+    const ctx = this.ctx;
+    const pad = 46;
+    for (const m of g.state.missions) {
+      if (m.status !== 'active') continue;
+      const w = missionFocus(g, m);
+      const p = cam.worldToScreen(w.x, w.y);
+      if (p.x > 0 && p.y > 40 && p.x < cam.viewW && p.y < cam.viewH) continue;
+      const cx = cam.viewW / 2;
+      const cy = cam.viewH / 2;
+      const a = Math.atan2(p.y - cy, p.x - cx);
+      const t = Math.min((cam.viewW / 2 - pad) / Math.abs(Math.cos(a) || 1e-6), (cam.viewH / 2 - pad) / Math.abs(Math.sin(a) || 1e-6));
+      const x = cx + Math.cos(a) * t;
+      const y = cy + Math.sin(a) * t;
+      const color = MISSION_RANKS[m.rank]!.color;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(20,16,12,0.85)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(MISSION_RANKS[m.rank]!.label, 0, 1);
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.moveTo(19, 0);
+      ctx.lineTo(13, -5);
+      ctx.lineTo(13, 5);
+      ctx.fill();
+      ctx.restore();
     }
   }
 

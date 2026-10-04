@@ -21,13 +21,16 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     buildings: [],
     units: [],
     teams: [],
+    missions: [],
+    reputation: 0,
+    missionDay: 0,
     projectiles: [],
     effects: [],
     res: { wood: 120, stone: 60, food: 80, ryo: 150 },
     nextId,
     timers: { animal: 35, raid: DAY_LENGTH * 2.6, birth: 30, jobs: 0, homes: 0 },
     flags: { starving: false, alert: false, raidActive: false, raidStole: false },
-    stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0 },
+    stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0, missionsDone: 0 },
   };
   const g = new Game(state, systems);
 

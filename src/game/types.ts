@@ -2,6 +2,7 @@
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
 import type { BuildingType } from '../data/buildings';
+import type { MissionType } from '../data/missions';
 import type { Nature } from '../data/natures';
 import type { Rank, StatKey, Stats } from '../data/ninja';
 
@@ -84,6 +85,11 @@ export interface Unit {
   /** Tempo de vida restante (clones). */
   life?: number;
   ownerId?: number;
+  /** Unidade criada por uma missão (alvo, guarda, mercador). */
+  missionId?: number;
+  /** Posição que guarda (alvos de missão não marcham até a vila). */
+  homeX?: number;
+  homeY?: number;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }
@@ -92,6 +98,31 @@ export type Command =
   | { kind: 'move'; x: number; y: number; time: number }
   | { kind: 'attack'; targetId: number }
   | { kind: 'retreat' };
+
+export type MissionStatus = 'offered' | 'active' | 'done' | 'failed';
+
+export interface Mission {
+  id: number;
+  /** Índice em MISSION_TEMPLATES. */
+  template: number;
+  type: MissionType;
+  rank: number;
+  title: string;
+  status: MissionStatus;
+  teamId: number | null;
+  /** Local do objetivo (px). */
+  x: number;
+  y: number;
+  /** Escolta: [mercador, ...bandidos]; demais: inimigos a derrotar. */
+  targetIds: number[];
+  nodeIds: number[];
+  progress: number;
+  goal: number;
+  timeLeft: number;
+  phase: string;
+  /** Motivo do fim (falha) para o histórico. */
+  result?: string;
+}
 
 export interface Team {
   id: number;
@@ -118,7 +149,8 @@ export interface Building {
 
 export interface ResourceNode {
   id: number;
-  type: 'tree' | 'rock';
+  type: 'tree' | 'rock' | 'herb';
+  missionId?: number;
   tx: number;
   ty: number;
   amount: number;
@@ -176,13 +208,18 @@ export interface GameState {
   buildings: Building[];
   units: Unit[];
   teams: Team[];
+  missions: Mission[];
+  /** Reputação da vila (sobe com missões cumpridas). */
+  reputation: number;
+  /** Dia em que o quadro de missões foi renovado pela última vez. */
+  missionDay: number;
   projectiles: Projectile[];
   effects: Effect[];
   res: Record<ResKey, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
   flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean };
-  stats: { kills: number; raidsRepelled: number; born: number; lost: number };
+  stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number };
 }
 
 export type Selection = { kind: 'unit' | 'building' | 'team'; id: number };

@@ -33,6 +33,9 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
 - **🏯 Vila**: cumpra os requisitos e evolua de Aldeia → Vila → Vila Oculta → Grande Vila Oculta.
   Cada nível amplia o território (onde dá para construir), libera prédios (Hospital, Biblioteca), aumenta impostos,
   permite eleger o Kage (Vila Oculta) e atrai ameaças maiores.
+- **📋 Missões**: construa a Mesa de Missões, escolha uma missão do quadro (renova todo dia) e envie uma equipe.
+  Compare a força da equipe (⚔) com a dificuldade: borda verde = seguro, amarela = arriscado, vermelha = perigoso.
+  Missões rendem ryo, recursos, XP e reputação, e contam para evoluir a vila.
 - **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
   ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.

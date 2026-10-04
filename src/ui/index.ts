@@ -19,7 +19,7 @@ export function createUI(app: App, root: HTMLElement) {
   const dock = el(
     'div',
     { id: 'dock' },
-    `<button class="bigbtn" data-act="build">🔨<span>Construir</span></button><button class="bigbtn" data-act="roster">🥷<span>Ninjas</span></button><button class="bigbtn" data-act="village">🏯<span>Vila</span></button>`,
+    `<button class="bigbtn" data-act="build">🔨<span>Construir</span></button><button class="bigbtn" data-act="roster">🥷<span>Ninjas</span></button><button class="bigbtn" data-act="village">🏯<span>Vila</span></button><button class="bigbtn" data-act="missions">📋<span>Missões</span></button>`,
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
   const btnRoster = dock.querySelector<HTMLElement>('[data-act="roster"]')!;
@@ -37,6 +37,14 @@ export function createUI(app: App, root: HTMLElement) {
         app.game.select({ kind: 'building', id: hk.id });
         const c = doorPos(hk);
         app.camera.focus(c.x, c.y - 40);
+      }
+    }
+    if (a === 'missions') {
+      const desk = app.game.state.buildings.find((b) => b.type === 'missions');
+      if (!desk) app.game.toast('Construa a 📋 Mesa de Missões (menu Construir).', 'warn');
+      else {
+        app.game.select({ kind: 'building', id: desk.id });
+        if (!desk.built) app.game.toast('A Mesa de Missões ainda está em construção.', 'info');
       }
     }
     if (a === 'roster') {

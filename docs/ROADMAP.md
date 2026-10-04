@@ -38,11 +38,15 @@ Decisões de design (definidas com o autor):
   botão 🏯 Vila, cadeados no menu de construção, território no mapa, save v3.
 - Decisão: o mapa continua 72×48; o território é que cresce. Aumentar o mapa fica para quando houver missões fora da vila.
 
-## Fase 4 — Missões no mapa
-- Prédio **Mesa de Missões**; quadro com missões geradas por rank (D → S), prazo e recompensa.
-- Tipos: caçar animal específico, coletar ervas na floresta, escoltar mercador do portão ao mercado,
-  limpar acampamento de bandidos na borda, capturar ninja procurado (mini-chefe).
-- Equipe designada executa no mapa; falha/sucesso, feridos, XP e reputação da vila.
+## Fase 4 — Missões no mapa ✅
+- Prédio **Mesa de Missões**; quadro com 3 missões que renova a cada dia, ranks D → S conforme o nível da vila.
+- Tipos: coleta de ervas (com lobos), caça (javali, urso, cobra), escolta de mercador (com emboscada),
+  acampamento de bandidos e ninja procurado (chefe ★). 13 modelos em `data/missions.ts`.
+- A equipe designada recebe ordens automáticas (ir, atacar alvos, colher, escoltar); alvos de missão guardam o local.
+- Resultado: ryo/recursos, XP para a equipe, reputação; falha por tempo, equipe derrotada ou mercador morto.
+- Missões cumpridas viram requisito de Vila Oculta (2) e Grande Vila Oculta (6). Missões simultâneas = nível da vila + 1.
+- **Feito**: `game/missions.ts`, `systems/missions.ts`, `game/missionView.ts`, painel do quadro, botão 📋,
+  marcadores (◆ alvo, ★ chefe, $ mercador), acampamentos no mapa, setas na borda da tela, save v4.
 
 ## Fase 5 — Economia mais profunda
 - Recursos: **ferro**, **ervas**, **papel de selo**.

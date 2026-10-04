@@ -15,7 +15,7 @@ const NODE_SEARCH = 14 * TILE;
 export function villagerSystem(g: Game, dt: number) {
   const night = isNight(g.state);
   for (const u of g.state.units) {
-    if (u.dead || u.kind !== 'villager') continue;
+    if (u.dead || u.kind !== 'villager' || u.missionId != null) continue; // mercador de escolta: controlado pela missão
     u.timer -= dt;
     if (u.stun > 0) {
       u.moving = false;

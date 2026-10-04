@@ -46,7 +46,7 @@ export function createVillager(g: Game, x: number, y: number): Unit {
 export function randomStats(rank: Rank, bonus = 0): Stats {
   const cap = RANKS[rank].statCap;
   const s = {} as Stats;
-  for (const k of STAT_KEYS) s[k] = Math.min(cap, rand(0.8, 2.6) + bonus);
+  for (const k of STAT_KEYS) s[k] = Math.max(0.3, Math.min(cap, rand(0.8, 2.6) + bonus));
   for (let i = 0; i < 2; i++) {
     const k = pick(STAT_KEYS);
     s[k] = Math.min(cap, s[k] + rand(1, 2));
@@ -120,14 +120,24 @@ export function convertToNinja(g: Game, u: Unit) {
   for (const b of g.state.buildings) b.workers = b.workers.filter((id) => id !== u.id);
 }
 
-export function createRogue(g: Game, x: number, y: number, day: number): Unit {
-  const rank: Rank = day >= 12 ? 'jounin' : day >= 6 ? 'chunin' : 'genin';
-  const u = baseUnit(g, 'rogue', 'enemy', x, y, randomRogueName());
-  const bonus = Math.min(3, day * 0.12);
-  u.ninja = makeNinjaInfo(rank, randomStats(rank, bonus), chance(0.4) ? 2 : 1);
+export interface RogueOpts {
+  rank?: Rank;
+  /** Bônus somado a cada atributo. */
+  stats?: number;
+  hpMult?: number;
+  jutsu?: number;
+  name?: string;
+}
+
+export function createRogue(g: Game, x: number, y: number, day: number, o: RogueOpts = {}): Unit {
+  const rank: Rank = o.rank ?? (day >= 12 ? 'jounin' : day >= 6 ? 'chunin' : 'genin');
+  const u = baseUnit(g, 'rogue', 'enemy', x, y, o.name ?? randomRogueName());
+  const bonus = o.stats ?? Math.min(3, day * 0.12);
+  u.ninja = makeNinjaInfo(rank, randomStats(rank, bonus), o.jutsu ?? (chance(0.4) ? 2 : 1));
   u.ninja.level = 1 + Math.floor(day / 2);
   u.maxHp = 0;
   refreshDerived(u);
+  u.maxHp = Math.round(u.maxHp * (o.hpMult ?? 1));
   u.hp = u.maxHp;
   u.chakra = u.maxChakra;
   u.state = 'march';

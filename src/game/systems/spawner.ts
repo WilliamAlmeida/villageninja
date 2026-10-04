@@ -27,7 +27,7 @@ export function spawnerSystem(g: Game, dt: number) {
   let rogues = 0;
   for (const u of s.units) {
     if (u.dead || u.faction === 'village') continue;
-    if (u.kind === 'rogue') rogues++;
+    if (u.kind === 'rogue' && u.missionId == null) rogues++;
     if (!alert && g.world.inVillage(u.x, u.y)) alert = true;
   }
   if (alert !== s.flags.alert) {
@@ -74,7 +74,7 @@ function edgePoint(g: Game) {
 
 function spawnAnimals(g: Game) {
   const s = g.state;
-  const wild = s.units.filter((u) => !u.dead && u.kind === 'animal').length;
+  const wild = s.units.filter((u) => !u.dead && u.kind === 'animal' && u.missionId == null).length;
   const threat = levelDef(s.level).threat;
   if (wild >= 4 + Math.floor(s.day / 2) + threat * 2) return;
   const def = weightedPick(

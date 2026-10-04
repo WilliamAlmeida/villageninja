@@ -35,6 +35,7 @@ function animal(g: Game, u: Unit, dt: number) {
     u.moving = false;
     return;
   }
+  if (u.missionId != null) return guardHome(g, u, dt, def.aggro);
   const t = validTarget(g, u, def.aggro * 2.5) ?? g.nearestHostile(u, def.aggro);
   if (t) {
     engage(g, u, t, dt);
@@ -70,6 +71,7 @@ function rogue(g: Game, u: Unit, dt: number) {
     return;
   }
   trySupport(g, u);
+  if (u.missionId != null) return guardHome(g, u, dt, 220);
   if (u.state !== 'escape') {
     const t = validTarget(g, u, 320) ?? g.nearestHostile(u, 220);
     if (t) {
@@ -104,6 +106,32 @@ function rogue(g: Game, u: Unit, dt: number) {
     const e = nearestEdge(u.x, u.y);
     setDestination(g, u, e.x, e.y);
   }
+}
+
+/**
+ * Alvos de missão: defendem o próprio local (acampamento, covil, ninho).
+ * Lutam com quem chega perto, mas não perseguem longe nem marcham até a vila.
+ */
+function guardHome(g: Game, u: Unit, dt: number, aggro: number) {
+  const hx = u.homeX ?? u.x;
+  const hy = u.homeY ?? u.y;
+  const leash = aggro + 200;
+  let t = validTarget(g, u, leash);
+  if (t && Math.hypot(t.x - hx, t.y - hy) > leash) t = null;
+  t ??= g.nearestHostile(u, aggro);
+  if (t) {
+    u.targetId = t.id;
+    engage(g, u, t, dt);
+    return;
+  }
+  u.targetId = null;
+  if (Math.hypot(u.x - hx, u.y - hy) > 24) {
+    if (!u.hasGoal || u.timer <= 0) {
+      setDestination(g, u, hx, hy);
+      u.timer = 2;
+    }
+    followPath(g, u, dt, 0.7);
+  } else u.moving = false;
 }
 
 function nearestEdge(x: number, y: number) {

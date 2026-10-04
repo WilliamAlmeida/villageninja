@@ -11,7 +11,8 @@ export type BuildingType =
   | 'training'
   | 'hospital'
   | 'tower'
-  | 'library';
+  | 'library'
+  | 'missions';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant';
 
@@ -96,6 +97,11 @@ const LIST: BuildingDef[] = [
     type: 'library', name: 'Biblioteca de Jutsus', icon: '📚', desc: 'Pergaminhos antigos: ninjas aprendem jutsus 50% mais rápido.',
     w: 3, h: 2, cost: { wood: 80, stone: 60, ryo: 150 }, buildTime: 24, unique: true, buildable: true, lights: true, minLevel: 2,
     roof: '#6c3483', wall: '#efe3c8',
+  },
+  {
+    type: 'missions', name: 'Mesa de Missões', icon: '📋', desc: 'Recebe pedidos de missões. Envie equipes para cumpri-las.',
+    w: 2, h: 2, cost: { wood: 40, stone: 20, ryo: 30 }, buildTime: 14, unique: true, buildable: true, lights: true,
+    roof: '#2c3e50', wall: '#e8dcc0',
   },
 ];
 

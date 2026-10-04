@@ -10,6 +10,7 @@ export interface LevelReq {
   ranked?: { rank: Rank; count: number };
   buildings?: Partial<Record<BuildingType, number>>;
   raidsRepelled?: number;
+  missionsDone?: number;
 }
 
 export interface VillageLevelDef {
@@ -40,13 +41,13 @@ export const VILLAGE_LEVELS: VillageLevelDef[] = [
   },
   {
     level: 2, name: 'Vila Oculta', icon: '🏯', territory: 23, tax: 3, threat: 2,
-    req: { population: 24, ninjas: 7, ranked: { rank: 'chunin', count: 2 }, buildings: { hospital: 1, market: 1 }, raidsRepelled: 2 },
+    req: { population: 24, ninjas: 7, ranked: { rank: 'chunin', count: 2 }, buildings: { hospital: 1, market: 1, missions: 1 }, raidsRepelled: 2, missionsDone: 2 },
     cost: { wood: 300, stone: 250, ryo: 500 },
     perks: ['Território maior', 'Libera a Biblioteca de Jutsus', 'Permite eleger um Kage'],
   },
   {
     level: 3, name: 'Grande Vila Oculta', icon: '🍃', territory: 60, tax: 4, threat: 3,
-    req: { population: 36, ninjas: 12, ranked: { rank: 'jounin', count: 1 }, buildings: { library: 1, tower: 3 }, raidsRepelled: 5 },
+    req: { population: 36, ninjas: 12, ranked: { rank: 'jounin', count: 1 }, buildings: { library: 1, tower: 3 }, raidsRepelled: 5, missionsDone: 6 },
     cost: { wood: 600, stone: 500, ryo: 1200 },
     perks: ['Território: o mapa inteiro', 'Impostos: 4 ryo por morador', 'Ameaças muito maiores'],
   },
