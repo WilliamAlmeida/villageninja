@@ -1,9 +1,9 @@
 // Servidor de desenvolvimento com HMR, acessível pela rede local
-// (abra http://IP-DO-PC:3000 no celular, na mesma Wi-Fi).
+// (abra http://IP-DO-PC:3010 no celular, na mesma Wi-Fi).
 import { networkInterfaces } from 'node:os';
 import index from '../index.html';
 
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 3010);
 Bun.serve({
   port,
   hostname: '0.0.0.0',

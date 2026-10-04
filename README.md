@@ -10,10 +10,16 @@ Requer [Bun](https://bun.sh) ≥ 1.2.
 
 ```bash
 bun install        # só dev-deps (TypeScript + tipos do Bun)
-bun run dev        # http://localhost:3000 (com HMR) — também mostra o IP para abrir no celular
+bun run dev        # http://localhost:3010 (com HMR) — também mostra o IP para abrir no celular
 bun run build      # gera dist/ (≈100 KB de JS, zero dependências em runtime)
 bun run preview    # build + serve dist/ em http://localhost:4173
 bun run check      # typecheck + testes
+```
+
+Para deixar rodando em segundo plano com PM2 (porta 3010, com HMR):
+
+```bash
+pm2 start ecosystem.local.config.cjs   # depois: pm2 logs villageninja | pm2 restart villageninja | pm2 save
 ```
 
 No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisagem e use
