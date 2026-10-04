@@ -31,6 +31,11 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     let i = 0;
     for (const n of s.nodes) if (n.type === 'rock' && i++ % 4 === 0) n.type = 'ore';
   },
+  5: (s) => {
+    s.exam = null;
+    s.examNextDay = 0;
+    s.lastExam = null;
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

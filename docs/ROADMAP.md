@@ -59,9 +59,15 @@ Decisões de design (definidas com o autor):
 - **Feito**: `data/resources.ts`, `data/items.ts`, `game/gear.ts`, `game/gearBonus.ts`, trabalhos novos em
   `systems/villagers.ts`, painel das oficinas, seção Equipamento no ninja, save v5.
 
-## Fase 6 — Exame Chunin (marco)
-- Evento periódico quando há genins em equipes: arena no mapa, chaveamento, lutas 1×1 assistíveis.
-- Desempenho (não só vitória) define promoções; convidados trazem ryo/reputação.
+## Fase 6 — Exame Chunin (marco) ✅
+- Prédio **Arena do Exame** (nível Vila). Convocado pelo jogador quando há 2+ genins de nível 2+ livres; intervalo de 4 dias.
+- Chaveamento de 4 ou 8 completado com **convidados** de outras vilas (facção neutra `guest`, força parecida).
+- Duelos 1×1 assistíveis na arena (caminhada, "VS", "Hajime!", até 40 s); dano não letal (nocaute).
+  Regra única de alvo `canHit` impede que outros interfiram ou que participantes sejam atacados.
+- Pontuação = vitórias + dano + jutsus. Campeão e quem passar de 4,5 viram Chunin de graça; XP para todos;
+  ryo por convidado e reputação.
+- **Feito**: `game/exam.ts`, `systems/exam.ts`, `game/examStats.ts`, painel da arena (convocar, duelo ao vivo,
+  participantes, último resultado), faixa "assistir", save v6.
 
 ## Fase 7 — Clãs e kekkei genkai
 - Famílias: moradores formam casais, filhos herdam aparência, natureza e talentos.

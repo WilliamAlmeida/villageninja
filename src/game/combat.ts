@@ -5,7 +5,8 @@ import { isRangedJutsu, JUTSUS, jutsuChakra, jutsuCooldown, jutsuDuration, jutsu
 import { natureMultiplier, type Nature } from '../data/natures';
 import { derive } from '../data/ninja';
 import { createClone } from './entities';
-import { isHostile } from './factions';
+import { canHit } from './factions';
+import { recordDuelDamage, recordDuelJutsu } from './examStats';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push } from './movement';
@@ -129,6 +130,7 @@ function pickJutsu(g: Game, u: Unit, t: Unit, d: number): number {
         if (u.shield <= 0 && u.hp < u.maxHp * 0.8) score = 50;
         break;
       case 'clone': {
+        if (u.arenaSide) break; // sem clones no duelo
         const clones = g.state.units.filter((c) => c.kind === 'clone' && c.ownerId === u.id && !c.dead).length;
         if (d < def.range && clones === 0) score = 60;
         break;
@@ -157,6 +159,7 @@ function startCast(g: Game, u: Unit, slot: number, def: JutsuDef) {
   u.attackCd = 0.7;
   u.anim = 0.4;
   fxText(g, u.x, u.y - 30, def.shout, def.color, true);
+  if (u.arenaSide) recordDuelJutsu(g.state, u.id);
 }
 
 export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
@@ -241,7 +244,7 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
 /** Ninjas médicos curam aliados feridos próximos. */
 export function trySupport(g: Game, u: Unit): boolean {
   const n = u.ninja;
-  if (!n || u.kind === 'clone' || u.attackCd > 0) return false;
+  if (!n || u.kind === 'clone' || u.attackCd > 0 || u.arenaSide != null) return false;
   for (let i = 0; i < 2; i++) {
     const id = n.jutsu[i];
     if (!id || n.cd[i]! > 0) continue;
@@ -295,15 +298,15 @@ export function spawnProjectile(g: Game, owner: Unit | null, faction: Faction, x
   const p: Projectile = {
     id: g.newId(), x, y, vx: Math.cos(a) * o.speed, vy: Math.sin(a) * o.speed, tx, ty, faction,
     ownerId: owner?.id ?? null, damage: o.damage, radius: o.radius, nature: o.nature, color: o.color,
-    size: o.size, stun: o.stun, life: (o.range * 1.4) / o.speed, kind: o.kind,
+    size: o.size, stun: o.stun, life: (o.range * 1.4) / o.speed, kind: o.kind, side: owner?.arenaSide || undefined,
   };
   g.state.projectiles.push(p);
   return p;
 }
 
-export function areaDamage(g: Game, src: Unit | null, faction: Faction, x: number, y: number, r: number, dmg: number, nature: Nature | null, knock = 0, stun = 0) {
+export function areaDamage(g: Game, src: Unit | null, faction: Faction, x: number, y: number, r: number, dmg: number, nature: Nature | null, knock = 0, stun = 0, side = src?.arenaSide) {
   for (const o of g.state.units) {
-    if (o.dead || o.hidden || !isHostile(faction, o.faction)) continue;
+    if (o.dead || o.hidden || !canHit(faction, side, o)) continue;
     const d = Math.hypot(o.x - x, o.y - y);
     if (d > r) continue;
     const k = knock > 0 && d > 0.1 ? knock * (1 - d / r) : 0;
@@ -333,6 +336,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
   t.hp -= dmg;
   t.hitFlash = 0.15;
+  if (t.arenaSide) recordDuelDamage(g.state, src?.id, dmg);
   t.combatTimer = 5;
   fxText(g, t.x + rand(-6, 6), t.y - 18, mult > 1 ? `${dmg}!` : `${dmg}`, mult > 1 ? '#ffb347' : mult < 1 ? '#9aa4b0' : '#ffffff');
   if (opts.stun) t.stun = Math.max(t.stun, opts.stun);
@@ -343,7 +347,15 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   }
   // quem apanha revida
   if (src && !src.dead && t.faction !== 'village' && t.targetId == null) t.targetId = src.id;
-  if (t.hp <= 0) killUnit(g, t, src);
+  if (t.hp <= 0) {
+    // duelo do Exame Chunin não mata: nocaute
+    if (t.arenaSide) {
+      t.hp = 1;
+      t.state = 'ko';
+      t.stun = 99;
+      fxText(g, t.x, t.y - 30, 'Nocaute!', '#ffd34d', true);
+    } else killUnit(g, t, src);
+  }
 }
 
 export function killUnit(g: Game, t: Unit, src: Unit | null) {

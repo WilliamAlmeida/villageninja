@@ -27,7 +27,7 @@ export function spawnerSystem(g: Game, dt: number) {
   let alert = false;
   let rogues = 0;
   for (const u of s.units) {
-    if (u.dead || u.faction === 'village') continue;
+    if (u.dead || u.faction === 'village' || u.faction === 'guest') continue;
     if (u.kind === 'rogue' && u.missionId == null) rogues++;
     if (!alert && g.world.inVillage(u.x, u.y)) alert = true;
   }

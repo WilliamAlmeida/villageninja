@@ -2,6 +2,7 @@ import type { App } from '../app';
 import { bus, type ToastKind } from '../core/events';
 import { clockLabel, isNight } from '../game/time';
 import { levelDef } from '../data/villageLevels';
+import { arenaSpots, examLabel } from '../game/exam';
 import { el, esc, fmt } from './dom';
 
 const MAX_TOASTS = 4;
@@ -45,8 +46,12 @@ export class Hud {
     });
     this.top.addEventListener('pointerdown', (e) => e.stopPropagation());
 
-    this.alert = el('button', { id: 'alert', hidden: '' }, '⚠ Inimigos na vila — toque para ver');
-    this.alert.addEventListener('click', () => this.focusThreat());
+    this.alert = el('div', { id: 'banners' });
+    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, '⚠ Inimigos na vila — toque para ver');
+    threat.addEventListener('click', () => this.focusThreat());
+    const exam = el('button', { class: 'banner exam', 'data-b': 'exam', hidden: '' });
+    exam.addEventListener('click', () => this.focusArena());
+    this.alert.append(threat, exam);
 
     this.toasts = el('div', { id: 'toasts' });
     bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y));
@@ -80,7 +85,22 @@ export class Hud {
     this.vals.get('food')!.parentElement!.classList.toggle('low', s.res.food < 15);
     this.vals.get('pop')!.parentElement!.classList.toggle('low', pop >= cap);
     this.top.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === s.speed));
-    this.alert.hidden = !s.flags.alert;
+    this.alert.querySelector<HTMLElement>('[data-b="alert"]')!.hidden = !s.flags.alert;
+    const examBtn = this.alert.querySelector<HTMLElement>('[data-b="exam"]')!;
+    examBtn.hidden = !s.exam;
+    if (s.exam) {
+      const label = `🏟️ Exame Chunin — ${examLabel(g)} · assistir`;
+      if (examBtn.textContent !== label) examBtn.textContent = label;
+    }
+  }
+
+  private focusArena() {
+    const a = this.app.game.findBuilt('arena');
+    if (a) {
+      const c = arenaSpots(a).center;
+      this.app.camera.focus(c.x, c.y);
+      this.app.camera.zoom = Math.max(this.app.camera.zoom, 1.3);
+    }
   }
 
   private focusThreat() {

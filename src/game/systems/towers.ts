@@ -1,5 +1,6 @@
 import type { BuildingType } from '../../data/buildings';
 import { spawnProjectile } from '../combat';
+import { canHit } from '../factions';
 import type { Game } from '../game';
 import type { Unit } from '../types';
 import { buildingCenter } from '../world';
@@ -20,7 +21,7 @@ export function towerSystem(g: Game, dt: number) {
     let best: Unit | null = null;
     let bd = def.range;
     for (const u of g.state.units) {
-      if (u.dead || u.hidden || u.faction === 'village') continue;
+      if (u.dead || u.hidden || !canHit('village', undefined, u)) continue;
       const d = Math.hypot(u.x - c.x, u.y - c.y);
       if (d < bd) {
         bd = d;

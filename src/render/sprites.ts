@@ -254,7 +254,7 @@ function drawHuman(ctx: Ctx, u: Unit, t: number) {
   // bandana ninja (hitai-ate)
   if (u.ninja && u.ninja.rank !== 'kage') {
     const rogue = u.faction === 'enemy';
-    ctx.fillStyle = rogue ? '#222' : '#1f3a5f';
+    ctx.fillStyle = rogue ? '#222' : u.faction === 'guest' ? '#7a4b1a' : '#1f3a5f';
     ctx.fillRect(x - 5.6, hy - 3.6, 11.2, 2.6);
     ctx.fillStyle = '#cfd6dd';
     ctx.fillRect(x - 2.6 + fx, hy - 4, 5.2, 3.3);
@@ -394,6 +394,8 @@ export function paintBuilding(ctx: Ctx, def: BuildingDef, x: number, y: number, 
       return paintFarm(ctx, x, y, w, h, t);
     case 'herbgarden':
       return paintHerbGarden(ctx, x, y, w, h, t);
+    case 'arena':
+      return paintArena(ctx, x, y, w, h);
     case 'training':
       return paintTraining(ctx, x, y, w, h);
     case 'tower':
@@ -612,6 +614,35 @@ function paintHerbGarden(ctx: Ctx, x: number, y: number, w: number, h: number, t
   ctx.strokeStyle = '#8fbf6a';
   ctx.lineWidth = 2;
   ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+}
+
+function paintArena(ctx: Ctx, x: number, y: number, w: number, h: number) {
+  // muro de pedra, chão de areia batida e o símbolo do exame
+  ctx.fillStyle = '#8d8174';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#d8c08a';
+  ctx.fillRect(x + 5, y + 5, w - 10, h - 10);
+  ctx.strokeStyle = 'rgba(120,90,50,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x + w / 2, y + h / 2, w * 0.3, 0, TAU);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + w / 2, y + 8);
+  ctx.lineTo(x + w / 2, y + h - 8);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(120,90,50,0.35)';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('中忍', x + w / 2, y + h * 0.22);
+  // estandartes nos cantos
+  for (const [px, c] of [[x + 3, '#c0392b'], [x + w - 3, '#2c5e8f']] as const) {
+    ctx.fillStyle = '#4a3a2a';
+    ctx.fillRect(px - 1, y - 14, 2, 18);
+    ctx.fillStyle = c;
+    ctx.fillRect(px + (px < x + w / 2 ? 1 : -9), y - 14, 8, 10);
+  }
 }
 
 function paintTraining(ctx: Ctx, x: number, y: number, w: number, h: number) {

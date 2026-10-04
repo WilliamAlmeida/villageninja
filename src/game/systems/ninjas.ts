@@ -4,7 +4,7 @@ import { BUILDINGS } from '../../data/buildings';
 import { JUTSUS } from '../../data/jutsus';
 import { derive } from '../../data/ninja';
 import { engage, trySupport } from '../combat';
-import { isHostile } from '../factions';
+import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
@@ -21,7 +21,7 @@ const DEFEND_RADIUS = 240;
 export function ninjaSystem(g: Game, dt: number) {
   const night = isNight(g.state);
   for (const u of g.state.units) {
-    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village') continue;
+    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || u.arenaSide != null) continue; // no exame: controlado pela arena
     u.timer -= dt;
     if (u.stun > 0) {
       u.moving = false;
@@ -138,13 +138,13 @@ function findThreat(g: Game, u: Unit): Unit | null {
     for (const m of teamUnits(g, team)) {
       if (m.id === u.id || m.state !== 'fight') continue;
       const t = g.unit(m.targetId);
-      if (t && !t.dead && !t.hidden && t.faction !== 'village' && Math.hypot(t.x - u.x, t.y - u.y) < DEFEND_RADIUS * 1.5) return t;
+      if (t && !t.dead && !t.hidden && canHit(u.faction, undefined, t) && Math.hypot(t.x - u.x, t.y - u.y) < DEFEND_RADIUS * 1.5) return t;
     }
   }
   let best: Unit | null = null;
   let bd = Infinity;
   for (const o of g.state.units) {
-    if (o.dead || o.hidden || !isHostile(u.faction, o.faction)) continue;
+    if (o.dead || o.hidden || !canHit(u.faction, undefined, o)) continue;
     const d = Math.hypot(o.x - u.x, o.y - u.y);
     if ((d < DEFEND_RADIUS || g.world.inVillage(o.x, o.y)) && d < bd) {
       bd = d;

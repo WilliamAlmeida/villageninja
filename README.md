@@ -39,6 +39,8 @@ No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisa
 - **Economia (nível Vila)**: Mina de Ferro 🔩 perto de veios de minério, Horta de Ervas 🌿, Forja (armas e coletes),
   Farmácia (pílulas) e, em Vila Oculta, Oficina de Selos (papel 🏷️ e papel-bomba). Cada ninja tem arma, colete e
   um consumível que ele usa sozinho em combate e repõe do estoque ao voltar à vila.
+- **🏟️ Exame Chunin (nível Vila)**: construa a Arena e convoque o exame com 2+ genins de nível 2+. Eles lutam 1×1
+  contra colegas e convidados de outras vilas (ninguém morre). O campeão e quem lutar bem viram Chunin de graça.
 - **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
   ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
 - Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.

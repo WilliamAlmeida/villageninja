@@ -9,7 +9,7 @@ import type { Rank, StatKey, Stats } from '../data/ninja';
 export type { ResKey } from '../data/resources';
 import type { ResKey } from '../data/resources';
 export type Cost = Partial<Record<ResKey, number>>;
-export type Faction = 'village' | 'wild' | 'enemy';
+export type Faction = 'village' | 'wild' | 'enemy' | 'guest';
 export type UnitKind = 'villager' | 'ninja' | 'animal' | 'rogue' | 'clone';
 export type NinjaOrder = 'auto' | 'train' | 'patrol';
 export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai';
@@ -100,6 +100,8 @@ export interface Unit {
   /** Posição que guarda (alvos de missão não marcham até a vila). */
   homeX?: number;
   homeY?: number;
+  /** Exame Chunin: 0 = participante aguardando, 1/2 = lado no duelo atual. */
+  arenaSide?: number;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }
@@ -190,6 +192,8 @@ export interface Projectile {
   life: number;
   kind: ProjectileKind;
   dead?: boolean;
+  /** Projétil de duelo: só atinge o lado oposto da arena. */
+  side?: number;
 }
 
 export type EffectKind = 'text' | 'ring' | 'burst' | 'slash' | 'smoke' | 'bolt' | 'heal' | 'swirl' | 'chips' | 'wind';
@@ -226,6 +230,10 @@ export interface GameState {
   reputation: number;
   /** Dia em que o quadro de missões foi renovado pela última vez. */
   missionDay: number;
+  exam: Exam | null;
+  /** Dia a partir do qual um novo Exame Chunin pode ser convocado. */
+  examNextDay: number;
+  lastExam: ExamResult | null;
   projectiles: Projectile[];
   effects: Effect[];
   res: Record<ResKey, number>;
@@ -235,6 +243,35 @@ export interface GameState {
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
   flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number };
+}
+
+export interface ExamEntrant {
+  id: number;
+  name: string;
+  village: boolean;
+  wins: number;
+  dmg: number;
+  jutsus: number;
+  out: boolean;
+}
+
+export interface Exam {
+  phase: 'gather' | 'walk' | 'ready' | 'fight' | 'done';
+  entrants: ExamEntrant[];
+  /** Ids ainda vivos no chaveamento, em ordem. */
+  bracket: number[];
+  /** Vencedores da rodada atual. */
+  next: number[];
+  round: number;
+  /** Índice do par atual dentro de `bracket` (0, 2, 4…). */
+  match: number;
+  timer: number;
+}
+
+export interface ExamResult {
+  day: number;
+  champion: string;
+  ranking: { name: string; village: boolean; score: number; promoted: boolean }[];
 }
 
 export type Selection = { kind: 'unit' | 'building' | 'team'; id: number };

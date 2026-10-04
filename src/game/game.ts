@@ -3,7 +3,7 @@ import { dist2 } from '../core/math';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { RES_KEYS } from '../data/resources';
 import type { Building, Cost, Faction, GameState, ResourceNode, Selection, Team, Unit } from './types';
-import { isHostile } from './factions';
+import { canHit } from './factions';
 import { World } from './world';
 
 export type System = (g: Game, dt: number) => void;
@@ -137,7 +137,7 @@ export class Game {
     let best: Unit | null = null;
     let bd = radius * radius;
     for (const o of this.state.units) {
-      if (o.dead || o.hidden || !isHostile(faction, o.faction)) continue;
+      if (o.dead || o.hidden || !canHit(faction, undefined, o)) continue;
       const d = dist2(x, y, o.x, o.y);
       if (d < bd) {
         bd = d;

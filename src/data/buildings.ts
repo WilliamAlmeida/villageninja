@@ -17,7 +17,8 @@ export type BuildingType =
   | 'herbgarden'
   | 'forge'
   | 'pharmacy'
-  | 'sealshop';
+  | 'sealshop'
+  | 'arena';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
@@ -132,6 +133,11 @@ const LIST: BuildingDef[] = [
     type: 'sealshop', name: 'Oficina de Selos', icon: '🏷️', desc: 'Faz papel de selo com madeira e papéis-bomba.',
     w: 2, h: 2, cost: { wood: 60, stone: 30, ryo: 120 }, buildTime: 20, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 2,
     roof: '#8e2a22', wall: '#f3e7cf',
+  },
+  {
+    type: 'arena', name: 'Arena do Exame', icon: '🏟️', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',
+    w: 4, h: 4, cost: { wood: 80, stone: 60, ryo: 50 }, buildTime: 22, unique: true, buildable: true, walkable: true, minLevel: 1,
+    roof: '#8a6a3a', wall: '#c9a66b',
   },
 ];
 

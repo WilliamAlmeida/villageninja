@@ -16,6 +16,7 @@ import {
   abandonMission, acceptMission, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, teamPower, templateOf,
 } from '../game/missions';
 import { missionFocus } from '../game/missionView';
+import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip } from '../game/gear';
@@ -318,6 +319,7 @@ export class Panel {
       if (bd.type === 'hokage') html += this.villageSection();
       if (bd.type === 'missions') html += this.missionsSection(t, b);
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
+      if (bd.type === 'arena') html += this.arenaSection(b);
       if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1🏷️ com 4🪵 a cada 8 s (se houver 30🪵 ou mais).</p>`;
       if (d.workers) {
         html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">−</button>
@@ -364,6 +366,44 @@ export class Panel {
     html += `<div class="actions"><button class="btn primary" data-act="upgrade" ${st.ready && st.afford ? '' : 'disabled'}>
       ⬆ Elevar a ${st.def.name} (${costLabel(st.def.cost)})</button></div>`;
     if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
+    return html;
+  }
+
+  /** Exame Chunin: convocar, chaveamento ao vivo e resultado do último exame. */
+  private arenaSection(b: Record<string, number>) {
+    const g = this.app.game;
+    const ex = g.state.exam;
+    let html = '';
+    if (ex) {
+      html += `<div class="lvlcard"><div class="lvlname">🏟️ Exame Chunin</div><div class="hint">${esc(examLabel(g))}</div></div>`;
+      const a = ex.phase !== 'gather' ? g.unit(ex.bracket[ex.match]) : undefined;
+      const c = ex.phase !== 'gather' ? g.unit(ex.bracket[ex.match + 1]) : undefined;
+      if (a && c) {
+        html += `<div class="duel"><div><b>${esc(a.name.split(' ').pop()!)}</b><div class="bar hp"><i data-b="da"></i></div></div><span class="vs">VS</span>
+          <div><b>${esc(c.name.replace(' (convidado)', '').split(' ').pop()!)}</b><div class="bar hp"><i data-b="dc"></i></div></div></div>`;
+        b.da = a.hp / a.maxHp;
+        b.dc = c.hp / c.maxHp;
+      }
+      html += `<div class="btnrow"><button class="btn primary" data-act="watch">📍 Assistir</button></div><h4>Participantes</h4><div class="bracket">`;
+      const now = new Set([ex.bracket[ex.match], ex.bracket[ex.match + 1]]);
+      for (const e of ex.entrants)
+        html += `<div class="brow ${e.out ? 'out' : ''} ${ex.phase !== 'gather' && now.has(e.id) ? 'now' : ''}">${e.village ? '🍃' : '🎌'} ${esc(e.name)}<span class="wins">${'🏅'.repeat(e.wins)}</span></div>`;
+      html += `</div>`;
+      return html;
+    }
+    const st = examStatus(g);
+    html += `<h4>Exame Chunin</h4><p class="hint">Genins de nível ${EXAM_MIN_LEVEL}+ lutam 1×1 contra colegas e convidados de outras vilas.
+      O campeão e quem tiver bom desempenho (vitórias, dano, jutsus) viram Chunin de graça. Convidados trazem ryo e reputação.</p>`;
+    if (st.eligible.length) html += `<p class="hint">Inscritos possíveis: ${st.eligible.map((u) => esc(u.name.split(' ').pop()!)).join(', ')}</p>`;
+    html += `<div class="actions"><button class="btn primary" data-act="exam-start" ${st.ready ? '' : 'disabled'}>📣 Convocar Exame Chunin</button></div>`;
+    if (!st.ready) html += `<p class="why">${esc(st.reason)}</p>`;
+    const last = g.state.lastExam;
+    if (last) {
+      html += `<h4>Último exame (dia ${last.day})</h4><p class="hint">🏆 ${esc(last.champion)}</p><ul class="reqs">`;
+      for (const r of last.ranking)
+        html += `<li class="${r.promoted ? 'ok' : ''}">${r.promoted ? '🎖️' : r.village ? '🍃' : '🎌'} ${esc(r.name)} <b>${r.score}</b></li>`;
+      html += `</ul>`;
+    }
     return html;
   }
 
@@ -677,6 +717,16 @@ export class Panel {
           return this.report(upgradeVillage(g));
         case 'craft':
           return this.report(enqueueCraft(g, v.id, arg));
+        case 'exam-start':
+          return this.report(startExam(g));
+        case 'watch': {
+          const a = g.findBuilt('arena');
+          if (a) {
+            const c = arenaSpots(a).center;
+            this.app.camera.focus(c.x, c.y);
+          }
+          return;
+        }
         case 'craft-cancel':
           return this.report(cancelCraft(g, v.id));
         case 'm-accept':

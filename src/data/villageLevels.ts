@@ -37,7 +37,7 @@ export const VILLAGE_LEVELS: VillageLevelDef[] = [
     level: 1, name: 'Vila', icon: '🏘️', territory: 17, tax: 3, threat: 1,
     req: { population: 14, ninjas: 4, buildings: { house: 3, academy: 1, training: 1 } },
     cost: { wood: 150, stone: 100, ryo: 200 },
-    perks: ['Território maior', 'Libera Hospital, Mina de Ferro, Horta de Ervas, Forja e Farmácia', 'Impostos: 3 ryo por morador'],
+    perks: ['Território maior', 'Libera Hospital, Arena do Exame, Mina de Ferro, Horta, Forja e Farmácia', 'Impostos: 3 ryo por morador'],
   },
   {
     level: 2, name: 'Vila Oculta', icon: '🏯', territory: 23, tax: 3, threat: 2,
