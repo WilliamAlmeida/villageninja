@@ -137,6 +137,8 @@ function work(g: Game, u: Unit, dt: number) {
         const out = job && BUILDINGS[job.type].job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
         g.state.res[out.res] += out.amount;
         fxText(g, u.x, u.y - 20, `+${out.amount}${RES_INFO[out.res].icon}`, '#ffe08a');
+        // o pedaço colhido fica sem planta e volta a crescer aos poucos
+        fx(g, 'harvest', u.x + Math.cos(u.facing) * 8, u.y + Math.sin(u.facing) * 8, { life: 30, r: 10, color: '#6b4a2b' });
         u.state = 'idle';
       }
       break;

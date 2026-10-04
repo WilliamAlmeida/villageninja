@@ -117,10 +117,20 @@ button:disabled { cursor: not-allowed; }
   display: flex; align-items: flex-end; gap: 0.45rem; overflow-x: auto; padding: 0.15rem; scrollbar-width: none; touch-action: pan-x;
 }
 #buildbar::-webkit-scrollbar { display: none; }
+@media (hover: hover) { #buildbar { cursor: grab; } #buildbar.dragging, #buildbar.dragging .bcard { cursor: grabbing; } }
 .bcard {
-  flex: 0 0 auto; width: 8rem; padding: 0.4rem 0.5rem; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line);
+  position: relative; overflow: hidden; flex: 0 0 auto; width: 8.6rem; height: 6.2rem; padding: 0.4rem 0.5rem;
+  border-radius: var(--r); background: var(--bg); border: 1px solid var(--line);
   text-align: left; display: flex; flex-direction: column; gap: 0.1rem;
 }
+/* imagem do prédio ao fundo, à direita; o texto fica por cima com sombra para ler */
+.bcard .bg {
+  position: absolute; right: -0.6rem; bottom: -0.4rem; width: 5.6rem; height: 5.6rem; object-fit: contain; object-position: right bottom;
+  image-rendering: pixelated; opacity: 0.55; pointer-events: none; -webkit-user-drag: none;
+}
+.bcard > span { position: relative; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,0.8); }
+.bcard .n { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bcard .c { margin-top: auto; }
 .bcard .i { line-height: 1; color: var(--accent); }
 .bcard .i .ic { width: 1.4rem; height: 1.4rem; }
 .bcard .n { font-weight: 700; font-size: 0.88rem; }
@@ -225,6 +235,11 @@ h4 small { text-transform: none; letter-spacing: 0; }
 .rrow .rm { font-size: 0.81rem; color: var(--muted); grid-column: 1 / -1; }
 .rrow .mini { grid-column: 1 / -1; height: 0.3rem; border-radius: 0.15rem; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .rrow .mini i { display: block; height: 100%; background: var(--good); }
+.trow { display: flex; gap: 0.3rem; align-items: stretch; }
+.trow .rrow { flex: 1; min-width: 0; }
+.cand { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 0.45rem; align-items: center; padding: 0.45rem 0.6rem; border-radius: 0.65rem; background: var(--card); }
+.cand .rn { font-weight: 700; }
+.cand .btnrow { grid-column: 1 / -1; }
 .workers { display: flex; align-items: center; gap: 0.6rem; }
 .workers .btn { width: 2.6rem; padding: 0.45rem 0; justify-content: center; }
 

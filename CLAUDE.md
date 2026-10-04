@@ -15,7 +15,31 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   - Ações do jogador ficam em módulos de comando (`commands.ts`, `teams.ts`, `missions.ts`, `gear.ts`,
     `exam.ts`, `clans.ts`, `kage.ts`, `village.ts`) e retornam `{ ok } | { ok: false, error }`.
   - Regra única de alvo: `canHit` em `factions.ts` (duelos da arena, convidados neutros).
-- `src/render/` desenho procedural (trocar por spritesheets = reimplementar `sprites.ts`).
+- `src/render/` desenho. **Vista isométrica**: a simulação segue ortogonal (px de mundo); só a projeção muda
+  (`core/iso.ts`). `renderer.ts` desenha em duas passadas — "chão" (terreno, campos e marcações, em coordenadas de
+  mundo com `groundTransform`) e "em pé" (prédios, árvores e unidades no ponto projetado, ordenados por profundidade).
+  A câmera trabalha na cena projetada; fora do render use `camera.focus/jump/screenToWorld/worldToScreen` (mundo).
+  Cliques no mapa comparam em coordenadas de tela (`ui/index.ts`).
+- Arte em pixel art: PNGs em `src/art` (registro em `render/art.ts`), preparados com `scripts/prepare-art.py`
+  (originais em `docs/arte`). **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
+  usa `-m gpt-5.5` e tira o fundo localmente com `scripts/remove-bg.py`). A Runware (`scripts/runware.mjs`,
+  `scripts/sprite.mjs`, paga por imagem) é só alternativa quando o Codex não estiver disponível. Sem imagem (ou com "Arte: Antiga" no menu) vale o desenho
+  procedural de `sprites.ts`.
+- **Folhas de sprite (personagens e bichos) têm um padrão fixo** — nunca gere "um sprite sheet" solto:
+  `node scripts/codex-image.mjs docs/arte/sprites/<nome>.png "<descrição>" --sheet biped|quadruped [--ref visual.png]`
+  manda o gabarito de poses (`docs/arte/gabarito-*.png`, criado por `scripts/sprite-template.py`) como 1ª referência.
+  Grade 4×3: linha 1 de lado olhando para a DIREITA, linha 2 de frente, linha 3 de costas; colunas = ciclo
+  contato · passagem · contato · passagem (parado = coluna 2). `prepare-art.py` fatia pela grade e valida
+  (quadro vazio, altura, direção pelo rosto/gabarito, ordem do ciclo), corrigindo o que dá e listando o resto.
+  Para incluir um novo: gere, adicione em `SHEETS` do `prepare-art.py` e no `URLS`/`SHEETS` de `render/art.ts`.
+- **Ninjas "paper doll"**: bases `ninja-hair-<penteado>` desenhadas em cores-chave (cabelo verde puro, roupa azul pura);
+  `tintedArt` (render/art.ts) recolore pelo `look` da unidade (cabelo/roupa/pele) e o penteado sai do id. Penteado novo =
+  gerar com as mesmas cores-chave e incluir em `NINJA_HAIRSTYLES`.
+- Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
+- Moradores trabalhando usam folhas de ação (`villager-chop|mine|farm`, gabarito `action`: levanta · balança · impacto ·
+  recupera); árvore vira toco e rocha racha conforme se esgotam; colheita deixa um canteiro (`fx 'harvest'`) que rebrota.
+- Efeitos visuais extras ficam em `render/particles.ts` (só visual, fora do estado): rastro de projétil e explosão por natureza.
+- Prédios podem ser movidos de graça (`canMove`/`moveBuilding` em commands.ts; o Hokage só se ninguém sair do território).
 - `src/ui/` DOM sobre o canvas. Painel lateral (`panel.ts`) recria HTML só quando a estrutura muda;
   valores dinâmicos usam `data-t` / `data-b`. Ações via `data-act` (delegação de eventos).
 

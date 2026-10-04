@@ -229,7 +229,8 @@ export interface Projectile {
   side?: number;
 }
 
-export type EffectKind = 'text' | 'ring' | 'burst' | 'slash' | 'smoke' | 'bolt' | 'heal' | 'swirl' | 'chips' | 'wind';
+/** `harvest`: canteiro recém-colhido (terra à mostra que volta a brotar com o tempo; desenhado no chão). */
+export type EffectKind = 'text' | 'ring' | 'burst' | 'slash' | 'smoke' | 'bolt' | 'heal' | 'swirl' | 'chips' | 'wind' | 'harvest';
 
 export interface Effect {
   kind: EffectKind;

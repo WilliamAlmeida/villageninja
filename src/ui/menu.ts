@@ -2,7 +2,7 @@ import type { App } from '../app';
 import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
 import { rich } from './icons';
-import { FONT_SIZES, fontSize, setFontSize, type FontSize } from './settings';
+import { artOn, FONT_SIZES, fontSize, setArtOn, setFontSize, type FontSize } from './settings';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
 export class Menu {
@@ -21,6 +21,10 @@ export class Menu {
         this.app.game.toast(ok ? '{save} Jogo salvo!' : 'Não foi possível salvar.', ok ? 'good' : 'warn');
       }
       if (a === 'full') this.fullscreen();
+      if (a === 'art') {
+        setArtOn((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
+        this.render();
+      }
       if (a === 'font') {
         setFontSize((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg as FontSize);
         this.render();
@@ -61,6 +65,7 @@ export class Menu {
         <button class="btn" data-act="save">{save} Salvar agora</button>
         <button class="btn" data-act="full">{fullscreen} Tela cheia</button>
         <div class="setrow">{text} Texto<div class="seg">${FONT_SIZES.map((f) => `<button data-act="font" data-arg="${f.id}" class="${f.id === fs ? 'on' : ''}">${f.label}</button>`).join('')}</div></div>
+        <div class="setrow">{eye} Arte<div class="seg"><button data-act="art" data-arg="1" class="${artOn() ? 'on' : ''}">Pixel art</button><button data-act="art" data-arg="0" class="${artOn() ? '' : 'on'}">Antiga</button></div></div>
         <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
         <p class="hint">${levelDef(s.level).icon} ${levelDef(s.level).name} · Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Chefes ${s.stats.bossesDefeated} · Missões ${s.stats.missionsDone} · Perdas ${s.stats.lost}</p>
       </div>

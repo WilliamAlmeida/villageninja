@@ -1,5 +1,8 @@
 import { MAX_DPR, TILE, WORLD_H, WORLD_W } from '../config';
+import { ANIMALS } from '../data/animals';
+import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
+import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Game } from '../game/game';
 import { DEFENSES } from '../game/systems/towers';
@@ -9,9 +12,11 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, ResourceNode, Unit } from '../game/types';
 import { buildingCenter, doorPos } from '../game/world';
+import { art, drawArt } from './art';
 import { drawEffect } from './effects';
-import { drawBuilding, drawNode, drawProjectile, drawUnit, paintBuilding } from './sprites';
-import { renderTerrain } from './terrain';
+import { Particles } from './particles';
+import { drawBuilding, drawNode, drawProjectile, drawUnit, type WorkAction } from './sprites';
+import { drawWaterAnim, renderTerrain, waterDepth } from './terrain';
 
 export interface Ghost {
   type: BuildingType;
@@ -28,14 +33,26 @@ export interface Overlay {
 }
 const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 
-type Drawable = { y: number; b?: Building; n?: ResourceNode; u?: Unit };
+/** Item em pé na cena (prédio, nó ou unidade), ordenado por profundidade (y da cena). */
+type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit };
 
+/**
+ * Desenho isométrico em duas passadas:
+ * 1. "chão": tudo que fica deitado (terreno, campos, marcações) é desenhado em coordenadas de mundo
+ *    com a transformação `groundTransform`;
+ * 2. "em pé": prédios, árvores e unidades são desenhados de frente no ponto projetado, do fundo para a frente.
+ */
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private terrain: HTMLCanvasElement | null = null;
   private terrainSeed = NaN;
   private dpr = 1;
   private list: Drawable[] = [];
+  /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
+  private fade = new Map<string, number>();
+  private lastTime = 0;
+  private depth: Uint8Array = new Uint8Array(0);
+  private particles = new Particles();
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
@@ -49,34 +66,48 @@ export class Renderer {
     this.canvas.style.height = `${h}px`;
   }
 
+  /** Cópia da unidade já na cena (posição e direção projetadas), para as funções de desenho. */
+  private projected(u: Unit): Unit {
+    const p = project(u.x, u.y);
+    return { ...u, x: p.x, y: p.y, facing: projectAngle(u.facing) };
+  }
+
   render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
     if (!this.terrain || this.terrainSeed !== s.seed) {
       this.terrain = renderTerrain(s);
       this.terrainSeed = s.seed;
+      this.depth = waterDepth(s);
     }
     const ctx = this.ctx;
     const z = cam.zoom * this.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#1b2a16';
+    ctx.fillStyle = '#16210f';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.setTransform(z, 0, 0, z, -cam.left * z, -cam.top * z);
     ctx.imageSmoothingEnabled = true;
 
-    // terreno (só a parte visível)
-    const vx0 = Math.max(0, cam.left);
-    const vy0 = Math.max(0, cam.top);
-    const vw = Math.min(WORLD_W - vx0, cam.viewW / cam.zoom + 2);
-    const vh = Math.min(WORLD_H - vy0, cam.viewH / cam.zoom + 2);
-    ctx.drawImage(this.terrain, vx0, vy0, vw, vh, vx0, vy0, vw, vh);
-
-    const m = 64;
-    const x0 = cam.left - m;
-    const y0 = cam.top - m;
-    const x1 = cam.left + cam.viewW / cam.zoom + m;
-    const y1 = cam.top + cam.viewH / cam.zoom + m;
     const night = darkness(s);
     const sel = g.selected;
+    const hkSel = sel?.kind === 'building' && g.building(sel.id)?.type === 'hokage';
+
+    // cor da equipe de cada ninja + quem está "em foco" (selecionado, do grupo ou da equipe selecionada)
+    const teamColor = new Map<number, string>();
+    for (const t of s.teams) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) teamColor.set(id, t.color);
+    const focus = new Set<number>();
+    if (sel?.kind === 'unit') focus.add(sel.id);
+    for (const id of ov.group) focus.add(id);
+    const group = new Set(ov.group);
+    if (sel?.kind === 'team') {
+      const t = g.team(sel.id);
+      if (t) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) focus.add(id);
+    }
+
+    // ================= passada 1: chão =================
+    ctx.save();
+    groundTransform(ctx);
+    ctx.drawImage(this.terrain, 0, 0);
+    drawWaterAnim(ctx, s, this.depth, time);
 
     // chão batido sob prédios
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
@@ -84,11 +115,13 @@ export class Renderer {
       const d = BUILDINGS[b.type];
       if (d.walkable) continue;
       ctx.beginPath();
-      ctx.roundRect(b.tx * TILE - 6, b.ty * TILE - 4, d.w * TILE + 12, d.h * TILE + 14, 8);
+      ctx.roundRect(b.tx * TILE - 4, b.ty * TILE - 4, d.w * TILE + 8, d.h * TILE + 10, 8);
       ctx.fill();
     }
+    // campos e áreas abertas ficam deitados no chão
+    // (os que têm arte isométrica vão como decalque logo depois desta passada)
+    for (const b of s.buildings) if (BUILDINGS[b.type].walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
 
-    // seleção (prédio) embaixo
     if (sel?.kind === 'building') {
       const b = g.building(sel.id);
       if (b) {
@@ -108,54 +141,95 @@ export class Renderer {
         }
       }
     }
+    if (ghost || hkSel) this.drawTerritory(g, !!ghost);
+    if (ghost) this.ghostGround(ghost);
+    this.commandLines(g, focus, teamColor, time);
+    this.drawObjectives(g, time);
+    ctx.restore();
 
-    // ordenação por profundidade (y)
+    // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo
+    for (const b of s.buildings) if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
+    this.drawHarvest(g);
+
+    // ================= passada 2: em pé, do fundo para a frente =================
+    const m = 110;
+    const x0 = cam.left - m;
+    const y0 = cam.top - m;
+    const x1 = cam.left + cam.viewW / cam.zoom + m;
+    const y1 = cam.top + cam.viewH / cam.zoom + m;
+    const seen = (p: { x: number; y: number }) => p.x > x0 && p.x < x1 && p.y > y0 && p.y < y1;
+
     const list = this.list;
     list.length = 0;
     for (const b of s.buildings) {
-      const d = BUILDINGS[b.type];
-      const bx = b.tx * TILE;
-      const by = b.ty * TILE;
-      if (bx + d.w * TILE < x0 || bx > x1 || by + d.h * TILE < y0 || by - 40 > y1) continue;
-      list.push({ y: d.walkable ? by : by + d.h * TILE, b });
+      if (BUILDINGS[b.type].walkable) continue;
+      const c = buildingCenter(b);
+      const p = project(c.x, c.y);
+      if (seen(p)) list.push({ x: p.x, y: p.y, b });
     }
     for (const n of s.nodes) {
-      const nx = n.tx * TILE;
-      const ny = n.ty * TILE;
-      if (nx < x0 || nx > x1 || ny < y0 || ny > y1) continue;
-      list.push({ y: ny + TILE * 0.75, n });
+      const p = project(n.tx * TILE + TILE / 2, n.ty * TILE + TILE / 2);
+      if (seen(p)) list.push({ x: p.x, y: p.y, n });
     }
     for (const u of s.units) {
-      if (u.hidden || u.x < x0 || u.x > x1 || u.y < y0 || u.y > y1) continue;
-      list.push({ y: u.y + 6, u });
+      if (u.hidden) continue;
+      const p = project(u.x, u.y);
+      if (seen(p)) list.push({ x: p.x, y: p.y, u });
     }
-    list.sort((a, b) => a.y - b.y);
-
-    // cor da equipe de cada ninja + quem está "em foco" (selecionado ou da equipe selecionada)
-    const teamColor = new Map<number, string>();
-    for (const t of s.teams) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) teamColor.set(id, t.color);
-    const focus = new Set<number>();
-    if (sel?.kind === 'unit') focus.add(sel.id);
-    for (const id of ov.group) focus.add(id);
-    const group = new Set(ov.group);
-    if (sel?.kind === 'team') {
-      const t = g.team(sel.id);
-      if (t) for (const id of t.senseiId != null ? [t.senseiId, ...t.memberIds] : t.memberIds) focus.add(id);
+    // Prédios ocupam vários tiles: o centro não basta para saber quem fica na frente. Uma unidade (ou árvore)
+    // diante de uma face frontal do prédio (x além da direita ou y além do fundo do retângulo) vem depois dele;
+    // as outras próximas vêm antes.
+    for (const d of list) d.k = d.y;
+    const blocks = list.filter((d) => d.b);
+    for (const d of list) {
+      if (d.b) continue;
+      const wx = d.u ? d.u.x / TILE : d.n!.tx + 0.5;
+      const wy = d.u ? d.u.y / TILE : d.n!.ty + 0.5;
+      for (const o of blocks) {
+        const b = o.b!;
+        const def = BUILDINGS[b.type];
+        if (wx < b.tx - 3 || wy < b.ty - 3 || wx > b.tx + def.w + 3 || wy > b.ty + def.h + 3) continue;
+        const front = wx >= b.tx + def.w || wy >= b.ty + def.h;
+        if (front && d.k! <= o.y) d.k = o.y + 0.01;
+        else if (!front && d.k! >= o.y) d.k = o.y - 0.01;
+      }
     }
+    list.sort((a, b) => a.k! - b.k!);
 
     this.drawCamps(g, time);
+    const dt = Math.min(0.1, Math.max(0, time - this.lastTime));
+    this.lastTime = time;
+    const occluded = this.occluders(list);
     for (const d of list) {
-      if (d.b) drawBuilding(ctx, d.b, time, night, s.level);
-      else if (d.n) drawNode(ctx, d.n);
-      else if (d.u) {
-        const selected = (sel?.kind === 'unit' && sel.id === d.u.id) || group.has(d.u.id);
-        const tc = teamColor.get(d.u.kind === 'clone' ? (d.u.ownerId ?? -1) : d.u.id);
+      if (d.b || d.n) {
+        // quem tapa uma unidade fica semitransparente (some e volta suavemente)
+        const key = d.b ? `b${d.b.id}` : `n${d.n!.id}`;
+        const target = occluded.has(d) ? 0.38 : 1;
+        const cur = this.fade.get(key) ?? 1;
+        const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
+        if (Math.abs(a - 1) < 0.01) this.fade.delete(key);
+        else this.fade.set(key, a);
+        ctx.globalAlpha = a;
+      }
+      if (d.b) this.building(d.b, time, night, s.level);
+      else if (d.n) {
+        // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
+        ctx.save();
+        ctx.translate(d.x - (d.n.tx * TILE + TILE / 2), d.y - (d.n.ty * TILE + TILE / 2));
+        drawNode(ctx, d.n);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      if (d.u) {
+        const u = this.projected(d.u);
+        const selected = (sel?.kind === 'unit' && sel.id === u.id) || group.has(u.id);
+        const tc = teamColor.get(u.kind === 'clone' ? (u.ownerId ?? -1) : u.id);
         if (tc) {
           ctx.strokeStyle = tc;
-          ctx.lineWidth = focus.has(d.u.id) ? 2.5 : 1.3;
-          ctx.globalAlpha = focus.has(d.u.id) ? 1 : 0.75;
+          ctx.lineWidth = focus.has(u.id) ? 2.5 : 1.3;
+          ctx.globalAlpha = focus.has(u.id) ? 1 : 0.75;
           ctx.beginPath();
-          ctx.ellipse(d.u.x, d.u.y + 7, 9, 4, 0, 0, Math.PI * 2);
+          ctx.ellipse(u.x, u.y + 7, 9, 4, 0, 0, Math.PI * 2);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
@@ -163,26 +237,39 @@ export class Renderer {
           ctx.strokeStyle = '#ffd34d';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.ellipse(d.u.x, d.u.y + 7, 11, 5, 0, 0, Math.PI * 2);
+          ctx.ellipse(u.x, u.y + 7, 11, 5, 0, 0, Math.PI * 2);
           ctx.stroke();
         }
-        drawUnit(ctx, d.u, time, selected);
-        if (d.u.missionId != null) this.missionBadge(d.u, time);
-        if (selected && !group.has(d.u.id)) this.label(ctx, d.u.name, d.u.x, d.u.y - 34, cam.zoom);
+        drawUnit(ctx, u, time, selected, workAction(g, d.u));
+        if (u.missionId != null) this.missionBadge(u, time);
+        if (selected && !group.has(u.id)) this.label(ctx, u.name, u.x, u.y - 34, cam.zoom);
       }
     }
+    if (ghost) this.ghostSprite(ghost);
 
     this.drawHover(g, ov.hoverUnitId, sel?.kind === 'unit' ? sel.id : null, cam, time);
-    this.drawCommands(g, focus, teamColor, time);
-    this.drawObjectives(g, time);
-    for (const p of s.projectiles) if (!p.dead) drawProjectile(ctx, p, time);
-    for (const e of s.effects) drawEffect(ctx, e, cam.zoom);
+    this.commandFlags(g, teamColor, time);
+    for (const p of s.projectiles) {
+      if (p.dead) continue;
+      const a = project(p.x, p.y);
+      const v = project(p.vx, p.vy);
+      const t = project(p.tx, p.ty);
+      // projéteis voam na altura do peito
+      const pp = { ...p, x: a.x, y: a.y - 8, vx: v.x, vy: v.y, tx: t.x, ty: t.y - 8 };
+      this.particles.trail(pp, pp.x, pp.y, dt);
+      drawProjectile(ctx, pp, time);
+    }
+    for (const e of s.effects) {
+      const a = project(e.x, e.y);
+      const b = e.x2 != null && e.y2 != null ? project(e.x2, e.y2) : null;
+      const pe = b ? { ...e, x: a.x, y: a.y, x2: b.x, y2: b.y } : { ...e, x: a.x, y: a.y };
+      this.particles.effect(e, pe);
+      drawEffect(ctx, pe, cam.zoom);
+    }
+    this.particles.update(dt);
+    this.particles.draw(ctx);
 
-    const hkSel = sel?.kind === 'building' && g.building(sel.id)?.type === 'hokage';
-    if (ghost || hkSel) this.drawTerritory(g, cam, !!ghost);
-    if (ghost) this.drawGhost(ctx, ghost, time);
-
-    // ---- espaço de tela ----
+    // ================= espaço de tela =================
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (night > 0) {
       ctx.fillStyle = `rgba(10,16,48,${0.55 * night})`;
@@ -214,10 +301,94 @@ export class Renderer {
     }
   }
 
+  /**
+   * Prédios e árvores que ficam NA FRENTE de alguma unidade: desenhados depois dela (mais perto da câmera)
+   * e com o retângulo do sprite cobrindo o corpo da unidade.
+   */
+  private occluders(list: Drawable[]): Set<Drawable> {
+    const out = new Set<Drawable>();
+    const bodies: { x: number; y: number; i: number }[] = [];
+    list.forEach((d, i) => {
+      if (d.u && !d.u.dead) bodies.push({ x: d.x, y: d.y - 12, i });
+    });
+    if (!bodies.length) return out;
+    list.forEach((d, i) => {
+      let r: { x0: number; x1: number; y0: number; y1: number } | null = null;
+      if (d.b) {
+        const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty);
+        const pic = art(d.b.type);
+        const h = pic ? (width / pic.naturalWidth) * pic.naturalHeight : width * 0.8;
+        r = { x0: front.x - width / 2, x1: front.x + width / 2, y0: front.y - h, y1: front.y };
+      } else if (d.n && d.n.type === 'tree') r = { x0: d.x - 16, x1: d.x + 16, y0: d.y - 50, y1: d.y - 6 };
+      if (!r) return;
+      // só conta quem está atrás (desenhado antes) e com o corpo dentro do sprite
+      if (bodies.some((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1)) out.add(d);
+    });
+    return out;
+  }
+
+  /** Ponta da frente do losango da base (onde o sprite do prédio apoia) e largura do losango, na cena. */
+  private footprint(type: BuildingType, tx: number, ty: number) {
+    const d = BUILDINGS[type];
+    const front = project((tx + d.w) * TILE, (ty + d.h) * TILE);
+    return { front, width: (d.w + d.h) * TILE * ISO_K };
+  }
+
+  /** Prédio em pé: arte isométrica apoiada na base; sem arte, o desenho antigo como "placa" de frente. */
+  private building(b: Building, time: number, night: number, level: number) {
+    const ctx = this.ctx;
+    const d = BUILDINGS[b.type];
+    const { front, width } = this.footprint(b.type, b.tx, b.ty);
+    const pic = art(b.type);
+    if (!pic) {
+      ctx.save();
+      ctx.translate(front.x - (b.tx + d.w / 2) * TILE, front.y - 6 - (b.ty + d.h) * TILE);
+      drawBuilding(ctx, b, time, night, level);
+      ctx.restore();
+      return;
+    }
+    const k = b.built ? 1 : b.progress / Math.max(1, d.buildTime);
+    ctx.save();
+    if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
+    drawArt(ctx, pic, front.x, front.y + 4, (width / pic.naturalWidth) * pic.naturalHeight);
+    ctx.restore();
+    if (!b.built) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(front.x - 20, front.y + 6, 40, 4);
+      ctx.fillStyle = '#ffd34d';
+      ctx.fillRect(front.x - 19, front.y + 7, 38 * k, 2);
+    }
+  }
+
+  /** Canteiros recém-colhidos: terra à mostra que some aos poucos (a planta volta a crescer), com brotinhos. */
+  private drawHarvest(g: Game) {
+    const ctx = this.ctx;
+    for (const e of g.state.effects) {
+      if (e.kind !== 'harvest') continue;
+      const k = e.t / e.life;
+      const p = project(e.x, e.y);
+      const r = (e.r ?? 10) * ISO_K;
+      ctx.globalAlpha = 0.9 * (1 - k);
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, r * 1.6, r * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // brotos crescendo
+      if (k > 0.3) {
+        ctx.fillStyle = '#6fbf4a';
+        const h = 1 + (k - 0.3) * 5;
+        for (const [ox, oy] of [[-5, -1], [0, 1], [5, -1], [-2, 3], [3, 3]]) ctx.fillRect(p.x + ox! - 0.5, p.y + oy! - h, 1.5, h);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /** Destaque da unidade sob o mouse (no mapa ou na lista do painel): anel pulsante, seta e nome. */
   private drawHover(g: Game, id: number | null, selectedId: number | null, cam: Camera, time: number) {
-    const u = g.unit(id);
-    if (!u || u.dead) return;
+    const real = g.unit(id);
+    if (!real || real.dead) return;
+    const u = this.projected(real);
     const ctx = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(time * 7);
     ctx.strokeStyle = '#fff';
@@ -235,14 +406,18 @@ export class Renderer {
     ctx.lineTo(u.x + 5, top - 6);
     ctx.lineTo(u.x, top);
     ctx.fill();
-    if (u.id !== selectedId) this.label(ctx, u.hidden ? `${u.name} (dentro)` : u.name, u.x, top - 13, cam.zoom);
+    if (u.id !== selectedId) {
+      this.label(ctx, u.hidden ? `${u.name} (dentro)` : u.name, u.x, top - 22, cam.zoom);
+      this.label(ctx, unitTag(u), u.x, top - 11, cam.zoom, true);
+    }
   }
 
   /** Barracas e fogueira dos acampamentos/covis de missões ativas. */
   private drawCamps(g: Game, time: number) {
     const ctx = this.ctx;
-    for (const m of g.state.missions) {
-      if (m.status !== 'active' || (m.type !== 'camp' && m.type !== 'wanted')) continue;
+    for (const mi of g.state.missions) {
+      if (mi.status !== 'active' || (mi.type !== 'camp' && mi.type !== 'wanted')) continue;
+      const m = project(mi.x, mi.y);
       for (const [ox, oy, c] of [[-34, -18, '#8a6a4a'], [30, -14, '#6f5a7a'], [-6, -40, '#7a5a3a']] as const) {
         const x = m.x + ox;
         const y = m.y + oy;
@@ -279,7 +454,7 @@ export class Renderer {
     }
   }
 
-  /** Marca alvos de missão (losango vermelho; chefe = estrela dourada; mercador = moeda). */
+  /** Marca alvos de missão (losango vermelho; chefe = estrela dourada; mercador = moeda). `u` já na cena. */
   private missionBadge(u: Unit, time: number) {
     const ctx = this.ctx;
     const y = u.y - (u.animal ? 30 : 34) + Math.sin(time * 4 + u.id) * 1.5;
@@ -314,7 +489,7 @@ export class Renderer {
     ctx.fill();
   }
 
-  /** Anel pulsante no ponto de interesse de cada missão ativa. */
+  /** (chão) Anel pulsante no ponto de interesse de cada missão ativa. */
   private drawObjectives(g: Game, time: number) {
     const ctx = this.ctx;
     for (const m of g.state.missions) {
@@ -371,8 +546,8 @@ export class Renderer {
     }
   }
 
-  /** Limite do território: escurece o que está fora quando se está construindo. */
-  private drawTerritory(g: Game, cam: Camera, dim: boolean) {
+  /** (chão) Limite do território: escurece o que está fora quando se está construindo. */
+  private drawTerritory(g: Game, dim: boolean) {
     const c = territoryCenter(g.state);
     if (!c) return;
     const ctx = this.ctx;
@@ -382,54 +557,38 @@ export class Renderer {
     if (dim) {
       ctx.fillStyle = 'rgba(0,0,0,0.32)';
       ctx.beginPath();
-      ctx.rect(cam.left - 10, cam.top - 10, cam.viewW / cam.zoom + 20, cam.viewH / cam.zoom + 20);
+      ctx.rect(0, 0, WORLD_W, WORLD_H);
       ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
       ctx.fill('evenodd');
     }
     ctx.strokeStyle = 'rgba(255,211,77,0.7)';
-    ctx.lineWidth = 2 / cam.zoom;
-    ctx.setLineDash([10 / cam.zoom, 8 / cam.zoom]);
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 8]);
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   }
 
-  /** Bandeiras de "defender ponto" e linhas de ataque das ordens do jogador. */
-  private drawCommands(g: Game, focus: Set<number>, teamColor: Map<number, string>, time: number) {
+  /** (chão) Linhas das ordens do jogador: caminho até o ponto e mira no alvo de ataque. */
+  private commandLines(g: Game, focus: Set<number>, teamColor: Map<number, string>, time: number) {
     const ctx = this.ctx;
     for (const u of g.state.units) {
       const c = u.command;
-      if (!c || u.dead) continue;
-      const color = teamColor.get(u.id) ?? '#ffd34d';
-      const show = focus.has(u.id);
+      if (!c || u.dead || !focus.has(u.id)) continue;
       if (c.kind === 'move') {
-        if (show && !u.hidden) {
-          ctx.strokeStyle = color;
-          ctx.globalAlpha = 0.6;
-          ctx.lineWidth = 1.2;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.moveTo(u.x, u.y + 4);
-          ctx.lineTo(c.x, c.y);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.globalAlpha = 1;
-        }
-        ctx.strokeStyle = '#3b2a1a';
-        ctx.lineWidth = 1.5;
+        if (u.hidden) continue;
+        ctx.strokeStyle = teamColor.get(u.id) ?? '#ffd34d';
+        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        ctx.moveTo(c.x, c.y + 4);
-        ctx.lineTo(c.x, c.y - 14);
+        ctx.moveTo(u.x, u.y);
+        ctx.lineTo(c.x, c.y);
         ctx.stroke();
-        ctx.fillStyle = color;
-        const wave = Math.sin(time * 5 + u.id) * 1.5;
-        ctx.beginPath();
-        ctx.moveTo(c.x, c.y - 14);
-        ctx.lineTo(c.x + 10, c.y - 11 + wave);
-        ctx.lineTo(c.x, c.y - 8);
-        ctx.fill();
-      } else if (c.kind === 'attack' && show) {
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      } else if (c.kind === 'attack') {
         const t = g.unit(c.targetId);
         if (!t || t.dead) continue;
         ctx.strokeStyle = '#ff5a5a';
@@ -440,19 +599,42 @@ export class Renderer {
         ctx.lineTo(t.x, t.y);
         ctx.stroke();
         ctx.setLineDash([]);
-        const r = 12 + Math.sin(time * 8) * 2;
         ctx.beginPath();
-        ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+        ctx.arc(t.x, t.y, 12 + Math.sin(time * 8) * 2, 0, Math.PI * 2);
         ctx.stroke();
       }
+    }
+  }
+
+  /** Bandeiras de "defender ponto" (em pé). */
+  private commandFlags(g: Game, teamColor: Map<number, string>, time: number) {
+    const ctx = this.ctx;
+    for (const u of g.state.units) {
+      const c = u.command;
+      if (!c || u.dead || c.kind !== 'move') continue;
+      const p = project(c.x, c.y);
+      ctx.strokeStyle = '#3b2a1a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y + 4);
+      ctx.lineTo(p.x, p.y - 14);
+      ctx.stroke();
+      ctx.fillStyle = teamColor.get(u.id) ?? '#ffd34d';
+      const wave = Math.sin(time * 5 + u.id) * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - 14);
+      ctx.lineTo(p.x + 10, p.y - 11 + wave);
+      ctx.lineTo(p.x, p.y - 8);
+      ctx.fill();
     }
   }
 
   private lights(g: Game, cam: Camera, night: number) {
     const ctx = this.ctx;
     ctx.globalCompositeOperation = 'lighter';
-    const glow = (wx: number, wy: number, r: number, color: string, a: number) => {
+    const glow = (wx: number, wy: number, lift: number, r: number, color: string, a: number) => {
       const p = cam.worldToScreen(wx, wy);
+      p.y -= lift * cam.zoom;
       const rr = r * cam.zoom;
       if (p.x < -rr || p.y < -rr || p.x > cam.viewW + rr || p.y > cam.viewH + rr) return;
       const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
@@ -464,30 +646,32 @@ export class Renderer {
     for (const b of g.state.buildings) {
       if (!b.built || !BUILDINGS[b.type].lights) continue;
       const d = doorPos(b);
-      glow(d.x, d.y - 14, 55, 'rgba(255,190,90,A)', 0.35 * night);
+      glow(d.x, d.y, 14, 55, 'rgba(255,190,90,A)', 0.35 * night);
     }
-    for (const p of g.state.projectiles) if (!p.dead && p.kind !== 'kunai') glow(p.x, p.y, 40, hexA(p.color), 0.5 * night);
-    for (const e of g.state.effects) if (e.kind === 'burst' || e.kind === 'bolt') glow(e.x, e.y, (e.r ?? 20) * 2, hexA(e.color), 0.5 * night * (1 - e.t / e.life));
+    for (const p of g.state.projectiles) if (!p.dead && p.kind !== 'kunai') glow(p.x, p.y, 8, 40, hexA(p.color), 0.5 * night);
+    for (const e of g.state.effects) if (e.kind === 'burst' || e.kind === 'bolt') glow(e.x, e.y, 0, (e.r ?? 20) * 2, hexA(e.color), 0.5 * night * (1 - e.t / e.life));
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  private label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, zoom: number) {
-    const size = 9 * Math.max(1, 1 / zoom);
-    ctx.font = `600 ${size}px system-ui, sans-serif`;
+  private label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, zoom: number, sub = false) {
+    const size = (sub ? 7.5 : 9) * Math.max(1, 1 / zoom);
+    ctx.font = `${sub ? 700 : 600} ${size}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     ctx.strokeText(text, x, y);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = sub ? '#ffd34d' : '#fff';
     ctx.fillText(text, x, y);
   }
 
-  private drawGhost(ctx: CanvasRenderingContext2D, gh: Ghost, time: number) {
+  /** (chão) Grade e base do prédio que está sendo posicionado: verde = pode, vermelho = não pode. */
+  private ghostGround(gh: Ghost) {
+    const ctx = this.ctx;
     const d = BUILDINGS[gh.type];
     const x = gh.tx * TILE;
     const y = gh.ty * TILE;
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
     ctx.lineWidth = 1;
     for (let i = -3; i <= d.w + 3; i++) {
       ctx.beginPath();
@@ -501,18 +685,48 @@ export class Renderer {
       ctx.lineTo(x + (d.w + 3) * TILE, y + j * TILE);
       ctx.stroke();
     }
-    ctx.globalAlpha = 0.6;
-    paintBuilding(ctx, d, x, y, d.w * TILE, d.h * TILE, time, 0);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = gh.valid ? 'rgba(80,220,100,0.3)' : 'rgba(240,60,60,0.35)';
+    ctx.fillStyle = gh.valid ? 'rgba(80,220,100,0.35)' : 'rgba(240,60,60,0.4)';
     ctx.fillRect(x, y, d.w * TILE, d.h * TILE);
     ctx.strokeStyle = gh.valid ? '#5ee05e' : '#ff5a5a';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, d.w * TILE, d.h * TILE);
     // porta
-    ctx.fillStyle = gh.valid ? 'rgba(255,255,255,0.5)' : 'rgba(255,90,90,0.5)';
+    ctx.fillStyle = gh.valid ? 'rgba(255,255,255,0.6)' : 'rgba(255,90,90,0.6)';
     ctx.fillRect((gh.tx + Math.floor(d.w / 2)) * TILE + 8, (gh.ty + d.h) * TILE + 2, TILE - 16, 6);
   }
+
+  /** Prévia translúcida do prédio em pé sobre a base. */
+  private ghostSprite(gh: Ghost) {
+    const pic = art(gh.type);
+    if (!pic) return;
+    const { front, width } = this.footprint(gh.type, gh.tx, gh.ty);
+    const ctx = this.ctx;
+    ctx.globalAlpha = 0.6;
+    drawArt(ctx, pic, front.x, front.y + 4, (width / pic.naturalWidth) * pic.naturalHeight);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Linha de baixo do rótulo de hover: patente e nível (ninja), "Renegado", "Morador(a)" ou o animal. */
+function unitTag(u: Unit) {
+  if (u.animal) return ANIMALS[u.animal].name;
+  if (u.ninja) {
+    const who = u.kind === 'clone' ? 'Clone · ' : u.faction === 'enemy' ? 'Renegado · ' : u.faction === 'guest' ? 'Convidado · ' : '';
+    return `${who}${RANKS[u.ninja.rank].name} · Nv ${u.ninja.level}`;
+  }
+  return 'Morador(a)';
+}
+
+/** Animação de trabalho do morador: derrubando árvore, quebrando pedra, capinando/colhendo ou construindo. */
+function workAction(g: Game, u: Unit): WorkAction | undefined {
+  if (u.kind !== 'villager') return undefined;
+  if (u.state === 'farming') return 'farm';
+  if (u.state === 'build') return 'chop';
+  if (u.state === 'gather') {
+    const n = g.node(u.taskId);
+    return n?.type === 'tree' ? 'chop' : n ? 'mine' : undefined;
+  }
+  return undefined;
 }
 
 function hexA(hex: string) {

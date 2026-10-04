@@ -97,6 +97,15 @@ export function createUI(app: App, root: HTMLElement) {
     }
   }
   panel.onOrderMode = () => setOrderMode(true);
+  let lastPointerMouse = false;
+  window.addEventListener('pointerdown', (e) => (lastPointerMouse = e.pointerType === 'mouse'), true);
+  panel.onMove = (id) => {
+    setOrderMode(false);
+    app.selectTool = false;
+    app.game.select(null);
+    panel.show(null);
+    build.startMove(id);
+  };
 
   hud.onMenu = () => menu.open();
   root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, orderBar, panel.root, menu.root);
@@ -116,13 +125,18 @@ export function createUI(app: App, root: HTMLElement) {
   });
 
   // ------------------------------------------------------------------ mapa
-  /** Unidade visível mais próxima do ponto (tolerância maior em zoom baixo). */
-  function unitAt(wx: number, wy: number, tolPx: number, filter: (u: Unit) => boolean = () => true): Unit | null {
+  /**
+   * Unidade visível mais próxima do ponto da tela. A comparação é feita na tela, com o corpo
+   * (um pouco acima dos pés), porque na vista isométrica o sprite fica em pé sobre o chão.
+   */
+  function unitAt(sx: number, sy: number, tolPx: number, filter: (u: Unit) => boolean = () => true): Unit | null {
+    const zoom = app.camera.zoom;
     let best: Unit | null = null;
-    let bd = tolPx / Math.min(1, app.camera.zoom);
+    let bd = tolPx * Math.max(1, zoom);
     for (const u of app.game.state.units) {
       if (u.dead || u.hidden || !filter(u)) continue;
-      const d = Math.hypot(u.x - wx, u.y - 4 - wy);
+      const p = app.camera.worldToScreen(u.x, u.y);
+      const d = Math.hypot(p.x - sx, p.y - 10 * zoom - sy);
       if (d < bd) {
         bd = d;
         best = u;
@@ -131,20 +145,23 @@ export function createUI(app: App, root: HTMLElement) {
     return best;
   }
 
-  function buildingAt(wx: number, wy: number): Building | undefined {
+  /** Prédio sob o ponto da tela: a base ou, descendo na tela, o corpo do prédio que fica em pé sobre ela. */
+  function buildingAt(sx: number, sy: number): Building | undefined {
     const g = app.game;
-    const b = g.building(g.world.buildingIdAt(toTile(wx), toTile(wy)));
-    if (b) return b;
-    // telhados ficam um pouco acima do footprint
-    const above = g.building(g.world.buildingIdAt(toTile(wx), toTile(wy + 12)));
-    return above && BUILDINGS[above.type] ? above : undefined;
+    for (const lift of [0, 14, 28, 42]) {
+      const w = app.camera.screenToWorld(sx, sy + lift * app.camera.zoom);
+      const b = g.building(g.world.buildingIdAt(toTile(w.x), toTile(w.y)));
+      if (b && (lift === 0 || !BUILDINGS[b.type].walkable)) return b;
+    }
+    return undefined;
   }
 
-  /** Ordem no ponto: atacar se houver inimigo ali, senão mover/defender. */
-  function issueOrder(ids: number[], wx: number, wy: number) {
+  /** Ordem no ponto da tela: atacar se houver inimigo ali, senão mover/defender no chão. */
+  function issueOrder(ids: number[], sx: number, sy: number) {
     const g = app.game;
-    const enemy = unitAt(wx, wy, 22, (u) => u.faction !== 'village');
-    const r = enemy ? orderAttack(g, ids, enemy.id) : orderMove(g, ids, wx, wy);
+    const enemy = unitAt(sx, sy, 20, (u) => u.faction !== 'village');
+    const w = app.camera.screenToWorld(sx, sy);
+    const r = enemy ? orderAttack(g, ids, enemy.id) : orderMove(g, ids, w.x, w.y);
     if (!r.ok) g.toast(r.error, 'warn');
   }
 
@@ -170,20 +187,22 @@ export function createUI(app: App, root: HTMLElement) {
     const w = app.camera.screenToWorld(sx, sy);
     if (app.buildType) {
       build.tapWorld(w.x, w.y);
+      // com mouse o fantasma já segue o cursor: o clique confirma (no toque, toca e depois confirma no botão)
+      if (lastPointerMouse && app.ghost?.valid) build.confirm();
       return;
     }
     if (app.orderMode) {
-      issueOrder(app.orderMode.ids, w.x, w.y);
+      issueOrder(app.orderMode.ids, sx, sy);
       setOrderMode(false);
       return;
     }
     if (build.open) build.toggle(false);
-    const u = unitAt(w.x, w.y, 18);
+    const u = unitAt(sx, sy, 16);
     if (u) {
       g.select({ kind: 'unit', id: u.id });
       return;
     }
-    const b = buildingAt(w.x, w.y);
+    const b = buildingAt(sx, sy);
     if (b) {
       g.select({ kind: 'building', id: b.id });
       return;
@@ -201,8 +220,7 @@ export function createUI(app: App, root: HTMLElement) {
     }
     const ids = commandableIds();
     if (!ids.length) return;
-    const w = app.camera.screenToWorld(sx, sy);
-    issueOrder(ids, w.x, w.y);
+    issueOrder(ids, sx, sy);
   }
 
   /** Caixa de seleção (tela): marca os ninjas da vila dentro dela. */
@@ -213,10 +231,14 @@ export function createUI(app: App, root: HTMLElement) {
     }
     app.selectBox = null;
     app.selectTool = false;
-    const a = app.camera.screenToWorld(Math.min(x0, x1), Math.min(y0, y1));
-    const b = app.camera.screenToWorld(Math.max(x0, x1), Math.max(y0, y1));
+    const [ax, bx, ay, by] = [Math.min(x0, x1), Math.max(x0, x1), Math.min(y0, y1), Math.max(y0, y1)];
     const ids = app.game.state.units
-      .filter((u) => isOwnNinja(u) && !u.hidden && u.x >= a.x && u.x <= b.x && u.y - 4 >= a.y && u.y - 4 <= b.y)
+      .filter((u) => {
+        if (!isOwnNinja(u) || u.hidden) return false;
+        const p = app.camera.worldToScreen(u.x, u.y);
+        const y = p.y - 10 * app.camera.zoom;
+        return p.x >= ax && p.x <= bx && y >= ay && y <= by;
+      })
       .map((u) => u.id);
     if (!ids.length) {
       app.game.toast('Nenhum ninja da vila dentro da caixa.', 'info');
@@ -238,13 +260,17 @@ export function createUI(app: App, root: HTMLElement) {
       app.hoverUnitId = panel.hoverId;
       return 'grab';
     }
-    const w = app.camera.screenToWorld(sx, sy);
-    if (app.buildType) return 'cell';
+    if (app.buildType) {
+      // no desktop o fantasma do prédio acompanha o mouse; o clique confirma
+      const w = app.camera.screenToWorld(sx, sy);
+      build.tapWorld(w.x, w.y);
+      return 'cell';
+    }
     if (app.selectTool) return 'crosshair';
-    const u = unitAt(w.x, w.y, 18);
+    const u = unitAt(sx, sy, 16);
     app.hoverUnitId = u?.id ?? panel.hoverId;
     if (app.orderMode) return 'crosshair';
-    return u || buildingAt(w.x, w.y) ? 'pointer' : 'grab';
+    return u || buildingAt(sx, sy) ? 'pointer' : 'grab';
   }
   panel.onHover = (id) => (app.hoverUnitId = id);
 

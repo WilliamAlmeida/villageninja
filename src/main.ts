@@ -42,8 +42,7 @@ function centerOnVillage() {
   const hk = app.game.hokage();
   if (hk) {
     const p = doorPos(hk);
-    camera.x = p.x;
-    camera.y = p.y;
+    camera.jump(p.x, p.y);
   }
   camera.zoom = 1.3;
 }

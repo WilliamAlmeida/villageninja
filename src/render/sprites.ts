@@ -1,6 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
+import { art, artFrames, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { RANKS } from '../data/ninja';
@@ -105,8 +106,20 @@ function nodeSprite(type: ResourceNode['type'], variant: number) {
   return c;
 }
 
+/** Altura (px) da arte de cada tipo de nó. */
+const NODE_ART_H: Record<ResourceNode['type'], number> = { tree: 48, rock: 22, ore: 26, herb: 24 };
+
 export function drawNode(ctx: Ctx, n: ResourceNode) {
   const s = 0.65 + 0.35 * (n.amount / n.max);
+  // estágios: árvore vira toco quando está quase no fim; rocha racha depois da metade
+  const left = n.amount / n.max;
+  const stage = n.type === 'tree' && left < 0.25 ? 'stump' : n.type === 'rock' && left < 0.5 ? 'rock-cracked' : null;
+  const pic = art(stage ?? (n.type === 'tree' ? `tree${n.variant % 2}` : n.type));
+  if (pic) {
+    const h = stage === 'stump' ? 20 : stage ? NODE_ART_H.rock : NODE_ART_H[n.type] * (n.type === 'tree' ? 1 : s);
+    drawArt(ctx, pic, n.tx * TILE + TILE / 2, n.ty * TILE + TILE * 0.7, h, n.variant >= 2);
+    return;
+  }
   const img = nodeSprite(n.type, n.variant);
   const cx = n.tx * TILE + TILE / 2;
   const cy = n.ty * TILE + TILE / 2;
@@ -117,8 +130,50 @@ export function drawNode(ctx: Ctx, n: ResourceNode) {
 // ---------------------------------------------------------------- unidades
 const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'hammer' };
 
-export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean) {
-  if (u.animal) drawAnimal(ctx, u, t);
+/**
+ * Folha da unidade. Ninjas da vila (e convidados do Exame) são "paper doll": penteado escolhido pelo id
+ * e cabelo/roupa/pele do `look` dele, recoloridos sobre a base. Clones copiam o dono.
+ */
+function unitPic(u: Unit) {
+  if (u.animal) return art(u.animal);
+  if (u.kind === 'villager') return art('villager');
+  if (u.faction === 'enemy') return art('rogue');
+  const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
+  const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
+  return tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
+}
+
+/** Arte em pixel art da unidade (se houver): linha da folha conforme a direção (já projetada) em que anda. */
+function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean {
+  const pic = action ? art(`villager-${action}`) : unitPic(u);
+  if (!pic) return false;
+  const dx = Math.cos(u.facing);
+  const dy = Math.sin(u.facing);
+  // de lado quando o movimento é mais horizontal; senão de frente (descendo na tela) ou de costas (subindo)
+  const row = Math.abs(dy) > Math.abs(dx) * 1.2 ? (dy > 0 ? SHEET_ROWS.front : SHEET_ROWS.back) : SHEET_ROWS.side;
+  const size = u.animal ? ANIMALS[u.animal].size : 0;
+  const base = u.animal ? u.y + size * 0.7 : u.y + 9;
+  const sheet = artFrames(pic);
+  // trabalhando: ciclo do golpe; andando: ciclo de caminhada; parado: quadro de descanso
+  const frame = action ? Math.floor(t * 5 + u.id) % sheet.frames : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ellipse(ctx, u.x, base - 1.5, u.animal ? size * 1.2 : 8, u.animal ? size * 0.4 : 3.5);
+  ctx.save();
+  if (u.kind === 'clone') ctx.globalAlpha = 0.75;
+  if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
+  // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
+  drawArt(ctx, pic, u.x, base, u.animal ? size * 2.6 : action ? 37 : 30, row === SHEET_ROWS.side && dx < 0, frame, row);
+  ctx.restore();
+  return true;
+}
+
+/** Animação de trabalho do morador (folhas villager-<ação>). */
+export type WorkAction = 'chop' | 'mine' | 'farm';
+
+export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction) {
+  if (drawUnitArt(ctx, u, t, action)) {
+    /* desenhado com a arte em pixel art */
+  } else if (u.animal) drawAnimal(ctx, u, t);
   else drawHuman(ctx, u, t);
   if (u.stun > 0) {
     ctx.fillStyle = '#ffe14d';

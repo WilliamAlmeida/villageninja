@@ -14,6 +14,8 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number) {
   const k = e.t / e.life;
   const r = e.r ?? 16;
   switch (e.kind) {
+    case 'harvest':
+      return; // desenhado no chão pelo renderer (drawHarvest)
     case 'text': {
       const size = (e.big ? 10 : 8.5) * Math.max(1, 1.1 / zoom);
       ctx.globalAlpha = 1 - k * k;
@@ -35,7 +37,8 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number) {
       break;
     }
     case 'burst': {
-      ctx.globalAlpha = (1 - k) * 0.7;
+      // núcleo curto; o grosso da explosão vem das partículas (render/particles.ts)
+      ctx.globalAlpha = (1 - k) * (1 - k) * 0.45;
       const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r * (0.4 + 0.6 * k));
       g.addColorStop(0, '#ffffff');
       g.addColorStop(0.4, e.color);
