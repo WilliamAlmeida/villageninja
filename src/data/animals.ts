@@ -1,6 +1,6 @@
 import type { Cost } from '../game/types';
 
-export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey';
+export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey' | 'spider' | 'tiger' | 'rhino';
 
 export interface AnimalDef {
   type: AnimalType;
@@ -24,6 +24,10 @@ export interface AnimalDef {
   desc?: string;
   /** Ladrão: vai até a vila roubar em vez de caçar (ver systems/hostiles.ts). */
   thief?: 'farm' | 'stash';
+  /** Golpe especial (ver `animalAbility` em systems/hostiles.ts). */
+  ability?: 'web' | 'pounce' | 'charge';
+  /** Só aparece à noite (e vai embora quando amanhece). */
+  night?: boolean;
 }
 
 const LIST: AnimalDef[] = [
@@ -38,6 +42,13 @@ const LIST: AnimalDef[] = [
     desc: 'Vêm em bando bicar a fazenda e levam comida. Abata-os para recuperar o que levaram.', thief: 'farm' },
   { type: 'monkey', name: 'Macaco ladrão', hp: 34, damage: 3, attackCd: 1, speed: 92, aggro: 0, range: 18, size: 8, color: '#8a5a2e', reward: { ryo: 6 }, xp: 10, minDay: 4, weight: 2, pack: [2, 3],
     desc: 'Rouba ryo da Residência do Hokage (ou ervas) e foge para a floresta. Alcance-o antes que saia do mapa para recuperar o saque.', thief: 'stash' },
+  // golpes especiais
+  { type: 'spider', name: 'Aranha gigante', hp: 95, damage: 8, attackCd: 1.3, speed: 60, aggro: 150, range: 22, size: 11, color: '#3a2440', reward: { herbs: 6, ryo: 15 }, xp: 30, minDay: 5, weight: 2, pack: [1, 2],
+    desc: 'Cospe teia que prende o alvo por alguns segundos. Lute em grupo para ninguém ficar sozinho preso.', ability: 'web' },
+  { type: 'tiger', name: 'Tigre das sombras', hp: 130, damage: 15, attackCd: 1.2, speed: 96, aggro: 190, range: 24, size: 13, color: '#2a2440', reward: { ryo: 45 }, xp: 50, minDay: 6, weight: 2, pack: [1, 1],
+    desc: 'Caça só à noite e é difícil de ver no escuro. Dá botes de longe que causam muito dano. Some quando amanhece.', ability: 'pounce', night: true },
+  { type: 'rhino', name: 'Rinoceronte de pedra', hp: 320, damage: 18, attackCd: 2, speed: 50, aggro: 160, range: 30, size: 17, color: '#7d7a72', reward: { stone: 60, food: 30 }, xp: 70, minDay: 8, weight: 1, pack: [1, 1],
+    desc: 'Pele de pedra. Dá investidas em linha reta que atropelam quem estiver no caminho e danificam prédios.', ability: 'charge' },
 ];
 
 export const ANIMALS = Object.fromEntries(LIST.map((a) => [a.type, a])) as Record<AnimalType, AnimalDef>;

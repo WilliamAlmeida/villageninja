@@ -3,6 +3,7 @@ import { pick, rand, randi, weightedPick } from '../../core/rng';
 import { ANIMAL_LIST } from '../../data/animals';
 import { ROGUE_ROLES, type RogueRole } from '../../data/enemies';
 import { levelDef } from '../../data/villageLevels';
+import { isNight } from '../time';
 import type { Rank } from '../../data/ninja';
 import { createAnimal, createRogue } from '../entities';
 import type { Game } from '../game';
@@ -80,9 +81,10 @@ function spawnAnimals(g: Game) {
   const threat = levelDef(s.level).threat;
   if (wild >= 4 + Math.floor(s.day / 2) + threat * 2) return;
   const hasFarm = g.builtOf('farm').length > 0;
+  const night = isNight(s);
   const def = weightedPick(
     // corvos só vêm se houver fazenda para bicar
-    ANIMAL_LIST.filter((a) => a.minDay <= s.day + threat * 2 && (a.thief !== 'farm' || hasFarm)),
+    ANIMAL_LIST.filter((a) => a.minDay <= s.day + threat * 2 && (a.thief !== 'farm' || hasFarm) && (!a.night || night)),
     // vilas maiores atraem feras maiores
     (a) => a.weight + (a.type === 'bear' || a.type === 'snake' ? threat : 0),
   );
@@ -92,6 +94,8 @@ function spawnAnimals(g: Game) {
   for (let i = 0; i < count; i++) createAnimal(g, def.type, p.x + rand(-14, 14), p.y + rand(-14, 14));
   if (def.type === 'snake' || def.type === 'bear') g.toast(`{paw} Um(a) ${def.name} foi avistado(a) na floresta!`, 'warn', p);
   if (def.type === 'crow') g.toast('{paw} Um bando de corvos está vindo atacar a fazenda!', 'warn', p);
+  if (def.type === 'tiger') g.toast('{paw} Olhos brilhando na escuridão… um Tigre das sombras está caçando!', 'danger', p);
+  if (def.type === 'rhino') g.toast('{paw} O chão treme: um Rinoceronte de pedra apareceu!', 'warn', p);
   if (def.type === 'monkey') g.toast('{paw} Macacos ladrões estão rondando a vila!', 'warn', p);
 }
 

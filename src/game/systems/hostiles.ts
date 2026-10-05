@@ -4,9 +4,10 @@ import { ANIMALS, type AnimalDef } from '../../data/animals';
 import { BUILDINGS } from '../../data/buildings';
 import { BOMB, HEAL } from '../../data/enemies';
 import { costLabel } from '../../data/resources';
-import { areaDamage, engage, trySupport } from '../combat';
+import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
 import { fx, fxText } from '../fx';
 import { occupantsOf } from '../interior';
+import { isNight } from '../time';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
 import type { Building, Unit } from '../types';
@@ -42,8 +43,12 @@ function animal(g: Game, u: Unit, dt: number) {
   if (u.missionId != null) return guardHome(g, u, dt, def.aggro);
   if (u.boss) return titan(g, u, dt, def.aggro);
   if (def.thief) return thief(g, u, dt, def);
+  // bicho noturno vai embora quando amanhece
+  if (def.night && !isNight(g.state) && u.state !== 'leave') u.life = 0;
+  if (u.state === 'charge') return charging(g, u, dt, def);
   const t = validTarget(g, u, def.aggro * 2.5) ?? g.nearestHostile(u, def.aggro);
   if (t) {
+    if (def.ability && animalAbility(g, u, t, def, dt)) return;
     engage(g, u, t, dt);
     return;
   }
@@ -341,6 +346,92 @@ function medic(g: Game, u: Unit, dt: number): boolean {
   const lead = hurt ?? allies.reduce((a, o) => (dist(u, o) < dist(u, a) ? o : a));
   chase(g, u, lead.x - 24, lead.y - 18, dt, 20);
   return true;
+}
+
+/** Golpes especiais de animais. Retorna true se usou (o turno é dele). */
+function animalAbility(g: Game, u: Unit, t: Unit, def: AnimalDef, dt: number): boolean {
+  u.abilityCd = (u.abilityCd ?? rand(1, 3)) - dt;
+  if (u.abilityCd > 0) return false;
+  const d = dist(u, t);
+  if (def.ability === 'web' && d > 40 && d < 130) {
+    // teia: projétil que prende quem acerta
+    u.abilityCd = 6;
+    u.anim = 0.4;
+    u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+    spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
+      damage: 3, radius: 14, nature: null, color: '#f2f2f2', size: 4, speed: 220, kind: 'orb', stun: 2.6, range: 140,
+    });
+    return true;
+  }
+  if (def.ability === 'pounce' && d > 50 && d < 150) {
+    // bote: salta até o alvo e morde forte
+    u.abilityCd = 7;
+    const a = Math.atan2(t.y - u.y, t.x - u.x);
+    fx(g, 'wind', u.x, u.y, { r: 16, life: 0.4, color: '#8a6bd9' });
+    u.x = t.x - Math.cos(a) * 18;
+    u.y = t.y - Math.sin(a) * 18;
+    u.facing = a;
+    u.anim = 0.4;
+    applyDamage(g, u, t, def.damage * 1.8, null, { melee: true, knock: 20, from: { x: u.x, y: u.y } });
+    fx(g, 'slash', t.x, t.y, { r: 16, life: 0.35, color: '#c9a0ff' });
+    return true;
+  }
+  if (def.ability === 'charge' && d > 60 && d < 220) {
+    // investida: corre em linha reta na direção do alvo
+    u.abilityCd = 9;
+    u.state = 'charge';
+    u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+    u.timer = 1.1;
+    u.hits = [];
+    fxText(g, u.x, u.y - 30, '!!', '#ff8a3d', true);
+    return true;
+  }
+  return false;
+}
+
+/** Rinoceronte em investida: atropela quem estiver no caminho e danifica o prédio em que bater. */
+function charging(g: Game, u: Unit, dt: number, def: AnimalDef) {
+  u.timer -= dt;
+  const sp = def.speed * 3.2 * dt;
+  const nx = u.x + Math.cos(u.facing) * sp;
+  const ny = u.y + Math.sin(u.facing) * sp;
+  u.moving = true;
+  if (!g.world.walkablePx(nx, ny) || u.timer <= 0) {
+    // bateu em algo: se for prédio, ele perde parte da obra
+    const b = g.world.walkablePx(nx, ny) ? null : buildingAtPx(g, nx, ny);
+    if (b && b.built && b.type !== 'hokage') {
+      b.progress = BUILDINGS[b.type].buildTime * 0.75;
+      b.built = false;
+      b.upgrade = null;
+      g.state.timers.jobs = 0;
+      fx(g, 'burst', nx, ny, { r: 30, color: '#b9b2a2', life: 0.5 });
+      g.toast(`{paw} O ${def.name} acertou ${BUILDINGS[b.type].name} em cheio! Os moradores vão consertar.`, 'danger', b && buildingCenter(b));
+    }
+    fx(g, 'smoke', u.x, u.y, { r: 18, life: 0.6, color: '#a89f8a' });
+    u.state = 'roam';
+    u.stun = b ? 1.2 : 0.3; // fica tonto depois de bater
+    u.hits = undefined;
+    return;
+  }
+  u.x = nx;
+  u.y = ny;
+  if (Math.random() < 0.4) fx(g, 'chips', u.x, u.y + 6, { r: 8, life: 0.4, color: '#a89f8a' });
+  for (const o of g.state.units) {
+    if (o.dead || o.hidden || o.faction === u.faction || u.hits!.includes(o.id) || o.faction === 'guest') continue;
+    if (Math.hypot(o.x - u.x, o.y - u.y) > def.size + 10) continue;
+    u.hits!.push(o.id);
+    applyDamage(g, u, o, def.damage * 1.5, null, { knock: 40, stun: 0.6, from: { x: u.x, y: u.y } });
+  }
+}
+
+/** Prédio que ocupa o ponto (px). */
+function buildingAtPx(g: Game, x: number, y: number): Building | null {
+  const tx = toTile(x);
+  const ty = toTile(y);
+  return g.state.buildings.find((b) => {
+    const d = BUILDINGS[b.type];
+    return tx >= b.tx && tx < b.tx + d.w && ty >= b.ty && ty < b.ty + d.h;
+  }) ?? null;
 }
 
 function nearestEdge(x: number, y: number) {

@@ -142,6 +142,8 @@ export interface Unit {
   loot?: Cost;
   /** Bombas já lançadas (o bombardeiro desiste depois de algumas). */
   bombs?: number;
+  /** Investida do rinoceronte: quem já foi atropelado nesta corrida. */
+  hits?: number[];
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }

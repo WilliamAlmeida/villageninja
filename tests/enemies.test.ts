@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SIM_DT } from '../src/config';
 import { killUnit } from '../src/game/combat';
-import { createAnimal, createRogue } from '../src/game/entities';
+import { createAnimal, createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { SYSTEMS } from '../src/game/systems';
@@ -20,6 +20,17 @@ const run = (g: Game, seconds: number, until?: () => boolean) => {
 const noDefenders = (g: Game) => {
   for (const u of g.state.units) if (u.kind === 'ninja') u.dead = true;
   g.state.buildings = g.state.buildings.filter((b) => b.type !== 'tower');
+};
+
+/** Um trecho reto e livre (sem prédio nem árvore) para testar corrida/bote: devolve o início em px. */
+const openRow = (g: Game, len = 300) => {
+  for (let y = 200; y < 1400; y += 32)
+    for (let x = 100; x < 2000; x += 32) {
+      let ok = true;
+      for (let k = 0; k <= len && ok; k += 8) ok = g.world.walkablePx(x + k, y);
+      if (ok) return { x, y };
+    }
+  throw new Error('sem espaço livre');
 };
 
 describe('inimigos novos', () => {
@@ -93,5 +104,48 @@ describe('inimigos novos', () => {
     expect(raidRoles(2, 3).filter(Boolean)).toEqual([]);
     expect(raidRoles(6, 2)).toEqual(['bomber', undefined]);
     expect(raidRoles(8, 4)).toEqual(['bomber', undefined, undefined, 'medic']);
+  });
+
+  test('aranha cospe teia que prende o ninja', () => {
+    const g = createNewGame(SYSTEMS, 41);
+    noDefenders(g);
+    const o = openRow(g);
+    const n = createNinja(g, o.x + 200, o.y, 'genin', 0);
+    n.ninja!.order = 'train';
+    const spider = createAnimal(g, 'spider', o.x + 110, o.y);
+    spider.abilityCd = 0;
+    let stunned = false;
+    run(g, 6, () => (stunned = n.stun > 1));
+    expect(stunned).toBe(true);
+  });
+
+  test('tigre das sombras dá bote e vai embora quando amanhece', () => {
+    const g = createNewGame(SYSTEMS, 42);
+    noDefenders(g);
+    const o = openRow(g);
+    const n = createNinja(g, o.x + 200, o.y, 'jounin', 0);
+    const tiger = createAnimal(g, 'tiger', o.x + 100, o.y);
+    tiger.abilityCd = 0;
+    const hp0 = n.hp;
+    g.state.time = 0; // noite
+    g.step(1 / 60);
+    expect(n.hp).toBeLessThan(hp0);
+    expect(Math.hypot(tiger.x - n.x, tiger.y - n.y)).toBeLessThan(40);
+    // de dia ele desiste
+    n.dead = true;
+    run(g, 1);
+    expect(tiger.life).toBeLessThanOrEqual(0);
+  });
+
+  test('rinoceronte faz investida e atropela', () => {
+    const g = createNewGame(SYSTEMS, 43);
+    noDefenders(g);
+    const o = openRow(g);
+    const n = createNinja(g, o.x + 260, o.y, 'jounin', 0);
+    const rhino = createAnimal(g, 'rhino', o.x + 100, o.y);
+    rhino.abilityCd = 0;
+    const hp0 = n.hp;
+    run(g, 3, () => n.hp < hp0 && rhino.state !== 'charge');
+    expect(n.hp).toBeLessThan(hp0);
   });
 });

@@ -33,8 +33,10 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
           **{f'ninja-hair-{s}': (56, 'biped') for s in ('spiky', 'ponytail', 'short', 'long', 'buns', 'bald')},
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
-          'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped')}
+          'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped')}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
+# folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
+TRUST_FACING = {'spider'}
 SINGLE = {'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}
 COLS, ROWS = 4, 3
 problems: list[str] = []
@@ -131,7 +133,7 @@ for name, (frame_h, kind) in SHEETS.items():
             if not 0.85 <= f.height / med <= 1.15:
                 problems.append(f'{name}: linha {r + 1} quadro {c + 1} com altura fora do padrão ({f.height} vs {med})')
         # folhas de ação (golpe de ferramenta): mãos e ferramenta confundem a detecção de direção; confira a olho
-        if r == 0 and kind != 'action':
+        if r == 0 and kind != 'action' and name not in TRUST_FACING:
             # direção: todo quadro de lado tem que olhar para a DIREITA (o jogo espelha para a esquerda).
             # 1º pela direção absoluta (rosto/cabeça); quadro ambíguo segue os vizinhos já acertados.
             dirs = [facing(f, kind, c) for c, f in enumerate(row)]
