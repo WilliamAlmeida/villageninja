@@ -1,4 +1,5 @@
 // Nível dos prédios: consultas usadas pelos sistemas e o comando de upgrade.
+import { MAX_QUEUE } from '../data/items';
 import { BUILDINGS } from '../data/buildings';
 import { levelStep, MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { levelDef } from '../data/villageLevels';
@@ -33,6 +34,9 @@ export const towerDamage = (b: Building, base: number) => base + (b.type === 'to
 export const towerRange = (b: Building, base: number) => base * (b.type === 'tower' ? levelStep(levelOf(b), 0.15) : 1);
 /** Hospital: cura 1× → 1,5× → 2×. */
 export const healMult = (b: Building) => (b.type === 'hospital' ? levelStep(levelOf(b), 0.5) : 1);
+/** Oficina (Forja, Farmácia, Selos): fabricação mais rápida por nível (1×, 1,4×, 2×) e fila maior (5, 7, 9). */
+export const craftMult = (b: Building) => [1, 1.4, 2][Math.min(3, levelOf(b)) - 1]!;
+export const queueMax = (b: Building) => MAX_QUEUE + (levelOf(b) - 1) * 2;
 /** Campo de treino: o melhor da vila vale para todos (1× → 1,3× → 1,6×). */
 export function trainMult(g: Game) {
   let best = 1;

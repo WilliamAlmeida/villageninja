@@ -1,6 +1,7 @@
 // Equipamento dos ninjas (arma, colete, consumível) e fabricação nas oficinas.
 import { BUILDINGS, type BuildingType } from '../data/buildings';
-import { ITEM_LIST, ITEMS, MAX_QUEUE, type ItemDef, type ItemSlot } from '../data/items';
+import { ITEM_LIST, ITEMS, type ItemDef, type ItemSlot } from '../data/items';
+import { craftMult, queueMax } from './upgrade';
 import { levelDef } from '../data/villageLevels';
 import { refreshDerived } from './entities';
 import { fx, fxText } from './fx';
@@ -132,7 +133,7 @@ export function enqueueCraft(g: Game, buildingId: number, itemId: string): Resul
   if (!b.built) return fail('A oficina ainda está em construção.');
   if ((def.minLevel ?? 0) > g.state.level) return fail(`Requer nível ${levelDef(def.minLevel!).name}.`);
   const q = (b.queue ??= []);
-  if (q.length + (b.craft ? 1 : 0) >= MAX_QUEUE) return fail(`Fila cheia (máx. ${MAX_QUEUE}).`);
+  if (q.length + (b.craft ? 1 : 0) >= queueMax(b)) return fail(`Fila cheia (máx. ${queueMax(b)}).`);
   if (!g.pay(def.cost)) return fail('Recursos insuficientes.');
   q.push(itemId);
   return ok;
@@ -160,7 +161,7 @@ export function advanceCraft(g: Game, buildingId: number, dt: number): boolean {
   if (!b.craft && b.queue?.length) b.craft = { itemId: b.queue.shift()!, progress: 0 };
   if (!b.craft) return false;
   const def = ITEMS[b.craft.itemId]!;
-  b.craft.progress += dt;
+  b.craft.progress += dt * craftMult(b); // upgrade da oficina fabrica mais rápido
   if (b.craft.progress >= def.craftTime) {
     put(g, def.id);
     b.craft = null;

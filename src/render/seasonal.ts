@@ -437,35 +437,59 @@ export class Seasonal {
   drawIce(ctx: Ctx, s: GameState, depth: Uint8Array) {
     const level = Math.round(iceLevel(s) * 10) / 10;
     if (level <= 0) return;
+    const R = 16; // px da textura por tile
     if (!this.iceCanvas) {
       this.iceCanvas = document.createElement('canvas');
-      this.iceCanvas.width = MAP_W * 8;
-      this.iceCanvas.height = MAP_H * 8;
+      this.iceCanvas.width = MAP_W * R;
+      this.iceCanvas.height = MAP_H * R;
     }
     if (level !== this.iceShown) {
       this.iceShown = level;
       let max = 1;
       for (const d of depth) if (d && d < 255) max = Math.max(max, d);
-      const c = this.iceCanvas.getContext('2d')!;
-      c.clearRect(0, 0, this.iceCanvas.width, this.iceCanvas.height);
+      const frozen = (i: number) => {
+        const d = depth[i]!;
+        return d > 0 && d <= Math.max(1, level * max);
+      };
+      // 1) placas de gelo com borda irregular (bolhas avançando sobre a água) e 2) desfoque: margem macia, sem degraus
+      const mask = document.createElement('canvas');
+      mask.width = this.iceCanvas.width;
+      mask.height = this.iceCanvas.height;
+      const m = mask.getContext('2d')!;
       const rnd = mulberry32(s.seed ^ 0x1ce);
       for (let i = 0; i < depth.length; i++) {
-        const d = depth[i]!;
-        if (!d || d > Math.max(1, level * max)) continue;
-        const x = (i % MAP_W) * 8;
-        const y = Math.floor(i / MAP_W) * 8;
-        c.fillStyle = d <= 1 ? 'rgba(222,238,248,0.92)' : 'rgba(200,226,244,0.86)';
-        c.fillRect(x, y, 8, 8);
-        // brilho e rachaduras
+        if (!frozen(i)) continue;
+        const x = (i % MAP_W) * R;
+        const y = Math.floor(i / MAP_W) * R;
+        m.fillStyle = depth[i]! <= 1 ? 'rgb(224,239,249)' : 'rgb(204,228,245)';
+        m.fillRect(x, y, R, R);
+        for (let k = 0; k < 3; k++) {
+          m.beginPath();
+          m.arc(x + rnd() * R, y + rnd() * R, R * (0.25 + rnd() * 0.3), 0, TAU);
+          m.fill();
+        }
+      }
+      const c = this.iceCanvas.getContext('2d')!;
+      c.clearRect(0, 0, this.iceCanvas.width, this.iceCanvas.height);
+      c.globalAlpha = 0.9;
+      c.filter = 'blur(3px)';
+      c.drawImage(mask, 0, 0);
+      c.filter = 'none';
+      c.globalAlpha = 1;
+      // brilhos e rachaduras por cima (só onde congelou)
+      for (let i = 0; i < depth.length; i++) {
+        if (!frozen(i)) continue;
+        const x = (i % MAP_W) * R;
+        const y = Math.floor(i / MAP_W) * R;
         c.fillStyle = 'rgba(255,255,255,0.55)';
-        if (rnd() < 0.5) c.fillRect(x + 1 + rnd() * 4, y + 1 + rnd() * 4, 3, 1);
+        if (rnd() < 0.5) c.fillRect(x + 2 + rnd() * 8, y + 2 + rnd() * 8, 5, 1.5);
         if (rnd() < 0.35) {
-          c.strokeStyle = 'rgba(120,160,190,0.7)';
-          c.lineWidth = 0.6;
+          c.strokeStyle = 'rgba(120,160,190,0.6)';
+          c.lineWidth = 0.8;
           c.beginPath();
-          c.moveTo(x + rnd() * 8, y + rnd() * 8);
-          c.lineTo(x + rnd() * 8, y + rnd() * 8);
-          c.lineTo(x + rnd() * 8, y + rnd() * 8);
+          c.moveTo(x + rnd() * R, y + rnd() * R);
+          c.lineTo(x + rnd() * R, y + rnd() * R);
+          c.lineTo(x + rnd() * R, y + rnd() * R);
           c.stroke();
         }
       }

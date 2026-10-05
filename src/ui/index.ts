@@ -2,6 +2,7 @@ import type { App } from '../app';
 import { alertOpen, closeAlert, installTips } from './popup';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
+import { buildingTip } from './maptip';
 import { orderAttack, orderMove, teamUnits } from '../game/teams';
 import type { Building, Site, Unit } from '../game/types';
 import { isExploredPx } from '../game/explore';
@@ -40,7 +41,7 @@ export function createUI(app: App, root: HTMLElement) {
     'div',
     { id: 'dock' },
     rich(
-      `<button class="bigbtn" data-act="build" title="Construir (B)">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">{map}<span>Mundo</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">{select}<span>Selecionar</span></button>`,
+      `<button class="bigbtn" data-act="build" title="Construir (B)">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">{map}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">{anvil}<span>Oficinas</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">{select}<span>Selecionar</span></button>`,
     ),
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
@@ -48,6 +49,7 @@ export function createUI(app: App, root: HTMLElement) {
   const btnVillage = dock.querySelector<HTMLElement>('[data-act="village"]')!;
   const btnMissions = dock.querySelector<HTMLElement>('[data-act="missions"]')!;
   const btnWorld = dock.querySelector<HTMLElement>('[data-act="world"]')!;
+  const btnCrafts = dock.querySelector<HTMLElement>('[data-act="crafts"]')!;
   const btnSelect = dock.querySelector<HTMLElement>('[data-act="select"]')!;
   dock.addEventListener('pointerdown', (e) => e.stopPropagation());
   dock.addEventListener('click', (e) => {
@@ -69,6 +71,7 @@ export function createUI(app: App, root: HTMLElement) {
     if (a === 'missions') toggleWindow({ kind: 'missions' }, ['missions']);
     if (a === 'world') toggleWindow({ kind: 'region' }, WORLD_VIEWS);
     if (a === 'roster') toggleWindow({ kind: 'roster' }, NINJA_VIEWS);
+    if (a === 'crafts') toggleWindow({ kind: 'crafts' }, ['crafts']);
     if (a === 'select') {
       app.selectTool = !app.selectTool;
       if (app.selectTool) {
@@ -99,7 +102,7 @@ export function createUI(app: App, root: HTMLElement) {
       }
       return;
     }
-    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', s: 'select' };
+    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', f: 'crafts', s: 'select' };
     if (map[k]) dockAction(map[k]);
     if (k === ' ') {
       // espaço: pausa/continua
@@ -312,10 +315,24 @@ export function createUI(app: App, root: HTMLElement) {
     panel.show({ kind: 'group' });
   }
 
+  /** Dica de prédio (desktop): qual prédio está sob o mouse, desde quando e onde. */
+  const tip = { id: null as number | null, since: 0, x: 0, y: 0 };
+  const tipEl = el('div', { id: 'maptip', hidden: '' });
+  document.body.appendChild(tipEl);
+  const tipAt = (id: number | null, sx: number, sy: number) => {
+    if (id !== tip.id) {
+      tip.id = id;
+      tip.since = performance.now();
+    }
+    tip.x = sx;
+    tip.y = sy;
+  };
+
   /** Mouse sobre o mapa: destaca a unidade e devolve o cursor adequado. */
   function onHover(sx: number, sy: number): string {
     if (sx < 0) {
       app.hoverUnitId = panel.hoverId;
+      tipAt(null, 0, 0);
       return 'grab';
     }
     if (app.buildType) {
@@ -328,7 +345,9 @@ export function createUI(app: App, root: HTMLElement) {
     const u = unitAt(sx, sy, 16);
     app.hoverUnitId = u?.id ?? panel.hoverId;
     if (app.orderMode) return 'crosshair';
-    return u || siteAt(sx, sy) || buildingAt(sx, sy) ? 'pointer' : 'grab';
+    const bh = u ? undefined : buildingAt(sx, sy);
+    tipAt(bh?.id ?? null, sx, sy);
+    return u || siteAt(sx, sy) || bh ? 'pointer' : 'grab';
   }
   panel.onHover = (id) => (app.hoverUnitId = id);
 
@@ -348,6 +367,16 @@ export function createUI(app: App, root: HTMLElement) {
     btnVillage.classList.toggle('on', VILLAGE_VIEWS.includes(win.kind ?? ''));
     btnMissions.classList.toggle('on', win.kind === 'missions');
     btnWorld.classList.toggle('on', WORLD_VIEWS.includes(win.kind ?? ''));
+    btnCrafts.classList.toggle('on', win.kind === 'crafts');
+    // dica do prédio: aparece depois de o mouse ficar parado sobre ele um instante
+    const hb = tip.id != null ? app.game.building(tip.id) : undefined;
+    if (hb && performance.now() - tip.since > 550 && win.root.hidden && !app.buildType) {
+      tipEl.innerHTML = buildingTip(app.game, hb);
+      tipEl.hidden = false;
+      const r = tipEl.getBoundingClientRect();
+      tipEl.style.left = `${Math.min(window.innerWidth - r.width - 8, tip.x + 16)}px`;
+      tipEl.style.top = `${Math.min(window.innerHeight - r.height - 8, tip.y + 16)}px`;
+    } else tipEl.hidden = true;
     btnSelect.classList.toggle('on', app.selectTool);
     if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }

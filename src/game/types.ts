@@ -261,6 +261,8 @@ export interface Building {
   focus?: StatKey | null;
   /** Mercado: o que o comerciante vende do excedente do estoque (além do ryo de sempre). */
   sells?: MarketGood | null;
+  /** Oficina com upgrade: quantos de cada item manter no estoque (fabrica sozinha). */
+  keep?: Record<string, number>;
 }
 
 /** Expedição: equipe fora do mapa (mina e, depois, lugares da região). Ver game/expeditions.ts. */
@@ -449,7 +451,7 @@ export interface GameState {
   items: Record<string, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 

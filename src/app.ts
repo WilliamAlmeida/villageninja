@@ -27,6 +27,8 @@ export interface App {
   selectBox: ScreenBox | null;
   /** Ferramenta "Selecionar" ligada: arrastar desenha a caixa em vez de mover a câmera. */
   selectTool: boolean;
+  /** Ninja aberto a partir de uma lista da janela: o painel dele mostra "Voltar" para essa tela. */
+  back: { view: { kind: string; id?: number }; id: number } | null;
   newGame(): void;
   save(): boolean;
 }

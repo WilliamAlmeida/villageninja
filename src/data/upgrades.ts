@@ -23,6 +23,9 @@ export const UPGRADES: Partial<Record<BuildingType, UpgradeDef>> = {
   tower: { costs: [{ wood: 40, stone: 50 }, { wood: 60, stone: 100, ryo: 60 }], minVillage: [0, 1], perks: ['dano 7 · alcance normal', 'dano 10 · +15% de alcance', 'dano 13 · +30% de alcance'] },
   hospital: { costs: [{ wood: 60, stone: 60, ryo: 60 }, { wood: 100, stone: 100, ryo: 120 }], minVillage: [1, 2], perks: ['cura normal', 'cura 50% mais rápida', 'cura 2× mais rápida'] },
   academy: { costs: [{ wood: 80, stone: 60, ryo: 80 }, { wood: 140, stone: 120, ryo: 160 }], minVillage: [0, 1], perks: ['estudo normal · recruta no nível 1', 'estudo de jutsu +30% · recruta no nível 2', 'estudo de jutsu +60% · recruta no nível 3'] },
+  forge: { costs: [{ wood: 100, stone: 80, iron: 30, ryo: 200 }, { wood: 160, stone: 140, iron: 80, ryo: 500 }], minVillage: [1, 2], perks: ['fabricação normal · fila 5', 'fabricação 40% mais rápida · fila 7 · fabrica sozinha', 'fabricação 2× mais rápida · fila 9 · fabrica sozinha'] },
+  pharmacy: { costs: [{ wood: 80, stone: 60, herbs: 40, ryo: 180 }, { wood: 140, stone: 120, herbs: 100, ryo: 450 }], minVillage: [1, 2], perks: ['preparo normal · fila 5', 'preparo 40% mais rápido · fila 7 · prepara sozinha', 'preparo 2× mais rápido · fila 9 · prepara sozinha'] },
+  sealshop: { costs: [{ wood: 100, stone: 50, paper: 30, ryo: 200 }, { wood: 160, stone: 100, paper: 80, ryo: 500 }], minVillage: [1, 2], perks: ['selos normais · fila 5', 'selos 40% mais rápidos · fila 7 · faz sozinha', 'selos 2× mais rápidos · fila 9 · faz sozinha'] },
   training: { costs: [{ wood: 60, stone: 20 }, { wood: 100, stone: 60, ryo: 60 }], minVillage: [0, 1], perks: ['treino normal · 3 vagas', 'treino +30% · 5 vagas', 'treino +60% · 7 vagas'] },
 };
 

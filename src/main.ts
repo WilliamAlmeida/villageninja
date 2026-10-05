@@ -27,6 +27,7 @@ const app: App = {
   orderMode: null,
   group: [],
   hoverUnitId: null,
+  back: null,
   selectBox: null,
   selectTool: false,
   newGame() {

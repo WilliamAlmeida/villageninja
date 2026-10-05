@@ -38,6 +38,7 @@ import {
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
+import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
 import { CARE, catchingUp, isRookie } from '../game/care';
 import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
 import { FIELD_FOCUS_BONUS, MARKET_GOOD_LIST, MARKET_GOODS, type MarketGood } from '../data/specialize';
@@ -46,7 +47,7 @@ import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, cl
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
-import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/items';
+import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
@@ -59,7 +60,7 @@ import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
 import { esc, el } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
-import { housingOf, levelOf, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
+import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { rich } from './icons';
 import { blocked, blockedClick, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
@@ -80,7 +81,13 @@ export type View =
   | { kind: 'clans' }
   | { kind: 'site'; id: number }
   | { kind: 'expeditions' }
-  | { kind: 'region' };
+  | { kind: 'region' }
+  | { kind: 'crafts' };
+
+/** Para onde o botão "Voltar" do ninja leva (tela da janela de onde ele foi aberto). */
+const BACK_LABEL: Partial<Record<View['kind'], string>> = {
+  roster: 'a lista de ninjas', teams: 'as equipes', team: 'a equipe', clans: 'os clãs', missions: 'as missões', region: 'a região', expeditions: 'as expedições', village: 'a vila', kage: 'o Kage', crafts: 'as oficinas',
+};
 
 interface Built {
   html: string;
@@ -141,6 +148,8 @@ const ROUTINE_TIP: Record<NinjaOrder, string> = {
 export class Panel {
   readonly root: HTMLElement;
   private body: HTMLElement;
+  /** Tela de onde a equipe aberta veio (o "Voltar" da equipe leva para lá). */
+  private teamFrom: View | null = null;
   private view: View | null = null;
   private lastHtml = '';
   private armedDemolish = 0;
@@ -223,6 +232,8 @@ export class Panel {
   }
 
   show(view: View | null) {
+    // a tela da equipe guarda de onde veio (lista de ninjas, clãs…) para o "Voltar"
+    if (view?.kind === 'team') this.teamFrom = this.view && this.view.kind !== 'team' ? { ...this.view } : this.teamFrom;
     if (view?.kind !== 'group') this.app.group = [];
     this.setHover(null);
     if (view?.kind !== this.view?.kind || (view && 'id' in view && this.view && 'id' in this.view && view.id !== this.view.id)) this.buildingTab = 'main';
@@ -248,6 +259,7 @@ export class Panel {
     else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
     else if (this.view.kind === 'region') built = this.regionView();
+    else if (this.view.kind === 'crafts') built = this.craftsView();
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamView(tm);
@@ -289,6 +301,9 @@ export class Panel {
     b.hp = u.hp / u.maxHp;
     t.state = STATE_LABEL[u.state] ?? u.state;
     let html = '';
+    const back = this.app.back;
+    if (back && back.id === u.id)
+      html += `<button class="btn mini backbtn" data-act="back-list">{back} Voltar para ${BACK_LABEL[back.view.kind as View['kind']] ?? 'a lista'}</button>`;
 
     if (u.ninja) {
       const n = u.ninja;
@@ -763,7 +778,7 @@ export class Panel {
     } else {
       html += this.upgradeSection(bd, t, b);
       if (bd.type === 'hokage') html += this.villageSummary();
-      if (bd.type === 'missions') html += this.missionsSummary();
+      if (bd.type === 'missions') html += this.missionsSummary() + this.hireSection();
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
       if (bd.type === 'arena') html += this.arenaSection(b);
       if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).</p>`;
@@ -790,7 +805,7 @@ export class Panel {
         html += `<p class="hint">{medic} <b>Resgate:</b> ninja da vila que cair tem ${base}% de chance de ser trazido para cá gravemente ferido, em vez de morrer (+${Math.round(CARE.rescueMedic * 100)}% com um ninja médico por perto, até ${Math.round(CARE.rescueMax * 100)}%). Cada nível do Hospital aumenta a chance.</p>`;
       }
       if (bd.type === 'market') {
-        html += this.marketSection(bd);
+        html += this.marketSection(bd) + this.rareSection();
         html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
         html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender 1 (+${GOLD_PRICE}{ryo})</button>
           <button class="btn" data-act="sell-gold" data-arg="all" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender tudo</button></div>`;
@@ -799,7 +814,8 @@ export class Panel {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
         html += `<h4>Recrutamento</h4><p class="hint">Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.</p>`;
         html += `<div class="actions"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ninja (${costLabel(RECRUIT_COST)})</button></div>`;
-        html += `<p class="hint">Para ensinar jutsu: selecione um ninja → "Ensinar jutsu".</p>`;
+        html += this.teachBar();
+        html += `<p class="hint">Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".</p>`;
       }
       if (bd.type === 'training') html += this.fieldSection(bd, t);
       if (d.healRate) html += `<p class="hint">Cura ${d.healRate} HP/s de quem descansa aqui.</p>`;
@@ -843,6 +859,111 @@ export class Panel {
       ? `<p class="hint">A cada venda (8 s) leva até ${m.lot} ${RES_INFO[bd.sells!].icon} por +${m.ryo}{ryo}, sempre deixando ${m.keep} no estoque. Dois mercados podem escoar coisas diferentes.</p>`
       : `<p class="hint">Escolha uma mercadoria para o comerciante vender o que sobrar no estoque (madeira, pedra, comida ou ervas).</p>`;
     return html;
+  }
+
+  /** Ensino de jutsus: todos de uma vez agora e o modo automático. */
+  private teachBar() {
+    const g = this.app.game;
+    const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && !u.ninja.learning && u.ninja.jutsu.includes(null)).length;
+    const on = !!g.state.flags.autoTeach;
+    return `<div class="btnrow gearbar"><button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr(
+      'Ensinar todos agora',
+      'Cada ninja com espaço livre vai estudar o melhor jutsu que pode aprender (pela natureza, rank e atributos dele). Paga o ryo de cada jutsu.',
+    )}>{scroll} Ensinar todos (${free})</button>
+      <button class="btn ${on ? 'primary' : ''}" data-act="auto-teach" ${tipAttr(
+        'Ensino automático',
+        `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`,
+      )}>{refresh} Ensino automático: ${on ? 'ligado' : 'desligado'}</button></div>`;
+  }
+
+  /** Mesa de Missões: contratar ninjas mercenários (destino para o ryo). */
+  private hireSection() {
+    const g = this.app.game;
+    let html = `<h4>{ninja} Contratar mercenário</h4><p class="hint">Ninjas errantes servem a vila por ryo. Chegam prontos, mas ocupam uma vaga de casa.</p><div class="btnrow">`;
+    for (const r of ['chunin', 'jounin'] as const) {
+      const m = MERCS[r];
+      const why = hireBlock(g, r);
+      html += `<button class="btn primary" data-act="hire" data-arg="${r}" ${blocked(g, [why && !why.startsWith('Custa') && why], m.cost)}>${RANKS[r].name} nível ${m.level} · ${costLabel(m.cost)}</button>`;
+    }
+    return html + `</div>`;
+  }
+
+  /** Mercado: materiais raros (antes só das minas) para os itens lendários. */
+  private rareSection() {
+    const g = this.app.game;
+    let html = `<h4>{crystal} Materiais raros</h4><p class="hint">Mercadores de longe trazem cristal de chakra e aço negro, usados nos itens lendários da Forja e da Farmácia.</p><div class="btnrow">`;
+    for (const res of ['crystal', 'darksteel'] as const) {
+      const price = RARE_PRICE[res]!;
+      for (const n of [1, 5])
+        html += `<button class="btn" data-act="buy-rare" data-arg="${res}:${n}" ${blocked(g, [g.state.level < 2 && 'Só para uma Vila Oculta.'], { ryo: price * n })}>${RES_INFO[res].icon} +${n} · ${price * n}{ryo}</button>`;
+    }
+    return html + `</div>`;
+  }
+
+  /** Janela das Oficinas: Forja, Farmácia e Selos lado a lado, com produção, fila, receitas e fabricação automática. */
+  private craftsView(): Built {
+    const g = this.app.game;
+    const t: Record<string, string> = {};
+    const b: Record<string, number> = {};
+    const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja);
+    const lack = (slot: ItemSlot) => ninjas.filter((u) => !u.ninja!.equip[slot]).length;
+    let html = `<div class="ph"><div class="title">{anvil} Oficinas</div></div>`;
+    html += `<p class="hint">De ${ninjas.length} ninjas: <b>${lack('weapon')}</b> sem arma · <b>${lack('armor')}</b> sem colete · <b>${lack('item')}</b> sem consumível.</p>`;
+    html += this.gearBar() + `<div class="craftgrid">`;
+    for (const type of ['forge', 'pharmacy', 'sealshop'] as const) html += this.craftCard(type, t, b);
+    return { html: html + `</div>`, t, b };
+  }
+
+  private craftCard(type: 'forge' | 'pharmacy' | 'sealshop', t: Record<string, string>, b: Record<string, number>) {
+    const g = this.app.game;
+    const d = BUILDINGS[type];
+    const bd = g.state.buildings.find((x) => x.type === type);
+    let html = `<div class="wscard"><div class="wshead"><span class="wsname">${d.icon} ${esc(d.name)}</span>${bd ? `<span class="badge">Nv ${levelOf(bd)}</span>` : ''}</div>`;
+    if (!bd) return html + `<p class="why">Ainda não construída. Abra Construir (B) para erguer: ${esc(d.name)}.</p></div>`;
+    if (!bd.built) return html + `<p class="hint">{hammer} Em obra…</p></div>`;
+    html += bd.workers.length
+      ? `<p class="hint">{hammer} Artesão trabalhando</p>`
+      : `<p class="why">Sem artesão: nada é fabricado. <button class="btn mini" data-act="ws-worker" data-arg="${bd.id}">{plus} Chamar artesão</button></p>`;
+    const q = bd.queue ?? [];
+    const used = q.length + (bd.craft ? 1 : 0);
+    const max = queueMax(bd);
+    if (bd.craft) {
+      const it = ITEMS[bd.craft.itemId]!;
+      const k = `cr${bd.id}`;
+      b[k] = bd.craft.progress / it.craftTime;
+      t[k] = `${it.name} ${Math.floor(b[k] * 100)}%`;
+      html += `<div class="bar pg"><i data-b="${k}"></i><span data-t="${k}"></span></div>`;
+    } else html += `<p class="hint">Nada em produção.</p>`;
+    html += `<div class="wsqueue"><span class="hint">Fila ${used}/${max}</span> ${q.map((id) => `<span class="qi">${ITEMS[id]!.icon}</span>`).join('')}${
+      used ? ` <button class="btn mini" data-act="ws-cancel" data-arg="${bd.id}" ${tipAttr('Cancelar o último', 'Devolve os recursos do último pedido.')}>{x}</button>` : ''
+    }</div>`;
+    const auto = canAutoCraft(bd);
+    for (const r of recipesOf(type)) {
+      const locked = (r.minLevel ?? 0) > g.state.level;
+      const keep = bd.keep?.[r.id] ?? 0;
+      const time = Math.round(r.craftTime / craftMult(bd));
+      html += `<div class="wsrow ${locked ? 'locked' : ''}"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${r.icon} ${esc(r.name)}</span><span class="badge">${stock(g, r.id)} no estoque</span></div>
+        <div class="wsr-cost">${costLabel(r.cost)} · ${time}s</div>`;
+      if (locked) html += `<div class="why">{lock} Requer ${levelDef(r.minLevel!).name}</div>`;
+      else {
+        const full = used >= max && `A fila está cheia (máximo ${max}).`;
+        html += `<div class="btnrow"><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [full], r.cost)}>+1</button><button class="btn mini" data-act="ws-craft" data-arg="${bd.id}:${r.id}:5" ${blocked(g, [full], r.cost)}>+5</button></div>`;
+        if (auto)
+          html += `<div class="chips wsr-keep"><span class="hint">Manter</span>${[0, 3, 5, 10, 20]
+            .map((n) => `<button data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}" class="${keep === n ? 'on' : ''}">${n || 'não'}</button>`)
+            .join('')}</div>`;
+      }
+      html += `</div>`;
+    }
+    const lvl = levelOf(bd);
+    if (bd.upgrade != null) html += `<p class="hint">{up} Upgrade em obra…</p>`;
+    else if (lvl < 3) {
+      const st = upgradeStatus(g, bd);
+      html += `<div class="wsauto"><p class="hint">${
+        auto ? `{up} Nível ${lvl + 1}: ${esc(UPGRADES[type]!.perks[lvl]!)}` : `{refresh} No nível ${AUTO_CRAFT_LEVEL} ela fabrica sozinha para manter o estoque.`
+      }</p><button class="btn primary big" data-act="ws-upgrade" data-arg="${bd.id}" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}><span>{up} Nível ${lvl + 1}</span><span class="cost">${costLabel(st.cost ?? {})}</span></button></div>`;
+    }
+    return html + `</div>`;
   }
 
   /** Proteger novatos: Genins se abrigam de inimigos fortes demais (com veteranos em casa para defender). */
@@ -1212,7 +1333,9 @@ export class Panel {
   private workshopSection(bd: Building, t: Record<string, string>, b: Record<string, number>) {
     const g = this.app.game;
     const recipes = recipesOf(bd.type);
-    let html = this.gearBar() + `<h4>Estoque</h4><div class="btnrow">`;
+    const MAX_QUEUE = queueMax(bd);
+    let html = `<div class="actions"><button class="btn primary" data-act="win" data-arg="crafts">{anvil} Abrir painel das Oficinas</button></div>`;
+    html += this.gearBar() + `<h4>Estoque</h4><div class="btnrow">`;
     for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
     html += `</div>`;
     const queue = bd.queue ?? [];
@@ -1334,7 +1457,7 @@ export class Panel {
       name: (a, z) => a.name.localeCompare(z.name, 'pt-BR'),
     };
     const list = ninjas.filter(tests[this.rosterFilter][1]).sort(by[this.rosterSort]);
-    html += this.gearBar() + this.rookieBar();
+    html += this.gearBar() + this.rookieBar() + this.teachBar();
     html += `<p class="hint">${list.length} de ${ninjas.length} ninja(s). Toque para selecionar.</p>`;
     if (!list.length) html += `<p class="hint">Nenhum ninja neste filtro.</p>`;
     html += `<div class="roster">`;
@@ -1372,7 +1495,11 @@ export class Panel {
       'Montar automaticamente',
       'Completa as vagas das equipes que já existem e cria novas com quem está sem equipe, equilibrando a força e dando um sensei Chunin+ a cada uma quando houver.',
     )}>{users} Montar equipes automaticamente${free ? ` (${free} sem equipe)` : ''}</button>
-      <button class="btn" data-act="team-new">{plus} Nova equipe vazia</button></div>`;
+      <button class="btn" data-act="team-new">{plus} Nova equipe vazia</button>
+      <button class="btn ${g.state.flags.autoSensei ? 'primary' : ''}" data-act="auto-sensei" ${tipAttr(
+        'Senseis automáticos',
+        'Ligado: equipe sem sensei recebe um sozinha (um Chunin+ da própria equipe ou o Jounin livre mais forte).',
+      )}>{crown} Senseis automáticos: ${g.state.flags.autoSensei ? 'ligado' : 'desligado'}</button></div>`;
     if (!g.state.teams.length) html += `<p class="hint">Nenhuma equipe ainda.</p>`;
     return { html, t: {}, b: {} };
   }
@@ -1410,7 +1537,7 @@ export class Panel {
     const b: Record<string, number> = {};
     const sensei = g.unit(tm.senseiId);
     const units = teamUnits(g, tm);
-    let html = `<div class="ph"><div class="row"><button class="btn icon" data-act="tab" data-arg="teams" title="Voltar">{back}</button>
+    let html = `<div class="ph"><div class="row"><button class="btn icon" data-act="team-back" title="Voltar">{back}</button>
       <div class="title teamtag" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)}</div></div></div>`;
     if (!sensei && !tm.memberIds.length)
       html += `<div class="warnbox">Monte a equipe aqui: escolha até ${MAX_MEMBERS} membros e, se quiser, um sensei Chunin ou Jounin (treinam 50% mais rápido).</div>`;
@@ -1482,14 +1609,67 @@ export class Panel {
         this.show(null);
         return;
       case 'pick': {
-        // da janela: fecha e abre o ninja no painel lateral, com a câmera nele
+        // da janela: fecha e abre o ninja no painel lateral, com a câmera nele (lembrando de onde veio, para o "Voltar")
         const u = g.unit(Number(arg));
         if (u) {
-          if (this.mode === 'window') this.show(null);
+          if (this.mode === 'window') {
+            if (this.view) this.app.back = { view: { ...this.view }, id: u.id };
+            this.show(null);
+          }
           g.select({ kind: 'unit', id: u.id });
           this.app.camera.focus(u.x, u.y);
         }
         return;
+      }
+      case 'back-list': {
+        const bk = this.app.back;
+        this.app.back = null;
+        if (!bk) return;
+        g.select(null);
+        this.onWindow(bk.view as View);
+        return;
+      }
+      case 'team-back':
+        this.show(this.teamFrom ?? { kind: 'teams' });
+        return;
+      case 'ws-craft': {
+        const [bid, id, n] = String(arg).split(':');
+        let made = 0;
+        let last: { ok: true } | { ok: false; error: string } = { ok: true };
+        for (let i = 0; i < Number(n); i++) {
+          last = enqueueCraft(g, Number(bid), id!);
+          if (!last.ok) break;
+          made++;
+        }
+        return this.report(made ? { ok: true } : last);
+      }
+      case 'ws-cancel':
+        return this.report(cancelCraft(g, Number(arg)));
+      case 'ws-keep': {
+        const [bid, id, n] = String(arg).split(':');
+        return this.report(setKeep(g, Number(bid), id!, Number(n)));
+      }
+      case 'ws-worker':
+        return this.report(setDesiredWorkers(g, Number(arg), 1));
+      case 'ws-upgrade':
+        return this.report(startUpgrade(g, Number(arg)));
+      case 'teach-all': {
+        const n = teachAll(g);
+        g.toast(n ? `{scroll} ${n} ninja(s) foram estudar um jutsu novo na Academia.` : '{scroll} Ninguém pôde começar a estudar agora (sem espaço, sem jutsu disponível ou sem ryo).', n ? 'good' : 'info');
+        return this.report({ ok: true });
+      }
+      case 'auto-teach':
+        g.state.flags.autoTeach = !g.state.flags.autoTeach;
+        g.toast(g.state.flags.autoTeach ? '{scroll} Academia vai ensinar sozinha quem tiver espaço para jutsu.' : '{scroll} Ensino automático desligado.', 'info');
+        return this.report({ ok: true });
+      case 'auto-sensei':
+        g.state.flags.autoSensei = !g.state.flags.autoSensei;
+        return this.report({ ok: true });
+      case 'hire':
+        return this.report(hireMercenary(g, arg as 'chunin' | 'jounin'));
+      case 'buy-rare': {
+        const [res, n] = String(arg).split(':');
+        return this.report(buyRare(g, res as 'crystal' | 'darksteel', Number(n)));
       }
       case 'tab':
         if (this.mode === 'drawer') g.select(null);

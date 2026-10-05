@@ -78,6 +78,12 @@ import cave from '../art/cave.png';
 import port from '../art/port.png';
 import kennel from '../art/kennel.png';
 import arena from '../art/arena.png';
+import forge2 from '../art/forge-2.png';
+import forge3 from '../art/forge-3.png';
+import pharmacy2 from '../art/pharmacy-2.png';
+import pharmacy3 from '../art/pharmacy-3.png';
+import sealshop2 from '../art/sealshop-2.png';
+import sealshop3 from '../art/sealshop-3.png';
 import intel from '../art/intel.png';
 import puppetshop from '../art/puppetshop.png';
 import dog from '../art/dog.png';
@@ -91,7 +97,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, 'rock-cracked': rockCracked,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
-  'academy-2': academy2, 'academy-3': academy3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
+  'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
   'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug };
 
 /**
@@ -118,6 +124,7 @@ export const ART_SCALE: Record<string, number> = {
   'tower-3': 1.06,
   'hokage-4': 1.12,
   missions: 1.25,
+  'forge-2': 1.08, 'forge-3': 1.16, 'pharmacy-2': 1.08, 'pharmacy-3': 1.16, 'sealshop-2': 1.08, 'sealshop-3': 1.16,
 };
 
 export const artUrl = (name: string): string | null => URLS[name] ?? null;

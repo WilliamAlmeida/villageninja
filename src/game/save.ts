@@ -125,6 +125,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   17: (s) => {
     s.clouds = []; // nuvens de chuva no mapa (surgem no próximo tick se for dia de chuva)
   },
+  18: (s) => {
+    s.flags.autoTeach = false; // Academia ensina sozinha (o jogador liga)
+    s.flags.autoSensei = true; // equipes sem sensei recebem um
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -468,3 +468,27 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .workers .wnum > b { font-size: 1.3rem; }
 .workers .wnum small { color: var(--muted); font-size: 0.75rem; }
 .gearbar { margin-bottom: 0.4rem; }
+
+/* Oficinas: as três lado a lado (uma coluna no celular) */
+.craftgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.6rem; margin-top: 0.4rem; }
+.wscard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 0.55rem 0.6rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.wshead { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.wsname { font-weight: 700; font-size: 1.02rem; }
+.wsqueue { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+.wsqueue .qi { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 0.35rem; background: var(--card-hi); }
+.wsrow { border-top: 1px solid var(--line); padding-top: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.wsrow.locked { opacity: 0.55; }
+.wsr-top { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; }
+.wsr-name { font-weight: 600; }
+.wsr-cost { color: var(--muted); font-size: 0.82rem; }
+.wsr-keep { align-items: center; }
+.wsr-keep button { padding: 0.15rem 0.45rem; font-size: 0.78rem; }
+.wsauto { border-top: 1px dashed var(--line); padding-top: 0.35rem; }
+/* "Voltar" para a lista de onde o ninja foi aberto */
+.backbtn { margin-bottom: 0.35rem; }
+/* dica do mapa ao parar o mouse sobre um prédio (desktop) */
+#maptip { position: fixed; z-index: 30; pointer-events: none; max-width: 17rem; padding: 0.45rem 0.6rem; border-radius: var(--r);
+  background: var(--bg); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
+#maptip small { color: var(--warn); font-weight: 700; margin-left: 0.25rem; }
+#maptip .mt-desc { color: var(--muted); font-size: 0.78rem; margin-bottom: 0.15rem; }
+#maptip .mt-hint { color: var(--muted); font-size: 0.72rem; margin-top: 0.15rem; }
