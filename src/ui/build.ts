@@ -112,8 +112,14 @@ export class BuildUI {
 
   update() {
     if (this.bar.hidden) return;
+    const g = this.app.game;
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
-      const r = canBuild(this.app.game, c.dataset.type as BuildingType);
+      const type = c.dataset.type as BuildingType;
+      // prédio único que a vila já tem (pronto ou em obra) sai da lista; volta se for demolido
+      const have = !!BUILDINGS[type].unique && g.state.buildings.some((b) => b.type === type);
+      if (c.hidden !== have) c.hidden = have;
+      if (have) return;
+      const r = canBuild(g, type);
       c.classList.toggle('off', !r.ok);
       const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;
       const lock = min > this.app.game.state.level ? `{lock} ${levelDef(min).name}` : '';

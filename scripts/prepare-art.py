@@ -19,7 +19,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 # largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles
 BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'academy': 6, 'hospital': 5, 'tower': 2.6,
              'library': 5, 'missions': 4, 'ironmine': 4, 'forge': 4, 'pharmacy': 4, 'sealshop': 4, 'monument': 6,
-             'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4}
+             'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4, 'arena': 8}
 FLIP = {'lumber', 'quarry', 'market', 'academy', 'tower'}
 # níveis de upgrade (<tipo>-2, <tipo>-3): mesma largura e mesmo espelhamento do nível 1
 for _name in list(BUILDINGS):
