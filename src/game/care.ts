@@ -9,6 +9,7 @@ import type { Game } from './game';
 import { followPath, setDestination } from './movement';
 import { gainXp } from './progression';
 import { teamOf, teamUnits } from './teams';
+import { missionOfTeam } from './missions';
 import type { Unit } from './types';
 import { levelOf } from './upgrade';
 import { doorPos } from './world';
@@ -77,6 +78,9 @@ function shelterPoint(g: Game, u: Unit) {
  */
 export function shelterTick(g: Game, u: Unit, dt: number): boolean {
   if (!g.state.flags.shelterRookies || !isRookie(u)) return false;
+  // em missão a equipe não abandona o serviço (o mercador da escolta, os alvos)
+  const team = teamOf(g, u);
+  if (team && missionOfTeam(g, team.id)) return false;
   // sem nenhum veterano (Chunin+) na vila, os novatos são a única defesa: lutam
   if (!hasVeterans(g)) {
     if (u.state === 'shelter' || u.state === 'toShelter') {

@@ -55,10 +55,13 @@ export interface WeatherDef {
 
 export const WEATHERS: Record<Weather, WeatherDef> = {
   clear: { name: 'Tempo bom', icon: '{sun}', harvest: 1, speed: 1, boost: ['katon'], desc: 'Katon (fogo) +20% de dano.' },
-  rain: { name: 'Chuva', icon: '{rain}', harvest: 1.1, speed: 0.95, boost: ['suiton'], desc: 'Colheita +10%. Suiton (água) +20% de dano.' },
-  storm: { name: 'Tempestade', icon: '{storm}', harvest: 0.9, speed: 0.9, boost: ['raiton', 'fuuton'], desc: 'Raiton e Fuuton +20% de dano. Todos 10% mais lentos.' },
+  rain: { name: 'Chuva', icon: '{rain}', harvest: 1.1, speed: 0.95, boost: ['suiton'], desc: 'Nuvens de chuva cruzam o mapa. Embaixo delas: colheita +10% e Suiton (água) +20% de dano.' },
+  storm: { name: 'Tempestade', icon: '{storm}', harvest: 0.9, speed: 0.9, boost: ['raiton', 'fuuton'], desc: 'Nuvens de tempestade cruzam o mapa. Embaixo delas: Raiton e Fuuton +20% de dano e todos 10% mais lentos.' },
   snow: { name: 'Neve', icon: '{snow}', harvest: 0.8, speed: 0.85, boost: ['suiton'], desc: 'Todos 15% mais lentos. Suiton +20% de dano.' },
 };
+
+/** Nuvens de chuva: quantas por dia de chuva/tempestade, tamanho (raio em px de mundo) e velocidade (px/s). */
+export const CLOUDS = { count: { rain: 3, storm: 5 }, rMin: 170, rMax: 330, speed: [12, 24] as [number, number] };
 
 /** Neve no chão: dias nevando para cobrir tudo e dias para derreter (inverno sem neve, primavera, resto do ano). */
 export const SNOW = { cover: 1.2, meltWinter: 4, meltSpring: 1.2, meltWarm: 0.4 };

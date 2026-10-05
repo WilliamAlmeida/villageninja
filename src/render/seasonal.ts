@@ -9,10 +9,16 @@ import { SEASON_DAYS, type Season } from '../data/seasons';
 import { festivalOn, isSnowing, seasonOf } from '../game/mood';
 import type { GameState } from '../game/types';
 import { doorPos, idx, T } from '../game/world';
+import { project } from '../core/iso';
 
 type Ctx = CanvasRenderingContext2D;
 type Pic = HTMLImageElement | HTMLCanvasElement;
 const TAU = Math.PI * 2;
+
+const hash = (x: number, y: number) => {
+  const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
 
 /** Lado (px de mundo) de cada célula da camada de neve. */
 const CELL = 8;
@@ -73,6 +79,19 @@ export class Seasonal {
   private prints: Print[] = [];
   private steps = new Map<number, { x: number; y: number; side: number }>();
   private patches: { x: number; y: number; r: number; t: number }[] = [];
+  // chuva: chão molhado/poças, gotas caindo, respingos e raios
+  private puddle = new Float32Array(GW * GH);
+  private wet = new Float32Array(GW * GH);
+  private wetCanvas: HTMLCanvasElement | null = null;
+  private wetImg: ImageData | null = null;
+  private wetSince = REFRESH;
+  private anyWet = false;
+  private drops: { x: number; y: number; z: number; vz: number }[] = [];
+  private splashes: { x: number; y: number; t: number }[] = [];
+  private bolt: { x: number; y: number; t: number; seed: number } | null = null;
+  private boltIn = 4;
+  /** Clarão do raio na tela (0–1). */
+  flash = 0;
   private iceCanvas: HTMLCanvasElement | null = null;
   private iceShown = -1;
   private seen = new WeakSet<object>();
@@ -103,16 +122,21 @@ export class Seasonal {
     };
     const big = octave(10);
     const small = octave(3);
+    const pud = octave(5);
     for (let y = 0; y < GH; y++)
       for (let x = 0; x < GW; x++) {
         const i = y * GW + x;
         this.noise[i] = big(x, y) * 0.7 + small(x, y) * 0.3;
+        this.puddle[i] = pud(x, y);
         const tx = Math.floor((x * CELL) / TILE);
         const ty = Math.floor((y * CELL) / TILE);
         this.water[i] = s.tiles[idx(tx, ty)] === T.WATER ? 1 : 0;
       }
     this.trample.fill(0);
     this.melt.fill(0);
+    this.wet.fill(0);
+    this.anyWet = false;
+    this.drops.length = 0;
     this.prints.length = 0;
     this.patches.length = 0;
     this.iceShown = -1;
@@ -157,6 +181,178 @@ export class Seasonal {
   stats(x: number, y: number) {
     const i = Math.floor(y / CELL) * GW + Math.floor(x / CELL);
     return { prints: this.prints.length, patches: this.patches.length, trample: this.trample[i] ?? 0, melt: this.melt[i] ?? 0 };
+  }
+
+  /**
+   * Chuva no mapa (só embaixo das nuvens do estado): gotas caindo onde a câmera vê, respingos ao tocar o chão, raios
+   * nas tempestades, e o chão que fica molhado (com poças nos pontos baixos) e seca devagar.
+   */
+  rainFrame(s: GameState, dt: number, visible: (x: number, y: number) => boolean) {
+    if (dt <= 0) return;
+    const storm = s.weather === 'storm';
+    const density = ((light ? 0.5 : 1) * (storm ? 1.6 : 1)) / 420; // gotas por px² de nuvem por segundo
+    for (const c of s.clouds) {
+      const n = Math.PI * c.r * c.r * density * dt;
+      const k = Math.floor(n) + (Math.random() < n % 1 ? 1 : 0);
+      for (let i = 0; i < k && this.drops.length < 1200; i++) {
+        const a = Math.random() * TAU;
+        const rr = c.r * Math.sqrt(Math.random());
+        const x = c.x + Math.cos(a) * rr;
+        const y = c.y + Math.sin(a) * rr;
+        if (visible(x, y)) this.drops.push({ x, y, z: 60 + Math.random() * 50, vz: storm ? 360 : 290 });
+      }
+    }
+    const kept: typeof this.drops = [];
+    for (const d of this.drops) {
+      d.z -= d.vz * dt;
+      if (d.z > 0) kept.push(d);
+      else if (!light || Math.random() < 0.4) {
+        const cx = Math.floor(d.x / CELL);
+        const cy = Math.floor(d.y / CELL);
+        // na água o respingo também vale (anel); fica só o limite de quantidade
+        if (cx >= 0 && cy >= 0 && cx < GW && cy < GH && this.splashes.length < 300) this.splashes.push({ x: d.x, y: d.y, t: 0 });
+      }
+    }
+    this.drops = kept;
+    for (const p of this.splashes) p.t += dt;
+    this.splashes = this.splashes.filter((p) => p.t < 0.3);
+    // raios: de vez em quando, num ponto de uma nuvem de tempestade que esteja à vista
+    this.flash = Math.max(0, this.flash - dt * 3);
+    if (this.bolt && (this.bolt.t += dt) > 0.35) this.bolt = null;
+    if (storm && s.clouds.length && (this.boltIn -= dt) <= 0) {
+      this.boltIn = 3 + Math.random() * 6;
+      const c = s.clouds[Math.floor(Math.random() * s.clouds.length)]!;
+      const a = Math.random() * TAU;
+      const x = c.x + Math.cos(a) * c.r * 0.6 * Math.random();
+      const y = c.y + Math.sin(a) * c.r * 0.6 * Math.random();
+      if (visible(x, y)) {
+        this.bolt = { x, y, t: 0, seed: Math.random() * 1000 };
+        this.flash = 1;
+      }
+    }
+    // chão molhado: sobe embaixo das nuvens, seca devagar (atualizado a cada meio segundo)
+    this.wetSince += dt;
+    if (this.wetSince >= REFRESH && (s.clouds.length || this.anyWet)) {
+      const k = this.wetSince;
+      this.wetSince = 0;
+      let any = false;
+      for (let i = 0; i < GW * GH; i++) if (this.wet[i]! > 0) (this.wet[i] = Math.max(0, this.wet[i]! - k * 0.006)), (any ||= this.wet[i]! > 0);
+      for (const c of s.clouds) {
+        const r = Math.ceil(c.r / CELL);
+        const cx = Math.floor(c.x / CELL);
+        const cy = Math.floor(c.y / CELL);
+        for (let y = Math.max(0, cy - r); y <= Math.min(GH - 1, cy + r); y++)
+          for (let x = Math.max(0, cx - r); x <= Math.min(GW - 1, cx + r); x++) {
+            if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue;
+            const i = y * GW + x;
+            if (this.water[i]) continue;
+            this.wet[i] = Math.min(1, this.wet[i]! + k * 0.06);
+            any = true;
+          }
+      }
+      this.anyWet = any;
+      this.wetTexture();
+    }
+  }
+
+  private wetTexture() {
+    if (!this.wetCanvas) {
+      this.wetCanvas = document.createElement('canvas');
+      this.wetCanvas.width = GW;
+      this.wetCanvas.height = GH;
+      this.wetImg = this.wetCanvas.getContext('2d')!.createImageData(GW, GH);
+    }
+    const px = this.wetImg!.data;
+    for (let i = 0; i < GW * GH; i++) {
+      const w = this.wet[i]!;
+      const o = i * 4;
+      // poça nos pontos baixos (ruído próprio); no resto, só o chão mais escuro
+      const t = w * 0.55 - 0.12 - this.puddle[i]!;
+      if (t > 0) {
+        const edge = t < 0.04;
+        px[o] = edge ? 150 : 88;
+        px[o + 1] = edge ? 170 : 112;
+        px[o + 2] = edge ? 200 : 148;
+        px[o + 3] = Math.min(170, 90 + t * 900);
+      } else {
+        px[o] = 30;
+        px[o + 1] = 40;
+        px[o + 2] = 34;
+        px[o + 3] = w * 55;
+      }
+    }
+    this.wetCanvas.getContext('2d')!.putImageData(this.wetImg!, 0, 0);
+  }
+
+  /** (chão, coordenadas de mundo) Chão molhado e poças. */
+  drawWet(ctx: Ctx) {
+    if (!this.anyWet || !this.wetCanvas) return;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(this.wetCanvas, 0, 0, WORLD_W, WORLD_H);
+    ctx.restore();
+  }
+
+  /** (chão, coordenadas de mundo) Sombra das nuvens de chuva. */
+  drawCloudShadows(ctx: Ctx, s: GameState) {
+    for (const c of s.clouds) {
+      const g = ctx.createRadialGradient(c.x, c.y, c.r * 0.2, c.x, c.y, c.r * 1.1);
+      g.addColorStop(0, s.weather === 'storm' ? 'rgba(14,20,36,0.42)' : 'rgba(20,30,50,0.3)');
+      g.addColorStop(1, 'rgba(20,30,50,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r * 1.1, 0, TAU);
+      ctx.fill();
+    }
+  }
+
+  /** (cena, já projetado) Gotas caindo, respingos e o raio. */
+  drawRain(ctx: Ctx, s: GameState) {
+    if (this.drops.length) {
+      const slant = (s.day % 2 ? 1 : -1) * (s.weather === 'storm' ? 0.35 : 0.15);
+      ctx.strokeStyle = 'rgba(200,218,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const d of this.drops) {
+        const p = project(d.x, d.y);
+        ctx.moveTo(p.x - slant * (d.z + 12), p.y - d.z - 12);
+        ctx.lineTo(p.x - slant * d.z, p.y - d.z);
+      }
+      ctx.stroke();
+    }
+    if (this.splashes.length) {
+      ctx.lineWidth = 0.8;
+      for (const p of this.splashes) {
+        const q = project(p.x, p.y);
+        const k = p.t / 0.3;
+        ctx.strokeStyle = `rgba(200,220,255,${0.6 * (1 - k)})`;
+        ctx.beginPath();
+        ctx.ellipse(q.x, q.y, 1 + k * 4, 0.5 + k * 2, 0, 0, TAU);
+        ctx.stroke();
+      }
+    }
+    if (this.bolt) {
+      const b = this.bolt;
+      const p = project(b.x, b.y);
+      const a = 1 - b.t / 0.35;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const [w, col] of [[5, `rgba(150,180,255,${0.5 * a})`], [1.8, `rgba(255,255,255,${a})`]] as const) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(p.x + hash(b.seed, 0) * 30 - 15, p.y - 260);
+        for (let i = 1; i < 9; i++) ctx.lineTo(p.x + (hash(b.seed, i) - 0.5) * 26 * (1 - i / 9), p.y - 260 + (260 * i) / 9);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      }
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 30);
+      g.addColorStop(0, `rgba(220,230,255,${0.8 * a})`);
+      g.addColorStop(1, 'rgba(220,230,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x - 30, p.y - 30, 60, 60);
+      ctx.restore();
+    }
   }
 
   /** Quanto de neve há numa célula (0–1), sem contar trilhas e derretimento. */
@@ -439,10 +635,6 @@ export function drawDeco(ctx: Ctx, d: Deco, x: number, y: number, time: number) 
 }
 
 // ------------------------------------------------------------------ neve no alto dos desenhos e árvores por estação
-const hash = (x: number, y: number) => {
-  const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-  return v - Math.floor(v);
-};
 const caps = new Map<string, HTMLCanvasElement>();
 const trees = new Map<string, HTMLCanvasElement>();
 

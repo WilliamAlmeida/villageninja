@@ -6,6 +6,7 @@ import { FESTIVAL, SEASON_DAYS, SEASON_ORDER, SEASONS, WEATHERS, type Season } f
 import type { Nature } from '../data/natures';
 import type { Game } from './game';
 import type { GameState } from './types';
+import { weatherAt } from './weather';
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -16,14 +17,17 @@ export const isSnowing = (s: GameState) => s.weather === 'snow' || (s.weather ==
 /** Dias que faltam para a próxima estação. */
 export const daysToNextSeason = (s: GameState) => SEASON_DAYS - ((s.day - 1) % SEASON_DAYS);
 
-/** Multiplicador da colheita (estação × clima). */
-export const harvestMult = (s: GameState) => SEASONS[seasonOf(s)].harvest * WEATHERS[s.weather].harvest;
+/** Clima num ponto do mapa (a chuva só vale embaixo das nuvens); sem ponto, o clima do dia. */
+const localWeather = (s: GameState, x?: number, y?: number) => (x == null || y == null ? s.weather : weatherAt(s, seasonOf(s), x, y));
+
+/** Multiplicador da colheita (estação × clima no lugar). */
+export const harvestMult = (s: GameState, x?: number, y?: number) => SEASONS[seasonOf(s)].harvest * WEATHERS[localWeather(s, x, y)].harvest;
 /** Multiplicador do consumo de comida. */
 export const foodMult = (s: GameState) => SEASONS[seasonOf(s)].food;
-/** Multiplicador da velocidade de quem anda. */
-export const weatherSpeed = (s: GameState) => WEATHERS[s.weather].speed;
-/** Bônus de dano da natureza no clima atual. */
-export const natureWeather = (s: GameState, n: Nature | null) => (n && WEATHERS[s.weather].boost.includes(n) ? 1.2 : 1);
+/** Multiplicador da velocidade de quem anda (no lugar onde está). */
+export const weatherSpeed = (s: GameState, x?: number, y?: number) => WEATHERS[localWeather(s, x, y)].speed;
+/** Bônus de dano da natureza no clima do lugar. */
+export const natureWeather = (s: GameState, n: Nature | null, x?: number, y?: number) => (n && WEATHERS[localWeather(s, x, y)].boost.includes(n) ? 1.2 : 1);
 
 export const festivalOn = (s: GameState) => s.festivalUntil > s.day || (s.festivalUntil === s.day && s.festivalUntil > 0);
 

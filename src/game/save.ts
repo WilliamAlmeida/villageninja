@@ -122,6 +122,9 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   16: (s) => {
     s.flags.shelterRookies = true; // novatos se abrigam de inimigos fortes demais
   },
+  17: (s) => {
+    s.clouds = []; // nuvens de chuva no mapa (surgem no próximo tick se for dia de chuva)
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

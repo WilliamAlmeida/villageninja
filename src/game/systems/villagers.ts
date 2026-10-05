@@ -148,7 +148,7 @@ function work(g: Game, u: Unit, dt: number) {
       if (u.timer <= 0) {
         const job = g.building(u.jobId);
         const out = job && BUILDINGS[job.type].job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
-        const amount = out.res === 'food' ? Math.max(1, Math.round(farmYield(job) * harvestMult(g.state))) : out.amount;
+        const amount = out.res === 'food' ? Math.max(1, Math.round(farmYield(job) * harvestMult(g.state, u.x, u.y))) : out.amount;
         g.state.res[out.res] += amount;
         fxText(g, u.x, u.y - 20, `+${amount}${RES_INFO[out.res].icon}`, '#ffe08a');
         // o pedaço colhido fica sem planta e volta a crescer aos poucos

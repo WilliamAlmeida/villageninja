@@ -115,6 +115,17 @@ export class Renderer {
     this.frameDt = dt;
     this.seasonal.frame(s, dt);
     this.particles.snowy = s.snow > 0.15;
+    {
+      // chuva: só gera gotas onde a câmera vê
+      const l = cam.left - 60;
+      const t = cam.top - 140;
+      const r = cam.left + cam.viewW / cam.zoom + 60;
+      const b = cam.top + cam.viewH / cam.zoom + 60;
+      this.seasonal.rainFrame(s, dt, (x, y) => {
+        const p = project(x, y);
+        return p.x > l && p.x < r && p.y > t && p.y < b;
+      });
+    }
 
     const night = darkness(s);
     const sel = g.selected;
@@ -138,7 +149,9 @@ export class Renderer {
     ctx.drawImage(this.terrain, 0, 0);
     drawWaterAnim(ctx, s, this.depth, time);
     this.seasonal.drawIce(ctx, s, this.depth);
+    this.seasonal.drawWet(ctx);
     this.seasonal.drawGround(ctx, s);
+    this.seasonal.drawCloudShadows(ctx, s);
     ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, WORLD_W + FOG_PAD * 2 * TILE, WORLD_H + FOG_PAD * 2 * TILE);
 
     // chão batido sob prédios
@@ -333,6 +346,7 @@ export class Renderer {
     }
     this.particles.update(dt);
     this.particles.draw(ctx);
+    this.seasonal.drawRain(ctx, s);
 
     // ================= espaço de tela =================
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -536,25 +550,12 @@ export class Renderer {
         ctx.fillStyle = gr;
         ctx.fillRect(0, 0, W, H);
       }
-    } else if (s.weather === 'rain' || s.weather === 'storm') {
-      const n = s.weather === 'storm' ? 220 : 130;
-      ctx.strokeStyle = 'rgba(185,205,255,0.42)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let i = 0; i < n; i++) {
-        const x = (hash(i) * (W + 60) - time * 90) % (W + 60);
-        const y = (hash(i + 0.5) * H + time * (520 + hash(i + 1.7) * 200)) % (H + 30);
-        const xx = x < 0 ? x + W + 60 : x;
-        ctx.moveTo(xx, y - 14);
-        ctx.lineTo(xx - 4, y);
-      }
-      ctx.stroke();
-      // relâmpago de vez em quando
-      if (s.weather === 'storm' && hash(Math.floor(time * 3)) > 0.985) {
-        ctx.fillStyle = 'rgba(235,240,255,0.28)';
-        ctx.fillRect(0, 0, W, H);
-      }
-    } else if (s.weather === 'snow') {
+    } else if (this.seasonal.flash > 0) {
+      // a chuva cai no mapa (embaixo das nuvens, ver seasonal.rainFrame); aqui só o clarão do raio
+      ctx.fillStyle = `rgba(235,240,255,${0.3 * this.seasonal.flash})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (s.weather === 'snow') {
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       for (let i = 0; i < 120; i++) {
         const y = (hash(i) * H + time * (28 + hash(i + 3.1) * 30)) % (H + 10);

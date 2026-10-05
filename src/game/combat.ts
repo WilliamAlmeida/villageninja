@@ -388,7 +388,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   // "Vontade" do Kage: com um Kage vivo, todos os ninjas da vila batem mais forte
   if (src?.faction === 'village' && src.ninja && !src.arenaSide && g.state.kageId != null && !g.unit(g.state.kageId)?.dead) dmg *= KAGE_DAMAGE_BONUS;
   // clima: algumas naturezas ficam mais fortes (chuva, tempestade, neve, sol)
-  dmg *= natureWeather(g.state, nature);
+  dmg *= natureWeather(g.state, nature, t.x, t.y);
   // espião da vila por perto marca o alvo
   if (src?.faction === 'village' && t.faction !== 'village' && spyNinjaNear(g, t.x, t.y, SPEC.markRange)) dmg *= SPEC.markBonus;
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);

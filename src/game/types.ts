@@ -374,6 +374,15 @@ export interface Effect {
   facing?: number;
 }
 
+/** Nuvem de chuva cruzando o mapa (px de mundo). */
+export interface Cloud {
+  x: number;
+  y: number;
+  r: number;
+  vx: number;
+  vy: number;
+}
+
 export interface GameState {
   version: number;
   seed: number;
@@ -433,6 +442,8 @@ export interface GameState {
   pace: CombatPace;
   /** Neve acumulada no chão (0–1): sobe devagar enquanto neva e derrete devagar depois. */
   snow: number;
+  /** Nuvens de chuva no mapa (só chove embaixo delas). */
+  clouds: Cloud[];
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;
