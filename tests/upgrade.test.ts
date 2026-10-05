@@ -3,7 +3,8 @@ import { SAVE_VERSION } from '../src/config';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
-import { housingOf, levelOf, startUpgrade, upgradeStatus, upgradeTime } from '../src/game/upgrade';
+import { academyLearnMult, academyRecruitLevel, housingOf, levelOf, startUpgrade, upgradeStatus, upgradeTime } from '../src/game/upgrade';
+import { recruitNinja } from '../src/game/commands';
 
 describe('upgrade de prédios', () => {
   test('casa: paga, moradores fazem a obra e a moradia aumenta', () => {
@@ -42,6 +43,19 @@ describe('upgrade de prédios', () => {
     // prédio sem upgrade
     const hk = g.hokage()!;
     expect(startUpgrade(g, hk.id).ok).toBe(false);
+  });
+
+  test('academia: recruta sai com nível mais alto e o estudo fica mais rápido', () => {
+    const g = createNewGame([], 21);
+    Object.assign(g.state.res, { wood: 999, stone: 999, ryo: 999, food: 999 });
+    const hk = g.hokage()!;
+    g.state.buildings.push({ ...hk, id: g.newId(), type: 'academy', tx: hk.tx + 8, ty: hk.ty, built: true, level: 3, upgrade: null, workers: [], desired: 0 });
+    expect(academyRecruitLevel(g)).toBe(3);
+    expect(academyLearnMult(g)).toBeCloseTo(1.6);
+    const before = new Set(g.state.units.filter((u) => u.kind === 'ninja').map((u) => u.id));
+    expect(recruitNinja(g).ok).toBe(true);
+    const rookie = g.state.units.find((u) => u.kind === 'ninja' && !before.has(u.id))!;
+    expect(rookie.ninja!.level).toBe(3);
   });
 
   test('migra saves da versão 8 (prédios começam no nível 1)', () => {

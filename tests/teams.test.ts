@@ -7,7 +7,7 @@ import { trainTick } from '../src/game/progression';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import {
-  autoTeams, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, MAX_MEMBERS, orderAttack, orderMove, orderRetreat, teamOf, teamUnits,
+  attackersOf, autoTeams, leaveTeam, availableFighters, createTeamWith, nearestFighters, disbandTeam, joinAsMember, joinAsSensei, MAX_MEMBERS, orderAttack, orderMove, orderRetreat, teamOf, teamUnits,
 } from '../src/game/teams';
 import type { Unit } from '../src/game/types';
 import { doorPos } from '../src/game/world';
@@ -177,5 +177,26 @@ describe('save', () => {
     expect(Math.abs(a! - b!)).toBeLessThanOrEqual(2);
     // de novo: ninguém livre
     expect(autoTeams(g).ok).toBe(false);
+  });
+
+  test('atacar pelo painel do inimigo: escolhe os mais próximos disponíveis', () => {
+    const g = createNewGame(SYSTEMS, 12);
+    for (const u of ninjas(g)) leaveTeam(g, u.id);
+    const snake = createAnimal(g, 'snake', 1000, 1000);
+    const far = createNinja(g, 100, 100, 'genin', 0);
+    const near = [0, 1, 2].map((i) => createNinja(g, 1000 + 20 * (i + 1), 1000, 'genin', 0));
+    const hurt = createNinja(g, 1001, 1000, 'genin', 0);
+    hurt.hp = hurt.maxHp * 0.2; // ferido não é chamado
+    const busy = createNinja(g, 1002, 1000, 'genin', 0);
+    createTeamWith(g, busy.id);
+    g.state.missions.push({ status: 'active', teamId: teamOf(g, busy)!.id } as never); // equipe em missão fica de fora
+    const free = availableFighters(g);
+    expect(free).not.toContain(hurt);
+    expect(free).not.toContain(busy);
+    expect(free).toContain(far);
+    const picked = nearestFighters(g, snake, 3);
+    expect(picked.map((u) => u.id).sort()).toEqual(near.map((u) => u.id).sort());
+    expect(orderAttack(g, picked.map((u) => u.id), snake.id).ok).toBe(true);
+    expect(attackersOf(g, snake.id).length).toBe(3);
   });
 });

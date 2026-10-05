@@ -23,7 +23,7 @@ BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'ac
 FLIP = {'lumber', 'quarry', 'market', 'academy', 'tower'}
 # níveis de upgrade (<tipo>-2, <tipo>-3): mesma largura e mesmo espelhamento do nível 1
 for _name in list(BUILDINGS):
-    for _lv in (2, 3):
+    for _lv in (2, 3, 4):
         if (ISO / f'{_name}-{_lv}.png').exists():
             BUILDINGS[f'{_name}-{_lv}'] = BUILDINGS[_name]
             if _name in FLIP:

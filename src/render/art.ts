@@ -52,6 +52,11 @@ import farm3 from '../art/farm-3.png';
 import training2 from '../art/training-2.png';
 import training3 from '../art/training-3.png';
 import towerGuard from '../art/tower-guard.png';
+import academy2 from '../art/academy-2.png';
+import academy3 from '../art/academy-3.png';
+import hokage2 from '../art/hokage-2.png';
+import hokage3 from '../art/hokage-3.png';
+import hokage4 from '../art/hokage-4.png';
 import hairSpiky from '../art/ninja-hair-spiky.png';
 import hairPonytail from '../art/ninja-hair-ponytail.png';
 import hairShort from '../art/ninja-hair-short.png';
@@ -64,6 +69,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, 'rock-cracked': rockCracked,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
+  'academy-2': academy2, 'academy-3': academy3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
   'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, snake };
 
 /**
@@ -88,6 +94,7 @@ export const ART_SCALE: Record<string, number> = {
   hospital: 0.85, 'hospital-2': 1.05, 'hospital-3': 1.22,
   quarry: 0.8, 'quarry-2': 1.08, 'quarry-3': 1.26,
   'tower-3': 1.06,
+  'hokage-4': 1.12,
 };
 
 export const artUrl = (name: string): string | null => URLS[name] ?? null;

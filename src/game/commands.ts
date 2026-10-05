@@ -2,16 +2,17 @@
 import { TILE } from '../config';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { JUTSU_LIST, JUTSUS, type JutsuDef } from '../data/jutsus';
-import { RANKS, STAT_INFO, type StatKey } from '../data/ninja';
+import { RANKS, STAT_INFO, STAT_KEYS, type StatKey } from '../data/ninja';
+import { pick } from '../core/rng';
 import { convertToNinja, refreshDerived } from './entities';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
-import { nextRank } from './progression';
+import { addStat, nextRank } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
 import { doorPos } from './world';
-import { workersOf } from './upgrade';
+import { academyRecruitLevel, workersOf } from './upgrade';
 
 export type Result = { ok: true } | { ok: false; error: string };
 const ok: Result = { ok: true };
@@ -145,6 +146,13 @@ export function recruitNinja(g: Game): Result {
   g.pay(RECRUIT_COST);
   convertToNinja(g, u);
   const n = u.ninja!;
+  // Academia melhorada: o recruta já sai com níveis (e os atributos que cada nível dá)
+  for (let lv = 1; lv < academyRecruitLevel(g); lv++) {
+    n.level++;
+    for (let i = 0; i < 2; i++) addStat(u, pick(STAT_KEYS), 0.3);
+  }
+  refreshDerived(u);
+  u.hp = u.maxHp;
   const known = n.jutsu.filter(Boolean).length;
   fx(g, 'smoke', u.x, u.y, { r: 18, life: 0.6, color: '#e8e8e8' });
   fxText(g, u.x, u.y - 30, 'Novo ninja!', '#ffd34d', true);

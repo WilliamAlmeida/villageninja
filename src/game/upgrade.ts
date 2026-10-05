@@ -40,6 +40,15 @@ export function trainMult(g: Game) {
   return best;
 }
 
+/** Academia: estudo de jutsu 1× → 1,3× → 1,6× (a melhor da vila vale). */
+export function academyLearnMult(g: Game) {
+  let best = 1;
+  for (const b of g.state.buildings) if (b.type === 'academy' && b.built) best = Math.max(best, levelStep(levelOf(b), 0.3));
+  return best;
+}
+/** Nível com que o recruta sai da Academia (1 → 2 → 3). */
+export const academyRecruitLevel = (g: Game) => Math.max(1, ...g.builtOf('academy').map(levelOf));
+
 /** Tempo da obra de upgrade para o próximo nível. */
 export const upgradeTime = (b: Building) => BUILDINGS[b.type].buildTime * (0.6 + levelOf(b) * 0.5);
 

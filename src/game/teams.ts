@@ -209,6 +209,30 @@ function commandable(g: Game, ids: number[]) {
   return ids.map((id) => validNinja(g, id)).filter((u): u is Unit => !!u);
 }
 
+/** Alvo que dá para mandar atacar: inimigo ou bicho vivo (convidados do exame não). */
+export const isAttackable = (t: Unit | undefined | null): t is Unit => !!t && !t.dead && (t.faction === 'enemy' || t.faction === 'wild');
+
+/** Ninjas da vila que podem largar o que fazem e lutar: fora de missão e com vida acima de 35%. */
+export function availableFighters(g: Game): Unit[] {
+  const onMission = new Set(g.state.missions.filter((m) => m.status === 'active').map((m) => m.teamId));
+  return g.state.units.filter((u) => {
+    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || !u.ninja || u.hp < u.maxHp * 0.35) return false;
+    const t = teamOf(g, u);
+    return !t || !onMission.has(t.id);
+  });
+}
+
+/** Os `n` ninjas disponíveis mais perto do alvo. */
+export function nearestFighters(g: Game, target: Unit, n: number): Unit[] {
+  return availableFighters(g)
+    .sort((a, b) => Math.hypot(a.x - target.x, a.y - target.y) - Math.hypot(b.x - target.x, b.y - target.y))
+    .slice(0, n);
+}
+
+/** Quantos ninjas da vila estão com ordem de atacar este alvo. */
+export const attackersOf = (g: Game, targetId: number) =>
+  g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.command?.kind === 'attack' && u.command.targetId === targetId);
+
 /** Mover e defender um ponto. Vários ninjas se espalham em formação. */
 export function orderMove(g: Game, ids: number[], x: number, y: number): Result {
   const us = commandable(g, ids);

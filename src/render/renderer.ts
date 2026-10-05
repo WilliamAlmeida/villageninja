@@ -343,8 +343,9 @@ export class Renderer {
     const ctx = this.ctx;
     const d = BUILDINGS[b.type];
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
-    // arte do nível do prédio (upgrade), se existir; senão a do nível 1
-    const lvl = b.level ?? 1;
+    // arte do nível do prédio (upgrade), se existir; senão a do nível 1.
+    // A Residência do Hokage não tem upgrade próprio: cresce junto com o nível da vila (Aldeia = 1 … Grande Vila Oculta = 4).
+    const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
     const artName = lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type;
     const pic = art(artName);
     if (!pic) {

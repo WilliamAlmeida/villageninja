@@ -25,7 +25,7 @@ import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/
 import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip } from '../game/gear';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
-  autoTeams, clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
+  attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamOf, teamUnits,
 } from '../game/teams';
 import type { Building, Mission, NinjaOrder, Team, Unit } from '../game/types';
@@ -238,6 +238,7 @@ export class Panel {
       t.hp = `${Math.ceil(u.hp)}/${u.maxHp}`;
       t.ck = `${Math.floor(u.chakra)}/${u.maxChakra}`;
       b.ck = u.chakra / Math.max(1, u.maxChakra);
+      if (!isOwn && isAttackable(u)) html += this.attackSection(u, t);
       if (isOwn) {
         t.xp = `${Math.floor(n.xp)}/${xpToNext(n.level)}`;
         b.xp = n.xp / xpToNext(n.level);
@@ -291,6 +292,7 @@ export class Panel {
       const d = ANIMALS[u.animal];
       html += `<div class="ph"><div class="title">${d.name}</div><div class="badges"><span class="badge enemy">Animal selvagem</span></div></div>`;
       html += `<div class="sub"><span data-t="state"></span></div><div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
+      if (isAttackable(u)) html += this.attackSection(u, t);
       html += `<p class="hint">Ataca moradores que chegam perto. Ao ser abatido rende ${costLabel(d.reward)} e XP.</p>`;
       html += `<p class="hint">Dano ${d.damage} · Velocidade ${d.speed}</p>`;
       return { html, t, b };
@@ -340,6 +342,30 @@ export class Panel {
     // a explicação do foco atual fica visível (no celular não existe "passar o mouse")
     html += `</div><p class="hint">${n.focus ? `<b>${STAT_INFO[n.focus].label}:</b> ${STAT_INFO[n.focus].desc}` : autoTip} Cada sessão no Campo de Treino sobe o atributo escolhido (até o limite da patente).</p>`;
     return html + this.teamSection(u, team);
+  }
+
+  /**
+   * Mandar ninjas atacarem o inimigo/animal aberto no painel: os mais próximos, uma equipe ou todos.
+   * Só lista quem está disponível (fora de missão e com vida acima de 35%).
+   */
+  private attackSection(target: Unit, t: Record<string, string>) {
+    const g = this.app.game;
+    const free = availableFighters(g);
+    const on = attackersOf(g, target.id);
+    t.atk = on.length ? `${on.length} ninja(s) atacando` : 'Ninguém atacando ainda';
+    let html = `<h4>{swords} Atacar</h4><p class="hint"><span data-t="atk"></span></p>`;
+    if (!free.length) return html + `<p class="why">Nenhum ninja disponível (todos em missão, feridos ou a vila não tem ninjas).</p>`;
+    const near = Math.min(3, free.length);
+    html += `<div class="btnrow">
+      <button class="btn primary" data-act="atk" data-arg="near" ${tipAttr('Mais próximos', `Os ${near} ninjas disponíveis mais perto do alvo largam o que fazem e atacam.`)}>{swords} ${near} mais próximo(s)</button>
+      <button class="btn" data-act="atk" data-arg="all" ${tipAttr('Todos', 'Todos os ninjas disponíveis atacam este alvo.')}>{users} Todos (${free.length})</button>`;
+    const ids = new Set(free.map((u) => u.id));
+    for (const tm of g.state.teams) {
+      const n = teamUnits(g, tm).filter((u) => ids.has(u.id)).length;
+      if (n) html += `<button class="btn" data-act="atk" data-arg="team" data-team="${tm.id}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} (${n})</button>`;
+    }
+    if (on.length) html += `<button class="btn" data-act="atk-stop">{x} Cancelar ataque</button>`;
+    return html + `</div>`;
   }
 
   /** Arma, colete e consumível: o atual e o que há no estoque para trocar. */
@@ -1025,6 +1051,26 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'atk': {
+        if (v?.kind !== 'unit') return;
+        const target = g.unit(v.id);
+        if (!isAttackable(target)) return;
+        const free = availableFighters(g);
+        let ids: number[];
+        if (arg === 'near') ids = nearestFighters(g, target, 3).map((u) => u.id);
+        else if (arg === 'team') {
+          const tm = g.team(Number(btn.dataset.team));
+          const ok = new Set(free.map((u) => u.id));
+          ids = tm ? teamUnits(g, tm).filter((u) => ok.has(u.id)).map((u) => u.id) : [];
+        } else ids = free.map((u) => u.id);
+        const r = orderAttack(g, ids, target.id);
+        if (r.ok) g.toast(`{swords} ${ids.length} ninja(s) indo atacar ${target.name}.`, 'good');
+        return this.report(r);
+      }
+      case 'atk-stop': {
+        if (v?.kind !== 'unit') return;
+        return this.report(clearCommand(g, attackersOf(g, v.id).map((u) => u.id)));
+      }
       case 'team-auto': {
         const r = autoTeams(g);
         if (!r.ok) return this.report(r);

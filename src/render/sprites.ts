@@ -128,6 +128,8 @@ export function drawNode(ctx: Ctx, n: ResourceNode) {
 }
 
 // ---------------------------------------------------------------- unidades
+/** Altura da arte do bicho em relação ao `size` (a cobra é baixa e comprida: precisa de mais para parecer gigante). */
+const ART_SIZE: Record<string, number> = { snake: 3.8 };
 const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'hammer' };
 
 /**
@@ -162,7 +164,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   if (u.kind === 'clone') ctx.globalAlpha = 0.75;
   if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
-  drawArt(ctx, pic, u.x, base, u.animal ? size * 2.6 : action ? 37 : 30, row === SHEET_ROWS.side && dx < 0, frame, row);
+  drawArt(ctx, pic, u.x, base, u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30, row === SHEET_ROWS.side && dx < 0, frame, row);
   ctx.restore();
   return true;
 }
