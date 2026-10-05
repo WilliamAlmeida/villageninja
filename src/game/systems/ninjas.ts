@@ -9,6 +9,7 @@ import { specTick } from '../specs';
 import { derive } from '../../data/ninja';
 import { engage, trySupport } from '../combat';
 import { escapeFlicker, hiraishinHome } from '../techniques';
+import { shelterTick } from '../care';
 import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
@@ -39,6 +40,7 @@ export function ninjaSystem(g: Game, dt: number) {
     // consumível gasto: pega outro do estoque ao passar pela vila
     if (u.ninja!.equip.item && !u.ninja!.equip.itemReady && g.world.inVillage(u.x, u.y)) refillItem(g, u);
     if (u.command && runCommand(g, u, dt)) continue;
+    if (shelterTick(g, u, dt)) continue; // novato com inimigo forte demais por perto: vai se abrigar
 
     const threat = findThreat(g, u);
     const lowHp = u.hp < u.maxHp * 0.2;

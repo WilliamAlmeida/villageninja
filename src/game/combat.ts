@@ -16,7 +16,7 @@ import { recordDuelDamage, recordDuelJutsu } from './examStats';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push } from './movement';
-import { gainXp } from './progression';
+import { noteHit, shareXp, tryRescue } from './care';
 import { consumeItem } from './gear';
 import { gearBonus } from './gearBonus';
 import { ITEMS } from '../data/items';
@@ -401,6 +401,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
     return;
   }
   t.hp -= dmg;
+  noteHit(t, src);
   // golpe forte ou atordoamento quebram os selos
   if (t.cast && (dmg >= t.maxHp * SEAL_BREAK || opts.stun)) interruptCast(g, t);
   t.hitFlash = 0.15;
@@ -422,7 +423,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
       t.state = 'ko';
       t.stun = 99;
       fxText(g, t.x, t.y - 30, 'Nocaute!', '#ffd34d', true);
-    } else killUnit(g, t, src);
+    } else if (!tryRescue(g, t)) killUnit(g, t, src);
   }
 }
 
@@ -465,12 +466,12 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
         const def = ANIMALS[t.animal];
         g.give(def.reward);
         rewardText(g, t, def.reward);
-        if (killer) gainXp(g, killer, def.xp);
+        shareXp(g, t, killer, def.xp);
       } else if (t.kind === 'rogue' && t.role !== 'puppet') {
         const ryo = 30 + g.state.day * 4;
         g.give({ ryo });
         rewardText(g, t, { ryo });
-        if (killer) gainXp(g, killer, 40 + g.state.day * 3);
+        shareXp(g, t, killer, 40 + g.state.day * 3);
       }
       if (killer?.ninja) killer.ninja.kills++;
     }

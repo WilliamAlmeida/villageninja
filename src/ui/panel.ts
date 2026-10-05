@@ -38,6 +38,7 @@ import {
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
+import { CARE, catchingUp, isRookie } from '../game/care';
 import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHUNSHIN } from '../game/techniques';
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
@@ -640,6 +641,8 @@ export class Panel {
     const n = u.ninja!;
     const g = this.app.game;
     let html = `<div class="actions"><button class="btn primary" data-act="teach-open">{scroll} Ensinar jutsu</button>`;
+    if (catchingUp(g, u)) html += `<p class="hint">{up} Bem abaixo da média da vila: treina com <b>XP em dobro</b> até alcançar os outros.</p>`;
+    if (isRookie(u) && g.state.flags.shelterRookies) html += `<p class="hint">{ninja} Novato: se abriga de inimigos fortes demais (Proteger novatos, na lista de Ninjas).</p>`;
     const next = nextRank(u);
     if (next === 'kage') {
       html += `<p class="hint">{crown} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</p>`;
@@ -780,6 +783,10 @@ export class Panel {
         t.res = `${residents} / ${housingOf(bd)}`;
       }
       if (bd.type === 'kennel') html += this.kennelSection();
+      if (bd.type === 'hospital' && bd.built) {
+        const base = Math.round(Math.min(CARE.rescueMax, CARE.rescue + (levelOf(bd) - 1) * CARE.rescuePerLevel) * 100);
+        html += `<p class="hint">{medic} <b>Resgate:</b> ninja da vila que cair tem ${base}% de chance de ser trazido para cá gravemente ferido, em vez de morrer (+${Math.round(CARE.rescueMedic * 100)}% com um ninja médico por perto, até ${Math.round(CARE.rescueMax * 100)}%). Cada nível do Hospital aumenta a chance.</p>`;
+      }
       if (bd.type === 'market') {
         html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
         html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender 1 (+${GOLD_PRICE}{ryo})</button>
@@ -799,6 +806,15 @@ export class Panel {
       html += `<button class="btn danger" data-act="demolish">${this.armedDemolish ? 'Toque de novo para confirmar' : `{trash} Demolir (devolve ${bd.built ? '50%' : '100%'})`}</button>`;
     html += `</div>`;
     return { html, t, b };
+  }
+
+  /** Proteger novatos: Genins se abrigam de inimigos fortes demais (com veteranos em casa para defender). */
+  private rookieBar() {
+    const on = !!this.app.game.state.flags.shelterRookies;
+    return `<div class="btnrow gearbar"><button class="btn ${on ? 'primary' : ''}" data-act="rookies" ${tipAttr(
+      'Proteger novatos',
+      `Ligado: Genins fogem para casa (ou para o Hospital) quando chega um inimigo ${CARE.danger}× mais forte que eles, e saem quando o perigo passa. Só vale se houver um Chunin ou acima na vila para defender; uma ordem sua (atacar, mover) sempre manda.`,
+    )}>{ninja} Proteger novatos: ${on ? 'ligado' : 'desligado'}</button></div>`;
   }
 
   /** Equipar todos com o estoque agora, e o modo automático (passa sozinho o que for sendo fabricado). */
@@ -1281,7 +1297,7 @@ export class Panel {
       name: (a, z) => a.name.localeCompare(z.name, 'pt-BR'),
     };
     const list = ninjas.filter(tests[this.rosterFilter][1]).sort(by[this.rosterSort]);
-    html += this.gearBar();
+    html += this.gearBar() + this.rookieBar();
     html += `<p class="hint">${list.length} de ${ninjas.length} ninja(s). Toque para selecionar.</p>`;
     if (!list.length) html += `<p class="hint">Nenhum ninja neste filtro.</p>`;
     html += `<div class="roster">`;
@@ -1463,6 +1479,10 @@ export class Panel {
       }
       case 'gear-auto':
         setAutoGear(g, !g.state.flags.autoGear);
+        return this.report({ ok: true });
+      case 'rookies':
+        g.state.flags.shelterRookies = !g.state.flags.shelterRookies;
+        g.toast(g.state.flags.shelterRookies ? '{ninja} Genins vão se abrigar de inimigos fortes demais.' : '{ninja} Genins voltam a lutar contra qualquer inimigo.', 'info');
         return this.report({ ok: true });
       case 'dog': {
         if (v?.kind !== 'unit') return;

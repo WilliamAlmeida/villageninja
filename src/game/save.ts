@@ -119,6 +119,9 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   15: (s) => {
     s.snow = 0; // neve acumulada no chão
   },
+  16: (s) => {
+    s.flags.shelterRookies = true; // novatos se abrigam de inimigos fortes demais
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

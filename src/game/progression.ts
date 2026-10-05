@@ -4,6 +4,7 @@ import { pick } from '../core/rng';
 import { RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
 import { refreshDerived } from './entities';
 import { fxText } from './fx';
+import { catchingUp } from './care';
 import type { Game } from './game';
 import type { Unit } from './types';
 
@@ -51,7 +52,8 @@ export function trainTick(g: Game, u: Unit, sensei: Unit | null = null) {
   }
   // Monte dos Kages inspira: +30% de XP no treino
   const monument = g.state.buildings.some((b) => b.type === 'monument' && b.built);
-  gainXp(g, u, Math.round(5 * mult * (monument ? 1.3 : 1)));
+  // bem abaixo da média da vila: XP em dobro (recupera o atraso)
+  gainXp(g, u, Math.round(5 * mult * (monument ? 1.3 : 1) * (catchingUp(g, u) ? 2 : 1)));
   if (sensei) gainXp(g, sensei, 1);
 }
 

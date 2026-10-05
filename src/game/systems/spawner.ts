@@ -7,6 +7,7 @@ import { levelDef } from '../../data/villageLevels';
 import { isNight } from '../time';
 import type { Rank } from '../../data/ninja';
 import { createAnimal, createRogue } from '../entities';
+import { fightPower } from '../care';
 import type { Game } from '../game';
 import { findPath, nearestWalkable } from '../pathfinding';
 import { CENTER_TX, CENTER_TY, doorTile, tileCenter } from '../world';
@@ -101,17 +102,26 @@ function spawnAnimals(g: Game) {
 }
 
 /**
- * Força das invasões. Cresce devagar com os dias e mais rápido com a fama
- * (nível) da vila — assim quem evolui enfrenta ameaças maiores, e uma vila
- * pequena não é esmagada só porque o tempo passou.
+ * Força das invasões. Segue sobretudo a força militar da vila (`might`, soma do poder dos ninjas) e a fama (nível);
+ * os dias pesam pouco. Assim quem evolui enfrenta ameaças maiores, e uma vila que perdeu seus veteranos não é
+ * esmagada só porque o tempo passou.
  */
-export function raidStrength(day: number, threat: number) {
-  const rank: Rank = day >= 18 || threat >= 3 ? 'jounin' : day >= 9 || threat >= 2 ? 'chunin' : 'genin';
+export function raidStrength(day: number, threat: number, might = 0) {
+  // poder de luta: genin novo ~18, chunin ~40, jounin ~65 (ver fightPower)
+  const stats = Math.min(3, might * 0.006 + Math.min(day, 90) * 0.006 + threat * 0.3);
+  const rank: Rank = stats >= 2.2 || threat >= 3 ? 'jounin' : stats >= 1 || threat >= 2 ? 'chunin' : 'genin';
   return {
     rank,
-    count: Math.min(5 + threat, 1 + Math.floor(day / 5) + threat),
-    stats: Math.min(3, day * 0.07 + threat * 0.5),
+    count: Math.max(1, Math.min(5 + threat, 1 + Math.floor(might / 60) + Math.floor(day / 40) + threat)),
+    stats,
   };
+}
+
+/** Força militar da vila: soma do poder de luta dos ninjas (ver `fightPower`). */
+export function villageMight(g: Game) {
+  let m = 0;
+  for (const u of g.state.units) if (!u.dead && u.kind === 'ninja' && u.faction === 'village') m += fightPower(u);
+  return m;
 }
 
 /**
@@ -121,7 +131,7 @@ export function raidStrength(day: number, threat: number) {
 export function spawnRaid(g: Game, extra = 0, msg?: string) {
   const s = g.state;
   const p = edgePoint(g);
-  const r = raidStrength(s.day, levelDef(s.level).threat);
+  const r = raidStrength(s.day, levelDef(s.level).threat, villageMight(g));
   r.count += extra + (s.infamy >= FAME.hunters ? 1 : 0);
   const roles = raidRoles(s.day, r.count);
   for (let i = 0; i < r.count; i++) {

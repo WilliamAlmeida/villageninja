@@ -182,6 +182,8 @@ export interface Unit {
   cast?: { id: string; targetId: number; t: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
   dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number };
+  /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
+  hitBy?: number[];
   /** Raça do ninken (sem = shiba). */
   breed?: DogBreed;
   /** Marcado pela fórmula do Hiraishin (id do Kage) por `t` segundos. */
@@ -429,7 +431,7 @@ export interface GameState {
   items: Record<string, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 
