@@ -70,6 +70,39 @@ describe('estações, clima e felicidade', () => {
     expect(g.villagers().length).toBe(pop - 1);
   });
 
+  test('neve acumula devagar enquanto neva e derrete devagar depois', () => {
+    const g = createNewGame(SYSTEMS, 116);
+    const s = g.state;
+    const winterDay = 1 + SEASON_DAYS * 3;
+    s.time = (winterDay - 1) * DAY_LENGTH + 10;
+    s.moodDay = winterDay; // sem novo sorteio de clima no meio do teste
+    s.weather = 'snow';
+    run(g, 60);
+    expect(seasonOf(s)).toBe('winter');
+    expect(s.snow).toBeGreaterThan(0.2);
+    expect(s.snow).toBeLessThan(0.4); // devagar: não cobre tudo de uma vez
+    const covered = s.snow;
+    s.weather = 'clear';
+    run(g, 60);
+    expect(s.snow).toBeLessThan(covered);
+    expect(s.snow).toBeGreaterThan(covered * 0.5); // no inverno derrete bem devagar
+    // a tempestade de inverno é nevasca: também acumula
+    s.weather = 'storm';
+    const before = s.snow;
+    run(g, 10);
+    expect(s.snow).toBeGreaterThan(before);
+  });
+
+  test('migra saves da versão 15 (neve no chão)', () => {
+    const g = createNewGame(SYSTEMS, 117);
+    const old = JSON.parse(JSON.stringify(g.state));
+    old.version = 15;
+    delete old.snow;
+    const s = migrate(old)!;
+    expect(s.version).toBe(SAVE_VERSION);
+    expect(s.snow).toBe(0);
+  });
+
   test('migra saves da versão 12 (clima e felicidade)', () => {
     const g = createNewGame(SYSTEMS, 115);
     const old = JSON.parse(JSON.stringify(g.state));

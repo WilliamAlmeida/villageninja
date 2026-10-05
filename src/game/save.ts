@@ -116,6 +116,9 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     const k = s.units.find((u: { id: number }) => u.id === s.kageId);
     if (k?.ninja && !k.ninja.kageArt) k.ninja.kageArt = 'hiraishin';
   },
+  15: (s) => {
+    s.snow = 0; // neve acumulada no chão
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

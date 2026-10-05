@@ -422,6 +422,8 @@ export interface GameState {
   festivalUntil: number;
   /** Ritmo do combate escolhido no menu. */
   pace: CombatPace;
+  /** Neve acumulada no chão (0–1): sobe devagar enquanto neva e derrete devagar depois. */
+  snow: number;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;

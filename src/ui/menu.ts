@@ -3,7 +3,7 @@ import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
 import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 import { rich } from './icons';
-import { artOn, FONT_SIZES, fontSize, setArtOn, setFontSize, type FontSize } from './settings';
+import { artOn, FONT_SIZES, fontSize, setArtOn, setFontSize, setWeatherFxLight, weatherFxLight, type FontSize } from './settings';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
 export class Menu {
@@ -28,6 +28,10 @@ export class Menu {
       if (a === 'install') install().then(() => this.render());
       if (a === 'art') {
         setArtOn((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
+        this.render();
+      }
+      if (a === 'wfx') {
+        setWeatherFxLight((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === 'light');
         this.render();
       }
       if (a === 'pace') {
@@ -78,6 +82,7 @@ export class Menu {
         <div class="setrow">{text} Texto<div class="seg">${FONT_SIZES.map((f) => `<button data-act="font" data-arg="${f.id}" class="${f.id === fs ? 'on' : ''}">${f.label}</button>`).join('')}</div></div>
         <div class="setrow">{swords} Combate<div class="seg"><button data-act="pace" data-arg="fast" class="${s.pace === 'tactical' ? '' : 'on'}">Rápido</button><button data-act="pace" data-arg="tactical" class="${s.pace === 'tactical' ? 'on' : ''}">Tático</button></div></div>
         <p class="hint">${s.pace === 'tactical' ? 'Tático: antes de cada jutsu o ninja faz os selos (mais rápido com o atributo Selos). Um golpe forte nessa hora interrompe e o chakra se perde. Taijutsu sai na hora.' : 'Rápido: os jutsus saem na hora, sem selos.'}</p>
+        <div class="setrow">{snow} Clima<div class="seg"><button data-act="wfx" data-arg="full" class="${weatherFxLight() ? '' : 'on'}">Completo</button><button data-act="wfx" data-arg="light" class="${weatherFxLight() ? 'on' : ''}">Leve</button></div></div>
         <div class="setrow">{eye} Arte<div class="seg"><button data-act="art" data-arg="1" class="${artOn() ? 'on' : ''}">Pixel art</button><button data-act="art" data-arg="0" class="${artOn() ? '' : 'on'}">Antiga</button></div></div>
         <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
         <p class="hint">${levelDef(s.level).icon} ${levelDef(s.level).name} · Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Chefes ${s.stats.bossesDefeated} · Missões ${s.stats.missionsDone} · Perdas ${s.stats.lost}</p>

@@ -10,6 +10,9 @@ import type { GameState } from './types';
 type Result = { ok: true } | { ok: false; error: string };
 
 export const seasonOf = (s: GameState): Season => SEASON_ORDER[Math.floor((s.day - 1) / SEASON_DAYS) % 4]!;
+/** Está nevando agora (neve, ou tempestade no inverno, que vira nevasca). */
+export const isSnowing = (s: GameState) => s.weather === 'snow' || (s.weather === 'storm' && seasonOf(s) === 'winter');
+
 /** Dias que faltam para a próxima estação. */
 export const daysToNextSeason = (s: GameState) => SEASON_DAYS - ((s.day - 1) % SEASON_DAYS);
 

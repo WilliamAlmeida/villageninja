@@ -10,7 +10,7 @@ const prand = (seed: number) => {
   return x - Math.floor(x);
 };
 
-export function drawEffect(ctx: Ctx, e: Effect, zoom: number) {
+export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
   const k = e.t / e.life;
   const r = e.r ?? 16;
   switch (e.kind) {
@@ -65,6 +65,13 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number) {
       ctx.beginPath();
       ctx.ellipse(e.x + 7, y, 1.4, 2, 0, 0, TAU);
       ctx.stroke();
+      if (snowy && !drop) {
+        // meio enterrado na neve
+        ctx.fillStyle = '#eef4fb';
+        ctx.beginPath();
+        ctx.ellipse(e.x - 1, e.y - 1.5, 12, 3.6, 0, 0, TAU);
+        ctx.fill();
+      }
       break;
     }
     case 'seal': {

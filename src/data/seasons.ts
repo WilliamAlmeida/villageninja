@@ -60,6 +60,9 @@ export const WEATHERS: Record<Weather, WeatherDef> = {
   snow: { name: 'Neve', icon: '{snow}', harvest: 0.8, speed: 0.85, boost: ['suiton'], desc: 'Todos 15% mais lentos. Suiton +20% de dano.' },
 };
 
+/** Neve no chão: dias nevando para cobrir tudo e dias para derreter (inverno sem neve, primavera, resto do ano). */
+export const SNOW = { cover: 1.2, meltWinter: 4, meltSpring: 1.2, meltWarm: 0.4 };
+
 /** Festival: custo, quanto dura (dias) e intervalo mínimo entre festivais (dias). */
 export const FESTIVAL = { cost: { food: 80, ryo: 120 } as Cost, days: 1, every: 3, mood: 22 };
 

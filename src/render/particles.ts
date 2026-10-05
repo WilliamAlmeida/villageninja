@@ -38,6 +38,18 @@ const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]!;
 export class Particles {
   private list: P[] = [];
   private seen = new WeakSet<object>();
+  /** Chão com neve: o Shunshin levanta neve. */
+  snowy = false;
+
+  /** Fumaça de chaminé: sobe devagar, levada pelo vento. */
+  chimney(x: number, y: number) {
+    this.add({ kind: 'smoke', x: x + rnd(-1, 1), y, vx: rnd(4, 9), vy: rnd(-14, -9), life: rnd(1.8, 2.6), size: rnd(2.5, 4), color: '#d9d9de' });
+  }
+
+  /** Bafo de frio: nuvenzinha branca na frente do rosto. */
+  breath(x: number, y: number, dir: number) {
+    this.add({ kind: 'mist', x, y, vx: dir * rnd(8, 14), vy: rnd(-4, -1), life: rnd(0.5, 0.8), size: rnd(2.5, 3.5), color: '#ffffff' });
+  }
 
   private add(p: Partial<P> & { kind: Kind; x: number; y: number }) {
     if (this.list.length >= MAX) this.list.shift();
@@ -81,6 +93,9 @@ export class Particles {
           const a = (i / n) * TAU + rnd(-0.3, 0.3);
           return { x: e.x + Math.cos(a) * r * 0.4, y: e.y - 8 + Math.sin(a) * r * 0.2, vx: -Math.sin(a) * sp + Math.cos(a) * sp * 0.4, vy: Math.cos(a) * sp * 0.5 - 18 };
         };
+        // na neve, o redemoinho levanta neve junto
+        if (this.snowy)
+          for (let i = 0; i < 10; i++) this.add({ ...swirl(i, 10, rnd(30, 60)), kind: 'chip', z: 2, vz: rnd(40, 80), life: rnd(0.5, 0.9), size: rnd(1.5, 2.5), color: '#f4f8ff' });
         if (e.variant === 'leaf') {
           // Konoha: puf de fumaça com folhas girando
           for (let i = 0; i < 4; i++) this.add({ kind: 'smoke', x: e.x + rnd(-r, r) * 0.4, y: e.y - 8 + rnd(-4, 4), vx: rnd(-10, 10), vy: rnd(-12, -4), life: rnd(0.4, 0.7), size: r * rnd(0.35, 0.55), color: '#f2f2ea' });
@@ -248,7 +263,7 @@ export class Particles {
 }
 
 /** Natureza pela cor do efeito (os sistemas usam a cor da natureza ao criar explosões). */
-function natureOf(color: string): Nature | null {
+export function natureOf(color: string): Nature | null {
   const c = color.toLowerCase();
   if (c === '#ff6a2b' || c.startsWith('#ff8') || c.startsWith('#ff5')) return 'katon';
   if (c === '#4da6ff' || c.startsWith('#4d') || c.startsWith('#9f')) return 'suiton';

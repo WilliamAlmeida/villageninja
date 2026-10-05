@@ -22,7 +22,8 @@ import { MAP_H, MAP_W } from '../config';
 import { buildingCenter, doorPos } from '../game/world';
 import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
 import { drawEffect } from './effects';
-import { Particles } from './particles';
+import { natureOf, Particles } from './particles';
+import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, type Deco } from './seasonal';
 import { drawBuilding, drawNode, drawProjectile, drawUnit, type WorkAction } from './sprites';
 import { drawWaterAnim, renderTerrain, waterDepth } from './terrain';
 
@@ -45,7 +46,7 @@ const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 /** Tiles de névoa em volta do mapa (só na textura). */
 const FOG_PAD = 3;
 
-type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site };
+type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -62,6 +63,12 @@ export class Renderer {
   /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
   private fade = new Map<string, number>();
   private lastTime = 0;
+  /** Visual das estações (neve no chão, gelo, árvores, decorações). */
+  private seasonal = new Seasonal();
+  /** Segundos desde o quadro anterior (0 com o jogo pausado no relógio do render). */
+  private frameDt = 0;
+  /** Decorações do quadro (lanternas acendem à noite em `lights`). */
+  private decos: Deco[] = [];
   private depth: Uint8Array = new Uint8Array(0);
   /** Névoa: 1 pixel por tile, ampliado com suavização (borda macia). Refeita só quando algo é revelado. */
   private fog: HTMLCanvasElement | null = null;
@@ -103,6 +110,12 @@ export class Renderer {
     ctx.setTransform(z, 0, 0, z, -cam.left * z, -cam.top * z);
     ctx.imageSmoothingEnabled = true;
 
+    const dt = Math.min(0.1, Math.max(0, time - this.lastTime));
+    this.lastTime = time;
+    this.frameDt = dt;
+    this.seasonal.frame(s, dt);
+    this.particles.snowy = s.snow > 0.15;
+
     const night = darkness(s);
     const sel = g.selected;
     const hkSel = sel?.kind === 'building' && g.building(sel.id)?.type === 'hokage';
@@ -124,6 +137,8 @@ export class Renderer {
     groundTransform(ctx);
     ctx.drawImage(this.terrain, 0, 0);
     drawWaterAnim(ctx, s, this.depth, time);
+    this.seasonal.drawIce(ctx, s, this.depth);
+    this.seasonal.drawGround(ctx, s);
     ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, WORLD_W + FOG_PAD * 2 * TILE, WORLD_H + FOG_PAD * 2 * TILE);
 
     // chão batido sob prédios
@@ -178,6 +193,10 @@ export class Renderer {
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo
     for (const b of s.buildings) if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
     this.drawHarvest(g);
+    ctx.save();
+    groundTransform(ctx);
+    this.seasonal.drawFieldSnow(ctx, s);
+    ctx.restore();
 
     // ================= passada 2: em pé, do fundo para a frente =================
     const m = 110;
@@ -206,6 +225,11 @@ export class Renderer {
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
       if (seen(p)) list.push({ x: p.x, y: p.y, site });
     }
+    this.decos = this.seasonal.decorations(s, (x, y) => g.world.walkablePx(x, y));
+    for (const deco of this.decos) {
+      const p = project(deco.x, deco.y);
+      if (seen(p)) list.push({ x: p.x, y: p.y, deco });
+    }
     for (const u of s.units) {
       if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
       const p = project(u.x, u.y);
@@ -218,8 +242,8 @@ export class Renderer {
     const blocks = list.filter((d) => d.b);
     for (const d of list) {
       if (d.b) continue;
-      const wx = d.u ? d.u.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
+      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       for (const o of blocks) {
         const b = o.b!;
         const def = BUILDINGS[b.type];
@@ -232,8 +256,6 @@ export class Renderer {
     list.sort((a, b) => a.k! - b.k!);
 
     this.drawCamps(g, time);
-    const dt = Math.min(0.1, Math.max(0, time - this.lastTime));
-    this.lastTime = time;
     const occluded = this.occluders(list);
     for (const d of list) {
       if (d.b || d.n) {
@@ -248,6 +270,7 @@ export class Renderer {
       }
       if (d.b) this.building(d.b, time, night, s.level);
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
+      else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
       else if (d.n) {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
         ctx.save();
@@ -277,6 +300,11 @@ export class Renderer {
           ctx.stroke();
         }
         drawUnit(ctx, u, time, selected, workAction(g, d.u));
+        // inverno: bafo de frio de vez em quando
+        if (SEASON_VIEW.season === 'winter' && !lightWeatherFx() && !u.animal && u.kind !== 'clone' && Math.random() < dt * 0.35) {
+          const dir = Math.cos(u.facing) >= 0 ? 1 : -1;
+          this.particles.breath(u.x + dir * 4, u.y - 20, dir);
+        }
         if (u.missionId != null) this.missionBadge(u, time);
         if (selected && !group.has(u.id)) this.label(ctx, u.name, u.x, u.y - 34, cam.zoom);
       }
@@ -300,11 +328,12 @@ export class Renderer {
         this.afterimage(g, e, time);
         continue;
       }
+      if (e.kind === 'burst') this.seasonal.onEffect(s, e, natureOf(e.color));
       const a = project(e.x, e.y);
       const b = e.x2 != null && e.y2 != null ? project(e.x2, e.y2) : null;
       const pe = b ? { ...e, x: a.x, y: a.y, x2: b.x, y2: b.y } : { ...e, x: a.x, y: a.y };
       this.particles.effect(e, pe);
-      drawEffect(ctx, pe, cam.zoom);
+      drawEffect(ctx, pe, cam.zoom, this.particles.snowy);
     }
     this.particles.update(dt);
     this.particles.draw(ctx);
@@ -397,7 +426,14 @@ export class Renderer {
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
     const h = ((width * (ART_SCALE[artName] ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
     drawArt(ctx, pic, front.x, front.y + 4, h);
+    if (SEASON_VIEW.snow > 0.03 && !d.walkable) {
+      ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
+      drawArt(ctx, snowCap(pic, artName, true), front.x, front.y + 4, h);
+    }
     ctx.restore();
+    // inverno: fumaça saindo das chaminés das casas
+    if (b.type === 'house' && b.built && SEASON_VIEW.season === 'winter' && !lightWeatherFx() && Math.random() < this.frameDt * 1.6)
+      this.particles.chimney(front.x + width * 0.16, front.y + 4 - h * 0.86);
     if (b.type === 'tower' && b.built && (b.shot ?? 0) > 0) this.towerGuard(b, front.x, front.y + 4 - h * (GUARD_PLATFORM[lvl] ?? 0.58), time);
     // obra de upgrade: barra amarela na base
     if (b.built && b.upgrade != null) {
@@ -486,7 +522,24 @@ export class Renderer {
       ctx.fillRect(0, 0, W, H);
     }
     const hash = (i: number) => ((Math.sin(i * 127.1) * 43758.5453) % 1 + 1) % 1;
-    if (s.weather === 'rain' || s.weather === 'storm') {
+    const blizzard = s.weather === 'storm' && season === 'winter';
+    if (blizzard) {
+      // nevasca: muita neve inclinada pelo vento e uma névoa branca nas bordas
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      const n = lightWeatherFx() ? 120 : 260;
+      for (let i = 0; i < n; i++) {
+        const y = (hash(i) * H + time * (90 + hash(i + 3.1) * 60)) % (H + 10);
+        const x = (((hash(i + 7.3) * W + time * (180 + hash(i + 1.3) * 80)) % (W + 20)) + W + 20) % (W + 20) - 10;
+        ctx.fillRect(x, y, 1.5 + hash(i + 2.2) * 1.5, 1.2 + hash(i + 2.2));
+      }
+      if (!lightWeatherFx()) {
+        const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+        gr.addColorStop(0, 'rgba(235,242,255,0)');
+        gr.addColorStop(1, `rgba(235,242,255,${0.45 + Math.sin(time * 0.7) * 0.08})`);
+        ctx.fillStyle = gr;
+        ctx.fillRect(0, 0, W, H);
+      }
+    } else if (s.weather === 'rain' || s.weather === 'storm') {
       const n = s.weather === 'storm' ? 220 : 130;
       ctx.strokeStyle = 'rgba(185,205,255,0.42)';
       ctx.lineWidth = 1;
@@ -512,6 +565,25 @@ export class Renderer {
         ctx.beginPath();
         ctx.arc(x, y, 1 + hash(i + 2.2) * 1.4, 0, Math.PI * 2);
         ctx.fill();
+      }
+    }
+    // outono: folhas caindo; primavera: pétalas de cerejeira
+    if ((season === 'autumn' || season === 'spring') && !blizzard) {
+      const n = lightWeatherFx() ? 10 : 24;
+      const cols = season === 'autumn' ? ['#e8802a', '#f4ba38', '#cc4a2a'] : ['#ffc8dc', '#ffe0ea', '#f7a8c4'];
+      for (let i = 0; i < n; i++) {
+        const y = (hash(i + 40) * H + time * (22 + hash(i + 41) * 18)) % (H + 10);
+        const x = (hash(i + 47.3) * W + Math.sin(time * 0.9 + i * 1.7) * 26 + time * 12 + W * 2) % W;
+        const rot = time * (1.5 + hash(i + 43)) + i;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.scale(1, Math.abs(Math.sin(rot * 0.7)) * 0.7 + 0.3);
+        ctx.fillStyle = cols[i % cols.length]!;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 3, 1.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
     }
   }
@@ -844,11 +916,14 @@ export class Renderer {
       ctx.fillStyle = gr;
       ctx.fillRect(p.x - rr, p.y - rr, rr * 2, rr * 2);
     };
+    const winter = seasonOf(g.state) === 'winter';
     for (const b of g.state.buildings) {
       if (!b.built || !BUILDINGS[b.type].lights) continue;
       const d = doorPos(b);
-      glow(d.x, d.y, 14, 55, 'rgba(255,190,90,A)', 0.35 * night);
+      // no inverno as casas ficam com as janelas mais quentes (lareira acesa)
+      glow(d.x, d.y, 14, winter ? 66 : 55, winter ? 'rgba(255,160,70,A)' : 'rgba(255,190,90,A)', (winter ? 0.5 : 0.35) * night);
     }
+    for (const d of this.decos) if (d.kind === 'lantern') glow(d.x, d.y, 21, 34, 'rgba(255,120,50,A)', 0.6 * night);
     for (const p of g.state.projectiles) if (!p.dead && p.kind !== 'kunai') glow(p.x, p.y, 8, 40, hexA(p.color), 0.5 * night);
     for (const e of g.state.effects) if (e.kind === 'burst' || e.kind === 'bolt') glow(e.x, e.y, 0, (e.r ?? 20) * 2, hexA(e.color), 0.5 * night * (1 - e.t / e.life));
     ctx.globalCompositeOperation = 'source-over';

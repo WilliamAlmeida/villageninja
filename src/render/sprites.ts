@@ -4,6 +4,7 @@ import { TILE } from '../config';
 import { art, artFrames, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
 import { ANIMALS } from '../data/animals';
 import { BREEDS, breedArt } from '../data/breeds';
+import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { RANKS } from '../data/ninja';
 import type { Building, Projectile, ResourceNode, Unit } from '../game/types';
@@ -115,10 +116,22 @@ export function drawNode(ctx: Ctx, n: ResourceNode) {
   // estágios: árvore vira toco quando está quase no fim; rocha racha depois da metade
   const left = n.amount / n.max;
   const stage = n.type === 'tree' && left < 0.25 ? 'stump' : n.type === 'rock' && left < 0.5 ? 'rock-cracked' : null;
-  const pic = art(stage ?? (n.type === 'tree' ? `tree${n.variant % 2}` : n.type));
-  if (pic) {
+  const name = stage ?? (n.type === 'tree' ? `tree${n.variant % 2}` : n.type);
+  const base = art(name);
+  if (base) {
     const h = stage === 'stump' ? 20 : stage ? NODE_ART_H.rock : NODE_ART_H[n.type] * (n.type === 'tree' ? 1 : s);
-    drawArt(ctx, pic, n.tx * TILE + TILE / 2, n.ty * TILE + TILE * 0.7, h, n.variant >= 2);
+    // árvore folhosa (tree0) muda com a estação; o pinheiro (tree1) fica verde
+    const leafy = name === 'tree0';
+    const pic = leafy ? seasonalTree(base, name, SEASON_VIEW.season) : base;
+    const x = n.tx * TILE + TILE / 2;
+    const y = n.ty * TILE + TILE * 0.7;
+    drawArt(ctx, pic, x, y, h, n.variant >= 2);
+    if (SEASON_VIEW.snow > 0.03 && n.type !== 'herb') {
+      ctx.save();
+      ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
+      drawArt(ctx, snowCap(pic, leafy ? `${name}|${SEASON_VIEW.season}` : name), x, y, h, n.variant >= 2);
+      ctx.restore();
+    }
     return;
   }
   const img = nodeSprite(n.type, n.variant);
