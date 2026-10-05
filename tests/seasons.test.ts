@@ -40,8 +40,8 @@ describe('estações, clima e felicidade', () => {
       seen.add(g.state.weather);
     }
     for (let i = 0; i < 20; i++) {
-      g.state.time -= DAY_LENGTH; // volta um dia e avança de novo: sorteia outra vez
-      nextDay(g);
+      g.state.moodDay = -1; // esquece que o dia já foi processado: sorteia outra vez
+      run(g, SIM_DT * 2);
       seen.add(g.state.weather);
     }
     expect(seen.size).toBeGreaterThan(1);

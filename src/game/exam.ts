@@ -1,4 +1,5 @@
 // Exame Chunin: convocação, chaveamento, pontuação e promoções.
+import { promoteToSensei } from './teams';
 // A execução das lutas na arena fica em systems/exam.ts.
 import { TILE } from '../config';
 import { rand } from '../core/rng';
@@ -141,6 +142,7 @@ export function finishExam(g: Game) {
       fxText(g, u.x, u.y - 30, 'Chunin!', '#ffd34d', true);
       fx(g, 'ring', u.x, u.y, { r: 28, color: '#ffd34d', life: 0.7 });
       promoted.push(u.name);
+      promoteToSensei(g, u);
       ok = true;
     }
     if (u && e.village) gainXp(g, u, 20 + e.wins * 15);

@@ -79,6 +79,31 @@ export function autoEquip(g: Game, unitIds: number[]): Result {
   return changed ? ok : fail('Nada melhor no estoque.');
 }
 
+/**
+ * Distribui o estoque para todos os ninjas da vila: os mais fortes escolhem primeiro (ficam com as melhores peças).
+ * Retorna quantas trocas fez.
+ */
+export function autoEquipAll(g: Game): number {
+  const ninjas = g.state.units
+    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && u.away == null)
+    .sort((a, b) => b.ninja!.level - a.ninja!.level || rankN(b) - rankN(a));
+  let changed = 0;
+  for (const u of ninjas) {
+    const before = JSON.stringify(u.ninja!.equip);
+    autoEquip(g, [u.id]);
+    if (JSON.stringify(u.ninja!.equip) !== before) changed++;
+  }
+  return changed;
+}
+const rankN = (u: Unit) => ['genin', 'chunin', 'jounin', 'kage'].indexOf(u.ninja!.rank);
+
+/** Liga/desliga a distribuição automática (e já distribui ao ligar). */
+export function setAutoGear(g: Game, on: boolean) {
+  g.state.flags.autoGear = on;
+  const n = on ? autoEquipAll(g) : 0;
+  g.toast(on ? `{gear} Equipamento automático ligado${n ? `: ${n} ninja(s) equipado(s)` : ''}.` : '{gear} Equipamento automático desligado.', 'info');
+}
+
 /** Ninja dentro da vila pega outro consumível do mesmo tipo no estoque. */
 export function refillItem(g: Game, u: Unit) {
   const e = u.ninja?.equip;

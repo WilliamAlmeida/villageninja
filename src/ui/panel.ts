@@ -13,6 +13,9 @@ import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
 import { daysToNextSeason, festivalBlock, festivalOn, holdFestival, moodFactors, seasonOf } from '../game/mood';
 import { learnSpec, specBlock } from '../game/specs';
 import { adoptDog, DOG_COST, dogBlock, dogOf } from '../game/ninken';
+import { searchTiles } from '../game/systems/villagers';
+import { TILE } from '../config';
+import { doorPos, tileCenter } from '../game/world';
 import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
@@ -38,7 +41,7 @@ import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/items';
-import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip } from '../game/gear';
+import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
@@ -88,6 +91,9 @@ const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
 const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village', expeditions: 'world', region: 'world' };
 
 type BuildingTab = 'main' | 'inside';
+
+/** Recurso que cada prédio de coleta procura. */
+const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = { lumber: 'tree', quarry: 'rock', ironmine: 'ore' };
 
 /** O que cada ação da região faz (dica dos botões). */
 const ACTION_TIP: Record<RegionAction, string> = {
@@ -753,14 +759,22 @@ export class Panel {
       if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).</p>`;
       if (d.workers) {
         html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
-          <b data-t="workers"></b><button class="btn" data-act="workers" data-arg="1">{plus}</button></div>`;
-        t.workers = `${bd.workers.length} / ${bd.desired} (máx ${workersOf(bd)})`;
+          <span class="wnum"><b data-t="workers"></b><small>trabalhando agora · você pediu <b data-t="wdesired"></b> (máx. ${workersOf(bd)})</small></span>
+          <button class="btn" data-act="workers" data-arg="1">{plus}</button></div>`;
+        t.workers = String(bd.workers.length);
+        t.wdesired = String(bd.desired);
+        if (bd.workers.length < bd.desired) {
+          const idle = g.villagers().filter((u) => u.jobId == null).length;
+          html += `<p class="why">${idle ? 'Os moradores livres estão a caminho.' : 'Faltam moradores livres: todos já trabalham. Construa casas para a vila crescer ou tire gente de outro prédio.'}</p>`;
+        }
+        html += this.gatherInfo(bd);
       }
       if (d.housing) {
         const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
         html += `<h4>Moradia</h4><p class="hint"><span data-t="res"></span> moradores</p>`;
         t.res = `${residents} / ${housingOf(bd)}`;
       }
+      if (bd.type === 'kennel') html += this.kennelSection();
       if (bd.type === 'market') {
         html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
         html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender 1 (+${GOLD_PRICE}{ryo})</button>
@@ -780,6 +794,49 @@ export class Panel {
       html += `<button class="btn danger" data-act="demolish">${this.armedDemolish ? 'Toque de novo para confirmar' : `{trash} Demolir (devolve ${bd.built ? '50%' : '100%'})`}</button>`;
     html += `</div>`;
     return { html, t, b };
+  }
+
+  /** Equipar todos com o estoque agora, e o modo automático (passa sozinho o que for sendo fabricado). */
+  private gearBar() {
+    const on = !!this.app.game.state.flags.autoGear;
+    return `<div class="btnrow gearbar"><button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{gear} Equipar todos</button>
+      <button class="btn ${on ? 'primary' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{refresh} Automático: ${on ? 'ligado' : 'desligado'}</button></div>`;
+  }
+
+  /** Canil: cada ninja pode ter um ninken; lista quem tem e quem pode adotar. */
+  private kennelSection() {
+    const g = this.app.game;
+    const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
+    let html = `<h4>{paw} Ninken</h4><p class="hint">O cão acompanha o dono, luta junto, fareja espiões invisíveis por perto e, fora da vila, acha ervas. Custa ${costLabel(DOG_COST)}.</p>`;
+    if (!ninjas.length) return html + `<p class="why">Nenhum ninja na vila.</p>`;
+    html += `<div class="roster">`;
+    for (const u of ninjas) {
+      const dog = dogOf(g, u);
+      html += `<div class="cand"><span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge rank">${RANKS[u.ninja!.rank].name}</span></span><span class="btnrow">${
+        dog
+          ? `<span class="badge">{paw} ${esc(dog.name)}</span>`
+          : `<button class="btn mini primary" data-act="dog-for" data-arg="${u.id}" ${blocked(g, [dogBlock(g, u)], DOG_COST)}>{paw} Adotar</button>`
+      }</span></div>`;
+    }
+    return html + `</div>`;
+  }
+
+  /** Lenhador, pedreira e mina: o que há ao alcance (o círculo tracejado no mapa) e o que está crescendo de volta. */
+  private gatherInfo(bd: Building) {
+    const kind = GATHER_NODE[bd.type];
+    if (!kind) return '';
+    const g = this.app.game;
+    const r = searchTiles(bd);
+    const p = doorPos(bd);
+    const near = g.state.nodes.filter((n) => n.type === kind && Math.hypot(tileCenter(n.tx) - p.x, tileCenter(n.ty) - p.y) < r * TILE);
+    const ready = near.filter((n) => n.amount > 0).length;
+    const growing = near.length - ready;
+    const word = { tree: 'árvores', rock: 'rochas', ore: 'veios de ferro' }[kind];
+    let html = `<p class="hint">{eye} Alcance: ${r} tiles ao redor (círculo tracejado no mapa)${levelOf(bd) < 3 && UPGRADES[bd.type] ? ', maior a cada nível' : ''}. <b>${ready}</b> ${word} prontas${
+      growing ? ` · ${growing} crescendo de volta` : ''
+    }.</p>`;
+    if (!ready) html += `<p class="why">Nada pronto ao alcance agora. ${growing ? 'Elas voltam a crescer sozinhas em alguns dias.' : 'Mova o prédio para perto de mais recursos.'}</p>`;
+    return html;
   }
 
   /** Corte do interior: quem está lá dentro agora (dormindo, estudando, abrigado…). */
@@ -1065,7 +1122,7 @@ export class Panel {
   private workshopSection(bd: Building, t: Record<string, string>, b: Record<string, number>) {
     const g = this.app.game;
     const recipes = recipesOf(bd.type);
-    let html = `<h4>Estoque</h4><div class="btnrow">`;
+    let html = this.gearBar() + `<h4>Estoque</h4><div class="btnrow">`;
     for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
     html += `</div>`;
     const queue = bd.queue ?? [];
@@ -1187,6 +1244,7 @@ export class Panel {
       name: (a, z) => a.name.localeCompare(z.name, 'pt-BR'),
     };
     const list = ninjas.filter(tests[this.rosterFilter][1]).sort(by[this.rosterSort]);
+    html += this.gearBar();
     html += `<p class="hint">${list.length} de ${ninjas.length} ninja(s). Toque para selecionar.</p>`;
     if (!list.length) html += `<p class="hint">Nenhum ninja neste filtro.</p>`;
     html += `<div class="roster">`;
@@ -1359,6 +1417,16 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'dog-for':
+        return this.report(adoptDog(g, Number(arg)));
+      case 'gear-all': {
+        const n = autoEquipAll(g);
+        g.toast(n ? `{gear} ${n} ninja(s) receberam equipamento do estoque.` : '{gear} Ninguém precisava de nada do estoque.', n ? 'good' : 'info');
+        return this.report({ ok: true });
+      }
+      case 'gear-auto':
+        setAutoGear(g, !g.state.flags.autoGear);
+        return this.report({ ok: true });
       case 'dog': {
         if (v?.kind !== 'unit') return;
         return this.report(adoptDog(g, v.id));

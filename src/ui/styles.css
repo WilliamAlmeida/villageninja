@@ -164,7 +164,7 @@ button:disabled { cursor: not-allowed; }
 
 /* ---------- painel lateral ---------- */
 #panel {
-  position: fixed; top: 3.4rem; right: calc(0.5rem + var(--safe-r)); bottom: 0.5rem; width: min(24rem, 46vw); z-index: 10;
+  position: fixed; top: 3.4rem; right: calc(0.5rem + var(--safe-r)); max-height: calc(100dvh - 3.9rem - var(--safe-b)); width: min(24rem, 46vw); z-index: 10;
   background: var(--bg); border: 1px solid var(--line); border-radius: 0.9rem; display: flex; flex-direction: column;
   box-shadow: var(--shadow); animation: pin 0.15s ease-out;
 }
@@ -462,3 +462,9 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 /* felicidade e estação na barra de cima */
 .chip.mood.good { color: var(--good); } .chip.mood.low { color: var(--bad); }
 .clock .season { display: inline-flex; gap: 0.1rem; cursor: help; }
+
+/* trabalhadores: número grande + o que significa */
+.workers .wnum { display: flex; flex-direction: column; align-items: center; line-height: 1.1; min-width: 9rem; text-align: center; }
+.workers .wnum > b { font-size: 1.3rem; }
+.workers .wnum small { color: var(--muted); font-size: 0.75rem; }
+.gearbar { margin-bottom: 0.4rem; }

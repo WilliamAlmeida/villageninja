@@ -122,6 +122,16 @@ export function joinAsSensei(g: Game, teamId: number, unitId: number): Result {
   return ok;
 }
 
+/** Recém-promovido a Chunin+ numa equipe sem sensei: assume como sensei. Retorna true se mudou. */
+export function promoteToSensei(g: Game, u: Unit): boolean {
+  const t = teamOf(g, u);
+  if (!t || t.senseiId != null || !canBeSensei(u) || !t.memberIds.includes(u.id)) return false;
+  t.memberIds = t.memberIds.filter((id) => id !== u.id);
+  t.senseiId = u.id;
+  g.toast(`{crown} ${u.name} agora é o sensei de ${t.name}.`, 'good', u);
+  return true;
+}
+
 /** Cria uma equipe nova já com este ninja (sensei se Chunin+, senão membro). */
 export function createTeamWith(g: Game, unitId: number): Result {
   const u = validNinja(g, unitId);

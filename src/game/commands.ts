@@ -1,4 +1,5 @@
 // Ações do jogador. A UI só altera o jogo por aqui (fácil de testar / reaproveitar).
+import { promoteToSensei } from './teams';
 import { TILE } from '../config';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { JUTSU_LIST, JUTSUS, type JutsuDef } from '../data/jutsus';
@@ -45,10 +46,11 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
   // árvores no terreno viram madeira
   let wood = 0;
   for (const n of [...g.state.nodes]) {
-    if (n.type === 'tree' && n.tx >= tx && n.tx < tx + def.w && n.ty >= ty && n.ty <= ty + def.h) {
-      wood += 3;
+    if (n.tx < tx || n.tx >= tx + def.w || n.ty < ty || n.ty > ty + def.h) continue;
+    if (n.type === 'tree') {
+      wood += n.amount > 0 ? 3 : 0; // toco não rende madeira
       g.removeNode(n.id);
-    }
+    } else if ((n.type === 'rock' || n.type === 'ore') && n.amount <= 0) g.removeNode(n.id); // rocha esgotada sai do caminho
   }
   g.state.res.wood += wood;
   const b: Building = { id: g.newId(), type, tx, ty, built: false, progress: 0, desired: def.workers ?? 0, workers: [], cd: 0 };
@@ -96,10 +98,11 @@ export function moveBuilding(g: Game, id: number, tx: number, ty: number): Resul
   fx(g, 'smoke', oldDoor.x, oldDoor.y - 16, { r: 20, life: 0.6, color: '#d8c8a8' });
   // árvores no terreno novo viram madeira (como ao construir)
   for (const n of [...g.state.nodes]) {
-    if (n.type === 'tree' && n.tx >= tx && n.tx < tx + def.w && n.ty >= ty && n.ty <= ty + def.h) {
-      g.state.res.wood += 3;
+    if (n.tx < tx || n.tx >= tx + def.w || n.ty < ty || n.ty > ty + def.h) continue;
+    if (n.type === 'tree') {
+      if (n.amount > 0) g.state.res.wood += 3;
       g.removeNode(n.id);
-    }
+    } else if ((n.type === 'rock' || n.type === 'ore') && n.amount <= 0) g.removeNode(n.id);
   }
   b.tx = tx;
   b.ty = ty;
@@ -218,6 +221,7 @@ export function promote(g: Game, unitId: number): Result {
   fxText(g, u.x, u.y - 30, `${r.name}!`, '#ffd34d', true);
   fx(g, 'ring', u.x, u.y, { r: 28, color: '#ffd34d', life: 0.6 });
   g.toast(`{medal} ${u.name} foi promovido a ${r.name}!`, 'good', u);
+  promoteToSensei(g, u);
   return ok;
 }
 

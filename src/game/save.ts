@@ -3,6 +3,8 @@ import { Game, type System } from './game';
 import type { GameState } from './types';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
 import { newRegion } from './region';
+import { generateMap } from './world';
+import { BUILDINGS, type BuildingType } from '../data/buildings';
 
 /**
  * Migrações de save: cada entrada transforma a versão N na N+1.
@@ -90,6 +92,23 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.moodDay = s.day;
     s.festivalDay = 0;
     s.festivalUntil = 0;
+  },
+  13: (s) => {
+    // recursos agora crescem de volta: o que já tinha sumido do mapa volta como toco / rocha rachada
+    let next = s.nextId;
+    const { nodes } = generateMap(s.seed, () => next++);
+    const taken = new Set(s.nodes.map((n: { tx: number; ty: number }) => `${n.tx},${n.ty}`));
+    const under = (tx: number, ty: number) =>
+      s.buildings.some((b: { type: BuildingType; tx: number; ty: number }) => {
+        const d = BUILDINGS[b.type];
+        return tx >= b.tx - 1 && tx <= b.tx + d.w && ty >= b.ty - 1 && ty <= b.ty + d.h;
+      });
+    for (const n of nodes) {
+      if (n.type === 'herb' || taken.has(`${n.tx},${n.ty}`) || under(n.tx, n.ty)) continue;
+      s.nodes.push({ ...n, amount: 0, regrow: 30 + Math.random() * 300 });
+    }
+    s.nextId = next;
+    s.flags.autoGear = false;
   },
 };
 

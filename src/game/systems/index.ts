@@ -7,6 +7,8 @@ import { exploreSystem } from './explore';
 import { expeditionSystem } from './expeditions';
 import { regionSystem } from './region';
 import { seasonSystem } from './seasons';
+import { natureSystem } from './nature';
+import { gearSystem } from './gear';
 import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
@@ -45,4 +47,6 @@ export const SYSTEMS: System[] = [
   expeditionSystem,
   regionSystem,
   seasonSystem,
+  natureSystem,
+  gearSystem,
 ];

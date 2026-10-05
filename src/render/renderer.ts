@@ -17,6 +17,7 @@ import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { seasonOf } from '../game/mood';
+import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
 import { buildingCenter, doorPos } from '../game/world';
 import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
@@ -147,6 +148,17 @@ export class Renderer {
         ctx.setLineDash([6, 4]);
         ctx.strokeRect(b.tx * TILE - 3, b.ty * TILE - 3, d.w * TILE + 6, d.h * TILE + 6);
         ctx.setLineDash([]);
+        // alcance de coleta (lenhador, pedreira, mina): de onde os trabalhadores buscam recursos
+        if (b.type === 'lumber' || b.type === 'quarry' || b.type === 'ironmine') {
+          const p = doorPos(b);
+          ctx.strokeStyle = 'rgba(127,211,107,0.55)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([8, 6]);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, searchTiles(b) * TILE, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
         const def = DEFENSES[b.type];
         if (def) {
           const c = buildingCenter(b);

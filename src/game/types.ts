@@ -285,6 +285,8 @@ export interface Site {
 export interface ResourceNode {
   id: number;
   type: 'tree' | 'rock' | 'herb' | 'ore';
+  /** Esgotado: segundos até voltar inteiro (árvore vira toco, rocha fica rachada). */
+  regrow?: number;
   missionId?: number;
   tx: number;
   ty: number;
@@ -393,7 +395,7 @@ export interface GameState {
   items: Record<string, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 

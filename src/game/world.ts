@@ -82,7 +82,8 @@ export class World {
     for (let y = ty; y <= ty + d.h; y++)
       for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER) return false;
     for (const n of this.state.nodes)
-      if ((n.type === 'rock' || n.type === 'ore') && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
+      // rocha/veio esgotado (rachado, crescendo de volta) não bloqueia: some quando constroem em cima
+      if ((n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
     return inTerritory(this.state, tx, ty, d.w, d.h + 1);
   }
 }

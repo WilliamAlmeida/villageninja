@@ -4,6 +4,8 @@ import { BUILDINGS } from '../../data/buildings';
 import { fx, fxText } from '../fx';
 import { farmYield, marketYield, needsBuilders, workUpgrade } from '../upgrade';
 import { harvestMult, workMult } from '../mood';
+import { levelOf } from '../upgrade';
+import { REGROW } from '../../data/regrow';
 import { advanceCraft } from '../gear';
 import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
@@ -27,7 +29,8 @@ const FIELD_OUTPUT = {
 };
 /** Oficina de Selos ociosa: transforma madeira em papel. */
 const PAPER = { wood: 4, time: 8, minWood: 30 };
-const NODE_SEARCH = 14 * TILE;
+/** Raio (tiles) em que lenhador, pedreira e mina procuram recursos; cresce com o nível do prédio. */
+export const searchTiles = (b: Building) => 14 + (levelOf(b) - 1) * 4;
 
 /** Pessoas comuns: trabalham, constroem, passeiam, dormem e fogem do perigo. */
 export function villagerSystem(g: Game, dt: number) {
@@ -179,7 +182,12 @@ function work(g: Game, u: Unit, dt: number) {
       if (u.timer <= 0) {
         const amount = Math.min(n.amount, yieldOf.amount);
         n.amount -= amount;
-        if (n.amount <= 0) g.removeNode(n.id);
+        // esgotou: vira toco / rocha rachada e cresce de volta com o tempo (não some do mapa)
+        if (n.amount <= 0) {
+          n.amount = 0;
+          n.regrow = REGROW[n.type] ?? 0;
+          if (!n.regrow) g.removeNode(n.id);
+        }
         u.carry = { res: yieldOf.res, amount };
         deposit(g, u);
       }
@@ -356,7 +364,7 @@ function findNode(g: Game, b: Building, type: 'tree' | 'rock' | 'ore') {
   const near = g.state.nodes
     .filter((n) => n.type === type && n.amount > 0)
     .map((n) => ({ n, d: Math.hypot(tileCenter(n.tx) - p.x, tileCenter(n.ty) - p.y) }))
-    .filter((e) => e.d < NODE_SEARCH)
+    .filter((e) => e.d < searchTiles(b) * TILE)
     .sort((a, b) => a.d - b.d)
     .slice(0, 4);
   return near.length ? pick(near).n : null;

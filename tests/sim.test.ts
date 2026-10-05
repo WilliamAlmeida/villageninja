@@ -52,7 +52,7 @@ describe('simulação', () => {
     const g = createNewGame(SYSTEMS, 7);
     g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999, iron: 999, herbs: 999, paper: 999, crystal: 0, gold: 0, darksteel: 0 };
     expect(placeBuilding(g, 'academy', CENTER_TX - 7, CENTER_TY + 3).ok).toBe(true);
-    run(g, 45);
+    run(g, 60); // folga: bichos e clima sorteados às vezes atrasam a obra
     expect(g.findBuilt('academy')).toBeDefined();
     expect(recruitNinja(g).ok).toBe(true);
     const ninja = g.state.units.find((u) => u.kind === 'ninja' && u.ninja!.jutsu[0] === null && u.ninja!.jutsu[1] === null);
@@ -61,7 +61,7 @@ describe('simulação', () => {
       for (const k of Object.keys(stats) as (keyof typeof stats)[]) stats[k] = 5;
       const opt = jutsuOptions(ninja).find((o) => o.ok)!;
       expect(teachJutsu(g, ninja.id, opt.def.id, 0).ok).toBe(true);
-      run(g, 90);
+      run(g, 150); // folga: um ataque no meio interrompe o estudo
       expect(ninja.ninja!.jutsu[0]).toBe(opt.def.id);
     }
   });
