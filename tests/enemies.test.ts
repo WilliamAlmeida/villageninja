@@ -43,6 +43,7 @@ describe('inimigos novos', () => {
     const c = buildingCenter(farm);
     g.state.res.food = 100;
     const crow = createAnimal(g, 'crow', c.x, c.y);
+    crow.hp = crow.maxHp = 9999; // a Residência do Hokage atira kunai: o corvo não pode cair antes de juntar o saque
     run(g, 30, () => (crow.loot?.food ?? 0) >= 4);
     expect(crow.loot?.food ?? 0).toBeGreaterThanOrEqual(4);
     const before = g.state.res.food;
@@ -57,6 +58,7 @@ describe('inimigos novos', () => {
     g.state.res.ryo = 500;
     const p = doorPos(g.hokage()!);
     const monkey = createAnimal(g, 'monkey', p.x + 60, p.y + 40);
+    monkey.hp = monkey.maxHp = 9999; // idem
     run(g, 40, () => !!monkey.loot);
     expect(monkey.loot?.ryo ?? 0).toBeGreaterThan(0);
     expect(monkey.state).toBe('escape');
@@ -144,9 +146,12 @@ describe('inimigos novos', () => {
     const g = createNewGame(SYSTEMS, 43);
     noDefenders(g);
     const o = openRow(g);
-    const n = createNinja(g, o.x + 260, o.y, 'jounin', 0);
+    const n = createNinja(g, o.x + 240, o.y, 'jounin', 0); // 140 px: dentro da percepção (160) e da investida (60–220)
     const rhino = createAnimal(g, 'rhino', o.x + 100, o.y);
     rhino.abilityCd = 0;
+    n.stun = 5; // parado na linha da investida (senão ele sai do caminho e o teste vira sorte)
+    // só ele de alvo (um morador mais perto desviaria a investida)
+    for (const u of g.state.units) if (u.faction === 'village' && u !== n) u.dead = true;
     const hp0 = n.hp;
     run(g, 3, () => n.hp < hp0 && rhino.state !== 'charge');
     expect(n.hp).toBeLessThan(hp0);
