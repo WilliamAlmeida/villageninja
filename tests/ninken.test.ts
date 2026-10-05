@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SIM_DT } from '../src/config';
+import { DAY_LENGTH, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
@@ -15,7 +15,7 @@ const run = (g: Game, seconds: number) => {
 };
 
 describe('ninken', () => {
-  test('dono fora (em casa ou em expedição): o cão entra no Canil; dono volta: o cão sai e vai atrás', () => {
+  test('dono fora (em casa ou em expedição): de dia o cão patrulha, à noite dorme no Canil; dono volta: vai atrás', () => {
     const g = createNewGame(SYSTEMS, 125);
     Object.assign(g.state.res, { food: 999, ryo: 999 });
     for (const u of g.state.units) if (u.kind !== 'villager') u.dead = true; // sem distrações
@@ -24,13 +24,24 @@ describe('ninken', () => {
     const n = createNinja(g, 36 * 32, 24 * 32, 'genin', 0);
     expect(adoptDog(g, n.id).ok).toBe(true);
     const dog = dogOf(g, n)!;
-    n.away = 999; // saiu numa expedição (a IA dele fica parada; em casa vale o mesmo: dono escondido)
-    run(g, 20);
+    n.away = 999; // fora numa expedição (em casa vale o mesmo: dono escondido)
+    const at = (hour: number, seconds: number) => {
+      for (let t = 0; t < seconds; t += SIM_DT) {
+        g.state.time = (((hour - 6 + 24) % 24) / 24) * DAY_LENGTH; // o relógio começa às 6h
+        g.step(SIM_DT);
+      }
+    };
+    at(12, 3);
+    expect(dog.state).toBe('dogPatrol');
+    expect(dog.hidden).toBe(false);
+    at(22, 25);
     expect(dog.hidden).toBe(true);
     expect(occupantsOf(g, k)).toContain(dog);
-    n.away = undefined;
-    run(g, 0.2);
+    at(9, 0.2); // amanheceu: sai para patrulhar
     expect(dog.hidden).toBe(false);
+    n.away = undefined;
+    at(9, 0.2);
+    expect(dog.state).not.toBe('dogPatrol');
   });
 
   test('raças: buldogue aguenta mais, pug fareja de mais longe', () => {

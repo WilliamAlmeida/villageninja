@@ -600,15 +600,19 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
     fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#e8e8e8' });
     return;
   }
-  // ninken: dono dentro de casa (ou fora numa expedição) → vai dormir no Canil; dono saiu → sai e vai atrás
+  // ninken: dono dentro de casa (ou fora numa expedição) → de dia patrulha a vila farejando, à noite dorme no
+  // Canil; dono saiu → sai e vai atrás
   const ownerIn = owner.hidden || owner.away != null;
+  const night = isNight(g.state);
   if (u.animal === 'dog') {
     if (u.hidden) {
-      if (ownerIn) return;
+      if (ownerIn && night) return;
       u.hidden = false;
       u.state = 'idle';
     }
-    if (!ownerIn && u.state === 'toKennel') u.state = 'idle'; // o dono saiu antes de ele chegar
+    // mudou a situação no meio do caminho: esquece a rota antiga
+    if ((!ownerIn || !night) && u.state === 'toKennel') u.state = 'idle';
+    if ((!ownerIn || night) && u.state === 'dogPatrol') u.state = 'idle';
     dogSniff(g, u, owner, dt);
   }
   if (u.animal === 'slug') {
@@ -629,11 +633,24 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
   }
   // fora do mapa (dono em expedição) ou escondido: o cão vai para o Canil; os outros esperam
   if (ownerIn) {
-    if (u.animal === 'dog' && goKennel(g, u, dt)) return;
+    if (u.animal === 'dog' && (night ? goKennel(g, u, dt) : dogPatrol(g, u, dt))) return;
     u.moving = false;
     return;
   }
   chase(g, u, owner.x - 18, owner.y + 10, dt, 20);
+}
+
+/** Cão patrulha a vila de prédio em prédio (o faro dele descobre espiões invisíveis pelo caminho). */
+function dogPatrol(g: Game, u: Unit, dt: number): boolean {
+  if (u.state !== 'dogPatrol' || !u.hasGoal) {
+    const bs = g.state.buildings.filter((b) => b.built);
+    if (!bs.length) return false;
+    const d = doorPos(bs[randi(0, bs.length - 1)]!);
+    if (!setDestination(g, u, d.x + rand(-40, 40), d.y + rand(10, 40))) return false;
+    u.state = 'dogPatrol';
+  }
+  if (followPath(g, u, dt, 0.8)) u.hasGoal = false; // chegou: escolhe o próximo ponto
+  return true;
 }
 
 /** Cão anda até o Canil e entra (fica escondido lá dentro, aparece na aba do prédio). False = não há Canil. */
