@@ -5,6 +5,7 @@ import { RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/nin
 import { refreshDerived } from './entities';
 import { fxText } from './fx';
 import { catchingUp } from './care';
+import { statCapOf } from './sannin';
 import type { Game } from './game';
 import type { Building, Unit } from './types';
 import { FIELD_FOCUS_BONUS } from '../data/specialize';
@@ -12,7 +13,7 @@ import { FIELD_FOCUS_BONUS } from '../data/specialize';
 /** Aumenta um atributo respeitando o teto do rank. Retorna o ganho real. */
 export function addStat(u: Unit, key: StatKey, amount: number): number {
   const n = u.ninja!;
-  const cap = RANKS[n.rank].statCap;
+  const cap = statCapOf(n);
   const before = n.stats[key];
   n.stats[key] = Math.min(cap, before + amount);
   return n.stats[key] - before;
@@ -39,7 +40,7 @@ export function gainXp(g: Game, u: Unit, amount: number) {
 /** Uma sessão de treino no Campo de Treino. Com o sensei por perto rende 50% a mais. */
 export function trainTick(g: Game, u: Unit, sensei: Unit | null = null, field?: Building) {
   const n = u.ninja!;
-  const cap = RANKS[n.rank].statCap;
+  const cap = statCapOf(n);
   const open = STAT_KEYS.filter((k) => n.stats[k] < cap);
   // sem foco definido, o sensei puxa o treino para os pontos fortes dele
   const senseiPick = sensei?.ninja && !n.focus && Math.random() < 0.5 ? topStats(sensei).find((k) => open.includes(k)) : undefined;

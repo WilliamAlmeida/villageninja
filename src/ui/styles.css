@@ -481,8 +481,9 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .wsr-top { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; }
 .wsr-name { font-weight: 600; }
 .wsr-cost { color: var(--muted); font-size: 0.82rem; }
-.wsr-keep { align-items: center; }
-.wsr-keep button { padding: 0.15rem 0.45rem; font-size: 0.78rem; }
+.chips.wsr-keep { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.2rem; }
+.chips.wsr-keep .hint { margin: 0 0.2rem 0 0; flex: none; font-size: 0.78rem; }
+.chips.wsr-keep button { flex: 1 1 0; min-width: 0; padding: 0.15rem 0.1rem; font-size: 0.76rem; }
 .wsauto { border-top: 1px dashed var(--line); padding-top: 0.35rem; }
 /* "Voltar" para a lista de onde o ninja foi aberto */
 .backbtn { margin-bottom: 0.35rem; }
@@ -492,3 +493,6 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 #maptip small { color: var(--warn); font-weight: 700; margin-left: 0.25rem; }
 #maptip .mt-desc { color: var(--muted); font-size: 0.78rem; margin-bottom: 0.15rem; }
 #maptip .mt-hint { color: var(--muted); font-size: 0.72rem; margin-top: 0.15rem; }
+
+/* Os Três Sannin: três cartões lado a lado */
+.sannin { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.5rem; }

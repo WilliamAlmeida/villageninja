@@ -1,5 +1,6 @@
 // Todo o estado do jogo é dado puro (serializável em JSON).
 import type { KageArtId } from '../data/kageArts';
+import type { SanninPath } from '../data/sannin';
 import type { DogBreed } from '../data/breeds';
 import type { MarketGood } from '../data/specialize';
 // Sistemas mutam o estado; render e UI apenas leem.
@@ -64,6 +65,8 @@ export interface NinjaInfo {
   spec?: SpecKind;
   /** Técnica exclusiva do Kage (data/kageArts.ts). */
   kageArt?: KageArtId;
+  /** Um dos Três Sannin (caminho do sapo, da serpente ou da lesma). */
+  sannin?: SanninPath;
 }
 
 /** Herança de família: o que um morador traz de berço (usado ao virar ninja). */
@@ -183,6 +186,9 @@ export interface Unit {
   cast?: { id: string; targetId: number; t: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
   dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number };
+  /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
+  sage?: number;
+  sanninCd?: number;
   /** Campo de Treino em que está treinando (ou indo treinar): ocupa uma vaga. */
   trainId?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */

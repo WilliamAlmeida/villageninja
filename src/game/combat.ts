@@ -17,6 +17,7 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push } from './movement';
 import { noteHit, shareXp, tryRescue } from './care';
+import { sageDamage, sanninSurvive } from './sannin';
 import { consumeItem } from './gear';
 import { gearBonus } from './gearBonus';
 import { ITEMS } from '../data/items';
@@ -387,6 +388,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (src?.faction === 'village' && src.ninja && hasTeammateNear(g, src)) dmg *= 1.1;
   // "Vontade" do Kage: com um Kage vivo, todos os ninjas da vila batem mais forte
   if (src?.faction === 'village' && src.ninja && !src.arenaSide && g.state.kageId != null && !g.unit(g.state.kageId)?.dead) dmg *= KAGE_DAMAGE_BONUS;
+  // Modo Sábio (Sannin dos Sapos)
+  dmg *= sageDamage(src);
   // clima: algumas naturezas ficam mais fortes (chuva, tempestade, neve, sol)
   dmg *= natureWeather(g.state, nature, t.x, t.y);
   // espião da vila por perto marca o alvo
@@ -423,7 +426,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
       t.state = 'ko';
       t.stun = 99;
       fxText(g, t.x, t.y - 30, 'Nocaute!', '#ffd34d', true);
-    } else if (!tryRescue(g, t)) killUnit(g, t, src);
+    } else if (!sanninSurvive(g, t) && !tryRescue(g, t)) killUnit(g, t, src);
   }
 }
 

@@ -1,4 +1,6 @@
 // Profissões e invocações dos ninjas da vila em combate: médico cura, espião marca e revela, marionetista monta um
+import { SANNIN } from '../data/sannin';
+import { sanninTick } from './sannin';
 // boneco, e quem tem contrato invoca sapo / serpente / lesma. Chamado pelo sistema dos ninjas a cada tick.
 import { ANIMALS } from '../data/animals';
 import { CONTRACTS } from '../data/contracts';
@@ -40,6 +42,7 @@ export function learnSpec(g: Game, unitId: number, kind: SpecKind): Result {
 /** Habilidades automáticas em combate (profissão e contrato). */
 export function specTick(g: Game, u: Unit, dt: number) {
   const n = u.ninja!;
+  sanninTick(g, u); // técnica lendária dos Sannin
   if (n.spec || n.contract) u.abilityCd = (u.abilityCd ?? 0) - dt;
   u.summonCd = (u.summonCd ?? 0) - dt;
   const inCombat = u.combatTimer > 0 && !u.hidden;
@@ -72,7 +75,7 @@ export function specTick(g: Game, u: Unit, dt: number) {
     const mine = g.state.units.some((o) => !o.dead && o.ownerId === u.id && o.animal === c.animal);
     if (!mine && u.chakra >= c.chakra) {
       u.chakra -= c.chakra;
-      u.summonCd = c.cd;
+      u.summonCd = c.cd * (n.sannin ? SANNIN.summonCd : 1); // Sannin invoca mais vezes
       const a = createAnimal(g, c.animal, u.x + 22, u.y + 10);
       a.faction = 'village';
       a.ownerId = u.id;

@@ -202,6 +202,17 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
   } else if (u.animal) drawAnimal(ctx, u, t);
   else drawHuman(ctx, u, t);
   if (bare) return;
+  // Modo Sábio: aura laranja pulsando em volta do Sannin dos Sapos
+  if (u.sage) {
+    ctx.save();
+    ctx.globalAlpha = 0.45 + Math.sin(t * 8) * 0.15;
+    ctx.strokeStyle = '#ff9a3b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(u.x, u.y - 8, 12, 17, 0, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
   // fórmula do Hiraishin: selo amarelo girando no chão de quem foi marcado
   if (u.mark) {
     ctx.save();

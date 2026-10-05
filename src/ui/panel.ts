@@ -38,6 +38,8 @@ import {
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
+import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
+import { nameSannin, sanninBlock, sanninCandidates, sanninOf, statCapOf } from '../game/sannin';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
 import { CARE, catchingUp, isRookie } from '../game/care';
 import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
@@ -341,7 +343,7 @@ export class Panel {
         if (this.unitTab === 'gear') return { html: html + this.equipSection(u), t, b };
       }
       if (u.heritage?.parents) html += `<p class="hint">Filho(a) de ${esc(u.heritage.parents.join(' e '))}</p>`;
-      html += `<h4>Atributos <small>(máx ${RANKS[n.rank].statCap})</small></h4><div class="stats">`;
+      html += `<h4>Atributos <small>(máx ${statCapOf(n)})</small></h4><div class="stats">`;
       for (const k of STAT_KEYS) {
         const info = STAT_INFO[k];
         html += `<div class="stat" title="${info.label}"><span>${info.short}</span><div class="sb"><i data-b="s-${k}" style="background:${info.color}"></i></div><b data-t="s-${k}"></b></div>`;
@@ -1219,6 +1221,11 @@ export class Panel {
     let html = `<h4>Técnicas básicas <small>(automáticas)</small></h4><div class="btnrow">
       <span class="badge" ${tipAttr('Shunshin no Jutsu', `Corpo cintilante: some num redemoinho de ${style} e aparece até ${SHUNSHIN.maxDist / 32 | 0} tiles adiante. Usa para chegar na luta, recuar quando luta de longe e fugir ferido. Recarga ${flickerCooldown(n.stats).toFixed(1)}s (menor com Velocidade).`, true)}>{run} Shunshin · <b data-t="flick"></b></span>
       <span class="badge" ${tipAttr('Kawarimi no Jutsu', `Substituição: num golpe forte ou fatal, ${Math.round(kawarimiChance(n.stats) * 100)}% de chance de trocar de lugar com um tronco (Velocidade e Inteligência aumentam). ${KAWARIMI.chakra} de chakra, recarga ${KAWARIMI.cooldown}s.`, true)}>{leaf} Kawarimi · <b data-t="kawa"></b></span>`;
+    if (n.sannin) {
+      const s = SANNIN_PATHS[n.sannin];
+      t.sart = ready(u.sanninCd);
+      html += `<span class="badge" style="color:${s.color}" ${tipAttr(`${s.title}: ${s.art}`, `${s.desc} Recarga ${s.cooldown}s.`, true)}>{crown} ${esc(s.art)} · <b data-t="sart"></b></span>`;
+    }
     if (n.kageArt) {
       const k = KAGE_ARTS[n.kageArt];
       t.kart = ready(u.artCd);
@@ -1252,7 +1259,28 @@ export class Panel {
     }
     if (g.state.kageHistory.length)
       html += `<p class="hint">Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
-    return html;
+    return html + this.sanninSection();
+  }
+
+  /** Os Três Sannin: um por caminho (sapo, serpente, lesma), escolhidos entre os Jounins fortes. */
+  private sanninSection() {
+    const g = this.app.game;
+    let html = `<h4>{crown} Os Três Sannin</h4><p class="hint">Título lendário para Jounins de nível ${SANNIN.minLevel}+ (${costLabel(SANNIN.cost)} cada): atributos até ${SANNIN.statCap}, o contrato do animal (invoca mais vezes) e uma técnica lendária.</p><div class="sannin">`;
+    const cands = sanninCandidates(g);
+    for (const path of ['toad', 'snake', 'slug'] as const) {
+      const d = SANNIN_PATHS[path];
+      const who = sanninOf(g, path);
+      html += `<div class="wscard"><div class="wshead"><span class="wsname" style="color:${d.color}">${esc(d.title)}</span></div><p class="hint"><b>${esc(d.art)}:</b> ${esc(d.desc)}</p>`;
+      if (who) html += `<button class="rrow" data-act="pick" data-arg="${who.id}"><span class="rn">${esc(who.name)}</span><span class="badge">Nv ${who.ninja!.level}</span></button>`;
+      else if (!cands.length) html += `<p class="why">${esc(sanninBlock(g, undefined, path) ?? '')}</p>`;
+      else
+        for (const c of cands.slice(0, 3)) {
+          const why = sanninBlock(g, c, path);
+          html += `<button class="btn" data-act="sannin" data-arg="${c.id}:${path}" ${blocked(g, [why && !why.startsWith('Custa') && why], SANNIN.cost)}>{crown} ${esc(c.name.split(' ').pop()!)} (Nv ${c.ninja!.level})</button>`;
+        }
+      html += `</div>`;
+    }
+    return html + `</div>`;
   }
 
   /** Felicidade (com os fatores), estação, clima e festival. */
@@ -1665,6 +1693,10 @@ export class Panel {
       case 'auto-sensei':
         g.state.flags.autoSensei = !g.state.flags.autoSensei;
         return this.report({ ok: true });
+      case 'sannin': {
+        const [id, path] = String(arg).split(':');
+        return this.report(nameSannin(g, Number(id), path as SanninPath));
+      }
       case 'hire':
         return this.report(hireMercenary(g, arg as 'chunin' | 'jounin'));
       case 'buy-rare': {

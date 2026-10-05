@@ -33,6 +33,8 @@ export function statusSystem(g: Game, dt: number) {
     if (u.flickerCd) u.flickerCd = Math.max(0, u.flickerCd - dt);
     if (u.kawaCd) u.kawaCd = Math.max(0, u.kawaCd - dt);
     if (u.artCd) u.artCd = Math.max(0, u.artCd - dt);
+    if (u.sanninCd) u.sanninCd = Math.max(0, u.sanninCd - dt);
+    if (u.sage) u.sage = Math.max(0, u.sage - dt) || undefined;
     if (u.mark && (u.mark.t -= dt) <= 0) u.mark = undefined;
     // atordoado (ou fora de combate há um tempo) perde os selos que estava fazendo
     if (u.cast && (u.stun > 0 || u.combatTimer <= 0)) interruptCast(g, u, u.stun <= 0);
