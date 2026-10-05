@@ -70,6 +70,17 @@ const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', tea
 
 type BuildingTab = 'main' | 'inside';
 
+type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin';
+type RosterSort = 'level' | 'rank' | 'power' | 'hp' | 'name';
+const ROSTER_SORTS: [RosterSort, string, string][] = [
+  ['level', 'Nível', 'Maior nível primeiro'],
+  ['rank', 'Patente', 'Kage, Jounin, Chunin e Genin (empate: nível)'],
+  ['power', 'Atributos', 'Soma dos atributos, do mais forte ao mais fraco'],
+  ['hp', 'Vida', 'Mais feridos primeiro'],
+  ['name', 'Nome', 'Ordem alfabética'],
+];
+const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + b, 0);
+
 const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']];
 /** O que cada rotina faz (dica e texto abaixo dos botões). */
 const ROUTINE_TIP: Record<NinjaOrder, string> = {
@@ -91,6 +102,9 @@ export class Panel {
   private armedDemolish = 0;
   /** Aba do painel do ninja (mantida ao trocar de ninja). */
   private unitTab: UnitTab = 'info';
+  /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
+  private rosterFilter: RosterFilter = 'all';
+  private rosterSort: RosterSort = 'level';
   /** Aba do painel do prédio (geral × lá dentro). */
   private buildingTab: BuildingTab = 'main';
   /** Pedido para abrir uma tela de gestão na janela central. */
@@ -884,10 +898,42 @@ export class Panel {
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
     let html = this.tabs('roster');
-    html += `<p class="hint">${ninjas.length} ninja(s). Toque para selecionar.</p>`;
-    if (!ninjas.length) html += `<p class="hint">Nenhum ninja. Construa a Academia e recrute moradores.</p>`;
+    if (!ninjas.length) return { html: html + `<p class="hint">Nenhum ninja. Construa a Academia e recrute moradores.</p>`, t, b };
+    const onMission = new Set(g.state.missions.filter((m) => m.status === 'active').map((m) => m.teamId));
+    const tests: Record<RosterFilter, [string, (u: Unit) => boolean]> = {
+      all: ['Todos', () => true],
+      free: ['Sem equipe', (u) => !teamOf(g, u)],
+      team: ['Em equipe', (u) => !!teamOf(g, u)],
+      mission: ['Em missão', (u) => onMission.has(teamOf(g, u)?.id ?? -1)],
+      hurt: ['Feridos', (u) => u.hp < u.maxHp * 0.6],
+      genin: ['Genin', (u) => u.ninja!.rank === 'genin'],
+      chunin: ['Chunin', (u) => u.ninja!.rank === 'chunin'],
+      jounin: ['Jounin+', (u) => u.ninja!.rank === 'jounin' || u.ninja!.rank === 'kage'],
+    };
+    // filtros: só mostra os que têm alguém (e o escolhido, mesmo vazio, para poder voltar)
+    html += `<div class="rfilters"><div class="chips rchips">`;
+    for (const [k, [label, fn]] of Object.entries(tests) as [RosterFilter, [string, (u: Unit) => boolean]][]) {
+      const n = ninjas.filter(fn).length;
+      if (!n && k !== this.rosterFilter && k !== 'all') continue;
+      html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''}">${label} <small>${n}</small></button>`;
+    }
+    html += `</div><div class="seg rsort"><span class="lbl">Ordenar</span>`;
+    for (const [k, label, tip] of ROSTER_SORTS)
+      html += `<button data-act="r-sort" data-arg="${k}" class="${this.rosterSort === k ? 'on' : ''}" ${tipAttr(label, tip)}>${label}</button>`;
+    html += `</div></div>`;
+    const RANK_N: Record<string, number> = { genin: 0, chunin: 1, jounin: 2, kage: 3 };
+    const by: Record<RosterSort, (a: Unit, z: Unit) => number> = {
+      level: (a, z) => z.ninja!.level - a.ninja!.level || z.ninja!.xp - a.ninja!.xp,
+      rank: (a, z) => RANK_N[z.ninja!.rank]! - RANK_N[a.ninja!.rank]! || z.ninja!.level - a.ninja!.level,
+      power: (a, z) => statSum(z) - statSum(a),
+      hp: (a, z) => a.hp / a.maxHp - z.hp / z.maxHp,
+      name: (a, z) => a.name.localeCompare(z.name, 'pt-BR'),
+    };
+    const list = ninjas.filter(tests[this.rosterFilter][1]).sort(by[this.rosterSort]);
+    html += `<p class="hint">${list.length} de ${ninjas.length} ninja(s). Toque para selecionar.</p>`;
+    if (!list.length) html += `<p class="hint">Nenhum ninja neste filtro.</p>`;
     html += `<div class="roster">`;
-    for (const u of ninjas) html += this.ninjaRow(u, t, b);
+    for (const u of list) html += this.ninjaRow(u, t, b);
     html += `</div>`;
     return { html, t, b };
   }
@@ -1076,6 +1122,12 @@ export class Panel {
         if (v?.kind !== 'unit') return;
         return this.report(clearCommand(g, attackersOf(g, v.id).map((u) => u.id)));
       }
+      case 'r-filter':
+        this.rosterFilter = arg as RosterFilter;
+        return this.report({ ok: true });
+      case 'r-sort':
+        this.rosterSort = arg as RosterSort;
+        return this.report({ ok: true });
       case 'team-auto': {
         const r = autoTeams(g);
         if (!r.ok) return this.report(r);

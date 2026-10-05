@@ -176,6 +176,7 @@ function spawnObjective(g: Game, m: Mission) {
         const p = around(g, m.x, m.y, 2 * TILE);
         const u = withMission(createAnimal(g, a.type, p.x, p.y));
         u.maxHp = u.hp = Math.round(u.maxHp * (a.hpMult ?? 1));
+        if (a.type === 'hydra') u.heads = 3;
         m.targetIds.push(u.id);
       }
       m.goal = a.count;

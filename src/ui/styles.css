@@ -415,3 +415,10 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 #alertbox .aimg { display: grid; place-items: center; height: 5.5rem; overflow: hidden; margin: 0.2rem 0 0.3rem; border-radius: 0.7rem; background: radial-gradient(circle at 50% 70%, rgba(255, 214, 150, 0.12), transparent 70%); }
 #alertbox .aimg img { height: 5.5rem; width: auto; max-width: 70%; object-fit: contain; image-rendering: pixelated; }
 #alertbox .ab { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.8rem; }
+
+/* lista de ninjas: filtros (chips) e ordenação */
+.rfilters { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.2rem; }
+.rchips { grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr)); }
+.rchips small { opacity: 0.7; font-weight: 700; margin-left: 0.15rem; }
+.rsort { align-items: center; }
+.rsort .lbl { padding: 0 0.5rem; color: var(--muted); font-size: 0.82rem; white-space: nowrap; }

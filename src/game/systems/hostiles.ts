@@ -47,12 +47,12 @@ function animal(g: Game, u: Unit, dt: number) {
     u.moving = false;
     return;
   }
+  if (u.state === 'charge') return charging(g, u, dt, def);
   if (u.missionId != null) return guardHome(g, u, dt, def.aggro);
   if (u.boss) return titan(g, u, dt, def.aggro);
   if (def.thief) return thief(g, u, dt, def);
   // bicho noturno vai embora quando amanhece
   if (def.night && !isNight(g.state) && u.state !== 'leave') u.life = 0;
-  if (u.state === 'charge') return charging(g, u, dt, def);
   const t = validTarget(g, u, def.aggro * 2.5) ?? g.nearestHostile(u, def.aggro);
   if (t) {
     if (def.ability && animalAbility(g, u, t, def, dt)) return;
@@ -146,6 +146,13 @@ function guardHome(g: Game, u: Unit, dt: number, aggro: number) {
   t ??= g.nearestHostile(u, aggro);
   if (t) {
     u.targetId = t.id;
+    // feras de missão também usam o golpe especial (teia, bote, investida, veneno da hidra)
+    if (u.animal) {
+      const def = ANIMALS[u.animal];
+      u.abilityCd = (u.abilityCd ?? 0) - (def.ability ? 0 : dt);
+      if (u.animal === 'hydra' && hydraSpit(g, u, t)) return;
+      if (def.ability && animalAbility(g, u, t, def, dt)) return;
+    }
     engage(g, u, t, dt);
     return;
   }

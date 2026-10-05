@@ -118,6 +118,27 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
     enemies: [{ rank: 'jounin', stats: 4, hpMult: 4, jutsu: 2, boss: true }, bandit('jounin', 1), bandit('jounin', 1)],
     desc: 'Um ninja de lenda, com recompensa por sua cabeça em todas as nações.',
   },
+  // ---- caças das feras novas (sempre no FIM da lista: o save guarda o índice do modelo)
+  {
+    type: 'hunt', rank: 1, title: 'Teias na trilha dos lenhadores', site: 'forest',
+    animals: { type: 'spider', count: 2 }, bonus: { herbs: 20 },
+    desc: 'Duas aranhas gigantes prendem viajantes em teias. Vão em grupo: quem fica preso sozinho apanha muito.',
+  },
+  {
+    type: 'hunt', rank: 2, title: 'O tigre das sombras', site: 'forest',
+    animals: { type: 'tiger', count: 1, hpMult: 1.3 }, bonus: { ryo: 80 },
+    desc: 'Um tigre que se esconde na escuridão ataca caçadores. Ele dá botes de longe: não deixem ninguém para trás.',
+  },
+  {
+    type: 'hunt', rank: 2, title: 'O rinoceronte da pedreira', site: 'forest',
+    animals: { type: 'rhino', count: 1, hpMult: 1.1 }, bonus: { stone: 120 },
+    desc: 'Um rinoceronte de pedra destrói a estrada da pedreira com investidas. Espalhem-se para ele não atropelar todos de uma vez.',
+  },
+  {
+    type: 'hunt', rank: 3, title: 'A Hidra do Pântano', site: 'forest',
+    animals: { type: 'hydra', count: 1, hpMult: 0.7 }, bonus: { herbs: 60, ryo: 150 },
+    desc: 'Uma hidra de três cabeças domina o pântano. Cada cabeça derrubada a faz voltar inteira: só a equipe mais forte deve ir.',
+  },
 ];
 
 /** Ranks de missão que o quadro oferece em cada nível da vila (com pesos). */

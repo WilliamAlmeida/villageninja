@@ -36,9 +36,8 @@ function setup(seed: number, strong = true) {
   return { g, team };
 }
 
-/** Força uma missão de um template específico no quadro. */
-function offer(g: Game, type: Mission['type'], rank: number): Mission {
-  const ti = MISSION_TEMPLATES.findIndex((t) => t.type === type && t.rank === rank);
+/** Força uma missão de um template específico no quadro (ou o de índice `ti`). */
+function offer(g: Game, type: Mission['type'], rank: number, ti = MISSION_TEMPLATES.findIndex((t) => t.type === type && t.rank === rank)): Mission {
   const t = MISSION_TEMPLATES[ti]!;
   const site = pickSite(g, t.site)!;
   const m: Mission = {
@@ -142,5 +141,32 @@ describe('missões', () => {
     expect(s.version).toBe(SAVE_VERSION);
     expect(s.missions).toEqual([]);
     expect(s.stats.missionsDone).toBe(0);
+  });
+
+  test('caças das feras novas: hidra com 3 cabeças e aranha que usa a teia', () => {
+    const { g, team } = setup(61);
+    const hi = MISSION_TEMPLATES.findIndex((t) => t.animals?.type === 'hydra');
+    const si = MISSION_TEMPLATES.findIndex((t) => t.animals?.type === 'spider');
+    expect(hi).toBeGreaterThan(0);
+    const m = offer(g, 'hunt', 3, hi);
+    expect(acceptMission(g, m.id, team.id).ok).toBe(true);
+    const hydra = g.unit(m.targetIds[0])!;
+    expect(hydra.animal).toBe('hydra');
+    expect(hydra.heads).toBe(3);
+    // aranha de missão (outro jogo: só uma missão por vez no começo): quem chega perto leva teia
+    const s2 = setup(62);
+    const m2 = offer(s2.g, 'hunt', 1, si);
+    expect(acceptMission(s2.g, m2.id, s2.team.id).ok).toBe(true);
+    const n = s2.g.unit(s2.team.memberIds[0])!;
+    const spider = s2.g.unit(m2.targetIds[0])!;
+    spider.abilityCd = 0;
+    n.x = spider.x + 90;
+    n.y = spider.y;
+    let webbed = false;
+    for (let t = 0; t < 4 && !webbed; t += SIM_DT) {
+      s2.g.step(SIM_DT);
+      webbed = s2.g.state.projectiles.some((p) => p.ownerId === spider.id) || n.stun > 1;
+    }
+    expect(webbed).toBe(true);
   });
 });
