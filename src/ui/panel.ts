@@ -116,10 +116,10 @@ const ACTION_TIP: Record<RegionAction, string> = {
   protect: 'A equipe defende o vilarejo de bandidos. Relação +20 e honra; com relação 60+ ele vira protegido e paga tributo todo dia.',
   raid: 'Vira uma invasão jogável: sua equipe entra no mapa do vilarejo e você comanda a luta (aparece "Ver invasão" no alto). Saqueie o armazém ou derrote os guardas. Relação despenca e eles mandam uma vingança.',
   annex: 'Com relação 90+ ele se une em paz. Com relação -60 ou menos, só à força: vira uma invasão jogável e é preciso derrotar o chefe deles. Vassalo paga tributo dobrado e manda moradores.',
-  explore: 'Primeira viagem à ilha: se a equipe aguentar, traz amostras e libera o posto avançado.',
+  explore: 'Vira uma exploração jogável: a equipe desembarca na ilha, enfrenta os bichos e recolhe as amostras (baús). Libera o posto avançado.',
   outpost: 'Monta um posto que produz recursos da ilha todo dia.',
   train: 'Os monges treinam a equipe: muito XP e atributos.',
-  contract: 'Os guardiões testam a equipe; vencendo, o ninja mais forte sem contrato aprende a invocar.',
+  contract: 'Vira uma prova jogável: vença o guardião (o animal do contrato, enorme). O ninja mais forte da equipe sem contrato aprende a invocar.',
 };
 
 type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin';
@@ -604,7 +604,7 @@ export class Panel {
       const cost = actionCost(def, a);
       const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
       html += `<button class="btn" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
-        <b>${ACTION_LABEL[a]}</b><small>${a === 'raid' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} invasão jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
+        <b>${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
     }
     return html + `</div>`;
   }

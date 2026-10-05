@@ -9,7 +9,8 @@ import { rescueChance } from './care';
 import { createAnimal, createRogue, refreshDerived } from './entities';
 import { resolveSite, revealCircle } from './explore';
 import { MINE } from '../data/expeditions';
-import type { AnimalType } from '../data/animals';
+import { ANIMALS, type AnimalType } from '../data/animals';
+import { CONTRACTS } from '../data/contracts';
 import { fxText } from './fx';
 import { Game } from './game';
 import { baseState } from './newGame';
@@ -41,7 +42,7 @@ export function opensScene(home: Game, e: Expedition) {
   if (home.state.scene) return false;
   if (e.kind === 'mine') return true;
   if (e.kind !== 'region') return false;
-  if (e.action === 'raid') return true;
+  if (e.action === 'raid' || e.action === 'explore' || e.action === 'contract') return true;
   return e.action === 'annex' && regionOf(home.state, e.node!).rel < REL.annexPeace;
 }
 
@@ -179,6 +180,12 @@ export function sceneTick(g: Game, dt: number) {
   if (!sceneTeam(g).length) return end('lose', `{skull} A equipe caiu em ${info.kind === 'mine' ? 'na mina' : (REGION[info.node!]?.name ?? 'combate')}.`);
   const foes = sceneFoes(g);
   if (info.kind === 'mine') return mineTick(g, info, foes, end);
+  if (info.kind === 'island') return islandTick(g, end);
+  if (info.kind === 'trial') {
+    const boss = g.unit(info.bossId);
+    if (!boss || boss.dead) return end('win', '{scroll} O guardião se curvou: a equipe passou na prova!');
+    return;
+  }
   if (info.leaderId != null) {
     const leader = g.unit(info.leaderId);
     if (!leader || leader.dead) return end('win', '{crown} O chefe caiu! O vilarejo se rende.');
@@ -207,7 +214,14 @@ export function retreatScene(home: Game) {
 export function advanceTarget(g: Game) {
   const info = g.state.sceneInfo;
   if (!info) return null;
-  if (info.kind === 'mine') {
+  if (info.kind === 'island') {
+    // a amostra (baú) mais perto ainda fechada
+    const lead = sceneTeam(g)[0];
+    const open = g.state.sites.filter((x) => x.kind === 'chest' && !x.done);
+    const c = lead ? open.sort((a, b) => Math.hypot(tileCenter(a.tx) - lead.x, tileCenter(a.ty) - lead.y) - Math.hypot(tileCenter(b.tx) - lead.x, tileCenter(b.ty) - lead.y))[0] : open[0];
+    return c ? { x: tileCenter(c.tx), y: tileCenter(c.ty) } : null;
+  }
+  if (info.kind === 'mine' || info.kind === 'trial') {
     const boss = g.unit(info.bossId);
     if (boss && !boss.dead) return { x: boss.x, y: boss.y };
     const st = g.state.sites.find((x) => x.id === info.stairsId);
@@ -364,6 +378,130 @@ export function createMineScene(home: Game, e: Expedition, floor: number): GameS
   return s;
 }
 
+// ------------------------------------------------------------------ ilha (explorar) e lugar sagrado (prova do contrato)
+/** Bichos de cada ilha. */
+const ISLAND_FAUNA: Record<string, AnimalType[]> = { vulcao: ['rhino', 'boar', 'bear'], nevoa: ['spider', 'tiger', 'wolf'], templos: ['monkey', 'boar', 'wolf'] };
+
+/** Base comum dos mapas de região (ilha e prova): estado do mapa e jogo, sem vila. */
+function regionMap(home: Game, e: Expedition) {
+  const seed = (home.state.seed ^ (e.id * 2654435761) ^ 0x51a7) >>> 0;
+  const s = baseState(seed);
+  s.time = home.state.time;
+  s.day = home.state.day;
+  s.towersFaction = 'enemy';
+  s.res = { ...s.res, wood: 0, stone: 0, food: 0, ryo: 0 };
+  s.flags = { ...s.flags, shelterRookies: false };
+  s.timers = { ...s.timers, animal: 1e9, raid: 1e9 };
+  return { s, rnd: mulberry32(seed) };
+}
+
+/** Ilha: terra cercada de mar, bichos da ilha e amostras (baús) a recolher. */
+export function createIslandScene(home: Game, e: Expedition): GameState {
+  const def = REGION[e.node!]!;
+  const power = nodePower(home.state, def);
+  const { s, rnd } = regionMap(home, e);
+  // máscara da ilha: raio com ondulação; fora dela é mar
+  const R = Math.min(MAP_W, MAP_H) * 0.46;
+  const wob = Array.from({ length: 12 }, () => 0.75 + rnd() * 0.35);
+  for (let y = 0; y < MAP_H; y++)
+    for (let x = 0; x < MAP_W; x++) {
+      const dx = (x - CENTER_TX) / 1.45;
+      const dy = y - CENTER_TY;
+      const a = ((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2)) * wob.length;
+      const k = wob[Math.floor(a) % wob.length]! * (1 - (a % 1)) + wob[Math.ceil(a) % wob.length]! * (a % 1);
+      const r = Math.hypot(dx, dy);
+      const i = y * MAP_W + x;
+      if (r > R * k) s.tiles[i] = T.WATER;
+      else if (r > R * k - 1.6) s.tiles[i] = T.SAND;
+    }
+  s.nodes = s.nodes.filter((n) => s.tiles[n.ty * MAP_W + n.tx] !== T.WATER && s.tiles[n.ty * MAP_W + n.tx] !== T.SAND);
+  const g = new Game(s, SCENE_SYSTEMS);
+  g.isScene = true;
+  // chegada: praia do sul
+  let entry = { x: tileCenter(CENTER_TX), y: tileCenter(CENTER_TY) };
+  for (let y = MAP_H - 2; y > CENTER_TY; y--) {
+    const w = nearestWalkable(g.world, CENTER_TX, y, 3);
+    if (w && s.tiles[w[1] * MAP_W + w[0]] !== T.WATER) {
+      entry = { x: tileCenter(w[0]), y: tileCenter(w[1]) };
+      break;
+    }
+  }
+  // amostras (baús) espalhadas longe da praia
+  const land: [number, number][] = [];
+  for (let y = 2; y < MAP_H - 2; y++) for (let x = 2; x < MAP_W - 2; x++) if (g.world.walkable(x, y) && Math.hypot(x - entry.x / 32, y - entry.y / 32) > 12) land.push([x, y]);
+  const chests = 3 + (power >= 40 ? 1 : 0);
+  for (let c = 0; c < chests && land.length; c++) {
+    const [tx, ty] = land.splice(Math.floor(rnd() * land.length), 1)[0]!;
+    s.sites.push({ id: g.newId(), kind: 'chest', tx, ty, found: false, done: false });
+  }
+  const fauna = ISLAND_FAUNA[def.id] ?? ['wolf', 'boar'];
+  const n = Math.max(4, Math.round(power / 6));
+  for (let k = 0; k < n && land.length; k++) {
+    const [tx, ty] = land.splice(Math.floor(rnd() * land.length), 1)[0]!;
+    const a = createAnimal(g, fauna[k % fauna.length]!, tileCenter(tx), tileCenter(ty));
+    a.maxHp = a.hp = Math.round(a.maxHp * (0.8 + power / 50));
+    guard(a);
+  }
+  bringTeam(home, g, e, entry);
+  revealCircle(s, Math.floor(entry.x / 32), Math.floor(entry.y / 32), 8);
+  s.sceneInfo = {
+    kind: 'island', expId: e.id, node: def.id, action: e.action, title: `Explorar · ${def.name}`,
+    goal: `Recolha as ${chests} amostras da ilha (baús).`, result: null, loot: 0, lootNeed: chests, defenders: n, entry,
+  };
+  return s;
+}
+
+/** Ilha: as amostras abrem ao encostar; recolhidas todas, a exploração está feita. */
+function islandTick(g: Game, end: (r: 'win' | 'lose', text: string) => void) {
+  const team = sceneTeam(g);
+  for (const site of g.state.sites) {
+    if (site.kind !== 'chest' || site.done) continue;
+    const x = tileCenter(site.tx);
+    const y = tileCenter(site.ty);
+    const who = team.find((u) => Math.hypot(u.x - x, u.y - y) < 46);
+    if (!who) continue;
+    site.found = true;
+    g.toast(resolveSite(g, site, who), 'good', { x, y });
+  }
+  const left = g.state.sites.filter((x) => x.kind === 'chest' && !x.done).length;
+  if (!left) end('win', '{check} Todas as amostras recolhidas! A ilha foi explorada.');
+}
+
+/** Lugar sagrado: clareira com o guardião (o animal do contrato, enorme) e seus filhotes. */
+export function createTrialScene(home: Game, e: Expedition): GameState {
+  const def = REGION[e.node!]!;
+  const power = nodePower(home.state, def);
+  const { s } = regionMap(home, e);
+  // clareira no centro, sem árvores
+  s.nodes = s.nodes.filter((n) => Math.hypot(n.tx - CENTER_TX, n.ty - CENTER_TY) > 9);
+  const g = new Game(s, SCENE_SYSTEMS);
+  g.isScene = true;
+  const kind = def.contract!;
+  const animal = CONTRACTS[kind].animal;
+  const cx = tileCenter(CENTER_TX);
+  const cy = tileCenter(CENTER_TY);
+  const boss = createAnimal(g, animal, cx, cy - 20);
+  boss.maxHp = boss.hp = Math.round(power * 14);
+  boss.boss = true;
+  boss.life = 1e9;
+  boss.name = `Guardião: ${ANIMALS[animal].name}`;
+  guard(boss);
+  for (const dx of [-60, 60]) {
+    const m = createAnimal(g, animal, cx + dx, cy + 30);
+    m.maxHp = m.hp = Math.round(m.maxHp * 0.6);
+    guard(m);
+  }
+  const entry = entryPoint(g);
+  bringTeam(home, g, e, entry);
+  revealCircle(s, CENTER_TX, CENTER_TY, 8);
+  revealCircle(s, Math.floor(entry.x / 32), Math.floor(entry.y / 32), 8);
+  s.sceneInfo = {
+    kind: 'trial', expId: e.id, node: def.id, action: e.action, title: `Prova do contrato · ${def.name}`, bossId: boss.id,
+    goal: `Vença o guardião para ganhar o contrato: ${CONTRACTS[kind].name}.`, result: null, loot: 0, lootNeed: 0, defenders: 3, entry,
+  };
+  return s;
+}
+
 /** Objetivo da mina: chegar à descida (sem bicho em cima) ou, no último andar, derrubar o guardião. Baús abrem ao encostar. */
 function mineTick(g: Game, info: SceneInfo, foes: Unit[], end: (r: 'win' | 'lose', text: string) => void) {
   const team = sceneTeam(g);
@@ -371,7 +509,7 @@ function mineTick(g: Game, info: SceneInfo, foes: Unit[], end: (r: 'win' | 'lose
     if (site.kind !== 'chest' || site.done || !site.found) continue;
     const x = tileCenter(site.tx);
     const y = tileCenter(site.ty);
-    const who = team.find((u) => Math.hypot(u.x - x, u.y - y) < 30);
+    const who = team.find((u) => Math.hypot(u.x - x, u.y - y) < 46);
     if (who) g.toast(resolveSite(g, site, who), 'good', { x, y });
   }
   if (info.bossId != null) {

@@ -101,3 +101,35 @@ describe('mina jogável (um mapa de caverna por andar)', () => {
     expect(Object.keys(e.loot).length).toBeGreaterThan(0); // o saque do andar 1 voltou
   });
 });
+
+describe('ilha e lugar sagrado jogáveis', () => {
+  const withPort = (g: Game) => g.addBuilding({ id: g.newId(), type: 'port', tx: 4, ty: 4, built: true, progress: 999, desired: 0, workers: [], cd: 0 });
+
+  test('explorar a ilha: desembarca, recolhe as amostras e libera o posto avançado', () => {
+    const { g, team } = setup(905, 9);
+    withPort(g);
+    expect(startRegion(g, team.id, 'templos', 'explore').ok).toBe(true);
+    const e = g.state.expeditions.at(-1)!;
+    run(g, 20, () => !!g.state.scene);
+    const sg = sceneGame(g)!;
+    expect(sg.state.sceneInfo!.kind).toBe('island');
+    expect(sg.state.sites.filter((x) => x.kind === 'chest').length).toBeGreaterThanOrEqual(3);
+    run(g, 500, () => e.status === 'done' || e.status === 'lost');
+    expect(e.status).toBe('done');
+    expect(regionOf(g.state, 'templos').explored).toBe(true);
+  });
+
+  test('prova do contrato: vencer o guardião dá o contrato ao mais forte sem contrato', () => {
+    const { g, team } = setup(906, 10);
+    withPort(g);
+    expect(startRegion(g, team.id, 'lesmas', 'contract').ok).toBe(true);
+    const e = g.state.expeditions.at(-1)!;
+    run(g, 20, () => !!g.state.scene);
+    const sg = sceneGame(g)!;
+    expect(sg.state.sceneInfo!.kind).toBe('trial');
+    expect(sg.unit(sg.state.sceneInfo!.bossId)!.animal).toBe('slug');
+    run(g, 500, () => e.status === 'done' || e.status === 'lost');
+    expect(e.status).toBe('done');
+    expect(teamUnits(g, team).some((u) => u.ninja!.contract === 'slug')).toBe(true);
+  });
+});

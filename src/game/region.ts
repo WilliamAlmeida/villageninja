@@ -188,7 +188,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
       }
       break;
     case 'explore':
-      if (ratio >= 0.8) {
+      if (played ? outcome === 'win' : ratio >= 0.8) {
         st.explored = true;
         add(e.loot, def.outpost, 3);
         hurt(us, 0.12);
@@ -212,7 +212,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
       break;
     case 'contract': {
       const kind = def.contract!;
-      if (ratio >= 1) {
+      if (played ? outcome === 'win' : ratio >= 1) {
         const best = us.filter((u) => !u.ninja!.contract).sort((a, b) => unitPower(b) - unitPower(a))[0];
         hurt(us, 0.2);
         if (best) {

@@ -1,5 +1,5 @@
 // Expedições às minas: a equipe sai do mapa, desce andar por andar (eventos sorteados) e o jogador decide
-import { closeScene, createMineScene, createVillageScene, opensScene } from './scene';
+import { closeScene, createIslandScene, createMineScene, createTrialScene, createVillageScene, opensScene } from './scene';
 // entre descer mais (mais risco, minérios raros) ou voltar com o que achou. O saque só entra no estoque na volta.
 import { chance, rand, weightedPick } from '../core/rng';
 import { MINE, MINE_EVENTS, MINE_MONSTERS, mineLoot } from '../data/expeditions';
@@ -122,14 +122,15 @@ export function tickExpeditions(g: Game, dt: number) {
     if (e.kind === 'region') {
       // região: ida → serviço → volta
       if (e.status === 'going' && opensScene(g, e)) {
-        g.state.scene = createVillageScene(g, e);
+        g.state.scene = e.action === 'explore' ? createIslandScene(g, e) : e.action === 'contract' ? createTrialScene(g, e) : createVillageScene(g, e);
         e.status = 'scene';
         note(e, `Chegaram a ${REGION[e.node!]!.name}. A invasão começou!`);
         g.toast(`{swords} ${g.team(e.teamId)?.name ?? 'A equipe'} chegou a ${REGION[e.node!]!.name}. Toque em "Ver invasão" no alto da tela para comandar.`, 'warn');
       } else if (e.status === 'scene') {
         const sc = g.state.scene;
         if (sc?.sceneInfo?.expId === e.id && !sc.sceneInfo.result) continue; // ainda lutando
-        const { result } = sc?.sceneInfo?.expId === e.id ? closeScene(g) : { result: 'retreat' as const };
+        const { result, loot } = sc?.sceneInfo?.expId === e.id ? closeScene(g) : { result: 'retreat' as const, loot: {} };
+        addLoot(e, loot);
         if (!expeditionUnits(g, e).length) lost(g, e);
         else goBack(e, resolveRegion(g, e, result), ACTION_TIME[e.action!].travel);
       } else if (e.status === 'going') {
