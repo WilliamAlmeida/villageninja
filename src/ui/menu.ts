@@ -30,6 +30,10 @@ export class Menu {
         setArtOn((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
         this.render();
       }
+      if (a === 'pace') {
+        this.app.game.state.pace = (e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === 'tactical' ? 'tactical' : 'fast';
+        this.render();
+      }
       if (a === 'font') {
         setFontSize((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg as FontSize);
         this.render();
@@ -72,6 +76,8 @@ export class Menu {
         ${canInstall() ? `<button class="btn" data-act="install">{phone} Instalar como app (sem barra do navegador)</button>` : ''}
         ${!isStandalone() && isIOS() ? `<p class="hint">${IOS_HINT}</p>` : ''}
         <div class="setrow">{text} Texto<div class="seg">${FONT_SIZES.map((f) => `<button data-act="font" data-arg="${f.id}" class="${f.id === fs ? 'on' : ''}">${f.label}</button>`).join('')}</div></div>
+        <div class="setrow">{swords} Combate<div class="seg"><button data-act="pace" data-arg="fast" class="${s.pace === 'tactical' ? '' : 'on'}">Rápido</button><button data-act="pace" data-arg="tactical" class="${s.pace === 'tactical' ? 'on' : ''}">Tático</button></div></div>
+        <p class="hint">${s.pace === 'tactical' ? 'Tático: antes de cada jutsu o ninja faz os selos (mais rápido com o atributo Selos). Um golpe forte nessa hora interrompe e o chakra se perde. Taijutsu sai na hora.' : 'Rápido: os jutsus saem na hora, sem selos.'}</p>
         <div class="setrow">{eye} Arte<div class="seg"><button data-act="art" data-arg="1" class="${artOn() ? 'on' : ''}">Pixel art</button><button data-act="art" data-arg="0" class="${artOn() ? '' : 'on'}">Antiga</button></div></div>
         <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
         <p class="hint">${levelDef(s.level).icon} ${levelDef(s.level).name} · Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Chefes ${s.stats.bossesDefeated} · Missões ${s.stats.missionsDone} · Perdas ${s.stats.lost}</p>

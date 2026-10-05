@@ -110,6 +110,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.nextId = next;
     s.flags.autoGear = false;
   },
+  14: (s) => {
+    // ritmo do combate (menu) e a arte do Kage atual
+    s.pace = 'fast';
+    const k = s.units.find((u: { id: number }) => u.id === s.kageId);
+    if (k?.ninja && !k.ninja.kageArt) k.ninja.kageArt = 'hiraishin';
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

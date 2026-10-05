@@ -1,5 +1,6 @@
 // Eleição do Kage: cerimônia na praça da Residência do Hokage.
 import { RANKS } from '../data/ninja';
+import { DEFAULT_KAGE_ART } from '../data/kageArts';
 import { levelDef } from '../data/villageLevels';
 import { refreshDerived } from './entities';
 import { fx, fxText } from './fx';
@@ -59,6 +60,7 @@ export function crownKage(g: Game) {
     return;
   }
   u.ninja!.rank = 'kage';
+  u.ninja!.kageArt ??= DEFAULT_KAGE_ART;
   refreshDerived(u);
   u.hp = u.maxHp;
   s.kageId = u.id;

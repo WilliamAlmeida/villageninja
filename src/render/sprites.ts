@@ -179,11 +179,25 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
 /** Animação de trabalho do morador (folhas villager-<ação>). */
 export type WorkAction = 'chop' | 'mine' | 'farm';
 
-export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction) {
+/** `bare`: só o corpo (vulto do Shunshin), sem barras, marcas nem status. */
+export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction, bare = false) {
   if (drawUnitArt(ctx, u, t, action)) {
     /* desenhado com a arte em pixel art */
   } else if (u.animal) drawAnimal(ctx, u, t);
   else drawHuman(ctx, u, t);
+  if (bare) return;
+  // fórmula do Hiraishin: selo amarelo girando no chão de quem foi marcado
+  if (u.mark) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,211,77,0.85)';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([3, 2]);
+    ctx.lineDashOffset = -t * 12;
+    ctx.beginPath();
+    ctx.ellipse(u.x, u.y + 8, 10, 4.5, 0, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
   if (u.stun > 0) {
     ctx.fillStyle = '#ffe14d';
     for (let i = 0; i < 3; i++) {
@@ -884,7 +898,7 @@ export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(a);
-      ctx.fillStyle = '#4b5158';
+      ctx.fillStyle = p.mark != null ? '#ffd34d' : '#4b5158'; // kunai do Hiraishin: cabo com a fórmula
       ctx.fillRect(-6, -1, 7, 2);
       ctx.fillStyle = '#dfe6ec';
       ctx.beginPath();

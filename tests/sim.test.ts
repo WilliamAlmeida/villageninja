@@ -51,6 +51,7 @@ describe('simulação', () => {
   test('academia: recrutar e ensinar jutsu', () => {
     const g = createNewGame(SYSTEMS, 7);
     g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999, iron: 999, herbs: 999, paper: 999, crystal: 0, gold: 0, darksteel: 0 };
+    g.state.timers.animal = g.state.timers.raid = 1e9; // sem bichos/invasões sorteados tirando o aluno da academia
     expect(placeBuilding(g, 'academy', CENTER_TX - 7, CENTER_TY + 3).ok).toBe(true);
     run(g, 60); // folga: bichos e clima sorteados às vezes atrasam a obra
     expect(g.findBuilt('academy')).toBeDefined();

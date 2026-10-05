@@ -128,7 +128,8 @@ describe('ordens', () => {
     n.hp = n.maxHp * 0.3;
     orderRetreat(g, [n.id]);
     run(g, 0.5);
-    expect(n.state).toBe('cmdRetreat');
+    // a caminho, ou já abrigado (o Shunshin encurta a fuga)
+    expect(['cmdRetreat', 'cmdRest']).toContain(n.state);
     boar.dead = true;
     run(g, 10);
     expect(n.hidden).toBe(true);

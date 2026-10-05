@@ -23,6 +23,8 @@ import { hasTeammateNear } from './teams';
 import { KAGE_DAMAGE_BONUS } from './kage';
 import { bossDefeated } from './bosses';
 import type { Faction, Projectile, ProjectileKind, Unit } from './types';
+import { KAGE_ARTS } from '../data/kageArts';
+import { blink, flickerInCombat, interruptCast, landing, SEAL_BREAK, sealNames, sealTime, tryKawarimi } from './techniques';
 
 export const MELEE_RANGE = 22;
 
@@ -60,8 +62,10 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
   u.targetId = t.id;
   u.hidden = false;
   const d = Math.hypot(t.x - u.x, t.y - u.y);
+  if (u.cast || u.dash) return; // selos / investida em andamento (systems/techniques.ts)
 
   if (canUseJutsu(u) && tryConsumable(g, u, t, d)) return;
+  if (canUseJutsu(u) && kageArt(g, u, t, d)) return;
   if (u.attackCd <= 0 && canUseJutsu(u)) {
     const slot = pickJutsu(g, u, t, d);
     if (slot >= 0) {
@@ -76,6 +80,9 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
     const r = readyRangedRange(u);
     if (r > 0) desired = r * 0.85;
   }
+
+  // Shunshin: longe do alvo aparece perto; atirador encurralado salta para trás
+  if (canUseJutsu(u) && flickerInCombat(g, u, t, d, desired)) return;
 
   if (d > desired) {
     if (canUseJutsu(u) && u.attackCd <= 0 && d > 50 && d < 130) throwKunai(g, u, t);
@@ -165,16 +172,56 @@ function startCast(g: Game, u: Unit, slot: number, def: JutsuDef) {
   n.cd[slot] = jutsuCooldown(def, n.stats);
   u.attackCd = 0.7;
   u.anim = 0.4;
-  fxText(g, u.x, u.y - 30, def.shout, def.color, true);
   if (u.arenaSide) recordDuelJutsu(g.state, u.id);
 }
 
+const shout = (g: Game, u: Unit, def: JutsuDef) => fxText(g, u.x, u.y - 30, def.shout, def.color, true);
+
+/**
+ * Usa o jutsu do slot. No ritmo tático, primeiro faz os selos (o jutsu sai em `castTick`); taijutsu sai na hora.
+ * O chakra e a recarga são pagos ao começar: selos interrompidos desperdiçam o jutsu.
+ */
 export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
   const n = u.ninja!;
   const def = JUTSUS[n.jutsu[slot]!]!;
   startCast(g, u, slot, def);
+  u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+  const seals = g.state.pace === 'tactical' ? sealTime(def, n.stats) : 0;
+  if (seals > 0) {
+    u.cast = { id: def.id, targetId: t.id, t: seals };
+    u.anim = seals;
+    u.moving = false;
+    fx(g, 'seal', u.x, u.y, { life: seals, color: def.color, uid: u.id });
+    fxText(g, u.x, u.y - 24, sealNames(def), '#d8dce8');
+    return;
+  }
+  releaseJutsu(g, u, def, t);
+}
+
+/** Selos em andamento: o jutsu sai quando terminam (alvo sumiu: perde o jutsu). */
+export function castTick(g: Game, u: Unit, dt: number) {
+  const c = u.cast;
+  if (!c) return;
+  const t = g.unit(c.targetId);
+  u.moving = false;
+  if (!t || t.dead || t.hidden || u.stun > 0) {
+    u.cast = undefined;
+    return;
+  }
+  u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+  c.t -= dt;
+  if (c.t > 0) return;
+  u.cast = undefined;
+  const def = JUTSUS[c.id];
+  if (def) releaseJutsu(g, u, def, t);
+}
+
+function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
+  const n = u.ninja!;
   const power = jutsuPower(def, n.stats);
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+  u.anim = 0.4;
+  shout(g, u, def);
 
   switch (def.effect) {
     case 'projectile':
@@ -200,22 +247,11 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
       fx(g, 'ring', t.x, t.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
       areaDamage(g, u, u.faction, t.x, t.y, def.radius ?? 50, power, def.nature, 45);
       break;
-    case 'dash': {
-      const a = Math.atan2(t.y - u.y, t.x - u.x);
-      const ox = u.x;
-      const oy = u.y;
-      const nx = t.x - Math.cos(a) * 16;
-      const ny = t.y - Math.sin(a) * 16;
-      if (g.world.walkablePx(nx, ny)) {
-        u.x = nx;
-        u.y = ny;
-      }
+    case 'dash':
+      // corre até o alvo deixando um rastro (dashTick); golpeia ao chegar
+      u.dash = { targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0 };
       u.hasGoal = false;
-      fx(g, 'bolt', ox, oy, { x2: t.x, y2: t.y, color: def.color, life: 0.4 });
-      fx(g, 'burst', t.x, t.y, { r: 26, color: def.color, life: 0.4 });
-      applyDamage(g, u, t, power, def.nature, {});
       break;
-    }
     case 'melee':
       fx(g, 'slash', t.x, t.y, { r: 24, color: def.color, life: 0.35 });
       applyDamage(g, u, t, power, def.nature, { knock: 22 });
@@ -225,7 +261,10 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
       const resist = s ? (s.genjutsu + s.inteligencia) * 0.035 : 0;
       fx(g, 'swirl', t.x, t.y - 8, { r: 20, color: def.color, life: 0.9 });
       if (chance(resist)) fxText(g, t.x, t.y - 20, 'Kai!', '#d9c2ff');
-      else t.stun = Math.max(t.stun, jutsuDuration(def, n.stats));
+      else {
+        t.stun = Math.max(t.stun, jutsuDuration(def, n.stats));
+        interruptCast(g, t);
+      }
       break;
     }
     case 'clone': {
@@ -276,6 +315,7 @@ export function trySupport(g: Game, u: Unit): boolean {
     }
     if (!best) continue;
     startCast(g, u, i, def);
+    shout(g, u, def);
     const amount = Math.round(jutsuPower(def, n.stats));
     best.hp = Math.min(best.maxHp, best.hp + amount);
     fx(g, 'heal', best.x, best.y, { r: 18, color: def.color, life: 0.8 });
@@ -353,7 +393,15 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
   if (t.shield > 0) dmg *= 0.4;
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
+  // Kawarimi: golpe forte ou fatal vira um tronco
+  if (tryKawarimi(g, t, src, dmg)) {
+    t.combatTimer = 5;
+    if (src && !src.dead && t.faction !== 'village' && t.targetId == null) t.targetId = src.id;
+    return;
+  }
   t.hp -= dmg;
+  // golpe forte ou atordoamento quebram os selos
+  if (t.cast && (dmg >= t.maxHp * SEAL_BREAK || opts.stun)) interruptCast(g, t);
   t.hitFlash = 0.15;
   if (t.arenaSide) recordDuelDamage(g.state, src?.id, dmg);
   t.combatTimer = 5;
@@ -445,6 +493,92 @@ function splitGolem(g: Game, t: Unit) {
     c.state = 'rampage';
     c.name = c.tier === 1 ? 'Golem de Barro' : 'Golenzinho de Barro';
   }
+}
+
+// ------------------------------------------------------------------ investida (Chidori, Passo de Sangue)
+const DASH_SPEED = 480;
+
+export function dashTick(g: Game, u: Unit, dt: number) {
+  const d = u.dash;
+  if (!d) return;
+  const t = g.unit(d.targetId);
+  d.t -= dt;
+  if (!t || t.dead || t.hidden || d.t <= 0 || u.stun > 0) {
+    u.dash = undefined;
+    u.moving = false;
+    return;
+  }
+  const dist = Math.hypot(t.x - u.x, t.y - u.y);
+  u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+  u.anim = 0.2;
+  if (dist <= 20) {
+    u.dash = undefined;
+    u.moving = false;
+    fx(g, 'bolt', d.lx, d.ly, { x2: u.x, y2: u.y, color: d.color, life: 0.3 });
+    fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4 });
+    applyDamage(g, u, t, d.power, d.nature, { knock: 26 });
+    return;
+  }
+  const step = Math.min(dist - 16, DASH_SPEED * dt);
+  const nx = u.x + ((t.x - u.x) / dist) * step;
+  const ny = u.y + ((t.y - u.y) / dist) * step;
+  if (!g.world.walkablePx(nx, ny)) {
+    u.dash = undefined; // bateu num obstáculo: perde a investida
+    u.moving = false;
+    return;
+  }
+  u.x = nx;
+  u.y = ny;
+  u.moving = true;
+  d.trail += dt;
+  if (d.trail >= 0.05) {
+    d.trail = 0;
+    fx(g, 'bolt', d.lx, d.ly, { x2: u.x, y2: u.y, color: d.color, life: 0.3 });
+    d.lx = u.x;
+    d.ly = u.y;
+  }
+}
+
+// ------------------------------------------------------------------ arte do Kage
+/** Usa a técnica do Kage quando faz sentido. Retorna true se agiu neste tick. */
+function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
+  if (u.ninja?.kageArt !== 'hiraishin' || u.arenaSide) return false;
+  const def = KAGE_ARTS.hiraishin;
+  // alvo marcado: aparece atrás dele num clarão e golpeia
+  if (t.mark?.by === u.id && d > 30 && (u.artCd ?? 0) <= 0 && u.chakra >= def.chakra && u.stun <= 0) {
+    const a = Math.atan2(t.y - u.y, t.x - u.x);
+    // atrás do alvo; se lá não dá, na frente
+    const p = [1, -1].map((s) => ({ x: t.x + Math.cos(a) * 16 * s, y: t.y + Math.sin(a) * 16 * s })).find((q) => g.world.walkablePx(q.x, q.y)) ?? landing(g, t.x, t.y);
+    if (!p) return false;
+    fxText(g, u.x, u.y - 30, def.shout, def.color, true);
+    blink(g, u, p, 'flash');
+    u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+    u.chakra -= def.chakra;
+    u.artCd = def.cooldown;
+    u.attackCd = 0.5;
+    u.anim = 0.3;
+    fx(g, 'burst', t.x, t.y, { r: 24, color: def.color, life: 0.4 });
+    applyDamage(g, u, t, def.power * (0.6 + u.ninja.stats.ninjutsu * 0.1), null, { knock: 20 });
+    return true;
+  }
+  // sem marca: arremessa a kunai com a fórmula
+  if (t.mark?.by !== u.id && u.attackCd <= 0 && d > 40 && d < 200) {
+    u.attackCd = 0.9;
+    u.anim = 0.2;
+    u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+    const p = spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
+      damage: 4, radius: 0, nature: null, color: def.color, size: 4, speed: 380, kind: 'kunai', stun: 0, range: 220,
+    });
+    p.mark = u.id;
+    return true;
+  }
+  return false;
+}
+
+/** Kunai do Hiraishin acertou: o alvo fica marcado com a fórmula do Kage. */
+export function markTarget(g: Game, t: Unit, by: number) {
+  if (t.mark?.by !== by) fxText(g, t.x, t.y - 26, 'Marcado', KAGE_ARTS.hiraishin.color);
+  t.mark = { by, t: KAGE_ARTS.hiraishin.markLife };
 }
 
 function rewardText(g: Game, t: Unit, r: { food?: number; ryo?: number; wood?: number; stone?: number }) {

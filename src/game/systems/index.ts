@@ -14,6 +14,7 @@ import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
 import { populationSystem } from './population';
 import { projectileSystem } from './projectiles';
+import { techniqueSystem } from './techniques';
 import { spawnerSystem } from './spawner';
 import { statusSystem } from './status';
 import { teamSystem } from './teams';
@@ -40,6 +41,7 @@ export const SYSTEMS: System[] = [
   ninjaSystem,
   hostileSystem,
   towerSystem,
+  techniqueSystem,
   projectileSystem,
   effectSystem,
   villageSystem,

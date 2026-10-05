@@ -52,6 +52,7 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     moodDay: 1,
     festivalDay: 0,
     festivalUntil: 0,
+    pace: 'fast',
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

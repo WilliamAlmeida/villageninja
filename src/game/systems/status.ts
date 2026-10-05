@@ -3,6 +3,7 @@ import { healMult } from '../upgrade';
 import { foodMult } from '../mood';
 import { BUILDINGS } from '../../data/buildings';
 import { derive } from '../../data/ninja';
+import { interruptCast } from '../techniques';
 import type { Game } from '../game';
 import { doorPos } from '../world';
 
@@ -29,6 +30,12 @@ export function statusSystem(g: Game, dt: number) {
     u.hitFlash = Math.max(0, u.hitFlash - dt);
     u.anim = Math.max(0, u.anim - dt);
     u.combatTimer = Math.max(0, u.combatTimer - dt);
+    if (u.flickerCd) u.flickerCd = Math.max(0, u.flickerCd - dt);
+    if (u.kawaCd) u.kawaCd = Math.max(0, u.kawaCd - dt);
+    if (u.artCd) u.artCd = Math.max(0, u.artCd - dt);
+    if (u.mark && (u.mark.t -= dt) <= 0) u.mark = undefined;
+    // atordoado (ou fora de combate há um tempo) perde os selos que estava fazendo
+    if (u.cast && (u.stun > 0 || u.combatTimer <= 0)) interruptCast(g, u, u.stun <= 0);
     if (u.ninja) {
       u.ninja.cd[0] = Math.max(0, u.ninja.cd[0] - dt);
       u.ninja.cd[1] = Math.max(0, u.ninja.cd[1] - dt);

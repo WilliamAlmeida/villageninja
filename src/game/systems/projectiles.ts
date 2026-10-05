@@ -1,4 +1,4 @@
-import { areaDamage, applyDamage } from '../combat';
+import { areaDamage, applyDamage, markTarget } from '../combat';
 import { canHit } from '../factions';
 import { fx } from '../fx';
 import type { Game } from '../game';
@@ -37,5 +37,6 @@ function explode(g: Game, p: Projectile, hit: Unit | null) {
   } else if (hit) {
     fx(g, 'burst', p.x, p.y, { r: p.kind === 'kunai' ? 6 : 14, color: p.color, life: 0.25 });
     applyDamage(g, owner, hit, p.damage, p.nature, { stun: p.stun });
+    if (p.mark != null && !hit.dead) markTarget(g, hit, p.mark);
   }
 }

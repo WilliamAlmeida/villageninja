@@ -36,6 +36,8 @@ import {
 } from '../game/missions';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
+import { KAGE_ARTS } from '../data/kageArts';
+import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHUNSHIN } from '../game/techniques';
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
@@ -338,7 +340,7 @@ export class Panel {
           <div class="jm">Rank ${JUTSU_RANK_LABEL[d.rank]} · ${JUTSU_TYPE_LABEL[d.type]} · ${jutsuChakra(d, n.stats)} chakra · ${cd.toFixed(1)}s</div></div>`;
         b[`cd${i}`] = n.cd[i]! / cd;
       }
-      html += `</div>`;
+      html += `</div>` + this.basicTechniques(u, t);
       if (n.learning) {
         const d = JUTSUS[n.learning.jutsuId]!;
         html += `<h4>Estudando</h4><div class="hint">${esc(d.name)} → slot ${n.learning.slot + 1}</div><div class="bar pg"><i data-b="learn"></i><span data-t="learn"></span></div>`;
@@ -1018,6 +1020,25 @@ export class Panel {
     return { html, t: {}, b: {} };
   }
 
+  /** Técnicas que todo ninja sabe (Shunshin, Kawarimi) e a arte do Kage; a IA usa sozinha. */
+  private basicTechniques(u: Unit, t: Record<string, string>) {
+    if (!isShinobi(u)) return '';
+    const n = u.ninja!;
+    const ready = (cd = 0) => (cd > 0 ? `${Math.ceil(cd)}s` : 'pronto');
+    const style = { leaf: 'folhas', mist: 'névoa', water: 'água', sand: 'areia', smoke: 'fumaça', flash: 'clarão' }[flickerStyle(u)];
+    t.flick = ready(u.flickerCd);
+    t.kawa = ready(u.kawaCd);
+    let html = `<h4>Técnicas básicas <small>(automáticas)</small></h4><div class="btnrow">
+      <span class="badge" ${tipAttr('Shunshin no Jutsu', `Corpo cintilante: some num redemoinho de ${style} e aparece até ${SHUNSHIN.maxDist / 32 | 0} tiles adiante. Usa para chegar na luta, recuar quando luta de longe e fugir ferido. Recarga ${flickerCooldown(n.stats).toFixed(1)}s (menor com Velocidade).`, true)}>{run} Shunshin · <b data-t="flick"></b></span>
+      <span class="badge" ${tipAttr('Kawarimi no Jutsu', `Substituição: num golpe forte ou fatal, ${Math.round(kawarimiChance(n.stats) * 100)}% de chance de trocar de lugar com um tronco (Velocidade e Inteligência aumentam). ${KAWARIMI.chakra} de chakra, recarga ${KAWARIMI.cooldown}s.`, true)}>{leaf} Kawarimi · <b data-t="kawa"></b></span>`;
+    if (n.kageArt) {
+      const k = KAGE_ARTS[n.kageArt];
+      t.kart = ready(u.artCd);
+      html += `<span class="badge" style="color:${k.color}" ${tipAttr(k.name, k.desc, true)}>{crown} ${esc(k.name.replace(' no Jutsu', ''))} · <b data-t="kart"></b></span>`;
+    }
+    return html + `</div>`;
+  }
+
   /** Kage atual ou eleição (cerimônia). */
   private kageSection() {
     const g = this.app.game;
@@ -1027,6 +1048,8 @@ export class Panel {
       html += `<p class="hint"><b>${esc(k.name)}</b> governa a vila · ninjas +10% de dano${
         g.state.buildings.some((b) => b.type === 'monument') ? '' : ' · construa o {monument} Monte dos Kages'
       }</p>`;
+      const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
+      if (art) html += `<p class="hint"><b style="color:${art.color}">{crown} ${esc(art.name)}</b> — ${esc(art.desc)}</p>`;
     } else if (g.state.ceremony) {
       html += `<p class="hint">{party} Cerimônia em andamento…</p>`;
     } else {

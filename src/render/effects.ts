@@ -15,7 +15,84 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number) {
   const r = e.r ?? 16;
   switch (e.kind) {
     case 'harvest':
-      return; // desenhado no chão pelo renderer (drawHarvest)
+    case 'afterimage':
+      return; // canteiro: no chão (drawHarvest); vulto: o renderer desenha o sprite do ninja
+    case 'flicker': {
+      // redemoinho curto onde o ninja some / aparece (folhas, névoa, água e areia vêm das partículas)
+      if (e.variant === 'flash') {
+        ctx.globalAlpha = (1 - k) * 0.9;
+        const g = ctx.createRadialGradient(e.x, e.y - 10, 0, e.x, e.y - 10, r * 1.6);
+        g.addColorStop(0, '#ffffff');
+        g.addColorStop(0.3, e.color);
+        g.addColorStop(1, e.color + '00');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y - 10, r * 1.6, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#fffbe0';
+        ctx.fillRect(e.x - 1, e.y - 34 * (1 - k), 2, 34 * (1 - k)); // risco vertical do clarão
+        break;
+      }
+      ctx.globalAlpha = (1 - k) * 0.7;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 2;
+      for (let j = 0; j < 2; j++) {
+        ctx.beginPath();
+        for (let i = 0; i < 24; i++) {
+          const a = i * 0.4 + e.t * 10 + j * Math.PI;
+          const rr = (i / 24) * r * (0.6 + k * 0.6);
+          ctx.lineTo(e.x + Math.cos(a) * rr, e.y - 8 - k * 10 + Math.sin(a) * rr * 0.5);
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'log': {
+      // tronco do Kawarimi: cai no lugar do ninja, fica um instante e some
+      const drop = Math.max(0, 1 - e.t / 0.18) * 10;
+      ctx.globalAlpha = k < 0.7 ? 1 : (1 - k) / 0.3;
+      const y = e.y - 5 - drop;
+      ctx.fillStyle = '#6b4424';
+      ctx.fillRect(e.x - 9, y - 4, 16, 8);
+      ctx.fillStyle = e.color;
+      ctx.fillRect(e.x - 9, y - 4, 16, 3);
+      ctx.fillStyle = '#c99a62';
+      ctx.beginPath();
+      ctx.ellipse(e.x + 7, y, 3, 4, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = '#7a5530';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(e.x + 7, y, 1.4, 2, 0, 0, TAU);
+      ctx.stroke();
+      break;
+    }
+    case 'seal': {
+      // chakra se juntando nas mãos durante os selos
+      const hx = e.x;
+      const hy = e.y - 12;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * TAU + e.t * 9;
+        const d = 12 * (1 - k) + 2;
+        ctx.globalAlpha = 0.5 + 0.5 * k;
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.arc(hx + Math.cos(a) * d, hy + Math.sin(a) * d * 0.6, 1.4 + k, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 0.25 + 0.5 * k;
+      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 6 + k * 4);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.5, e.color);
+      g.addColorStop(1, e.color + '00');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 6 + k * 4, 0, TAU);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      break;
+    }
     case 'text': {
       const size = (e.big ? 10 : 8.5) * Math.max(1, 1.1 / zoom);
       ctx.globalAlpha = 1 - k * k;

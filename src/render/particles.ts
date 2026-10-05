@@ -4,7 +4,7 @@
 import type { Nature } from '../data/natures';
 import type { Effect, Projectile } from '../game/types';
 
-type Kind = 'flame' | 'drop' | 'mist' | 'spark' | 'dust' | 'chip' | 'streak' | 'mote' | 'smoke' | 'flash';
+type Kind = 'flame' | 'drop' | 'mist' | 'spark' | 'dust' | 'chip' | 'streak' | 'mote' | 'smoke' | 'flash' | 'leaf';
 
 interface P {
   kind: Kind;
@@ -30,6 +30,8 @@ const WATER = ['#e6f6ff', '#9fd8ff', '#4da6ff'];
 const WIND = ['#e8fff0', '#b6f2cc', '#7fe0a0'];
 const BOLT = ['#ffffff', '#fff6a8', '#ffe14d'];
 const EARTH = ['#d9b77a', '#c39257', '#8a6238'];
+const LEAVES = ['#d8f27a', '#a8e05f', '#7cc444', '#f0d860']; // claras: aparecem sobre a grama
+const SAND = ['#f0d9a0', '#d9b77a', '#c39257'];
 
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]!;
 
@@ -73,6 +75,32 @@ export class Particles {
     const r = e.r ?? 16;
     const nat = natureOf(e.color);
     switch (e.kind) {
+      case 'flicker': {
+        // Shunshin: cada vila / natureza some de um jeito
+        const swirl = (i: number, n: number, sp: number) => {
+          const a = (i / n) * TAU + rnd(-0.3, 0.3);
+          return { x: e.x + Math.cos(a) * r * 0.4, y: e.y - 8 + Math.sin(a) * r * 0.2, vx: -Math.sin(a) * sp + Math.cos(a) * sp * 0.4, vy: Math.cos(a) * sp * 0.5 - 18 };
+        };
+        if (e.variant === 'leaf') {
+          // Konoha: puf de fumaça com folhas girando
+          for (let i = 0; i < 4; i++) this.add({ kind: 'smoke', x: e.x + rnd(-r, r) * 0.4, y: e.y - 8 + rnd(-4, 4), vx: rnd(-10, 10), vy: rnd(-12, -4), life: rnd(0.4, 0.7), size: r * rnd(0.35, 0.55), color: '#f2f2ea' });
+          for (let i = 0; i < 16; i++) this.add({ ...swirl(i, 16, rnd(45, 80)), kind: 'leaf', life: rnd(0.7, 1.1), size: rnd(2.6, 3.8), color: pick(LEAVES) });
+        }
+        else if (e.variant === 'water') {
+          for (let i = 0; i < 14; i++) this.add({ ...swirl(i, 14, rnd(30, 60)), kind: 'drop', z: 6, vz: rnd(40, 90), life: rnd(0.4, 0.8), size: rnd(1.4, 2.4), color: pick(WATER) });
+          this.add({ kind: 'mist', x: e.x, y: e.y - 6, life: 0.5, size: r * 1.2, color: '#9fd8ff' });
+        } else if (e.variant === 'sand') for (let i = 0; i < 16; i++) this.add({ ...swirl(i, 16, rnd(40, 80)), kind: 'dust', life: rnd(0.5, 0.9), size: rnd(1.8, 3.2), color: pick(SAND) });
+        else if (e.variant === 'flash') {
+          this.add({ kind: 'flash', x: e.x, y: e.y - 10, life: 0.15, size: r * 1.4, color: '#ffd34d' });
+          for (let i = 0; i < 10; i++) this.add({ kind: 'spark', x: e.x, y: e.y - 10, vx: rnd(-90, 90), vy: rnd(-90, 60), life: rnd(0.1, 0.22), size: rnd(3, 7), color: pick(BOLT) });
+        } else {
+          // névoa (renegados) ou fumaça
+          const mist = e.variant === 'mist';
+          for (let i = 0; i < 8; i++)
+            this.add({ kind: mist ? 'mist' : 'smoke', x: e.x + rnd(-r, r) * 0.5, y: e.y - 6 + rnd(-r, r) * 0.25, vx: rnd(-14, 14), vy: rnd(-12, -2), life: rnd(0.5, 0.9), size: r * rnd(0.4, 0.7), color: e.color });
+        }
+        break;
+      }
       case 'burst': {
         this.add({ kind: 'flash', x: e.x, y: e.y, life: 0.12, size: r * 0.75, color: e.color });
         const n = Math.min(48, 16 + r);
@@ -194,6 +222,15 @@ export class Particles {
           ctx.beginPath();
           ctx.arc(p.x, y, p.size * (0.6 + k * 0.8), 0, TAU);
           ctx.fill();
+          break;
+        case 'leaf':
+          ctx.save();
+          ctx.translate(p.x, y);
+          ctx.rotate(p.t * 9 + p.size * 3);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, p.size, p.size * 0.45, 0, 0, TAU);
+          ctx.fill();
+          ctx.restore();
           break;
         case 'chip':
         case 'dust':

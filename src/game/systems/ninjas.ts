@@ -8,6 +8,7 @@ import { refreshDerived } from '../entities';
 import { specTick } from '../specs';
 import { derive } from '../../data/ninja';
 import { engage, trySupport } from '../combat';
+import { escapeFlicker, hiraishinHome } from '../techniques';
 import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
@@ -32,6 +33,7 @@ export function ninjaSystem(g: Game, dt: number) {
       u.moving = false;
       continue;
     }
+    if (u.cast || u.dash) continue; // selos / investida: o sistema de técnicas cuida
     if (!u.hidden) trySupport(g, u);
     specTick(g, u, dt); // profissão (médico, espião, marionetista) e contrato de invocação
     // consumível gasto: pega outro do estoque ao passar pela vila
@@ -50,7 +52,11 @@ export function ninjaSystem(g: Game, dt: number) {
       u.state = 'idle';
       u.targetId = null;
       u.hasGoal = false;
-      if (lowHp) goRest(g, u);
+      if (lowHp) {
+        // some do meio da luta: Kage pelo Hiraishin, os outros com Shunshin
+        if (threat && !hiraishinHome(g, u)) escapeFlicker(g, u);
+        goRest(g, u);
+      }
     }
     if (u.state === 'ceremony') continue; // cerimônia do Kage
     run(g, u, dt, night);
@@ -73,6 +79,7 @@ function runCommand(g: Game, u: Unit, dt: number): boolean {
       }
       u.hidden = false;
       if (u.state !== 'cmdRetreat') {
+        if (u.combatTimer > 0 && !hiraishinHome(g, u)) escapeFlicker(g, u);
         const p = restPoint(g);
         if (!p || !setDestination(g, u, p.x, p.y)) {
           u.command = null;

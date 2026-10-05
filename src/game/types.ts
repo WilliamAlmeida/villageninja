@@ -1,4 +1,5 @@
 // Todo o estado do jogo é dado puro (serializável em JSON).
+import type { KageArtId } from '../data/kageArts';
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
@@ -18,6 +19,10 @@ import type { ResKey } from '../data/resources';
 export type Cost = Partial<Record<ResKey, number>>;
 export type Faction = 'village' | 'wild' | 'enemy' | 'guest';
 export type UnitKind = 'villager' | 'ninja' | 'animal' | 'rogue' | 'clone';
+/** Visual do Shunshin por vila/natureza; `flash` é o clarão amarelo do Hiraishin. */
+export type FlickerStyle = 'leaf' | 'mist' | 'water' | 'sand' | 'smoke' | 'flash';
+/** Ritmo do combate (menu): rápido = jutsu sai na hora; tático = selos antes, que um golpe interrompe. */
+export type CombatPace = 'fast' | 'tactical';
 export type NinjaOrder = 'auto' | 'train' | 'patrol' | 'scout';
 export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai';
 
@@ -55,6 +60,8 @@ export interface NinjaInfo {
   contract?: ContractKind;
   /** Profissão (médico, espião, marionetista). */
   spec?: SpecKind;
+  /** Técnica exclusiva do Kage (data/kageArts.ts). */
+  kageArt?: KageArtId;
 }
 
 /** Herança de família: o que um morador traz de berço (usado ao virar ninja). */
@@ -166,6 +173,16 @@ export interface Unit {
   tier?: number;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
+  /** Recargas do Shunshin, do Kawarimi e da arte do Kage. */
+  flickerCd?: number;
+  kawaCd?: number;
+  artCd?: number;
+  /** Fazendo os selos de um jutsu (ritmo tático): sai quando `t` zera; um golpe forte interrompe. */
+  cast?: { id: string; targetId: number; t: number };
+  /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
+  dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number };
+  /** Marcado pela fórmula do Hiraishin (id do Kage) por `t` segundos. */
+  mark?: { by: number; t: number };
 }
 
 export type Command =
@@ -316,10 +333,17 @@ export interface Projectile {
   dead?: boolean;
   /** Projétil de duelo: só atinge o lado oposto da arena. */
   side?: number;
+  /** Kunai do Hiraishin: marca quem acertar com a fórmula do Kage (id). */
+  mark?: number;
 }
 
 /** `harvest`: canteiro recém-colhido (terra à mostra que volta a brotar com o tempo; desenhado no chão). */
-export type EffectKind = 'text' | 'ring' | 'burst' | 'slash' | 'smoke' | 'bolt' | 'heal' | 'swirl' | 'chips' | 'wind' | 'harvest';
+export type EffectKind =
+  | 'text' | 'ring' | 'burst' | 'slash' | 'smoke' | 'bolt' | 'heal' | 'swirl' | 'chips' | 'wind' | 'harvest'
+  /** Shunshin: redemoinho na saída e na chegada (`variant`); `afterimage`: vulto do ninja (`uid`) que se apaga. */
+  | 'flicker' | 'afterimage'
+  /** Kawarimi: o tronco que fica no lugar. `seal`: chakra juntando nas mãos durante os selos. */
+  | 'log' | 'seal';
 
 export interface Effect {
   kind: EffectKind;
@@ -333,6 +357,9 @@ export interface Effect {
   x2?: number;
   y2?: number;
   big?: boolean;
+  variant?: FlickerStyle;
+  uid?: number;
+  facing?: number;
 }
 
 export interface GameState {
@@ -390,6 +417,8 @@ export interface GameState {
   /** Dia do último festival e até quando ele dura (0 = nenhum). */
   festivalDay: number;
   festivalUntil: number;
+  /** Ritmo do combate escolhido no menu. */
+  pace: CombatPace;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;

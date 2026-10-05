@@ -14,7 +14,7 @@ import { darkness } from '../game/time';
 import { missionFocus } from '../game/missionView';
 import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
-import type { Building, GameState, ResourceNode, Site, Unit } from '../game/types';
+import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
@@ -296,6 +296,10 @@ export class Renderer {
       drawProjectile(ctx, pp, time);
     }
     for (const e of s.effects) {
+      if (e.kind === 'afterimage') {
+        this.afterimage(g, e, time);
+        continue;
+      }
       const a = project(e.x, e.y);
       const b = e.x2 != null && e.y2 != null ? project(e.x2, e.y2) : null;
       const pe = b ? { ...e, x: a.x, y: a.y, x2: b.x, y2: b.y } : { ...e, x: a.x, y: a.y };
@@ -429,6 +433,18 @@ export class Renderer {
     drawArt(ctx, pic, x, y, 26, row === SHEET_ROWS.side && dx < 0, frame, row);
     ctx.restore();
     void time;
+  }
+
+  /** Shunshin: vulto do ninja onde ele estava, apagando rápido. */
+  private afterimage(g: Game, e: Effect, time: number) {
+    const u = g.unit(e.uid);
+    if (!u) return;
+    const ghost = this.projected({ ...u, x: e.x, y: e.y, facing: e.facing ?? u.facing, moving: true, hp: u.maxHp, stun: 0, shield: 0, hitFlash: 0, role: undefined, loot: undefined, mark: undefined });
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.globalAlpha = 0.5 * (1 - e.t / e.life);
+    drawUnit(ctx, ghost, time, false, undefined, true);
+    ctx.restore();
   }
 
   /** Canteiros recém-colhidos: terra à mostra que some aos poucos (a planta volta a crescer), com brotinhos. */
