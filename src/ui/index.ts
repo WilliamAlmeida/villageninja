@@ -327,14 +327,18 @@ export function createUI(app: App, root: HTMLElement) {
   }
 
   /** Dica de prédio (desktop): qual prédio está sob o mouse, desde quando e onde. */
-  const tip = { id: null as number | null, since: 0, x: 0, y: 0 };
+  const tip = { id: null as number | null, since: 0, x: 0, y: 0, shown: false };
   const tipEl = el('div', { id: 'maptip', hidden: '' });
   document.body.appendChild(tipEl);
   const tipAt = (id: number | null, sx: number, sy: number) => {
     if (id !== tip.id) {
       tip.id = id;
       tip.since = performance.now();
+      tip.shown = false;
     }
+    // já aparecendo, a dica fica onde surgiu; antes disso, mexer o mouse recomeça a espera
+    if (tip.shown) return;
+    if (Math.hypot(sx - tip.x, sy - tip.y) > 4) tip.since = performance.now();
     tip.x = sx;
     tip.y = sy;
   };
@@ -385,10 +389,16 @@ export function createUI(app: App, root: HTMLElement) {
     if (hb && performance.now() - tip.since > 550 && win.root.hidden && !app.buildType) {
       tipEl.innerHTML = buildingTip(app.game, hb);
       tipEl.hidden = false;
-      const r = tipEl.getBoundingClientRect();
-      tipEl.style.left = `${Math.min(window.innerWidth - r.width - 8, tip.x + 16)}px`;
-      tipEl.style.top = `${Math.min(window.innerHeight - r.height - 8, tip.y + 16)}px`;
-    } else tipEl.hidden = true;
+      if (!tip.shown) {
+        tip.shown = true;
+        const r = tipEl.getBoundingClientRect();
+        tipEl.style.left = `${Math.min(window.innerWidth - r.width - 8, tip.x + 16)}px`;
+        tipEl.style.top = `${Math.min(window.innerHeight - r.height - 8, tip.y + 16)}px`;
+      }
+    } else {
+      tipEl.hidden = true;
+      tip.shown = false;
+    }
     btnSelect.classList.toggle('on', app.selectTool);
     if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }

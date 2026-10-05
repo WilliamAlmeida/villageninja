@@ -13,7 +13,8 @@ import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
 import { daysToNextSeason, festivalBlock, festivalOn, holdFestival, moodFactors, seasonOf } from '../game/mood';
 import { learnSpec, specBlock } from '../game/specs';
 import { adoptDog, DOG_COST, dogBlock, dogOf } from '../game/ninken';
-import { BREED_LIST, BREEDS, type DogBreed } from '../data/breeds';
+import { BREED_LIST, BREEDS, breedArt, type DogBreed } from '../data/breeds';
+import { artUrl } from '../render/art';
 import { searchTiles } from '../game/systems/villagers';
 import { TILE } from '../config';
 import { doorPos, tileCenter } from '../game/world';
@@ -62,7 +63,7 @@ import type { Building, Expedition, Mission, NinjaOrder, Site, Team, Unit } from
 import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
-import { esc, el } from './dom';
+import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { rich } from './icons';
@@ -125,7 +126,9 @@ const ACTION_TIP: Record<RegionAction, string> = {
   assault: 'A invasão final: a equipe entra no covil (mapa jogável) e enfrenta os guardiões e o líder da Ordem do Eclipse. Vencendo, a Ordem acaba.',
 };
 
-type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin';
+type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin' | 'sannin' | 'kage';
+/** Filtros de graduação: aparecem sempre, mesmo vazios (dá para ver que existe Sannin e Kage). */
+const RANK_FILTERS: RosterFilter[] = ['genin', 'chunin', 'jounin', 'sannin', 'kage'];
 type RosterSort = 'level' | 'rank' | 'power' | 'hp' | 'name';
 const ROSTER_SORTS: [RosterSort, string, string][] = [
   ['level', 'Nível', 'Maior nível primeiro'],
@@ -1017,18 +1020,21 @@ export class Panel {
   }
 
   /** Equipar todos com o estoque agora, e o modo automático (passa sozinho o que for sendo fabricado). */
-  private gearBar() {
+  private gearBar(className = '') {
     const on = !!this.app.game.state.flags.autoGear;
-    return `<div class="btnrow gearbar"><button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{gear} Equipar todos</button>
+    return `<div class="btnrow gearbar ${className}"><button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{gear} Equipar todos</button>
       <button class="btn ${on ? 'primary' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{refresh} Automático: ${on ? 'ligado' : 'desligado'}</button></div>`;
   }
 
   /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
   private breedPicker() {
-    let html = `<div class="chips">`;
+    // cartão com o cão parado de frente (quadro do meio da linha 2 da folha 4×3)
+    let html = `<div class="breeds">`;
     for (const k of BREED_LIST) {
       const d = BREEDS[k];
-      html += `<button data-act="dog-breed" data-arg="${k}" class="${this.dogBreed === k ? 'on' : ''}" ${tipAttr(d.name, d.desc)}>${esc(d.name)}</button>`;
+      const url = artUrl(breedArt(k));
+      const pic = url ? `<span class="pic" style="background-image:url('${url}')"></span>` : `<span class="pic none">{paw}</span>`;
+      html += `<button data-act="dog-breed" data-arg="${k}" class="breed ${this.dogBreed === k ? 'on' : ''}" ${tipAttr(d.name, d.desc)}>${pic}<span class="n">${esc(d.name)}</span></button>`;
     }
     return html + `</div><p class="hint"><b>${esc(BREEDS[this.dogBreed].name)}:</b> ${esc(BREEDS[this.dogBreed].desc)}</p>`;
   }
@@ -1420,7 +1426,7 @@ export class Panel {
     const recipes = recipesOf(bd.type);
     const MAX_QUEUE = queueMax(bd);
     let html = `<div class="actions"><button class="btn primary" data-act="win" data-arg="crafts">{anvil} Abrir painel das Oficinas</button></div>`;
-    html += this.gearBar() + `<h4>Estoque</h4><div class="btnrow">`;
+    html += this.gearBar('workshop-bar') + `<h4>Estoque</h4><div class="btnrow">`;
     for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
     html += `</div>`;
     const queue = bd.queue ?? [];
@@ -1520,13 +1526,15 @@ export class Panel {
       hurt: ['Feridos', (u) => u.hp < u.maxHp * 0.6],
       genin: ['Genin', (u) => u.ninja!.rank === 'genin'],
       chunin: ['Chunin', (u) => u.ninja!.rank === 'chunin'],
-      jounin: ['Jounin+', (u) => u.ninja!.rank === 'jounin' || u.ninja!.rank === 'kage'],
+      jounin: ['Jounin', (u) => u.ninja!.rank === 'jounin'],
+      sannin: ['Sannin', (u) => !!u.ninja!.sannin],
+      kage: ['Kage', (u) => u.ninja!.rank === 'kage'],
     };
     // filtros: só mostra os que têm alguém (e o escolhido, mesmo vazio, para poder voltar)
     html += `<div class="rfilters"><div class="chips rchips">`;
     for (const [k, [label, fn]] of Object.entries(tests) as [RosterFilter, [string, (u: Unit) => boolean]][]) {
       const n = ninjas.filter(fn).length;
-      if (!n && k !== this.rosterFilter && k !== 'all') continue;
+      if (!n && k !== this.rosterFilter && k !== 'all' && !RANK_FILTERS.includes(k)) continue;
       html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''}">${label} <small>${n}</small></button>`;
     }
     html += `</div><div class="seg rsort"><span class="lbl">Ordenar</span>`;
@@ -1697,7 +1705,8 @@ export class Panel {
         // da janela: fecha e abre o ninja no painel lateral, com a câmera nele (lembrando de onde veio, para o "Voltar")
         const u = g.unit(Number(arg));
         if (u) {
-          if (this.mode === 'window') {
+          // no desktop largo a janela fica aberta e encolhe para o lado; senão fecha e o ninja ganha o "Voltar"
+          if (this.mode === 'window' && !sideBySide()) {
             if (this.view) this.app.back = { view: { ...this.view }, id: u.id };
             this.show(null);
           }

@@ -113,8 +113,9 @@ button:disabled { cursor: not-allowed; }
 .bigbtn span { font-size: 0.77rem; color: var(--muted); }
 .bigbtn.on { border-color: var(--accent); background: var(--bg2); color: var(--accent); }
 
+/* lista de construção: uma faixa logo acima dos botões de baixo, de ponta a ponta */
 #buildbar {
-  position: fixed; left: calc(30.4rem + var(--safe-l)); right: calc(0.6rem + var(--safe-r)); bottom: calc(0.6rem + var(--safe-b)); z-index: 10;
+  position: fixed; left: calc(0.6rem + var(--safe-l)); right: calc(0.6rem + var(--safe-r)); bottom: calc(5.05rem + var(--safe-b)); z-index: 10;
   display: flex; align-items: flex-end; gap: 0.45rem; overflow-x: auto; padding: 0.15rem; scrollbar-width: none; touch-action: pan-x;
 }
 #buildbar::-webkit-scrollbar { display: none; }
@@ -275,6 +276,12 @@ h4 small { text-transform: none; letter-spacing: 0; }
   #win .box { width: 100vw; height: 100vh; border-radius: 0; }
   #win .tabs { border-radius: 0; }
 }
+/* desktop largo: com o painel lateral aberto, a janela encolhe para a esquerda e os dois ficam visíveis (dom.ts SIDE_BY_SIDE) */
+@media (hover: hover) and (min-width: 1100px) {
+  :root:has(#panel:not([hidden])) #win { right: calc(min(24rem, 46vw) + 1rem + var(--safe-r)); }
+  :root:has(#panel:not([hidden])) #win .box { width: min(62rem, 100% - 2rem); }
+  :root:has(#panel:not([hidden])) #panel { z-index: 16; }
+}
 
 .workers { display: flex; align-items: center; gap: 0.6rem; }
 .workers .btn { width: 2.6rem; padding: 0.45rem 0; justify-content: center; }
@@ -368,7 +375,13 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   .clock .lbl { display: none; }
   .speed button { padding: 0.38rem 0.45rem; min-width: 2.15rem; }
   .bigbtn { width: 4rem; }
-  #buildbar { left: calc(27.4rem + var(--safe-l)); }
+}
+/* com a lista de construção aberta, os avisos sobem para cima dela */
+:root:has(#buildbar:not([hidden])) #banners { bottom: calc(11.6rem + var(--safe-b)); }
+@media (max-height: 520px) {
+  .bcard { height: 5.2rem; }
+  .bcard .bg { width: 4.6rem; height: 4.6rem; }
+  :root:has(#buildbar:not([hidden])) #banners { bottom: calc(10.6rem + var(--safe-b)); }
 }
 @media (max-height: 380px) {
   #topbar { height: 2.6rem; }
@@ -468,6 +481,15 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .workers .wnum > b { font-size: 1.3rem; }
 .workers .wnum small { color: var(--muted); font-size: 0.75rem; }
 .gearbar { margin-bottom: 0.4rem; }
+/* Canil: raças em cartões com o cão parado de frente (folha 4×3: coluna 2, linha 2) */
+.breeds { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr)); gap: 0.4rem; margin: 0.3rem 0; }
+.breed { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.35rem 0.3rem 0.4rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); }
+.breed.on { border-color: var(--accent); background: var(--card-hi); }
+.breed.on .n { color: var(--accent); }
+.breed .pic { width: 4rem; height: 4rem; background-size: 400% 300%; background-position: 33.333% 50%; background-repeat: no-repeat; image-rendering: pixelated; }
+.breed .pic.none { display: grid; place-items: center; color: var(--muted); }
+.breed .n { font-size: 0.82rem; font-weight: 700; text-align: center; line-height: 1.15; }
+.gearbar.workshop-bar .btn { flex: 1; justify-content: center; }
 
 /* Oficinas: as três lado a lado (uma coluna no celular) */
 .craftgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.6rem; margin-top: 0.4rem; }

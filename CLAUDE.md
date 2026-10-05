@@ -124,7 +124,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `maxLearners`, sem proibidos); equipes sem sensei recebem um (`autoSenseiTick`, `flags.autoSensei`); destinos do ryo:
   mercenários na Mesa de Missões (`hireMercenary`) e cristal/aço negro no Mercado (`buyRare`). Janela "Oficinas" (tecla
   F, `View 'crafts'`). Ninja aberto de uma lista da janela mostra "Voltar" (`app.back`); a equipe volta para onde veio
-  (`teamFrom`). Desktop: mouse parado sobre um prédio mostra a dica (`ui/maptip.ts`, `#maptip`).
+  (`teamFrom`); no desktop largo (`SIDE_BY_SIDE` em ui/dom.ts) a janela não fecha: encolhe para a esquerda e o painel
+  lateral abre ao lado. Desktop: mouse parado sobre um prédio mostra a dica (`ui/maptip.ts`, `#maptip`), fixa onde surgiu.
+  A lista de construção (`#buildbar`) é uma faixa logo acima dos botões de baixo.
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade), Troca de Pele (`sanninSurvive`), Selo da Força de Cem.
