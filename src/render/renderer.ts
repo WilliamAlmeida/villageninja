@@ -23,7 +23,7 @@ import { buildingCenter, doorPos } from '../game/world';
 import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
-import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, type Deco } from './seasonal';
+import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
 import { drawBuilding, drawNode, drawProjectile, drawUnit, type WorkAction } from './sprites';
 import { drawWaterAnim, renderTerrain, waterDepth } from './terrain';
 
@@ -193,10 +193,6 @@ export class Renderer {
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo
     for (const b of s.buildings) if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
     this.drawHarvest(g);
-    ctx.save();
-    groundTransform(ctx);
-    this.seasonal.drawFieldSnow(ctx, s);
-    ctx.restore();
 
     // ================= passada 2: em pé, do fundo para a frente =================
     const m = 110;
@@ -426,9 +422,10 @@ export class Renderer {
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
     const h = ((width * (ART_SCALE[artName] ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
     drawArt(ctx, pic, front.x, front.y + 4, h);
-    if (SEASON_VIEW.snow > 0.03 && !d.walkable) {
+    if (SEASON_VIEW.snow > 0.03 && (!d.walkable || b.type === 'farm' || b.type === 'herbgarden')) {
       ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
-      drawArt(ctx, snowCap(pic, artName, true), front.x, front.y + 4, h);
+      // canteiros: neve pintada no próprio desenho (terra branca, plantas e cerca aparecendo); prédios: no telhado
+      drawArt(ctx, d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), front.x, front.y + 4, h);
     }
     ctx.restore();
     // inverno: fumaça saindo das chaminés das casas

@@ -338,23 +338,6 @@ export class Seasonal {
     ctx.fill();
   }
 
-  /** (chão, depois dos decalques) Fazendas e hortas também ficam cobertas: a mesma neve, recortada no canteiro. */
-  drawFieldSnow(ctx: Ctx, s: GameState) {
-    if (s.snow < 0.05 || !this.snowCanvas) return;
-    const fields = s.buildings.filter((b) => b.type === 'farm' || b.type === 'herbgarden');
-    if (!fields.length) return;
-    ctx.save();
-    ctx.beginPath();
-    for (const b of fields) {
-      const d = BUILDINGS[b.type];
-      ctx.rect(b.tx * TILE, b.ty * TILE, d.w * TILE, d.h * TILE);
-    }
-    ctx.clip();
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(this.snowCanvas, 0, 0, WORLD_W, WORLD_H);
-    ctx.restore();
-  }
-
   /** Decorações em pé: bonecos de neve na praça (neve alta) e lanternas do festival. */
   decorations(s: GameState, walkable: (x: number, y: number) => boolean): Deco[] {
     const out: Deco[] = [];
@@ -537,6 +520,43 @@ function hsv(r: number, g: number, b: number) {
   let hh = 0;
   if (d) hh = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
   return { h: (hh * 60 + 360) % 360, s: max ? d / max : 0, v: max / 255 };
+}
+
+const fields = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Camada de neve de um canteiro (fazenda, horta), no formato do próprio desenho: a terra fica branca, as folhas
+ * ganham neve em tufos e a cerca, os contornos e as cores vivas (cenoura, trigo, flores) continuam aparecendo.
+ */
+export function snowField(pic: Pic, key: string): HTMLCanvasElement {
+  const hit = fields.get(key);
+  if (hit) return hit;
+  const { c, ctx, w, h, data } = pixels(pic);
+  const px = data.data;
+  const out = ctx.createImageData(w, h);
+  const o = out.data;
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (px[i + 3]! < 40) continue;
+      const { h: hue, s, v } = hsv(px[i]!, px[i + 1]!, px[i + 2]!);
+      if (v < 0.3) continue; // contorno
+      const soil = hue >= 5 && hue <= 50 && v < 0.62 && s > 0.2;
+      const leaf = hue >= 60 && hue <= 175 && s > 0.2;
+      const stone = s < 0.2 && v > 0.4; // caminhos de pedra da horta
+      if (!soil && !leaf && !stone) continue;
+      if (leaf && hash(x >> 1, (y >> 1) + 7) > 0.5) continue; // neve em tufos sobre as plantas
+      const shade = soil && hash(x >> 2, y >> 2) < 0.25 ? 14 : 0;
+      o[i] = 244 - shade;
+      o[i + 1] = 248 - shade;
+      o[i + 2] = 255 - shade * 0.5;
+      o[i + 3] = leaf ? 235 : 250;
+    }
+  ctx.clearRect(0, 0, w, h);
+  ctx.putImageData(out, 0, 0);
+  c.dataset.name = `${key}-field`;
+  fields.set(key, c);
+  return c;
 }
 
 /**
