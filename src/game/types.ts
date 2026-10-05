@@ -2,6 +2,8 @@
 import type { KageArtId } from '../data/kageArts';
 import type { SanninPath } from '../data/sannin';
 import type { DogBreed } from '../data/breeds';
+import type { OrgMemberId } from '../data/org';
+import type { OrgState } from './org';
 import type { MarketGood } from '../data/specialize';
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
@@ -195,6 +197,8 @@ export interface Unit {
   trainId?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
   hitBy?: number[];
+  /** Membro da Ordem do Eclipse (técnica própria, arte própria). */
+  org?: OrgMemberId;
   /** Raça do ninken (sem = shiba). */
   breed?: DogBreed;
   /** Marcado pela fórmula do Hiraishin (id do Kage) por `t` segundos. */
@@ -396,7 +400,7 @@ export interface Cloud {
 
 /** Mapa de missão jogável (vilarejo invadido, andar de mina…): o que é, objetivo e resultado. */
 export interface SceneInfo {
-  kind: 'village' | 'mine' | 'island' | 'trial';
+  kind: 'village' | 'mine' | 'island' | 'trial' | 'hideout';
   /** Mina: andar, a descida (local) e o guardião do fundo. */
   floor?: number;
   stairsId?: number;
@@ -479,6 +483,8 @@ export interface GameState {
   snow: number;
   /** Nuvens de chuva no mapa (só chove embaixo delas). */
   clouds: Cloud[];
+  /** A Ordem do Eclipse: quem já caiu, próxima aparição, covil descoberto, destruída. */
+  org: OrgState;
   /** Mapa de missão jogável em andamento (a equipe está lá; a vila continua andando). */
   scene?: GameState | null;
   /** Só nos mapas de missão: o que é e como termina. */

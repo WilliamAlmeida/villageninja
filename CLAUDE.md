@@ -140,7 +140,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Voltar na barra; `chooseExpedition` fecha e abre o próximo). Último andar: guardião (golem). `closeScene` devolve também
   o saque juntado no mapa. **Ilhas** (Explorar: `createIslandScene`, terra cercada de mar, bichos da ilha, amostras =
   baús; recolhidas todas, `explored`) e **lugares sagrados** (Contrato: `createTrialScene`, clareira com o guardião, o
-  animal do contrato enorme; vencido, dá o contrato). Próximo: o covil da organização usando o mesmo motor.
+  animal do contrato enorme; vencido, dá o contrato). **Covil da Ordem** (`createHideoutScene`, caverna com os
+  guardiões e o líder; vencendo, `org.done`).
+- **Ordem do Eclipse** (`data/org.ts`, `game/org.ts`, `systems/org.ts`, arte `org-<membro>`): 8 membros com técnica
+  própria (`useArt`: Inferno, Corpo de Ferro –50% dano, Prisão d'Água, Trovão Veloz, Miragem, Mortos-vivos, Ninho,
+  Repulsão). Da Vila Oculta em diante as 3 duplas atacam a cada 4–6 dias e caçam o ninja mais forte (`orgBrain`; caça
+  em `Unit.life`, depois recuam). Quem cai entra em `state.org.down` e não volta; caídas as duplas, o covil aparece na
+  Região (nó `covil`, ação `assault`). Vida cresce com a quantidade de Jounins da vila. Seção na aba Kage.
+- Ninjas descansando (`rest`) ficam dentro do prédio (escondidos) e só saem para lutar com 60% de vida.
 - Prédios podem ser movidos de graça (`canMove`/`moveBuilding` em commands.ts; o Hokage só se ninguém sair do território).
 - `src/ui/` DOM sobre o canvas. `Panel` (`panel.ts`) tem dois modos: **drawer** (lateral, para o que foi tocado no mapa:
   ninja, prédio, grupo — compacto, com abas) e **window** (janela central com abas, para telas de gestão: Vila/Kage/
@@ -151,7 +158,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v19.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v20.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token
@@ -172,7 +179,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Estado atual
 - Fases 1 e 3–8 do roadmap prontas (equipes/ordens, níveis da vila, missões, economia/equipamento,
-  Exame Chunin, clãs/kekkei genkai, Kage/ameaças chefes), mais exploração, minas, região, profissões, estações, ninken e técnicas ninja (Shunshin, Kawarimi, selos, Hiraishin) o visual das estações, o cuidado com os ninjas e prédios especializados, chuva local, automação, Sannin, invasões, minas, ilhas e provas jogáveis. 159 testes.
+  Exame Chunin, clãs/kekkei genkai, Kage/ameaças chefes), mais exploração, minas, região, profissões, estações, ninken e técnicas ninja (Shunshin, Kawarimi, selos, Hiraishin) o visual das estações, o cuidado com os ninjas e prédios especializados, chuva local, automação, Sannin, invasões, minas, ilhas, provas e o covil jogáveis e a Ordem do Eclipse. 163 testes.
 - Desktop: cursor por contexto, Shift+arrastar (ou botão Selecionar) marca vários ninjas, botão direito dá ordem,
   hover em lista destaca o ninja no mapa. Prédios mostram o interior e quem está dentro (`game/interior.ts`).
 - **PWA**: `public/` (`app.webmanifest` com `display: fullscreen` e paisagem, `app-icons/`, `sw-v1.js` sem cache) é servido por

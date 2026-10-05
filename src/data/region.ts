@@ -2,9 +2,10 @@
 // Posições em % da imagem de fundo (src/art/region.jpg). Ações viram expedições (game/region.ts).
 import type { Cost } from '../game/types';
 
-export type RegionKind = 'village' | 'island' | 'sacred';
+/** `hideout`: o covil da Ordem do Eclipse (só aparece quando descoberto). */
+export type RegionKind = 'village' | 'island' | 'sacred' | 'hideout';
 export type ContractKind = 'toad' | 'snake' | 'slug';
-export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract';
+export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract' | 'assault';
 
 export interface RegionNodeDef {
   id: string;
@@ -28,6 +29,10 @@ export interface RegionNodeDef {
 }
 
 export const REGION_NODES: RegionNodeDef[] = [
+  {
+    id: 'covil', name: 'Covil do Eclipse', kind: 'hideout', x: 52, y: 8, power: 140,
+    desc: 'Cavernas escondidas nas montanhas do norte: o esconderijo da Ordem do Eclipse, onde o líder espera.',
+  },
   // ---- vilarejos (continente)
   {
     id: 'arroz', name: 'Vila do Arroz', kind: 'village', x: 39.7, y: 22, power: 25,
@@ -94,11 +99,12 @@ export const ACTION_TIME: Record<RegionAction, { travel: number; work: number }>
   outpost: { travel: 14, work: 24 },
   train: { travel: 14, work: 40 },
   contract: { travel: 14, work: 20 },
+  assault: { travel: 18, work: 30 },
 };
 
 export const ACTION_LABEL: Record<RegionAction, string> = {
   trade: 'Comerciar', protect: 'Proteger', raid: 'Saquear', annex: 'Anexar', explore: 'Explorar',
-  outpost: 'Montar posto avançado', train: 'Treinar no templo', contract: 'Buscar contrato',
+  outpost: 'Montar posto avançado', train: 'Treinar no templo', contract: 'Buscar contrato', assault: 'Invadir o covil',
 };
 
 /** Custo para montar um posto avançado numa ilha e para anexar um vilarejo em paz. */

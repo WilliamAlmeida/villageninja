@@ -11,6 +11,7 @@ import { natureSystem } from './nature';
 import { gearSystem } from './gear';
 import { automationSystem } from './automation';
 import { sceneRunSystem, sceneSystem } from './scene';
+import { orgSystem } from './org';
 import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
@@ -54,6 +55,7 @@ export const SYSTEMS: System[] = [
   natureSystem,
   gearSystem,
   automationSystem,
+  orgSystem,
   sceneRunSystem,
 ];
 

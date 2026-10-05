@@ -6,6 +6,7 @@ import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
 import { SPEC } from '../../data/specs';
 import { spyNinjaNear } from '../specs';
 import { dogSniff, sniffRange } from '../ninken';
+import { orgBrain } from '../org';
 import { createAnimal, createRogue } from '../entities';
 import { costLabel } from '../../data/resources';
 import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
@@ -93,6 +94,7 @@ function rogue(g: Game, u: Unit, dt: number) {
     return;
   }
   if (u.role === 'puppet') return puppet(g, u, dt);
+  if (u.org && orgBrain(g, u, dt)) return; // Ordem do Eclipse: caça o mais forte e usa a técnica própria
   if (u.cloak) revealSpy(g, u);
   if (!u.cloak) trySupport(g, u);
   if (u.missionId != null) return guardHome(g, u, dt, 220);

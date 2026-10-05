@@ -11,6 +11,8 @@ import { resolveSite, revealCircle } from './explore';
 import { MINE } from '../data/expeditions';
 import { ANIMALS, type AnimalType } from '../data/animals';
 import { CONTRACTS } from '../data/contracts';
+import { ORG } from '../data/org';
+import { createOrgMember, lairGuards } from './org';
 import { fxText } from './fx';
 import { Game } from './game';
 import { baseState } from './newGame';
@@ -42,7 +44,7 @@ export function opensScene(home: Game, e: Expedition) {
   if (home.state.scene) return false;
   if (e.kind === 'mine') return true;
   if (e.kind !== 'region') return false;
-  if (e.action === 'raid' || e.action === 'explore' || e.action === 'contract') return true;
+  if (e.action === 'raid' || e.action === 'explore' || e.action === 'contract' || e.action === 'assault') return true;
   return e.action === 'annex' && regionOf(home.state, e.node!).rel < REL.annexPeace;
 }
 
@@ -181,6 +183,11 @@ export function sceneTick(g: Game, dt: number) {
   const foes = sceneFoes(g);
   if (info.kind === 'mine') return mineTick(g, info, foes, end);
   if (info.kind === 'island') return islandTick(g, end);
+  if (info.kind === 'hideout') {
+    const left = g.state.units.filter((u) => !u.dead && u.org);
+    if (!left.length) return end('win', `{crown} O líder da ${ORG.name} caiu! O covil é seu.`);
+    return;
+  }
   if (info.kind === 'trial') {
     const boss = g.unit(info.bossId);
     if (!boss || boss.dead) return end('win', '{scroll} O guardião se curvou: a equipe passou na prova!');
@@ -220,6 +227,12 @@ export function advanceTarget(g: Game) {
     const open = g.state.sites.filter((x) => x.kind === 'chest' && !x.done);
     const c = lead ? open.sort((a, b) => Math.hypot(tileCenter(a.tx) - lead.x, tileCenter(a.ty) - lead.y) - Math.hypot(tileCenter(b.tx) - lead.x, tileCenter(b.ty) - lead.y))[0] : open[0];
     return c ? { x: tileCenter(c.tx), y: tileCenter(c.ty) } : null;
+  }
+  if (info.kind === 'hideout') {
+    const lead = sceneTeam(g)[0];
+    const org = g.state.units.filter((u) => !u.dead && u.org);
+    const o = lead ? org.sort((a, b) => Math.hypot(a.x - lead.x, a.y - lead.y) - Math.hypot(b.x - lead.x, b.y - lead.y))[0] : org[0];
+    return o ? { x: o.x, y: o.y } : null;
   }
   if (info.kind === 'mine' || info.kind === 'trial') {
     const boss = g.unit(info.bossId);
@@ -276,11 +289,9 @@ export function closeScene(home: Game): { result: 'win' | 'lose' | 'retreat'; lo
 /** Bichos de cada andar (o último tem o guardião). */
 const MINE_FAUNA: AnimalType[][] = [['spider', 'boar'], ['spider', 'bear'], ['spider', 'tiger', 'bear'], ['rhino', 'tiger'], ['rhino', 'bear']];
 
-/** Caverna gerada por autômato celular: galerias ligadas da entrada (à esquerda) até a descida (o ponto mais longe). */
-export function createMineScene(home: Game, e: Expedition, floor: number): GameState {
-  const seed = (home.state.seed ^ (e.id * 40503) ^ (floor * 2246822519)) >>> 0;
-  const s = baseState(seed);
-  const rnd = mulberry32(seed);
+
+/** Caverna por autômato celular: só a galeria ligada à entrada (à esquerda) fica; `far` é o ponto mais fundo. */
+function carveCave(s: GameState, rnd: () => number) {
   const W = MAP_W;
   const H = MAP_H;
   let wall = Array.from({ length: W * H }, (_, i) => {
@@ -321,6 +332,17 @@ export function createMineScene(home: Game, e: Expedition, floor: number): GameS
     else if (dist[i]! > dist[far]!) far = i;
   }
   s.tiles = wall.map((w) => (w ? T.ROCK : T.DIRT));
+  s.nodes = [];
+  return { wall, start, far, dist, cells: q.filter((i) => !wall[i]) };
+}
+
+/** Caverna gerada por autômato celular: galerias ligadas da entrada (à esquerda) até a descida (o ponto mais longe). */
+export function createMineScene(home: Game, e: Expedition, floor: number): GameState {
+  const seed = (home.state.seed ^ (e.id * 40503) ^ (floor * 2246822519)) >>> 0;
+  const s = baseState(seed);
+  const rnd = mulberry32(seed);
+  const { wall, start, far, dist, cells: q } = carveCave(s, rnd);
+  const W = MAP_W;
   s.nodes = [];
   s.time = home.state.time;
   s.day = home.state.day;
@@ -498,6 +520,45 @@ export function createTrialScene(home: Game, e: Expedition): GameState {
   s.sceneInfo = {
     kind: 'trial', expId: e.id, node: def.id, action: e.action, title: `Prova do contrato · ${def.name}`, bossId: boss.id,
     goal: `Vença o guardião para ganhar o contrato: ${CONTRACTS[kind].name}.`, result: null, loot: 0, lootNeed: 0, defenders: 3, entry,
+  };
+  return s;
+}
+
+/** Covil da Ordem: caverna escura, aranhas pelo caminho e, no fundo, os guardiões e o líder. */
+export function createHideoutScene(home: Game, e: Expedition): GameState {
+  const seed = (home.state.seed ^ (e.id * 97531) ^ 0xec11) >>> 0;
+  const s = baseState(seed);
+  const rnd = mulberry32(seed);
+  const cave = carveCave(s, rnd);
+  s.time = home.state.time;
+  s.day = home.state.day;
+  s.towersFaction = 'enemy';
+  s.res = { ...s.res, wood: 0, stone: 0, food: 0, ryo: 0 };
+  s.flags = { ...s.flags, shelterRookies: false };
+  s.timers = { ...s.timers, animal: 1e9, raid: 1e9 };
+  const g = new Game(s, SCENE_SYSTEMS);
+  g.isScene = true;
+  const at = (i: number) => ({ x: tileCenter(i % MAP_W), y: tileCenter(Math.floor(i / MAP_W)) });
+  const spots = cave.cells.filter((i) => cave.dist[i]! > 14 && cave.dist[i]! < cave.dist[cave.far]! * 0.8).sort(() => rnd() - 0.5);
+  for (let k = 0; k < 5 && spots.length; k++) {
+    const p = at(spots.pop()!);
+    const a = createAnimal(g, 'spider', p.x, p.y);
+    a.maxHp = a.hp = Math.round(a.maxHp * 2.2);
+    guard(a);
+  }
+  const lair = at(cave.far);
+  let bossId: number | undefined;
+  lairGuards(home.state).forEach((id, i) => {
+    const u = createOrgMember(g, id, lair.x + (i ? 28 : -28), lair.y);
+    guard(u);
+    if (id === 'yomi') bossId = u.id;
+  });
+  const entry = at(cave.start);
+  bringTeam(home, g, e, entry);
+  revealCircle(s, Math.floor(entry.x / 32), Math.floor(entry.y / 32), 6);
+  s.sceneInfo = {
+    kind: 'hideout', expId: e.id, node: 'covil', action: e.action, title: `Covil da ${ORG.name}`, bossId,
+    goal: 'Atravesse a caverna e derrote os guardiões e o líder da Ordem.', result: null, loot: 0, lootNeed: 0, defenders: 5 + lairGuards(home.state).length, entry,
   };
   return s;
 }

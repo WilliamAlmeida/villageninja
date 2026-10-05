@@ -155,6 +155,7 @@ const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'ha
 function unitPic(u: Unit) {
   if (u.animal === 'dog') return art(breedArt(u.breed)) ?? art('dog');
   if (u.animal) return art(u.animal);
+  if (u.org) return art(`org-${u.org}`) ?? art('rogue'); // Ordem do Eclipse: arte própria de cada membro
   if (u.role === 'puppet') return art('puppet') ?? art('rogue');
   if (u.kind === 'villager') return art('villager');
   if (u.faction === 'enemy') return art('rogue');

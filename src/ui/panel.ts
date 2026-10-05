@@ -38,6 +38,8 @@ import {
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
+import { ORG, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
+import { lairGuards } from '../game/org';
 import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { nameSannin, sanninBlock, sanninCandidates, sanninOf, statCapOf } from '../game/sannin';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
@@ -120,6 +122,7 @@ const ACTION_TIP: Record<RegionAction, string> = {
   outpost: 'Monta um posto que produz recursos da ilha todo dia.',
   train: 'Os monges treinam a equipe: muito XP e atributos.',
   contract: 'Vira uma prova jogável: vença o guardião (o animal do contrato, enorme). O ninja mais forte da equipe sem contrato aprende a invocar.',
+  assault: 'A invasão final: a equipe entra no covil (mapa jogável) e enfrenta os guardiões e o líder da Ordem do Eclipse. Vencendo, a Ordem acaba.',
 };
 
 type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin';
@@ -529,8 +532,9 @@ export class Panel {
     html += `<div class="regionwrap"><div class="rmap"><img src="${regionMap}" alt="" draggable="false">
       <span class="rnode home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">{castle}<span>Sua vila</span></span>`;
     for (const def of REGION_NODES) {
+      if (def.kind === 'hideout' && !s.org.lairKnown) continue; // o covil só aparece quando descoberto
       const st = regionOf(s, def.id);
-      const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : '{scroll}';
+      const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : def.kind === 'hideout' ? '{skull}' : '{scroll}';
       const flags = st.outpost ? ' {flag}' : '';
       const dots = (busyAt.get(def.id) ?? []).map((c) => `<i class="tdot" style="--c:${c}"></i>`).join('');
       html += `<button class="rnode k-${def.kind} s-${st.status} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${icon}<span>${def.name}${flags}</span>${dots}</button>`;
@@ -557,7 +561,7 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     const st = regionOf(s, def.id);
-    const kindLabel = { village: 'Vilarejo', island: 'Ilha', sacred: 'Lugar sagrado' }[def.kind];
+    const kindLabel = { village: 'Vilarejo', island: 'Ilha', sacred: 'Lugar sagrado', hideout: 'Covil' }[def.kind];
     const statusLabel = { neutral: 'Neutro', protected: 'Protegido', vassal: 'Vassalo', hostile: 'Hostil' }[st.status];
     let html = `<div class="ph"><div class="title">${def.name}</div><div class="badges"><span class="badge">${kindLabel}</span>${
       def.kind === 'village' ? `<span class="badge st-${st.status}">${statusLabel}</span>` : ''
@@ -568,6 +572,8 @@ export class Panel {
       if (def.tribute) html += `<p class="hint">Tributo por dia: ${costLabel(def.tribute)} (protegido) · dobro como vassalo.</p>`;
     } else if (def.kind === 'island') {
       html += `<p class="hint">${st.explored ? '{check} Explorada' : '{todo} Ainda não explorada'} · ${st.outpost ? `{flag} Posto avançado: ${costLabel(def.outpost ?? {})}/dia` : `Posto avançado renderia ${costLabel(def.outpost ?? {})} por dia`}</p>`;
+    } else if (def.kind === 'hideout') {
+      html += `<p class="hint">${s.org.done ? '{check} A Ordem foi destruída.' : `Guardam o covil: ${lairGuards(s).map((id) => `<b>${ORG_MEMBERS[id].name}</b>, ${esc(ORG_MEMBERS[id].title)}`).join(' e ')}.`}</p>`;
     } else if (def.contract) {
       const c = CONTRACTS[def.contract];
       const owners = s.units.filter((u) => !u.dead && u.ninja?.contract === def.contract).map((u) => esc(u.name.split(' ').pop()!));
@@ -604,7 +610,7 @@ export class Panel {
       const cost = actionCost(def, a);
       const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
       html += `<button class="btn" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
-        <b>${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
+        <b>${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
     }
     return html + `</div>`;
   }
@@ -1292,7 +1298,25 @@ export class Panel {
     }
     if (g.state.kageHistory.length)
       html += `<p class="hint">Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
-    return html + this.sanninSection();
+    return html + this.sanninSection() + this.orgSection();
+  }
+
+  /** A Ordem do Eclipse: duplas que caçam a vila, quem já caiu e o covil. */
+  private orgSection() {
+    const g = this.app.game;
+    const o = g.state.org;
+    let html = `<h4>{skull} ${ORG.name}</h4>`;
+    if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p>`;
+    html += `<p class="hint">Oito ninjas lendários de capa preta. ${g.state.level < ORG.minVillage ? 'Ainda não sabem da vila (começam a aparecer na Vila Oculta).' : `Atacam em duplas e caçam os seus ninjas mais fortes${o.nextDay ? `; próxima aparição por volta do dia ${o.nextDay}` : ''}.`} Quem cai não volta.</p><div class="btnrow">`;
+    for (const pair of [...ORG_PAIRS, ['tsuchigumo', 'yomi'] as const])
+      for (const id of pair) {
+        const d = ORG_MEMBERS[id];
+        const down = o.down.includes(id);
+        html += `<span class="badge ${down ? '' : 'enemy'}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}>${down ? '{check} ' : ''}${d.name}</span>`;
+      }
+    html += `</div>`;
+    if (o.lairKnown) html += `<p class="hint">{map} O covil foi descoberto: Mundo → Região → Covil do Eclipse.</p>`;
+    return html;
   }
 
   /** Os Três Sannin: um por caminho (sapo, serpente, lesma), escolhidos entre os Jounins fortes. */

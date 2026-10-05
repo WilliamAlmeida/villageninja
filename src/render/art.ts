@@ -78,6 +78,14 @@ import cave from '../art/cave.png';
 import port from '../art/port.png';
 import kennel from '../art/kennel.png';
 import arena from '../art/arena.png';
+import orgGoen from '../art/org-goen.png';
+import orgTetsuo from '../art/org-tetsuo.png';
+import orgMizuchi from '../art/org-mizuchi.png';
+import orgRaiga from '../art/org-raiga.png';
+import orgKagero from '../art/org-kagero.png';
+import orgShiryo from '../art/org-shiryo.png';
+import orgTsuchigumo from '../art/org-tsuchigumo.png';
+import orgYomi from '../art/org-yomi.png';
 import forge2 from '../art/forge-2.png';
 import forge3 from '../art/forge-3.png';
 import pharmacy2 from '../art/pharmacy-2.png';
@@ -98,7 +106,9 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
   'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
-  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug };
+  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
+  // Ordem do Eclipse
+  'org-goen': orgGoen, 'org-tetsuo': orgTetsuo, 'org-mizuchi': orgMizuchi, 'org-raiga': orgRaiga, 'org-kagero': orgKagero, 'org-shiryo': orgShiryo, 'org-tsuchigumo': orgTsuchigumo, 'org-yomi': orgYomi };
 
 /**
  * Folhas de sprite no padrão de scripts/sprite-template.py: 4 quadros (ciclo de caminhada) × 3 linhas
@@ -108,7 +118,7 @@ export const SHEET_ROWS = { side: 0, front: 1, back: 2 } as const;
 const SHEET = { frames: 4, rows: 3, idle: 1 };
 /** Bases de ninja (uma por penteado) desenhadas em cores-chave: cabelo verde e roupa azul, recoloridas por ninja. */
 export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns', 'bald'] as const;
-const SHEETS = new Set(['ninja', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
+const SHEETS = new Set(['ninja', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', 'org-goen', 'org-tetsuo', 'org-mizuchi', 'org-raiga', 'org-kagero', 'org-shiryo', 'org-tsuchigumo', 'org-yomi', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
 
 const images = new Map<string, HTMLImageElement>();
 let enabled = true;

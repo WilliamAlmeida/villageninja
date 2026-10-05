@@ -7,6 +7,7 @@ import { createTeam, joinAsMember } from './teams';
 import type { GameState } from './types';
 import { emptyExplored, generateSites, revealStart } from './explore';
 import { newRegion } from './region';
+import { newOrg } from './org';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
 /** Estado inicial com o terreno gerado e tudo vazio (base da vila nova e dos mapas de missão). */
@@ -56,6 +57,7 @@ export function baseState(seed: number): GameState {
     pace: 'fast',
     snow: 0,
     clouds: [],
+    org: newOrg(),
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

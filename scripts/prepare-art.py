@@ -35,7 +35,8 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
           'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
           'dog': (44, 'quadruped'), 'dog-white': (44, 'quadruped'), 'dog-pug': (44, 'quadruped'), 'dog-bull': (44, 'quadruped'),
-          'toad': (64, 'quadruped'), 'slug': (52, 'quadruped')}
+          'toad': (64, 'quadruped'), 'slug': (52, 'quadruped'),
+          **{f'org-{m}': (56, 'biped') for m in ('goen', 'tetsuo', 'mizuchi', 'raiga', 'kagero', 'shiryo', 'tsuchigumo', 'yomi')}}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
 TRUST_FACING = {'spider', 'slug', 'dog-white'}

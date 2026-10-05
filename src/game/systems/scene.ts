@@ -9,7 +9,7 @@ export function sceneRunSystem(g: Game, dt: number) {
   s.time = g.state.time;
   s.day = g.state.day;
   // dentro da caverna não chove nem neva
-  const cave = s.sceneInfo?.kind === 'mine';
+  const cave = s.sceneInfo?.kind === 'mine' || s.sceneInfo?.kind === 'hideout';
   s.weather = cave ? 'clear' : g.state.weather;
   s.snow = cave ? 0 : g.state.snow;
   s.pace = g.state.pace;

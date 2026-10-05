@@ -4,6 +4,7 @@ import type { GameState } from './types';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
 import { newRegion } from './region';
 import { generateMap } from './world';
+import { newOrg } from './org';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 
 /**
@@ -128,6 +129,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   18: (s) => {
     s.flags.autoTeach = false; // Academia ensina sozinha (o jogador liga)
     s.flags.autoSensei = true; // equipes sem sensei recebem um
+  },
+  19: (s) => {
+    s.org = newOrg(); // a Ordem do Eclipse
+    s.region.covil = { rel: 0, status: 'neutral' };
   },
 };
 

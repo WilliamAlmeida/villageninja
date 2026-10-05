@@ -45,7 +45,8 @@ export function ninjaSystem(g: Game, dt: number) {
     if (shelterTick(g, u, dt)) continue; // novato com inimigo forte demais por perto: vai se abrigar
 
     const threat = findThreat(g, u);
-    const lowHp = u.hp < u.maxHp * 0.2;
+    // descansando lá dentro só sai para lutar recuperado (60%); fora, foge abaixo de 20%
+    const lowHp = u.hp < u.maxHp * (u.state === 'rest' ? 0.6 : 0.2);
     if (threat && !lowHp) {
       u.hidden = false;
       u.state = 'fight';
@@ -254,11 +255,18 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
       break;
     }
     case 'toRest':
-      if (followPath(g, u, dt)) u.state = 'rest';
+      if (followPath(g, u, dt)) {
+        // descansa lá dentro (hospital/Residência): fora, os feridos amontoados viravam alvo fácil de área
+        u.state = 'rest';
+        u.hidden = true;
+      }
       break;
     case 'rest':
       u.moving = false;
-      if (u.hp >= u.maxHp * 0.95) u.state = 'idle';
+      if (u.hp >= u.maxHp * 0.95) {
+        u.state = 'idle';
+        u.hidden = false;
+      }
       break;
     case 'toTrain':
       if (followPath(g, u, dt)) {

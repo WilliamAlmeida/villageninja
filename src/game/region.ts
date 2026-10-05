@@ -8,6 +8,7 @@ import {
   ACTION_LABEL, ACTION_TIME, ANNEX_COST, FAME, OUTPOST_COST, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef,
 } from '../data/region';
 import { costLabel, RES_KEYS } from '../data/resources';
+import { ORG, ORG_LAIR } from '../data/org';
 import { createNinja, createVillager } from './entities';
 import { expeditionUnits, teamBusy, unitPower } from './expeditions';
 import type { Game } from './game';
@@ -37,6 +38,7 @@ export const nodePower = (s: GameState, def: RegionNodeDef) => Math.round(def.po
 export function nodeActions(def: RegionNodeDef): RegionAction[] {
   if (def.kind === 'village') return ['trade', 'protect', 'raid', 'annex'];
   if (def.kind === 'island') return def.id === 'templos' ? ['explore', 'outpost', 'train'] : ['explore', 'outpost'];
+  if (def.kind === 'hideout') return ['assault'];
   return ['contract'];
 }
 
@@ -53,6 +55,12 @@ export function actionBlock(g: Game, nodeId: string, action: RegionAction): stri
   const def = REGION[nodeId];
   if (!def) return 'Lugar desconhecido.';
   const st = regionOf(g.state, nodeId);
+  if (def.kind === 'hideout') {
+    if (!g.state.org.lairKnown) return 'Ninguém sabe onde fica.';
+    if (g.state.org.done) return 'A Ordem do Eclipse já foi destruída.';
+    if (g.state.scene) return 'Já há um mapa de missão em andamento.';
+    return null;
+  }
   if (def.kind !== 'village' && !g.findBuilt('port')) return 'Precisa de um Porto para chegar às ilhas.';
   switch (action) {
     case 'trade':
@@ -210,6 +218,17 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
       }
       text = 'Treinaram com os monges do templo: muita experiência e atributos.';
       break;
+    case 'assault':
+      if (outcome === 'win') {
+        s.org.done = true;
+        for (const id of ORG_LAIR) if (!s.org.down.includes(id)) s.org.down.push(id);
+        add(e.loot, ORG.finalReward);
+        s.honor += 20;
+        s.reputation += 30;
+        text = `A ${ORG.name} foi destruída! O líder caiu e o covil foi saqueado: ${costLabel(e.loot)}.`;
+        g.toast(`{crown} A ${ORG.name} foi destruída! A vila é lendária.`, 'good');
+      } else text = outcome === 'retreat' ? 'A equipe recuou do covil.' : 'O covil resistiu. O líder ainda espera lá dentro.';
+      break;
     case 'contract': {
       const kind = def.contract!;
       if (played ? outcome === 'win' : ratio >= 1) {
@@ -248,6 +267,7 @@ export function regionDaily(g: Game) {
   const s = g.state;
   const income: Cost = {};
   for (const def of REGION_NODES) {
+    if (def.kind === 'hideout') continue;
     const st = regionOf(s, def.id);
     if (st.status === 'protected') add(income, def.tribute);
     if (st.status === 'vassal') add(income, def.tribute, 2);

@@ -18,6 +18,7 @@ import type { Game } from './game';
 import { chase, push } from './movement';
 import { noteHit, shareXp, tryRescue } from './care';
 import { sageDamage, sanninSurvive } from './sannin';
+import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
 import { gearBonus } from './gearBonus';
 import { ITEMS } from '../data/items';
@@ -396,6 +397,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (src?.faction === 'village' && t.faction !== 'village' && spyNinjaNear(g, t.x, t.y, SPEC.markRange)) dmg *= SPEC.markBonus;
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
   if (t.shield > 0) dmg *= 0.4;
+  if (t.org === 'tetsuo') dmg *= 0.5; // Corpo de Ferro
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
   // Kawarimi: golpe forte ou fatal vira um tronco
   if (tryKawarimi(g, t, src, dmg)) {
@@ -442,6 +444,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   }
   t.dead = true;
   t.hp = 0;
+  if (t.org) orgMemberDown(g, t);
   if (t.kind === 'clone' || (t.faction === 'village' && t.ownerId != null)) {
     fx(g, 'smoke', t.x, t.y, { r: 16, life: 0.6, color: '#e8e8e8' });
     return;
