@@ -5,7 +5,7 @@ import { BUILDINGS } from '../../data/buildings';
 import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
 import { SPEC } from '../../data/specs';
 import { spyNinjaNear } from '../specs';
-import { DOG, dogSniff } from '../ninken';
+import { dogSniff, sniffRange } from '../ninken';
 import { createAnimal, createRogue } from '../entities';
 import { costLabel } from '../../data/resources';
 import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
@@ -511,7 +511,7 @@ function spyRevealed(g: Game, u: Unit) {
     if ((b.type === 'tower' || b.type === 'intel') && b.built && dist(u, buildingCenter(b)) < SPY.towerRange * (b.type === 'intel' ? 1.6 : 1)) return true;
   if (spyNinjaNear(g, u.x, u.y, SPEC.spyReveal)) return true;
   // faro dos ninken
-  if (g.state.units.some((o) => !o.dead && o.animal === 'dog' && o.faction === 'village' && dist(u, o) < DOG.sniff)) return true;
+  if (g.state.units.some((o) => !o.dead && o.animal === 'dog' && o.faction === 'village' && dist(u, o) < sniffRange(o))) return true;
   return g.state.units.some(
     (o) => !o.dead && !o.hidden && o.faction === 'village' && o.ninja && o.ninja.stats.inteligencia >= SPY.minInt && dist(u, o) < SPY.ninjaRange,
   );

@@ -71,12 +71,15 @@ describe('simulação', () => {
     const g = createNewGame(SYSTEMS, 5);
     const d = doorPos(g.hokage()!);
     const rogue = createRogue(g, d.x - 140, d.y + 40, 1);
-    run(g, 2);
     const ninjas = g.state.units.filter((u) => u.kind === 'ninja');
-    // (um ninja pode ter sido paralisado por genjutsu antes de reagir)
-    expect(ninjas.every((n) => n.state === 'fight' || n.stun > 0)).toBe(true);
-    expect(ninjas.some((n) => n.state === 'fight')).toBe(true);
-    expect(rogue.hp).toBeLessThan(rogue.maxHp);
+    // todos entram na luta em algum momento (um pode ter sido paralisado por genjutsu; a luta pode acabar rápido)
+    const engaged = new Set<number>();
+    for (let t = 0; t < 2; t += SIM_DT) {
+      g.step(SIM_DT);
+      for (const n of ninjas) if (n.state === 'fight' || n.stun > 0) engaged.add(n.id);
+    }
+    expect(engaged.size).toBe(ninjas.length);
+    expect(rogue.dead || rogue.hp < rogue.maxHp).toBe(true);
   });
 
   test('ninjas fortes eliminam animais e renegados', () => {

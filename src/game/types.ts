@@ -1,5 +1,6 @@
 // Todo o estado do jogo é dado puro (serializável em JSON).
 import type { KageArtId } from '../data/kageArts';
+import type { DogBreed } from '../data/breeds';
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
@@ -181,6 +182,8 @@ export interface Unit {
   cast?: { id: string; targetId: number; t: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
   dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number };
+  /** Raça do ninken (sem = shiba). */
+  breed?: DogBreed;
   /** Marcado pela fórmula do Hiraishin (id do Kage) por `t` segundos. */
   mark?: { by: number; t: number };
 }

@@ -67,6 +67,7 @@ describe('profissões e invocações', () => {
     pm.ninja!.contract = 'toad';
     const foe = createRogue(g, 680, 600, 3);
     foe.hp = foe.maxHp = 9999;
+    foe.ninja!.jutsu = [null, null]; // um genjutsu de abertura paralisaria o marionetista o teste inteiro
     run(g, 3, () => g.state.units.some((u) => u.role === 'puppet' && u.ownerId === pm.id) && g.state.units.some((u) => u.animal === 'toad'));
     const puppet = g.state.units.find((u) => u.role === 'puppet' && u.ownerId === pm.id);
     const toad = g.state.units.find((u) => u.animal === 'toad' && u.ownerId === pm.id);

@@ -3,6 +3,7 @@
 import { TILE } from '../config';
 import { art, artFrames, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
 import { ANIMALS } from '../data/animals';
+import { BREEDS, breedArt } from '../data/breeds';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { RANKS } from '../data/ninja';
 import type { Building, Projectile, ResourceNode, Unit } from '../game/types';
@@ -139,6 +140,7 @@ const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'ha
  * e cabelo/roupa/pele do `look` dele, recoloridos sobre a base. Clones copiam o dono.
  */
 function unitPic(u: Unit) {
+  if (u.animal === 'dog') return art(breedArt(u.breed)) ?? art('dog');
   if (u.animal) return art(u.animal);
   if (u.role === 'puppet') return art('puppet') ?? art('rogue');
   if (u.kind === 'villager') return art('villager');
@@ -171,7 +173,8 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   if (u.cloak) ctx.globalAlpha = 0.14 + Math.sin(t * 6 + u.id) * 0.05;
   if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
-  drawArt(ctx, pic, u.x, base, (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * TIER_SCALE[u.tier ?? 0]!, row === SHEET_ROWS.side && dx < 0, frame, row);
+  const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
+  drawArt(ctx, pic, u.x, base, (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale, row === SHEET_ROWS.side && dx < 0, frame, row);
   ctx.restore();
   return true;
 }

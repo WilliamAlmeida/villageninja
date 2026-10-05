@@ -13,6 +13,7 @@ import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
 import { daysToNextSeason, festivalBlock, festivalOn, holdFestival, moodFactors, seasonOf } from '../game/mood';
 import { learnSpec, specBlock } from '../game/specs';
 import { adoptDog, DOG_COST, dogBlock, dogOf } from '../game/ninken';
+import { BREED_LIST, BREEDS, type DogBreed } from '../data/breeds';
 import { searchTiles } from '../game/systems/villagers';
 import { TILE } from '../config';
 import { doorPos, tileCenter } from '../game/world';
@@ -145,6 +146,8 @@ export class Panel {
   /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
   private rosterFilter: RosterFilter = 'all';
   private rosterSort: RosterSort = 'level';
+  /** Raça escolhida para a próxima adoção de ninken. */
+  private dogBreed: DogBreed = 'shiba';
   /** Região: lugar aberto e equipe escolhida para as ações. */
   private regionNode: string | null = null;
   private regionTeam: number | null = null;
@@ -358,10 +361,10 @@ export class Panel {
       const owner = u.faction === 'village' ? this.app.game.unit(u.ownerId) : undefined;
       if (u.faction === 'village') {
         // aliado: cão ninja ou invocação de contrato
-        html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge rank">${u.animal === 'dog' ? 'Ninken' : 'Invocação'}</span></div></div>`;
+        html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge rank">${u.animal === 'dog' ? `Ninken · ${esc(BREEDS[u.breed ?? 'shiba'].name)}` : 'Invocação'}</span></div></div>`;
         html += `<div class="sub"><span data-t="state"></span></div><div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
         html += `<p class="hint">${owner ? `Acompanha ${esc(owner.name)}.` : ''} ${
-          u.animal === 'dog' ? 'Luta junto, fareja espiões invisíveis por perto e, fora da vila, acha ervas.' : `Some em ${Math.ceil(u.life ?? 0)}s.`
+          u.animal === 'dog' ? `Luta junto, fareja espiões invisíveis por perto e, fora da vila, acha ervas. ${esc(BREEDS[u.breed ?? 'shiba'].desc)}` : `Some em ${Math.ceil(u.life ?? 0)}s.`
         }</p>`;
         if (owner) html += `<div class="btnrow"><button class="btn" data-act="pick" data-arg="${owner.id}">{ninja} Ver o dono</button></div>`;
         return { html, t, b };
@@ -667,7 +670,7 @@ export class Panel {
     const dog = dogOf(g, u);
     html += dog
       ? `<p class="hint">{paw} <b>${esc(dog.name)}</b> acompanha ${esc(u.name.split(' ').pop()!)} · vida ${Math.ceil(dog.hp)}/${dog.maxHp}</p>`
-      : `<div class="btnrow"><button class="btn mini" data-act="dog" ${blocked(g, [dogBlock(g, u)], DOG_COST)} ${tipAttr('Ninken', 'Cão ninja que acompanha o ninja, luta junto, fareja espiões invisíveis e, fora da vila, acha ervas.')}>{paw} Adotar ninken (${costLabel(DOG_COST)})</button></div>`;
+      : `<div class="btnrow"><button class="btn mini" data-act="dog" ${blocked(g, [dogBlock(g, u)], DOG_COST)} ${tipAttr('Ninken', 'Cão ninja que acompanha o ninja, luta junto, fareja espiões invisíveis e, fora da vila, acha ervas. A raça se escolhe no Canil.')}>{paw} Adotar ninken: ${esc(BREEDS[this.dogBreed].name)} (${costLabel(DOG_COST)})</button></div>`;
     html += `<p class="hint">Abates: ${n.kills}</p>`;
     return html;
   }
@@ -805,11 +808,22 @@ export class Panel {
       <button class="btn ${on ? 'primary' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{refresh} Automático: ${on ? 'ligado' : 'desligado'}</button></div>`;
   }
 
+  /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
+  private breedPicker() {
+    let html = `<div class="chips">`;
+    for (const k of BREED_LIST) {
+      const d = BREEDS[k];
+      html += `<button data-act="dog-breed" data-arg="${k}" class="${this.dogBreed === k ? 'on' : ''}" ${tipAttr(d.name, d.desc)}>${esc(d.name)}</button>`;
+    }
+    return html + `</div><p class="hint"><b>${esc(BREEDS[this.dogBreed].name)}:</b> ${esc(BREEDS[this.dogBreed].desc)}</p>`;
+  }
+
   /** Canil: cada ninja pode ter um ninken; lista quem tem e quem pode adotar. */
   private kennelSection() {
     const g = this.app.game;
     const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
     let html = `<h4>{paw} Ninken</h4><p class="hint">O cão acompanha o dono, luta junto, fareja espiões invisíveis por perto e, fora da vila, acha ervas. Custa ${costLabel(DOG_COST)}.</p>`;
+    html += this.breedPicker();
     if (!ninjas.length) return html + `<p class="why">Nenhum ninja na vila.</p>`;
     html += `<div class="roster">`;
     for (const u of ninjas) {
@@ -1441,7 +1455,7 @@ export class Panel {
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
       case 'dog-for':
-        return this.report(adoptDog(g, Number(arg)));
+        return this.report(adoptDog(g, Number(arg), this.dogBreed));
       case 'gear-all': {
         const n = autoEquipAll(g);
         g.toast(n ? `{gear} ${n} ninja(s) receberam equipamento do estoque.` : '{gear} Ninguém precisava de nada do estoque.', n ? 'good' : 'info');
@@ -1452,7 +1466,7 @@ export class Panel {
         return this.report({ ok: true });
       case 'dog': {
         if (v?.kind !== 'unit') return;
-        return this.report(adoptDog(g, v.id));
+        return this.report(adoptDog(g, v.id, this.dogBreed));
       }
       case 'festival':
         return this.report(holdFestival(g));
@@ -1536,6 +1550,9 @@ export class Panel {
         if (v?.kind !== 'unit') return;
         return this.report(clearCommand(g, attackersOf(g, v.id).map((u) => u.id)));
       }
+      case 'dog-breed':
+        this.dogBreed = BREED_LIST.includes(arg as DogBreed) ? (arg as DogBreed) : 'shiba';
+        return this.report({ ok: true });
       case 'r-filter':
         this.rosterFilter = arg as RosterFilter;
         return this.report({ ok: true });

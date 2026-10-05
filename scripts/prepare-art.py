@@ -34,10 +34,11 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
-          'dog': (44, 'quadruped'), 'toad': (64, 'quadruped'), 'slug': (52, 'quadruped')}
+          'dog': (44, 'quadruped'), 'dog-white': (44, 'quadruped'), 'dog-pug': (44, 'quadruped'), 'dog-bull': (44, 'quadruped'),
+          'toad': (64, 'quadruped'), 'slug': (52, 'quadruped')}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
-TRUST_FACING = {'spider', 'slug'}
+TRUST_FACING = {'spider', 'slug', 'dog-white'}
 SINGLE = {'ruin': 128, 'chest': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}
 COLS, ROWS = 4, 3
 problems: list[str] = []

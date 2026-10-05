@@ -1,6 +1,7 @@
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
+import { BREEDS } from '../data/breeds';
 import { costLabel } from '../data/resources';
 import { SPEC } from '../data/specs';
 import { spyNinjaNear } from './specs';
@@ -31,7 +32,7 @@ export const MELEE_RANGE = 22;
 function meleeStats(u: Unit) {
   if (u.animal) {
     const d = ANIMALS[u.animal];
-    return { dmg: d.damage, cd: d.attackCd, range: d.range };
+    return { dmg: d.damage * (u.breed ? BREEDS[u.breed].damage : 1), cd: d.attackCd, range: d.range };
   }
   if (u.ninja) {
     const d = derive(u.ninja.stats);

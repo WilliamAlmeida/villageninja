@@ -129,6 +129,7 @@ describe('inimigos novos', () => {
     const o = openRow(g);
     const n = createNinja(g, o.x + 200, o.y, 'jounin', 0);
     n.ninja!.stats.velocidade = 0; // sem esquiva: o bote tem que acertar
+    n.kawaCd = 999; // nem Kawarimi
     const tiger = createAnimal(g, 'tiger', o.x + 100, o.y);
     tiger.abilityCd = 0;
     const hp0 = n.hp;

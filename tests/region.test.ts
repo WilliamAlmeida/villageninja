@@ -61,6 +61,9 @@ describe('mapa da região', () => {
     regionDaily(g);
     expect(g.state.res.herbs).toBeGreaterThan(herbs);
     st.rel = REL.annexPeace;
+    // os novos moradores chegam pela borda do mapa: sem bichos/invasores no caminho para a conta fechar
+    g.state.timers.animal = g.state.timers.raid = 1e9;
+    for (const u of g.state.units) if (u.faction === 'wild' || u.faction === 'enemy') u.dead = true;
     const pop = g.population();
     act(g, team.id, 'pesca', 'annex');
     expect(st.status).toBe('vassal');
