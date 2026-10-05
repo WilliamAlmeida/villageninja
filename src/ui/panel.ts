@@ -239,7 +239,7 @@ export class Panel {
       t.hp = `${Math.ceil(u.hp)}/${u.maxHp}`;
       t.ck = `${Math.floor(u.chakra)}/${u.maxChakra}`;
       b.ck = u.chakra / Math.max(1, u.maxChakra);
-      if (u.role) html += `<div class="warnbox">${u.role === 'bomber' ? '{bomb}' : '{medic}'} ${esc(ROGUE_ROLES[u.role].desc)}</div>`;
+      if (u.role) html += `<div class="warnbox">${ROGUE_ROLES[u.role].icon} ${esc(ROGUE_ROLES[u.role].desc)}${u.cloak ? ' <b>Ainda invisível.</b>' : ''}</div>`;
       if (!isOwn && isAttackable(u)) html += this.attackSection(u, t);
       if (isOwn) {
         t.xp = `${Math.floor(n.xp)}/${xpToNext(n.level)}`;
@@ -296,6 +296,8 @@ export class Panel {
       html += `<div class="sub"><span data-t="state"></span></div><div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
       if (isAttackable(u)) html += this.attackSection(u, t);
       if (u.loot) html += `<div class="warnbox">{paw} Está levando ${costLabel(u.loot)}. Abata antes que fuja para recuperar.</div>`;
+      if (u.heads) html += `<div class="warnbox">{beast} Cabeças restantes: <b>${u.heads}</b>. Cada vez que a vida zera, uma cai e ela volta inteira.</div>`;
+      if (u.animal === 'golem') html += `<p class="hint">Pedaço da ${u.tier ? `${u.tier}ª divisão` : 'forma inteira'}${(u.tier ?? 0) < 2 ? ' · ainda vai se dividir ao cair' : ' · não se divide mais'}.</p>`;
       html += `<p class="hint">${d.desc ? esc(d.desc) : 'Ataca moradores que chegam perto.'} Ao ser abatido rende ${costLabel(d.reward)} e XP.</p>`;
       html += `<p class="hint">Dano ${d.damage} · Velocidade ${d.speed}</p>`;
       return { html, t, b };

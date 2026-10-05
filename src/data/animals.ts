@@ -1,6 +1,6 @@
 import type { Cost } from '../game/types';
 
-export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey' | 'spider' | 'tiger' | 'rhino';
+export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey' | 'spider' | 'tiger' | 'rhino' | 'hydra' | 'golem';
 
 export interface AnimalDef {
   type: AnimalType;
@@ -42,6 +42,11 @@ const LIST: AnimalDef[] = [
     desc: 'Vêm em bando bicar a fazenda e levam comida. Abata-os para recuperar o que levaram.', thief: 'farm' },
   { type: 'monkey', name: 'Macaco ladrão', hp: 34, damage: 3, attackCd: 1, speed: 92, aggro: 0, range: 18, size: 8, color: '#8a5a2e', reward: { ryo: 6 }, xp: 10, minDay: 4, weight: 2, pack: [2, 3],
     desc: 'Rouba ryo da Residência do Hokage (ou ervas) e foge para a floresta. Alcance-o antes que saia do mapa para recuperar o saque.', thief: 'stash' },
+  // chefes (só como ameaça, ver data/bosses.ts)
+  { type: 'hydra', name: 'Hidra do Pântano', hp: 420, damage: 20, attackCd: 1.8, speed: 42, aggro: 220, range: 34, size: 22, color: '#2f7a5a', reward: { ryo: 150, herbs: 30 }, xp: 150, minDay: 9999, weight: 0, pack: [1, 1],
+    desc: 'Três cabeças: quando a vida zera, uma cabeça cai e ela volta inteira. Cospe veneno em área de longe.' },
+  { type: 'golem', name: 'Golem de Barro', hp: 600, damage: 24, attackCd: 2.2, speed: 38, aggro: 200, range: 32, size: 22, color: '#a0603a', reward: { stone: 40 }, xp: 60, minDay: 9999, weight: 0, pack: [1, 1],
+    desc: 'Quando cai, se divide em dois golems menores (duas vezes). Só é vencido quando todos os pedaços caírem.' },
   // golpes especiais
   { type: 'spider', name: 'Aranha gigante', hp: 95, damage: 8, attackCd: 1.3, speed: 60, aggro: 150, range: 22, size: 11, color: '#3a2440', reward: { herbs: 6, ryo: 15 }, xp: 30, minDay: 5, weight: 2, pack: [1, 2],
     desc: 'Cospe teia que prende o alvo por alguns segundos. Lute em grupo para ninguém ficar sozinho preso.', ability: 'web' },

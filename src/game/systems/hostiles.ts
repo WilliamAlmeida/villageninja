@@ -2,7 +2,8 @@ import { MAP_H, MAP_W, TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
 import { ANIMALS, type AnimalDef } from '../../data/animals';
 import { BUILDINGS } from '../../data/buildings';
-import { BOMB, HEAL } from '../../data/enemies';
+import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
+import { createAnimal, createRogue } from '../entities';
 import { costLabel } from '../../data/resources';
 import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
 import { fx, fxText } from '../fx';
@@ -36,6 +37,12 @@ function animal(g: Game, u: Unit, dt: number) {
   const def = ANIMALS[u.animal!];
   u.timer -= dt;
   u.life = (u.life ?? 0) - dt;
+  // invocação: some quando o tempo acaba
+  if (u.ownerId != null && u.life <= 0) {
+    u.dead = true;
+    fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.6, color: '#d8c8ff' });
+    return;
+  }
   if (u.stun > 0) {
     u.moving = false;
     return;
@@ -81,8 +88,13 @@ function rogue(g: Game, u: Unit, dt: number) {
     u.moving = false;
     return;
   }
-  trySupport(g, u);
+  if (u.role === 'puppet') return puppet(g, u, dt);
+  if (u.cloak) revealSpy(g, u);
+  if (!u.cloak) trySupport(g, u);
   if (u.missionId != null) return guardHome(g, u, dt, 220);
+  if (u.state !== 'escape' && u.role === 'spy' && spy(g, u, dt)) return;
+  if (u.state !== 'escape' && u.role === 'puppeteer' && puppeteer(g, u, dt)) return;
+  if (u.state !== 'escape' && u.role === 'summoner') summonTick(g, u, dt);
   if (u.state !== 'escape' && u.role === 'medic' && medic(g, u, dt)) return;
   if (u.state !== 'escape' && u.role === 'bomber' && bomber(g, u, dt)) return;
   if (u.state !== 'escape') {
@@ -151,7 +163,7 @@ function guardHome(g: Game, u: Unit, dt: number, aggro: number) {
 function titan(g: Game, u: Unit, dt: number, aggro: number) {
   u.abilityCd = (u.abilityCd ?? 0) - dt;
   const near = g.nearestHostile(u, 90);
-  if (near && u.abilityCd <= 0) {
+  if (u.animal === 'titan' && near && u.abilityCd <= 0) {
     u.abilityCd = 5;
     u.anim = 0.4;
     fx(g, 'ring', u.x, u.y, { r: 95, color: '#ff8a5a', life: 0.6 });
@@ -161,6 +173,7 @@ function titan(g: Game, u: Unit, dt: number, aggro: number) {
   }
   const t = validTarget(g, u, aggro * 1.5) ?? g.nearestHostile(u, aggro);
   if (t) {
+    if (u.animal === 'hydra' && hydraSpit(g, u, t)) return;
     engage(g, u, t, dt);
     return;
   }
@@ -432,6 +445,134 @@ function buildingAtPx(g: Game, x: number, y: number): Building | null {
     const d = BUILDINGS[b.type];
     return tx >= b.tx && tx < b.tx + d.w && ty >= b.ty && ty < b.ty + d.h;
   }) ?? null;
+}
+
+// ------------------------------------------------------------------ renegados especiais (2ª leva)
+
+/** Espião: invisível até ser descoberto; vai até um prédio, sabota e foge. Retorna true se agiu. */
+function spy(g: Game, u: Unit, dt: number): boolean {
+  if (!u.cloak) return false; // descoberto: luta (ou foge) como os outros
+  if (u.bombs) {
+    flee(g, u); // já sabotou: vai embora ainda invisível
+    return true;
+  }
+  const b = bombTarget(g, u);
+  if (!b) return false;
+  const c = buildingCenter(b);
+  if (dist(u, c) > 72) {
+    if (!u.hasGoal || u.timer <= 0) {
+      u.timer = 2;
+      if (!setDestination(g, u, c.x, c.y + 22)) return false;
+    }
+    followPath(g, u, dt);
+    u.abilityCd = 0;
+    return true;
+  }
+  u.moving = false;
+  u.abilityCd = (u.abilityCd ?? 0) + dt;
+  if (u.abilityCd < SPY.sabotage) return true;
+  const d = BUILDINGS[b.type];
+  b.built = false;
+  b.progress = d.buildTime * (1 - SPY.damage);
+  b.upgrade = null;
+  g.state.timers.jobs = 0;
+  fx(g, 'smoke', c.x, c.y - 8, { r: 24, life: 1, color: '#6b5a7a' });
+  u.bombs = 1; // sabotagem feita
+  g.toast(`{eye} Sabotagem! Alguém invisível danificou ${d.name}. Torres e ninjas com Inteligência alta descobrem espiões.`, 'danger', c);
+  flee(g, u);
+  return true;
+}
+
+/** Descobre o espião (vale também enquanto ele foge). */
+function revealSpy(g: Game, u: Unit) {
+  if (!u.cloak || !spyRevealed(g, u)) return;
+  u.cloak = false;
+  fx(g, 'ring', u.x, u.y, { r: 22, color: '#c9a0ff', life: 0.7 });
+  fxText(g, u.x, u.y - 30, 'Descoberto!', '#c9a0ff', true);
+  g.toast('{eye} Um espião invisível foi descoberto! Agora dá para atacá-lo.', 'warn', u);
+}
+
+/** Torre por perto ou ninja da vila esperto o bastante e próximo. */
+function spyRevealed(g: Game, u: Unit) {
+  for (const b of g.state.buildings) if (b.type === 'tower' && b.built && dist(u, buildingCenter(b)) < SPY.towerRange) return true;
+  return g.state.units.some(
+    (o) => !o.dead && !o.hidden && o.faction === 'village' && o.ninja && o.ninja.stats.inteligencia >= SPY.minInt && dist(u, o) < SPY.ninjaRange,
+  );
+}
+
+const puppetsOf = (g: Game, u: Unit) => g.state.units.filter((o) => !o.dead && o.role === 'puppet' && o.ownerId === u.id);
+
+/** Marionetista: monta marionetes e fica longe, deixando que elas lutem. Retorna true se agiu. */
+function puppeteer(g: Game, u: Unit, dt: number): boolean {
+  u.abilityCd = (u.abilityCd ?? 0) - dt;
+  const t = g.nearestHostile(u, 260);
+  if (!t) return false;
+  const mine = puppetsOf(g, u);
+  if (mine.length < PUPPET.max && u.abilityCd <= 0) {
+    u.abilityCd = PUPPET.cd;
+    u.anim = 0.5;
+    for (let i = mine.length; i < PUPPET.max; i++) {
+      const p = createRogue(g, u.x + rand(-20, 20), u.y + rand(-14, 14), g.state.day, { rank: 'genin', jutsu: 0, hpMult: PUPPET.hpMult, name: 'Marionete' });
+      p.role = 'puppet';
+      p.ownerId = u.id;
+      p.state = 'fight';
+      fx(g, 'smoke', p.x, p.y, { r: 16, life: 0.6, color: '#c8a26a' });
+    }
+    fxText(g, u.x, u.y - 30, 'Marionetes!', '#c8a26a', true);
+  }
+  // mantém distância: as marionetes lutam por ele
+  const d = dist(u, t);
+  if (d < PUPPET.keepAway) {
+    const a = Math.atan2(u.y - t.y, u.x - t.x);
+    chase(g, u, u.x + Math.cos(a) * 60, u.y + Math.sin(a) * 60, dt, 4);
+  } else u.moving = false;
+  u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+  return true;
+}
+
+/** Marionete: luta perto do dono e desmonta se ele cair. */
+function puppet(g: Game, u: Unit, dt: number) {
+  const owner = g.unit(u.ownerId);
+  if (!owner || owner.dead) {
+    u.dead = true;
+    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#c8a26a' });
+    fxText(g, u.x, u.y - 20, 'desmontou', '#c8a26a');
+    return;
+  }
+  const t = validTarget(g, u, 260) ?? g.nearestHostile(u, 200);
+  if (t) return engage(g, u, t, dt);
+  chase(g, u, owner.x + 22, owner.y + 10, dt, 16);
+}
+
+/** Invocador: no meio da luta chama lobos temporários (luta normalmente no resto do tempo). */
+function summonTick(g: Game, u: Unit, dt: number) {
+  u.abilityCd = (u.abilityCd ?? 4) - dt;
+  if (u.abilityCd > 0 || !g.nearestHostile(u, 200)) return;
+  u.abilityCd = SUMMON.cd;
+  u.anim = 0.5;
+  fx(g, 'swirl', u.x, u.y, { r: 26, life: 0.8, color: '#b36bff' });
+  fxText(g, u.x, u.y - 30, 'Invocação!', '#c9a0ff', true);
+  for (let i = 0; i < SUMMON.count; i++) {
+    const w = createAnimal(g, 'wolf', u.x + rand(-24, 24), u.y + rand(-18, 18));
+    w.faction = 'enemy';
+    w.ownerId = u.id;
+    w.life = SUMMON.life;
+    w.name = 'Lobo invocado';
+    fx(g, 'smoke', w.x, w.y, { r: 14, life: 0.6, color: '#d8c8ff' });
+  }
+}
+
+/** Hidra: cospe veneno em área em quem está longe. Retorna true se cuspiu. */
+function hydraSpit(g: Game, u: Unit, t: Unit): boolean {
+  const d = dist(u, t);
+  if ((u.abilityCd ?? 0) > 0 || d < 60 || d > 210) return false;
+  u.abilityCd = 5;
+  u.anim = 0.4;
+  u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+  spawnProjectile(g, u, u.faction, u.x, u.y - 10, t.x, t.y, {
+    damage: 14 + g.state.level * 3, radius: 34, nature: null, color: '#7dff5a', size: 6, speed: 190, kind: 'orb', stun: 0, range: 230,
+  });
+  return true;
 }
 
 function nearestEdge(x: number, y: number) {

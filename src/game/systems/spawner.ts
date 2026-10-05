@@ -31,7 +31,7 @@ export function spawnerSystem(g: Game, dt: number) {
   for (const u of s.units) {
     if (u.dead || u.faction === 'village' || u.faction === 'guest') continue;
     if (u.kind === 'rogue' && u.missionId == null) rogues++;
-    if (!alert && g.world.inVillage(u.x, u.y)) alert = true;
+    if (!alert && !u.cloak && g.world.inVillage(u.x, u.y)) alert = true;
   }
   if (alert !== s.flags.alert) {
     s.flags.alert = alert;
@@ -121,6 +121,7 @@ function spawnRaid(g: Game) {
   for (let i = 0; i < r.count; i++) {
     const u = createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day, { rank: r.rank, stats: r.stats });
     u.role = roles[i];
+    if (u.role === 'spy') u.cloak = true;
   }
   const n = r.count;
   const special = roles.filter(Boolean).map((k) => ROGUE_ROLES[k!].name.toLowerCase());
@@ -134,5 +135,11 @@ export function raidRoles(day: number, count: number): (RogueRole | undefined)[]
   const roles: (RogueRole | undefined)[] = Array.from({ length: count }, () => undefined);
   if (count >= 2 && day >= ROGUE_ROLES.bomber.minDay) roles[0] = 'bomber';
   if (count >= 3 && day >= ROGUE_ROLES.medic.minDay) roles[count - 1] = 'medic';
+  // do meio do grupo: espião, marionetista e invocador, conforme os dias e as vagas
+  const free = roles.map((r, i) => (r ? -1 : i)).filter((i) => i >= 0);
+  for (const r of ['spy', 'puppeteer', 'summoner'] as const) {
+    if (day < ROGUE_ROLES[r].minDay || free.length <= 1) break; // sempre sobra ao menos um renegado comum
+    roles[free.shift()!] = r;
+  }
   return roles;
 }

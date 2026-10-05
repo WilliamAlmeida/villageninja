@@ -144,6 +144,12 @@ export interface Unit {
   bombs?: number;
   /** Investida do rinoceronte: quem já foi atropelado nesta corrida. */
   hits?: number[];
+  /** Espião ainda invisível (ninguém o acerta até ser descoberto). */
+  cloak?: boolean;
+  /** Hidra: cabeças que ainda restam (ao zerar a vida com mais de uma, perde uma e volta inteira). */
+  heads?: number;
+  /** Golem de barro: geração (0 = inteiro; cada golpe final o divide em dois menores). */
+  tier?: number;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }

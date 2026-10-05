@@ -7,6 +7,8 @@ import { createNewGame } from '../src/game/newGame';
 import { SYSTEMS } from '../src/game/systems';
 import { bombBuilding } from '../src/game/systems/hostiles';
 import { raidRoles } from '../src/game/systems/spawner';
+import { spawnBoss } from '../src/game/bosses';
+import { canHit } from '../src/game/factions';
 import { buildingCenter, doorPos } from '../src/game/world';
 
 const run = (g: Game, seconds: number, until?: () => boolean) => {
@@ -124,6 +126,7 @@ describe('inimigos novos', () => {
     noDefenders(g);
     const o = openRow(g);
     const n = createNinja(g, o.x + 200, o.y, 'jounin', 0);
+    n.ninja!.stats.velocidade = 0; // sem esquiva: o bote tem que acertar
     const tiger = createAnimal(g, 'tiger', o.x + 100, o.y);
     tiger.abilityCd = 0;
     const hp0 = n.hp;
@@ -147,5 +150,100 @@ describe('inimigos novos', () => {
     const hp0 = n.hp;
     run(g, 3, () => n.hp < hp0 && rhino.state !== 'charge');
     expect(n.hp).toBeLessThan(hp0);
+  });
+
+  test('espião: invisível até a torre o descobrir, sabota e foge', () => {
+    const g = createNewGame(SYSTEMS, 51);
+    noDefenders(g);
+    const house = g.state.buildings.find((b) => b.type === 'house')!;
+    const c = buildingCenter(house);
+    const spy = createRogue(g, c.x + 120, c.y + 40, 9);
+    spy.role = 'spy';
+    spy.cloak = true;
+    expect(canHit('village', undefined, spy)).toBe(false);
+    run(g, 40, () => (spy.bombs ?? 0) > 0);
+    expect(spy.bombs).toBe(1);
+    expect(g.state.buildings.some((b) => !b.built)).toBe(true);
+    expect(spy.state).toBe('escape');
+    // uma torre perto revela
+    const tower = { ...house, id: g.newId(), type: 'tower' as const, built: true, tx: Math.floor(spy.x / 32), ty: Math.floor(spy.y / 32) + 2 };
+    g.state.buildings.push(tower);
+    run(g, 0.2);
+    expect(spy.cloak).toBe(false);
+    expect(canHit('village', undefined, spy)).toBe(true);
+  });
+
+  test('marionetista monta marionetes que desmontam quando ele cai', () => {
+    const g = createNewGame(SYSTEMS, 52);
+    noDefenders(g);
+    const o = openRow(g);
+    const n = createNinja(g, o.x + 200, o.y, 'jounin', 0);
+    n.ninja!.order = 'train';
+    const pm = createRogue(g, o.x + 20, o.y, 11);
+    pm.role = 'puppeteer';
+    run(g, 0.5);
+    const puppets = g.state.units.filter((u) => u.role === 'puppet' && !u.dead);
+    expect(puppets.length).toBe(2);
+    killUnit(g, pm, n);
+    run(g, 0.1);
+    expect(puppets.every((u) => u.dead)).toBe(true);
+  });
+
+  test('invocador chama lobos que somem depois de um tempo', () => {
+    const g = createNewGame(SYSTEMS, 53);
+    noDefenders(g);
+    const o = openRow(g);
+    createNinja(g, o.x + 150, o.y, 'jounin', 0);
+    const sm = createRogue(g, o.x, o.y, 13);
+    sm.role = 'summoner';
+    sm.abilityCd = 0;
+    run(g, 0.2);
+    const wolves = g.state.units.filter((u) => u.animal === 'wolf' && u.ownerId === sm.id);
+    expect(wolves.length).toBe(2);
+    expect(wolves.every((w) => w.faction === 'enemy')).toBe(true);
+    for (const w of wolves) w.life = 0.01;
+    run(g, 0.1);
+    expect(wolves.every((w) => w.dead)).toBe(true);
+  });
+
+  test('hidra perde uma cabeça por vez e só cai na última', () => {
+    const g = createNewGame(SYSTEMS, 54);
+    g.state.level = 2;
+    const [h] = spawnBoss(g, 'hydra', 300, 300);
+    expect(h!.heads).toBe(3);
+    const before = g.state.stats.bossesDefeated;
+    killUnit(g, h!, null);
+    expect(h!.dead).toBe(false);
+    expect(h!.heads).toBe(2);
+    expect(h!.hp).toBe(h!.maxHp);
+    killUnit(g, h!, null);
+    killUnit(g, h!, null);
+    expect(h!.dead).toBe(true);
+    expect(g.state.stats.bossesDefeated).toBe(before + 1);
+  });
+
+  test('golem se divide duas vezes e conta como chefe derrotado uma vez só', () => {
+    const g = createNewGame(SYSTEMS, 55);
+    g.state.level = 1;
+    spawnBoss(g, 'golem', 300, 300);
+    const before = g.state.stats.bossesDefeated;
+    const alive = () => g.state.units.filter((u) => u.animal === 'golem' && !u.dead);
+    let killed = 0;
+    while (alive().length) {
+      killUnit(g, alive()[0]!, null);
+      killed++;
+    }
+    expect(killed).toBe(7); // 1 + 2 + 4
+    expect(g.state.stats.bossesDefeated).toBe(before + 1);
+  });
+
+  test('invasões grandes trazem espião, marionetista e invocador em dias avançados', () => {
+    const r = raidRoles(14, 6);
+    expect(r).toContain('spy');
+    expect(r).toContain('puppeteer');
+    expect(r).toContain('summoner');
+    expect(r.filter((x) => !x).length).toBeGreaterThanOrEqual(1);
+    // grupo pequeno: sempre sobra ao menos um renegado comum
+    expect(raidRoles(10, 3)).toEqual(['bomber', undefined, 'medic']);
   });
 });

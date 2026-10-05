@@ -210,7 +210,7 @@ function commandable(g: Game, ids: number[]) {
 }
 
 /** Alvo que dá para mandar atacar: inimigo ou bicho vivo (convidados do exame não). */
-export const isAttackable = (t: Unit | undefined | null): t is Unit => !!t && !t.dead && (t.faction === 'enemy' || t.faction === 'wild');
+export const isAttackable = (t: Unit | undefined | null): t is Unit => !!t && !t.dead && !t.cloak && (t.faction === 'enemy' || t.faction === 'wild');
 
 /** Ninjas da vila que podem largar o que fazem e lutar: fora de missão e com vida acima de 35%. */
 export function availableFighters(g: Game): Unit[] {

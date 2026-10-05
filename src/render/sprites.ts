@@ -129,7 +129,9 @@ export function drawNode(ctx: Ctx, n: ResourceNode) {
 
 // ---------------------------------------------------------------- unidades
 /** Altura da arte do bicho em relação ao `size` (a cobra é baixa e comprida: precisa de mais para parecer gigante). */
-const ART_SIZE: Record<string, number> = { snake: 3.8, crow: 3.4, monkey: 3, spider: 2.4, tiger: 2.6, rhino: 2.6 };
+const ART_SIZE: Record<string, number> = { snake: 3.8, crow: 3.4, monkey: 3, spider: 2.4, tiger: 2.6, rhino: 2.6, hydra: 3.6, golem: 3.2 };
+/** Golem de Barro: cada divisão desenha menor. */
+const TIER_SCALE = [1, 0.72, 0.52];
 const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'hammer' };
 
 /**
@@ -138,6 +140,7 @@ const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'ha
  */
 function unitPic(u: Unit) {
   if (u.animal) return art(u.animal);
+  if (u.role === 'puppet') return art('puppet') ?? art('rogue');
   if (u.kind === 'villager') return art('villager');
   if (u.faction === 'enemy') return art('rogue');
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
@@ -164,9 +167,11 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   if (u.kind === 'clone') ctx.globalAlpha = 0.75;
   // tigre das sombras: quase some no escuro até entrar em combate
   if (u.animal && ANIMALS[u.animal].night && u.combatTimer <= 0) ctx.globalAlpha = 0.45;
+  // espião invisível: só um vulto tremulando
+  if (u.cloak) ctx.globalAlpha = 0.14 + Math.sin(t * 6 + u.id) * 0.05;
   if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
-  drawArt(ctx, pic, u.x, base, u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30, row === SHEET_ROWS.side && dx < 0, frame, row);
+  drawArt(ctx, pic, u.x, base, (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * TIER_SCALE[u.tier ?? 0]!, row === SHEET_ROWS.side && dx < 0, frame, row);
   ctx.restore();
   return true;
 }
@@ -197,6 +202,7 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
     ctx.stroke();
   }
   const hostile = u.faction !== 'village';
+  if (u.cloak) return; // invisível: sem barra nem marca
   if (selected || u.hp < u.maxHp || (hostile && u.kind !== 'animal')) drawBars(ctx, u, selected);
   if (u.role || u.loot) drawMark(ctx, u, t);
 }
@@ -226,6 +232,30 @@ function drawMark(ctx: Ctx, u: Unit, t: number) {
     ctx.stroke();
     ctx.fillStyle = Math.sin(t * 18) > 0 ? '#ffd34d' : '#ff6a2b';
     circle(ctx, x + 3.4, y - 5, 1.3);
+  } else if (u.role === 'spy') {
+    ctx.fillStyle = '#ffffff';
+    ellipse(ctx, x, y, 4, 2.6);
+    ctx.stroke();
+    ctx.fillStyle = '#7a3fb0';
+    circle(ctx, x, y, 1.6);
+  } else if (u.role === 'puppeteer') {
+    ctx.fillStyle = '#c8a26a';
+    ctx.fillRect(x - 4, y - 3, 8, 2);
+    ctx.strokeStyle = '#e8e0ff';
+    ctx.beginPath();
+    for (const dx of [-3, 0, 3]) {
+      ctx.moveTo(x + dx, y - 1);
+      ctx.lineTo(x + dx, y + 4);
+    }
+    ctx.stroke();
+  } else if (u.role === 'summoner') {
+    ctx.fillStyle = '#b36bff';
+    circle(ctx, x, y, 3.8);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, 2, t * 4, t * 4 + Math.PI * 1.3);
+    ctx.stroke();
   } else if (u.role === 'medic') {
     ctx.fillStyle = '#ffffff';
     circle(ctx, x, y, 3.8);

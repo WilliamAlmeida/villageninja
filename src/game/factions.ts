@@ -15,5 +15,6 @@ export const isHostile = (a: Faction, b: Faction) =>
 export function canHit(faction: Faction, side: number | undefined, t: Unit): boolean {
   if (side) return !!t.arenaSide && t.arenaSide !== side;
   if (t.arenaSide != null) return false;
+  if (t.cloak) return false; // espião invisível: ninguém mira nele até ser descoberto
   return isHostile(faction, t.faction);
 }

@@ -22,6 +22,18 @@ export function spawnBoss(g: Game, kind: BossKind, x: number, y: number): Unit[]
       out.push(u);
       break;
     }
+    case 'hydra':
+    case 'golem': {
+      const u = createAnimal(g, kind, x, y);
+      u.maxHp = u.hp = Math.round(u.maxHp * (1 + 0.4 * lvl));
+      u.boss = true;
+      u.life = 1e9;
+      u.state = 'rampage';
+      if (kind === 'hydra') u.heads = 3;
+      else u.tier = 0;
+      out.push(u);
+      break;
+    }
     case 'order':
       for (let i = 0; i < 2; i++) {
         const p = at();

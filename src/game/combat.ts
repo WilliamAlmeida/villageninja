@@ -2,6 +2,7 @@
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
 import { costLabel } from '../data/resources';
+import { createAnimal } from './entities';
 import { isRangedJutsu, JUTSUS, jutsuChakra, jutsuCooldown, jutsuDuration, jutsuPower, type JutsuDef } from '../data/jutsus';
 import { natureMultiplier, type Nature } from '../data/natures';
 import { derive } from '../data/ninja';
@@ -370,6 +371,15 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
 }
 
 export function killUnit(g: Game, t: Unit, src: Unit | null) {
+  // Hidra: perde uma cabeça e volta com a vida cheia enquanto tiver mais de uma
+  if (t.heads && t.heads > 1) {
+    t.heads--;
+    t.hp = t.maxHp;
+    fx(g, 'ring', t.x, t.y, { r: 40, color: '#7dff5a', life: 0.8 });
+    fxText(g, t.x, t.y - 44, `Uma cabeça caiu! Restam ${t.heads}`, '#7dff5a', true);
+    g.toast(`{beast} ${t.name} perdeu uma cabeça! Restam ${t.heads}.`, 'good', t);
+    return;
+  }
   t.dead = true;
   t.hp = 0;
   if (t.kind === 'clone') {
@@ -378,7 +388,11 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   }
   fx(g, 'burst', t.x, t.y, { r: 18, color: '#ffffff', life: 0.4 });
   const killer = src?.kind === 'clone' ? g.unit(src.ownerId) : src;
-  if (t.boss) bossDefeated(g, t);
+  // Golem de Barro: cai e se divide em dois menores (até a 3ª geração)
+  const split = t.animal === 'golem' && (t.tier ?? 0) < 2;
+  if (split) splitGolem(g, t);
+  const pieces = t.animal === 'golem' && g.state.units.some((o) => !o.dead && o.animal === 'golem' && o.boss);
+  if (t.boss && !pieces) bossDefeated(g, t);
   // ladrão abatido: o que ele levou volta para a vila
   if (t.loot) {
     g.give(t.loot);
@@ -389,12 +403,14 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
     // killer nulo = torre / Residência do Hokage
     if (!killer || killer.faction === 'village') {
       g.state.stats.kills++;
-      if (t.animal) {
+      if (t.animal && t.ownerId != null) {
+        /* invocação: não rende nada */
+      } else if (t.animal) {
         const def = ANIMALS[t.animal];
         g.give(def.reward);
         rewardText(g, t, def.reward);
         if (killer) gainXp(g, killer, def.xp);
-      } else if (t.kind === 'rogue') {
+      } else if (t.kind === 'rogue' && t.role !== 'puppet') {
         const ryo = 30 + g.state.day * 4;
         g.give({ ryo });
         rewardText(g, t, { ryo });
@@ -405,6 +421,21 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   } else {
     g.state.stats.lost++;
     g.toast(t.kind === 'ninja' ? `{skull} O ninja ${t.name} caiu em combate!` : `{skull} ${t.name} foi morto(a).`, 'danger', t);
+  }
+}
+
+/** Divide o golem em dois menores, com metade da vida máxima, ao lado de onde caiu. */
+function splitGolem(g: Game, t: Unit) {
+  fx(g, 'burst', t.x, t.y, { r: 34, color: '#a0603a', life: 0.6 });
+  fxText(g, t.x, t.y - 40, 'Se dividiu!', '#e0a070', true);
+  for (const dx of [-16, 16]) {
+    const c = createAnimal(g, 'golem', t.x + dx, t.y + 6);
+    c.tier = (t.tier ?? 0) + 1;
+    c.maxHp = c.hp = Math.max(40, Math.round(t.maxHp * 0.5));
+    c.boss = true;
+    c.life = 1e9;
+    c.state = 'rampage';
+    c.name = c.tier === 1 ? 'Golem de Barro' : 'Golenzinho de Barro';
   }
 }
 

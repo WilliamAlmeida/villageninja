@@ -133,7 +133,8 @@ export class Hud {
     if (bosses.length) {
       const hp = bosses.reduce((a, u) => a + u.hp, 0) / bosses.reduce((a, u) => a + u.maxHp, 0);
       const name = bosses.length > 1 ? `${bosses[0]!.name.split(' ')[0]} ×${bosses.length}` : bosses[0]!.name;
-      this.html(bossEl.querySelector<HTMLElement>('[data-t="name"]')!, `{skull} ${name}`);
+      const heads = bosses.length === 1 && bosses[0]!.heads ? ` · ${bosses[0]!.heads} cabeça(s)` : '';
+      this.html(bossEl.querySelector<HTMLElement>('[data-t="name"]')!, `{skull} ${name}${heads}`);
       bossEl.querySelector<HTMLElement>('.bossbar i')!.style.width = `${Math.max(0, hp) * 100}%`;
     }
     const examBtn = this.alert.querySelector<HTMLElement>('[data-b="exam"]')!;
