@@ -350,7 +350,9 @@ export function bombBuilding(g: Game, src: Unit | null, b: Building) {
 /** Médico: segue o grupo e cura o aliado mais ferido. Retorna true se agiu (senão luta como os outros). */
 function medic(g: Game, u: Unit, dt: number): boolean {
   u.abilityCd = (u.abilityCd ?? 0) - dt;
-  const allies = g.state.units.filter((o) => !o.dead && o !== u && o.faction === 'enemy' && o.kind === 'rogue' && o.missionId == null);
+  // só acompanha quem luta: sem isso, dois médicos que sobraram ficavam um seguindo o outro para sempre
+  // (e a invasão nunca acabava); sem aliados de luta, age como um renegado comum
+  const allies = g.state.units.filter((o) => !o.dead && o !== u && o.faction === 'enemy' && o.kind === 'rogue' && o.missionId == null && o.role !== 'medic');
   if (!allies.length) return false;
   const hurt = allies
     .filter((o) => o.hp < o.maxHp * 0.85 && dist(u, o) < HEAL.range)

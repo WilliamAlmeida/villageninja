@@ -104,6 +104,20 @@ describe('inimigos novos', () => {
     expect(ally.hp).toBeGreaterThan(hp0);
   });
 
+  test('dois médicos que sobraram não ficam um seguindo o outro: marcham para a vila', () => {
+    const g = createNewGame(SYSTEMS, 36);
+    noDefenders(g);
+    const o = openRow(g, 40);
+    const a = createRogue(g, o.x, o.y, 6);
+    const b = createRogue(g, o.x + 30, o.y, 6);
+    a.role = b.role = 'medic';
+    const hk = g.hokage()!;
+    const d0 = Math.hypot(a.x - (hk.tx + 1) * 32, a.y - (hk.ty + 1) * 32);
+    run(g, 10);
+    expect(a.dead).toBe(false);
+    expect(Math.hypot(a.x - (hk.tx + 1) * 32, a.y - (hk.ty + 1) * 32)).toBeLessThan(d0 - 100);
+  });
+
   test('invasões trazem bombardeiro e médico conforme o tamanho e o dia', () => {
     expect(raidRoles(2, 3).filter(Boolean)).toEqual([]);
     expect(raidRoles(6, 2)).toEqual(['bomber', undefined]);
