@@ -1020,10 +1020,12 @@ export class Panel {
   }
 
   /** Equipar todos com o estoque agora, e o modo automático (passa sozinho o que for sendo fabricado). */
-  private gearBar(className = '') {
+  private gearBar(compact = false) {
     const on = !!this.app.game.state.flags.autoGear;
-    return `<div class="btnrow gearbar ${className}"><button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{gear} Equipar todos</button>
-      <button class="btn ${on ? 'primary' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{refresh} Automático: ${on ? 'ligado' : 'desligado'}</button></div>`;
+    // compacto (painel lateral da oficina): dois botões iguais lado a lado, rótulo curto para não quebrar a linha
+    const auto = compact ? `Auto: ${on ? 'ligado' : 'desligado'}` : `Automático: ${on ? 'ligado' : 'desligado'}`;
+    return `<div class="btnrow gearbar ${compact ? 'workshop-bar' : ''}"><button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{gear} Equipar todos</button>
+      <button class="btn ${on ? 'primary' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{refresh} ${auto}</button></div>`;
   }
 
   /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
@@ -1426,7 +1428,7 @@ export class Panel {
     const recipes = recipesOf(bd.type);
     const MAX_QUEUE = queueMax(bd);
     let html = `<div class="actions"><button class="btn primary" data-act="win" data-arg="crafts">{anvil} Abrir painel das Oficinas</button></div>`;
-    html += this.gearBar('workshop-bar') + `<h4>Estoque</h4><div class="btnrow">`;
+    html += this.gearBar(true) + `<h4>Estoque</h4><div class="btnrow">`;
     for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
     html += `</div>`;
     const queue = bd.queue ?? [];
