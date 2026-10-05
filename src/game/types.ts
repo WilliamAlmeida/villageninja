@@ -141,6 +141,8 @@ export interface Unit {
   role?: RogueRole;
   /** O que o bicho ladrão (corvo, macaco) levou da vila; volta se ele for abatido. */
   loot?: Cost;
+  /** Fora do mapa numa expedição (id). Não age nem aparece até voltar. */
+  away?: number;
   /** Guardião de um local especial (id do local): defende o lugar em vez de marchar. */
   guard?: number;
   /** Bombas já lançadas (o bombardeiro desiste depois de algumas). */
@@ -221,6 +223,27 @@ export interface Building {
   shot?: number;
   /** Torres: ângulo (mundo) do último alvo, para o guarda olhar para ele. */
   aim?: number;
+}
+
+/** Expedição: equipe fora do mapa (mina e, depois, lugares da região). Ver game/expeditions.ts. */
+export interface Expedition {
+  id: number;
+  kind: 'mine';
+  teamId: number;
+  /** Quem foi (fica fora do mapa até voltar). */
+  unitIds: number[];
+  /** Mina: local de onde saiu (a equipe reaparece lá na volta). */
+  siteId: number;
+  /** Andar atual (0 = a caminho). */
+  floor: number;
+  /** Segundos até o próximo passo. */
+  timer: number;
+  status: 'going' | 'explore' | 'choice' | 'return' | 'done' | 'lost';
+  /** Diário (mais novo por último). */
+  log: string[];
+  /** O que já foi achado (só entra no estoque quando a equipe volta). */
+  loot: Cost;
+  day: number;
 }
 
 /** Local especial do mapa (ver data/sites.ts). */
@@ -324,6 +347,8 @@ export interface GameState {
   sites: Site[];
   /** Pergaminhos proibidos encontrados (ids de jutsu liberados para ensinar). */
   scrolls: string[];
+  /** Expedições (em andamento e as últimas terminadas). */
+  expeditions: Expedition[];
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;

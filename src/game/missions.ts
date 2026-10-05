@@ -103,6 +103,7 @@ export function acceptMission(g: Game, missionId: number, teamId: number): Resul
   if (!team) return fail('Equipe inválida.');
   if (!teamUnits(g, team).length) return fail('A equipe não tem ninjas.');
   if (missionOfTeam(g, teamId)) return fail(`${team.name} já está em uma missão.`);
+  if (teamUnits(g, team).some((u) => u.away != null)) return fail(`${team.name} está numa expedição.`);
   const active = g.state.missions.filter((x) => x.status === 'active').length;
   if (active >= maxActiveMissions(g)) return fail(`Máximo de ${maxActiveMissions(g)} missão(ões) ao mesmo tempo. Evolua a vila para mais.`);
   m.status = 'active';

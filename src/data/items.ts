@@ -49,6 +49,19 @@ const LIST: ItemDef[] = [
     id: 'bombtag', name: 'Papel-bomba', icon: '{bomb}', slot: 'item', building: 'sealshop', craftTime: 20,
     cost: { paper: 2, iron: 1 }, use: { kind: 'bomb', amount: 38, radius: 52 }, desc: 'Kunai com selo explosivo: 38 de dano em área.',
   },
+  // ---- lendários: materiais raros das minas
+  {
+    id: 'blackblade', name: 'Lâmina de aço negro', icon: '{darksteel}', slot: 'weapon', building: 'forge', craftTime: 60, minLevel: 2,
+    cost: { darksteel: 6, iron: 10 }, bonus: { melee: 13, kunai: 4 }, desc: 'Lendária: +13 de dano corpo a corpo e +4 nas kunais.',
+  },
+  {
+    id: 'crystalvest', name: 'Colete de cristal', icon: '{crystal}', slot: 'armor', building: 'forge', craftTime: 60, minLevel: 2,
+    cost: { crystal: 6, iron: 8 }, bonus: { defense: 0.22, hp: 50 }, desc: 'Lendário: +50 de vida e 22% menos dano recebido.',
+  },
+  {
+    id: 'chakracrystal', name: 'Cristal de chakra', icon: '{crystal}', slot: 'item', building: 'pharmacy', craftTime: 25,
+    cost: { crystal: 2, herbs: 3 }, use: { kind: 'chakra', amount: 1 }, desc: 'Recupera todo o chakra quando ele acaba.',
+  },
 ];
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(LIST.map((i) => [i.id, i]));

@@ -413,7 +413,7 @@ function animalAbility(g: Game, u: Unit, t: Unit, def: AnimalDef, dt: number): b
 
 /** Rinoceronte em investida: atropela quem estiver no caminho e danifica o prédio em que bater. */
 function charging(g: Game, u: Unit, dt: number, def: AnimalDef) {
-  u.timer -= dt;
+  // (o timer já é descontado no começo de animal())
   const sp = def.speed * 3.2 * dt;
   const nx = u.x + Math.cos(u.facing) * sp;
   const ny = u.y + Math.sin(u.facing) * sp;

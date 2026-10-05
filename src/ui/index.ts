@@ -25,6 +25,7 @@ export function createUI(app: App, root: HTMLElement) {
   const build = new BuildUI(app);
   const NINJA_VIEWS = ['roster', 'teams', 'clans', 'team'];
   const VILLAGE_VIEWS = ['village', 'kage', 'stats'];
+  const WORLD_VIEWS = ['expeditions', 'region'];
   /** Abre (ou fecha, se já estiver nela) uma tela da janela central. */
   function toggleWindow(view: View, group: string[]) {
     build.toggle(false);
@@ -39,13 +40,14 @@ export function createUI(app: App, root: HTMLElement) {
     'div',
     { id: 'dock' },
     rich(
-      `<button class="bigbtn" data-act="build" title="Construir (B)">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">{select}<span>Selecionar</span></button>`,
+      `<button class="bigbtn" data-act="build" title="Construir (B)">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">{map}<span>Mundo</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">{select}<span>Selecionar</span></button>`,
     ),
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
   const btnRoster = dock.querySelector<HTMLElement>('[data-act="roster"]')!;
   const btnVillage = dock.querySelector<HTMLElement>('[data-act="village"]')!;
   const btnMissions = dock.querySelector<HTMLElement>('[data-act="missions"]')!;
+  const btnWorld = dock.querySelector<HTMLElement>('[data-act="world"]')!;
   const btnSelect = dock.querySelector<HTMLElement>('[data-act="select"]')!;
   dock.addEventListener('pointerdown', (e) => e.stopPropagation());
   dock.addEventListener('click', (e) => {
@@ -65,6 +67,7 @@ export function createUI(app: App, root: HTMLElement) {
     }
     if (a === 'village') toggleWindow({ kind: 'village' }, VILLAGE_VIEWS);
     if (a === 'missions') toggleWindow({ kind: 'missions' }, ['missions']);
+    if (a === 'world') toggleWindow({ kind: 'expeditions' }, WORLD_VIEWS);
     if (a === 'roster') toggleWindow({ kind: 'roster' }, NINJA_VIEWS);
     if (a === 'select') {
       app.selectTool = !app.selectTool;
@@ -96,7 +99,7 @@ export function createUI(app: App, root: HTMLElement) {
       }
       return;
     }
-    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', s: 'select' };
+    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', s: 'select' };
     if (map[k]) dockAction(map[k]);
     if (k === ' ') {
       // espaço: pausa/continua
@@ -344,6 +347,7 @@ export function createUI(app: App, root: HTMLElement) {
     btnRoster.classList.toggle('on', NINJA_VIEWS.includes(win.kind ?? ''));
     btnVillage.classList.toggle('on', VILLAGE_VIEWS.includes(win.kind ?? ''));
     btnMissions.classList.toggle('on', win.kind === 'missions');
+    btnWorld.classList.toggle('on', WORLD_VIEWS.includes(win.kind ?? ''));
     btnSelect.classList.toggle('on', app.selectTool);
     if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }

@@ -67,6 +67,13 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.nextId = next;
     for (const site of s.sites) if (isExplored(s, site.tx, site.ty)) site.found = true;
   },
+  10: (s) => {
+    // minas: recursos raros e expedições
+    s.res.crystal = 0;
+    s.res.gold = 0;
+    s.res.darksteel = 0;
+    s.expeditions = [];
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

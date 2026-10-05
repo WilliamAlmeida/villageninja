@@ -40,6 +40,7 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     explored: emptyExplored(),
     sites: [],
     scrolls: [],
+    expeditions: [],
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

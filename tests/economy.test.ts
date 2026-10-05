@@ -14,7 +14,7 @@ import { CENTER_TX, CENTER_TY, doorPos } from '../src/game/world';
 const run = (g: Game, seconds: number) => {
   for (let t = 0; t < seconds; t += SIM_DT) g.step(SIM_DT);
 };
-const rich = (g: Game) => (g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999, iron: 999, herbs: 999, paper: 999 });
+const rich = (g: Game) => (g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999, iron: 999, herbs: 999, paper: 999, crystal: 0, gold: 0, darksteel: 0 });
 function addBuilt(g: Game, type: BuildingType, tx = CENTER_TX + 6, ty = CENTER_TY + 3) {
   return g.addBuilding({ id: g.newId(), type, tx, ty, built: true, progress: 999, desired: 1, workers: [], cd: 0 });
 }

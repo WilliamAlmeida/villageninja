@@ -88,6 +88,11 @@ const I: Record<string, string> = {
   paw: '<ellipse cx="12" cy="16" rx="4" ry="3"/><circle cx="6.500" cy="11" r="1.800"/><circle cx="10" cy="7" r="1.800"/><circle cx="14" cy="7" r="1.800"/><circle cx="17.500" cy="11" r="1.800"/>',
   cart: '<path d="M3 5h3l2 10h10l2-7H7"/><circle cx="9" cy="19" r="1.500"/><circle cx="17" cy="19" r="1.500"/>',
   candle: '<rect x="9" y="10" width="6" height="11" rx="1"/><path d="M12 10V8M12 2c2 2 2 4 0 5-2-1-2-3 0-5z"/>',
+  crystal: '<path d="M12 2l5 6-5 14-5-14z"/><path d="M7 8h10M12 2v20"/>',
+  gold: '<path d="M3 17l3-6h12l3 6z"/><path d="M8 11l2-4h4l2 4"/>',
+  darksteel: '<path d="M5 19L19 5"/><path d="M15 5h4v4"/><path d="M8 16l-3 3M6 13l5 5"/>',
+  pickaxe2: '<path d="M4 20l9-9"/><path d="M8 5c4-2 8-1 11 2-3-1-6-1-9 1"/>',
+  map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500h.010"/>',
 };
 

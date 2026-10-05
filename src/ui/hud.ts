@@ -30,6 +30,9 @@ export class Hud {
         <span class="chip adv" data-tip-tap data-tip-title="Ferro" data-tip="Extraído na mina de ferro. Usado na forja para armas e coletes.">{iron} <b data-r="iron"></b></span>
         <span class="chip adv" data-tip-tap data-tip-title="Ervas" data-tip="Colhidas na horta e nas ervas do mapa. Viram remédios na farmácia.">{herbs} <b data-r="herbs"></b></span>
         <span class="chip adv" data-tip-tap data-tip-title="Papel de selo" data-tip="Feito na oficina de selos a partir de madeira. Usado nos papéis-bomba.">{paper} <b data-r="paper"></b></span>
+        <span class="chip adv" data-tip-tap data-tip-title="Cristal de chakra" data-tip="Só se acha nas minas (expedições). Usado em equipamentos lendários.">{crystal} <b data-r="crystal"></b></span>
+        <span class="chip adv" data-tip-tap data-tip-title="Ouro" data-tip="Achado nas partes fundas das minas. Vale muito: o mercado troca por ryo, e serve em itens lendários.">{gold} <b data-r="gold"></b></span>
+        <span class="chip adv" data-tip-tap data-tip-title="Aço negro" data-tip="O metal mais raro, no fundo das minas. A forja faz armas lendárias com ele.">{darksteel} <b data-r="darksteel"></b></span>
         <span class="chip" data-tip-tap data-tip-title="População" data-tip="Moradores e ninjas / vagas de moradia. Construa ou melhore casas para a vila crescer.">{users} <b data-r="pop"></b></span>
         <span class="chip" data-tip-tap data-tip-title="Ninjas" data-tip="Ninjas da vila. Recrute moradores na Academia.">{ninja} <b data-r="ninjas"></b></span>
       </div>
@@ -106,6 +109,11 @@ export class Hud {
     for (const k of ['iron', 'herbs', 'paper'] as const) {
       set(k, fmt(s.res[k]));
       this.vals.get(k)!.parentElement!.hidden = s.res[k] <= 0 && s.level < 1;
+    }
+    // raros das minas: só aparecem depois do primeiro achado
+    for (const k of ['crystal', 'gold', 'darksteel'] as const) {
+      set(k, fmt(s.res[k]));
+      this.vals.get(k)!.parentElement!.hidden = s.res[k] <= 0;
     }
     const pop = g.population();
     const cap = g.popCap();

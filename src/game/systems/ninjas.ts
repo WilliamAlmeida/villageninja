@@ -25,7 +25,7 @@ const DEFEND_RADIUS = 240;
 export function ninjaSystem(g: Game, dt: number) {
   const night = isNight(g.state);
   for (const u of g.state.units) {
-    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || u.arenaSide != null) continue; // no exame: controlado pela arena
+    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || u.arenaSide != null || u.away != null) continue; // exame: arena; expedição: fora do mapa
     u.timer -= dt;
     if (u.stun > 0) {
       u.moving = false;

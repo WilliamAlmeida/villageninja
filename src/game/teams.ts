@@ -216,7 +216,7 @@ export const isAttackable = (t: Unit | undefined | null): t is Unit => !!t && !t
 export function availableFighters(g: Game): Unit[] {
   const onMission = new Set(g.state.missions.filter((m) => m.status === 'active').map((m) => m.teamId));
   return g.state.units.filter((u) => {
-    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || !u.ninja || u.hp < u.maxHp * 0.35) return false;
+    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || !u.ninja || u.away != null || u.hp < u.maxHp * 0.35) return false;
     const t = teamOf(g, u);
     return !t || !onMission.has(t.id);
   });

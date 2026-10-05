@@ -5,6 +5,9 @@ import { ANIMALS } from '../data/animals';
 import { BUILDINGS } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
 import { SITES } from '../data/sites';
+import { GOLD_PRICE, MINE } from '../data/expeditions';
+import { RES_INFO } from '../data/resources';
+import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamMinePower } from '../game/expeditions';
 import { guardiansOf, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
 import { NATURES } from '../data/natures';
@@ -31,7 +34,7 @@ import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamOf, teamUnits,
 } from '../game/teams';
-import type { Building, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
+import type { Building, Expedition, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
 import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
@@ -56,7 +59,8 @@ export type View =
   | { kind: 'roster' }
   | { kind: 'teams' }
   | { kind: 'clans' }
-  | { kind: 'site'; id: number };
+  | { kind: 'site'; id: number }
+  | { kind: 'expeditions' };
 
 interface Built {
   html: string;
@@ -68,8 +72,9 @@ interface Built {
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
   village: [['village', '{castle} Vila'], ['kage', '{crown} Kage'], ['stats', '{trophy} Estatísticas']],
+  world: [['expeditions', '{pickaxe} Expedições']],
 };
-const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village' };
+const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village', expeditions: 'world' };
 
 type BuildingTab = 'main' | 'inside';
 
@@ -201,6 +206,7 @@ export class Panel {
     else if (this.view.kind === 'kage') built = { html: this.tabs('kage') + this.kageSection(), t: {}, b: {} };
     else if (this.view.kind === 'stats') built = this.statsView();
     else if (this.view.kind === 'missions') built = this.missionsView();
+    else if (this.view.kind === 'expeditions') built = this.expeditionsView();
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamView(tm);
@@ -424,10 +430,71 @@ export class Panel {
     return { html, t, b: {} };
   }
 
-  /** Entrada de mina (expedições entram na etapa das minas). */
-  private caveSection(_site: Site) {
-    return `<p class="hint">{pickaxe} Expedições às minas chegam em breve.</p>`;
+  /** Entrada de mina: andares, força recomendada e as equipes que podem partir. */
+  private caveSection(site: Site) {
+    const g = this.app.game;
+    let html = `<div class="lvlcard"><div class="lvlname">{pickaxe} ${MINE.floors} andares</div><div class="hint">Força recomendada: andar 1 {swords}${floorPower(1)} · andar 3 {swords}${floorPower(3)} · andar 5 {swords}${floorPower(5)}.
+      Os andares fundos têm ${RES_INFO.crystal.icon} cristal, ${RES_INFO.gold.icon} ouro e ${RES_INFO.darksteel.icon} aço negro.</div></div>`;
+    html += `<p class="hint">A equipe some do mapa enquanto explora. A cada andar você decide: descer mais (mais risco e minérios melhores) ou voltar. O saque só chega se voltarem.</p>`;
+    const here = activeExpeditions(g).filter((e) => e.siteId === site.id);
+    if (here.length)
+      html += `<p class="hint">{run} Na mina agora: ${here.map((e) => esc(g.team(e.teamId)?.name ?? '?')).join(', ')} <button class="btn mini" data-act="win" data-arg="expeditions">Acompanhar</button></p>`;
+    html += `<h4>Mandar equipe</h4>`;
+    if (!g.state.teams.length) return html + `<p class="why">Forme uma equipe em {ninja} Ninjas → Equipes.</p>`;
+    html += `<div class="btnrow">`;
+    for (const tm of g.state.teams) {
+      const why = mineBlock(g, tm.id);
+      html += `<button class="btn" data-act="mine-go" data-arg="${site.id}" data-team="${tm.id}" style="--c:${tm.color}" ${blocked(g, [why], undefined, 'Não dá para partir')}><span class="dot"></span>${esc(tm.name)} {swords}${teamMinePower(g, tm.id)}</button>`;
+    }
+    return html + `</div>`;
   }
+
+  /** Janela Mundo → Expedições: andamento, diário e decisões de cada expedição. */
+  private expeditionsView(): Built {
+    const g = this.app.game;
+    const t: Record<string, string> = {};
+    const b: Record<string, number> = {};
+    let html = this.tabs('expeditions');
+    const caves = g.state.sites.filter((x) => x.kind === 'cave' && x.found);
+    const list = [...g.state.expeditions].reverse();
+    if (!list.length)
+      html += `<div class="warnbox">{map} Nenhuma expedição ainda. ${
+        caves.length ? 'Toque numa entrada de mina no mapa para mandar uma equipe.' : 'Explore o mapa (rotina Explorar dos ninjas) para achar entradas de mina.'
+      }</div>`;
+    if (caves.length)
+      html += `<p class="hint">Minas conhecidas: ${caves.map((c) => `<button class="btn mini" data-act="site-open" data-arg="${c.id}">{pickaxe} Ver mina</button>`).join(' ')}</p>`;
+    for (const e of list) {
+      const tm = g.team(e.teamId);
+      const live = e.status !== 'done' && e.status !== 'lost';
+      const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
+      const label: Record<Expedition['status'], string> = {
+        going: 'a caminho da mina', explore: `explorando o andar ${e.floor}`, choice: `andar ${e.floor} concluído`, return: 'voltando para a vila',
+        done: 'terminou', lost: 'perdida',
+      };
+      html += `<div class="mcard exp ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="mt"><span class="dot"></span>${esc(tm?.name ?? 'Equipe')} · Mina
+        <span class="badge">${label[e.status]}</span>${live ? ` <span class="badge">{pickaxe} ${e.floor}/${MINE.floors}</span>` : ''}</div>`;
+      if (e.status === 'going' || e.status === 'explore' || e.status === 'return') {
+        html += `<div class="bar pg"><i data-b="ex${e.id}"></i><span data-t="ex${e.id}"></span></div>`;
+        b[`ex${e.id}`] = 1 - Math.max(0, e.timer) / total;
+        t[`ex${e.id}`] = `${Math.ceil(Math.max(0, e.timer))}s`;
+      }
+      if (live) {
+        const us = expeditionUnits(g, e);
+        html += `<div class="jm">${us.map((u) => `${esc(u.name.split(' ').pop()!)} <span data-t="exh${u.id}"></span>`).join(' · ')}</div>`;
+        for (const u of us) t[`exh${u.id}`] = `${Math.round((u.hp / u.maxHp) * 100)}%`;
+      }
+      html += `<div class="jm">Saque: ${Object.keys(e.loot).length ? costLabel(e.loot) : '—'}</div>`;
+      html += `<ul class="explog">${e.log.slice(-5).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+      if (e.status === 'choice') {
+        const next = e.floor + 1;
+        html += `<div class="btnrow"><button class="btn primary" data-act="exp-deeper" data-arg="${e.id}">{pickaxe} Descer ao andar ${next} (recomendado {swords}${floorPower(next)})</button>
+          <button class="btn" data-act="exp-back" data-arg="${e.id}">{run} Voltar com o saque</button></div>`;
+      }
+      html += `</div>`;
+    }
+    return { html, t, b };
+  }
+
 
   /** Arma, colete e consumível: o atual e o que há no estoque para trocar. */
   private equipSection(u: Unit) {
@@ -569,6 +636,11 @@ export class Panel {
         const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
         html += `<h4>Moradia</h4><p class="hint"><span data-t="res"></span> moradores</p>`;
         t.res = `${residents} / ${housingOf(bd)}`;
+      }
+      if (bd.type === 'market') {
+        html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
+        html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender 1 (+${GOLD_PRICE}{ryo})</button>
+          <button class="btn" data-act="sell-gold" data-arg="all" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender tudo</button></div>`;
       }
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
@@ -1144,6 +1216,31 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'sell-gold': {
+        const n = arg === 'all' ? Math.floor(g.state.res.gold) : Math.min(1, Math.floor(g.state.res.gold));
+        if (n <= 0) return;
+        g.state.res.gold -= n;
+        g.state.res.ryo += n * GOLD_PRICE;
+        g.toast(`{gold} Vendeu ${n} ouro por ${n * GOLD_PRICE}{ryo}.`, 'good');
+        return this.report({ ok: true });
+      }
+      case 'mine-go': {
+        const r = startMine(g, Number(btn.dataset.team), Number(arg));
+        if (r.ok && this.mode === 'drawer') this.onWindow({ kind: 'expeditions' });
+        return this.report(r);
+      }
+      case 'exp-deeper':
+      case 'exp-back':
+        return this.report(chooseExpedition(g, Number(arg), act === 'exp-deeper'));
+      case 'site-open': {
+        const site = g.state.sites.find((x) => x.id === Number(arg));
+        if (!site) return;
+        if (this.mode === 'window') this.show(null);
+        const p = sitePos(site);
+        this.app.camera.focus(p.x, p.y);
+        g.select({ kind: 'site', id: site.id });
+        return;
+      }
       case 'site-go': {
         if (v?.kind !== 'site') return;
         const site = g.state.sites.find((x) => x.id === v.id);

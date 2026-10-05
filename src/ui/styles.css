@@ -42,6 +42,7 @@ button:disabled { cursor: not-allowed; }
 }
 .ic-wood { color: #d19a62; } .ic-stone { color: #b9bcc4; } .ic-food { color: #f2efe6; } .ic-ryo { color: #ffd34d; }
 .ic-iron { color: #9fb3c8; } .ic-herbs { color: #7fd36b; } .ic-paper { color: #f0d9a8; }
+.ic-crystal { color: #7fd8ff; } .ic-gold { color: #ffcf3a; } .ic-darksteel { color: #8a7ca8; }
 .ic-star, .ic-trophy, .ic-crown, .ic-medal, .ic-sun { color: var(--warn); }
 .ic-moon { color: #b8c6ff; } .ic-leaf, .ic-check { color: var(--good); } .ic-fail { color: var(--bad); }
 .btn .ic, .bigbtn .ic, .banner .ic, .speed .ic, .seg .ic, .mrank .ic { color: inherit; }
@@ -113,7 +114,7 @@ button:disabled { cursor: not-allowed; }
 .bigbtn.on { border-color: var(--accent); background: var(--bg2); color: var(--accent); }
 
 #buildbar {
-  position: fixed; left: calc(25.4rem + var(--safe-l)); right: calc(0.6rem + var(--safe-r)); bottom: calc(0.6rem + var(--safe-b)); z-index: 10;
+  position: fixed; left: calc(30.4rem + var(--safe-l)); right: calc(0.6rem + var(--safe-r)); bottom: calc(0.6rem + var(--safe-b)); z-index: 10;
   display: flex; align-items: flex-end; gap: 0.45rem; overflow-x: auto; padding: 0.15rem; scrollbar-width: none; touch-action: pan-x;
 }
 #buildbar::-webkit-scrollbar { display: none; }
@@ -367,7 +368,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   .clock .lbl { display: none; }
   .speed button { padding: 0.38rem 0.45rem; min-width: 2.15rem; }
   .bigbtn { width: 4rem; }
-  #buildbar { left: calc(22.9rem + var(--safe-l)); }
+  #buildbar { left: calc(27.4rem + var(--safe-l)); }
 }
 @media (max-height: 380px) {
   #topbar { height: 2.6rem; }
@@ -422,3 +423,8 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .rchips small { opacity: 0.7; font-weight: 700; margin-left: 0.15rem; }
 .rsort { align-items: center; }
 .rsort .lbl { padding: 0 0.5rem; color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+
+/* expedições */
+.mcard.exp.ended { opacity: 0.6; }
+.explog { list-style: none; margin: 0.3rem 0; padding: 0 0 0 0.6rem; border-left: 2px solid var(--line); font-size: 0.82rem; color: var(--muted); display: flex; flex-direction: column; gap: 0.15rem; }
+.explog li:last-child { color: var(--text); }
