@@ -600,7 +600,17 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
     fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#e8e8e8' });
     return;
   }
-  if (u.animal === 'dog') dogSniff(g, u, owner, dt);
+  // ninken: dono dentro de casa (ou fora numa expedição) → vai dormir no Canil; dono saiu → sai e vai atrás
+  const ownerIn = owner.hidden || owner.away != null;
+  if (u.animal === 'dog') {
+    if (u.hidden) {
+      if (ownerIn) return;
+      u.hidden = false;
+      u.state = 'idle';
+    }
+    if (!ownerIn && u.state === 'toKennel') u.state = 'idle'; // o dono saiu antes de ele chegar
+    dogSniff(g, u, owner, dt);
+  }
   if (u.animal === 'slug') {
     u.abilityCd = (u.abilityCd ?? 0) - dt;
     if (u.abilityCd <= 0) {
@@ -617,12 +627,33 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
     const t = validTarget(g, u, def.aggro * 1.5) ?? g.nearestHostile(u, def.aggro);
     if (t) return engage(g, u, t, dt);
   }
-  // fora do mapa (dono em expedição) ou escondido: espera; senão acompanha o dono
-  if (owner.hidden) {
+  // fora do mapa (dono em expedição) ou escondido: o cão vai para o Canil; os outros esperam
+  if (ownerIn) {
+    if (u.animal === 'dog' && goKennel(g, u, dt)) return;
     u.moving = false;
     return;
   }
   chase(g, u, owner.x - 18, owner.y + 10, dt, 20);
+}
+
+/** Cão anda até o Canil e entra (fica escondido lá dentro, aparece na aba do prédio). False = não há Canil. */
+function goKennel(g: Game, u: Unit, dt: number): boolean {
+  const k = g.findBuilt('kennel');
+  if (!k) return false;
+  if (u.state !== 'toKennel') {
+    const d = doorPos(k);
+    if (!setDestination(g, u, d.x, d.y)) return false;
+    u.state = 'toKennel';
+  }
+  if (followPath(g, u, dt)) {
+    const d = doorPos(k); // na porta: assim aparece na aba "Lá dentro" do Canil
+    u.x = d.x;
+    u.y = d.y;
+    u.state = 'kennel';
+    u.hidden = true;
+    u.moving = false;
+  }
+  return true;
 }
 
 function nearestEdge(x: number, y: number) {

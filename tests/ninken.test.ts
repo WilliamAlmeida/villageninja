@@ -5,6 +5,7 @@ import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { adoptDog, dogOf, sniffRange } from '../src/game/ninken';
 import { SYSTEMS } from '../src/game/systems';
+import { occupantsOf } from '../src/game/interior';
 
 const run = (g: Game, seconds: number) => {
   for (let t = 0; t < seconds; t += SIM_DT) {
@@ -14,6 +15,24 @@ const run = (g: Game, seconds: number) => {
 };
 
 describe('ninken', () => {
+  test('dono fora (em casa ou em expedição): o cão entra no Canil; dono volta: o cão sai e vai atrás', () => {
+    const g = createNewGame(SYSTEMS, 125);
+    Object.assign(g.state.res, { food: 999, ryo: 999 });
+    for (const u of g.state.units) if (u.kind !== 'villager') u.dead = true; // sem distrações
+    g.state.timers.animal = g.state.timers.raid = 1e9;
+    const k = g.addBuilding({ id: g.newId(), type: 'kennel', tx: 30, ty: 20, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const n = createNinja(g, 36 * 32, 24 * 32, 'genin', 0);
+    expect(adoptDog(g, n.id).ok).toBe(true);
+    const dog = dogOf(g, n)!;
+    n.away = 999; // saiu numa expedição (a IA dele fica parada; em casa vale o mesmo: dono escondido)
+    run(g, 20);
+    expect(dog.hidden).toBe(true);
+    expect(occupantsOf(g, k)).toContain(dog);
+    n.away = undefined;
+    run(g, 0.2);
+    expect(dog.hidden).toBe(false);
+  });
+
   test('raças: buldogue aguenta mais, pug fareja de mais longe', () => {
     const g = createNewGame(SYSTEMS, 124);
     Object.assign(g.state.res, { food: 999, ryo: 999 });
