@@ -6,8 +6,12 @@ import { BUILDINGS } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
 import { SITES } from '../data/sites';
 import { GOLD_PRICE, MINE } from '../data/expeditions';
+import { ACTION_LABEL, ACTION_TIME, HOME_POS, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef } from '../data/region';
+import { CONTRACTS } from '../data/contracts';
+import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
+import regionMap from '../art/region.jpg';
 import { RES_INFO } from '../data/resources';
-import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamMinePower } from '../game/expeditions';
+import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
 import { guardiansOf, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
 import { NATURES } from '../data/natures';
@@ -60,7 +64,8 @@ export type View =
   | { kind: 'teams' }
   | { kind: 'clans' }
   | { kind: 'site'; id: number }
-  | { kind: 'expeditions' };
+  | { kind: 'expeditions' }
+  | { kind: 'region' };
 
 interface Built {
   html: string;
@@ -72,11 +77,23 @@ interface Built {
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
   village: [['village', '{castle} Vila'], ['kage', '{crown} Kage'], ['stats', '{trophy} Estatísticas']],
-  world: [['expeditions', '{pickaxe} Expedições']],
+  world: [['region', '{map} Região'], ['expeditions', '{pickaxe} Expedições']],
 };
-const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village', expeditions: 'world' };
+const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village', expeditions: 'world', region: 'world' };
 
 type BuildingTab = 'main' | 'inside';
+
+/** O que cada ação da região faz (dica dos botões). */
+const ACTION_TIP: Record<RegionAction, string> = {
+  trade: 'Caravana de troca: paga na hora e volta com a mercadoria (honra dá bônus). Melhora a relação.',
+  protect: 'A equipe defende o vilarejo de bandidos. Relação +20 e honra; com relação 60+ ele vira protegido e paga tributo todo dia.',
+  raid: 'Ataca e volta com o saque (infâmia dá bônus). Relação despenca, o vilarejo fica hostil e manda uma vingança à vila.',
+  annex: 'Com relação 90+ ele se une em paz; com relação -60 ou menos, só à força (precisa vencer as defesas). Vassalo paga tributo dobrado.',
+  explore: 'Primeira viagem à ilha: se a equipe aguentar, traz amostras e libera o posto avançado.',
+  outpost: 'Monta um posto que produz recursos da ilha todo dia.',
+  train: 'Os monges treinam a equipe: muito XP e atributos.',
+  contract: 'Os guardiões testam a equipe; vencendo, o ninja mais forte sem contrato aprende a invocar.',
+};
 
 type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin';
 type RosterSort = 'level' | 'rank' | 'power' | 'hp' | 'name';
@@ -114,6 +131,9 @@ export class Panel {
   /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
   private rosterFilter: RosterFilter = 'all';
   private rosterSort: RosterSort = 'level';
+  /** Região: lugar aberto e equipe escolhida para as ações. */
+  private regionNode: string | null = null;
+  private regionTeam: number | null = null;
   /** Aba do painel do prédio (geral × lá dentro). */
   private buildingTab: BuildingTab = 'main';
   /** Pedido para abrir uma tela de gestão na janela central. */
@@ -207,6 +227,7 @@ export class Panel {
     else if (this.view.kind === 'stats') built = this.statsView();
     else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
+    else if (this.view.kind === 'region') built = this.regionView();
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamView(tm);
@@ -445,6 +466,74 @@ export class Panel {
     for (const tm of g.state.teams) {
       const why = mineBlock(g, tm.id);
       html += `<button class="btn" data-act="mine-go" data-arg="${site.id}" data-team="${tm.id}" style="--c:${tm.color}" ${blocked(g, [why], undefined, 'Não dá para partir')}><span class="dot"></span>${esc(tm.name)} {swords}${teamMinePower(g, tm.id)}</button>`;
+    }
+    return html + `</div>`;
+  }
+
+  /** Janela Mundo → Região: mapa com vilarejos, ilhas e lugares sagrados; à direita, o lugar escolhido e as ações. */
+  private regionView(): Built {
+    const g = this.app.game;
+    const s = g.state;
+    let html = this.tabs('region');
+    const busyAt = new Map<string, string[]>();
+    for (const e of activeExpeditions(g))
+      if (e.node) busyAt.set(e.node, [...(busyAt.get(e.node) ?? []), g.team(e.teamId)?.color ?? '#fff']);
+    html += `<div class="regionwrap"><div class="rmap"><img src="${regionMap}" alt="" draggable="false">
+      <span class="rnode home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">{castle}<span>Sua vila</span></span>`;
+    for (const def of REGION_NODES) {
+      const st = regionOf(s, def.id);
+      const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : '{scroll}';
+      const flags = st.outpost ? ' {flag}' : '';
+      const dots = (busyAt.get(def.id) ?? []).map((c) => `<i class="tdot" style="--c:${c}"></i>`).join('');
+      html += `<button class="rnode k-${def.kind} s-${st.status} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${icon}<span>${def.name}${flags}</span>${dots}</button>`;
+    }
+    html += `</div><div class="rside">`;
+    html += `<div class="fame" ${tipAttr('Fama da vila', 'Honra (proteger, comerciar, anexar em paz): trocas melhores e ninjas errantes pedindo para entrar. Infâmia (saquear, dominar à força): saques maiores, mas vinganças e caçadores de recompensa.', true)}>
+      <span class="hon">{star} Honra <b>${s.honor}</b></span><span class="inf">{skull} Infâmia <b>${s.infamy}</b></span></div>`;
+    const def = this.regionNode ? REGION[this.regionNode] : undefined;
+    if (!def) html += `<p class="hint">Toque num lugar do mapa. Vilarejos: comerciar, proteger, saquear ou anexar. Ilhas e lugares sagrados precisam de um {ship} Porto.</p>`;
+    else html += this.regionNodeSection(def);
+    html += `</div></div>`;
+    return { html, t: {}, b: {} };
+  }
+
+  /** Detalhe de um lugar da região: situação, escolha da equipe e ações. */
+  private regionNodeSection(def: RegionNodeDef) {
+    const g = this.app.game;
+    const s = g.state;
+    const st = regionOf(s, def.id);
+    const kindLabel = { village: 'Vilarejo', island: 'Ilha', sacred: 'Lugar sagrado' }[def.kind];
+    const statusLabel = { neutral: 'Neutro', protected: 'Protegido', vassal: 'Vassalo', hostile: 'Hostil' }[st.status];
+    let html = `<div class="ph"><div class="title">${def.name}</div><div class="badges"><span class="badge">${kindLabel}</span>${
+      def.kind === 'village' ? `<span class="badge st-${st.status}">${statusLabel}</span>` : ''
+    }</div></div><p class="hint">${esc(def.desc)}</p>`;
+    if (def.kind === 'village') {
+      const pct = (st.rel + 100) / 2;
+      html += `<div class="relbar" ${tipAttr('Relação', `De -100 (inimigos) a 100 (aliados). Protegido a partir de ${REL.protected}; anexar em paz com ${REL.annexPeace}+ ou à força com ${REL.annexForce} ou menos.`)}><i style="left:calc(${pct}% - 1px)"></i><span>Relação ${st.rel}</span></div>`;
+      if (def.tribute) html += `<p class="hint">Tributo por dia: ${costLabel(def.tribute)} (protegido) · dobro como vassalo.</p>`;
+    } else if (def.kind === 'island') {
+      html += `<p class="hint">${st.explored ? '{check} Explorada' : '{todo} Ainda não explorada'} · ${st.outpost ? `{flag} Posto avançado: ${costLabel(def.outpost ?? {})}/dia` : `Posto avançado renderia ${costLabel(def.outpost ?? {})} por dia`}</p>`;
+    } else if (def.contract) {
+      const c = CONTRACTS[def.contract];
+      const owners = s.units.filter((u) => !u.dead && u.ninja?.contract === def.contract).map((u) => esc(u.name.split(' ').pop()!));
+      html += `<p class="hint">{scroll} ${c.name}: ${esc(c.desc)}${owners.length ? ` Contratados: ${owners.join(', ')}.` : ''}</p>`;
+    }
+    html += `<p class="hint">Defesas {swords}${nodePower(s, def)}</p>`;
+    // equipe que vai
+    const teams = s.teams.filter((tm) => teamUnits(g, tm).length);
+    if (!teams.length) return html + `<p class="why">Forme uma equipe em {ninja} Ninjas → Equipes.</p>`;
+    if (this.regionTeam == null || !teams.some((tm) => tm.id === this.regionTeam)) this.regionTeam = teams[0]!.id;
+    html += `<h4>Equipe</h4><div class="chips rteams">`;
+    for (const tm of teams)
+      html += `<button data-act="r-team" data-arg="${tm.id}" class="${this.regionTeam === tm.id ? 'on' : ''}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} {swords}${teamMinePower(g, tm.id)}</button>`;
+    html += `</div><h4>Ações</h4><div class="ractions">`;
+    const busy = teamBusy(g, this.regionTeam);
+    for (const a of nodeActions(def)) {
+      const why = actionBlock(g, def.id, a);
+      const cost = actionCost(def, a);
+      const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
+      html += `<button class="btn" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
+        <b>${ACTION_LABEL[a]}</b><small>${cost ? `${costLabel(cost)} · ` : ''}~${time}s</small></button>`;
     }
     return html + `</div>`;
   }
@@ -1216,6 +1305,17 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'r-node':
+        this.regionNode = arg;
+        return this.report({ ok: true });
+      case 'r-team':
+        this.regionTeam = Number(arg);
+        return this.report({ ok: true });
+      case 'r-go': {
+        if (!this.regionNode || this.regionTeam == null) return;
+        const r = startRegion(g, this.regionTeam, this.regionNode, arg as RegionAction);
+        return this.report(r);
+      }
       case 'sell-gold': {
         const n = arg === 'all' ? Math.floor(g.state.res.gold) : Math.min(1, Math.floor(g.state.res.gold));
         if (n <= 0) return;

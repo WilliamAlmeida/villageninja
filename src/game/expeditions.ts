@@ -2,6 +2,8 @@
 // entre descer mais (mais risco, minérios raros) ou voltar com o que achou. O saque só entra no estoque na volta.
 import { chance, rand, weightedPick } from '../core/rng';
 import { MINE, MINE_EVENTS, MINE_MONSTERS, mineLoot } from '../data/expeditions';
+import { ACTION_TIME, REGION } from '../data/region';
+import { resolveRegion } from './region';
 import { costLabel, RES_KEYS } from '../data/resources';
 import { SITES } from '../data/sites';
 import { sitePos } from './explore';
@@ -27,8 +29,8 @@ export const expeditionUnits = (g: Game, e: Expedition) => e.unitIds.map((id) =>
 /** Força recomendada para o andar. */
 export const floorPower = (floor: number) => MINE.power * floor;
 
-/** A equipe pode partir agora? (motivo quando não) */
-export function mineBlock(g: Game, teamId: number): string | null {
+/** A equipe pode partir agora (mina ou região)? (motivo quando não) */
+export function teamBusy(g: Game, teamId: number): string | null {
   const tm = g.team(teamId);
   if (!tm) return 'Equipe não encontrada.';
   const us = teamUnits(g, tm);
@@ -43,7 +45,7 @@ export function mineBlock(g: Game, teamId: number): string | null {
 export function startMine(g: Game, teamId: number, siteId: number): Result {
   const site = g.state.sites.find((s) => s.id === siteId && s.kind === 'cave' && s.found);
   if (!site) return fail('Mina não encontrada.');
-  const why = mineBlock(g, teamId);
+  const why = teamBusy(g, teamId);
   if (why) return fail(why);
   const tm = g.team(teamId)!;
   const us = teamUnits(g, tm);
@@ -84,9 +86,9 @@ const note = (e: Expedition, text: string) => {
   if (e.log.length > 14) e.log.shift();
 };
 
-function goBack(e: Expedition, text: string) {
+function goBack(e: Expedition, text: string, travel = MINE.travel) {
   e.status = 'return';
-  e.timer = MINE.travel;
+  e.timer = travel;
   note(e, text);
 }
 
@@ -100,6 +102,18 @@ export function tickExpeditions(g: Game, dt: number) {
     if (e.status === 'done' || e.status === 'lost' || e.status === 'choice') continue;
     e.timer -= dt;
     if (e.timer > 0) continue;
+    if (e.kind === 'region') {
+      // região: ida → serviço → volta
+      if (e.status === 'going') {
+        e.status = 'explore';
+        e.timer = ACTION_TIME[e.action!].work;
+        note(e, `Chegaram a ${REGION[e.node!]!.name}.`);
+      } else if (e.status === 'explore') {
+        if (!expeditionUnits(g, e).length) lost(g, e);
+        else goBack(e, resolveRegion(g, e), ACTION_TIME[e.action!].travel);
+      } else if (e.status === 'return') finish(g, e);
+      continue;
+    }
     if (e.status === 'going') {
       e.floor = 1;
       e.status = 'explore';
@@ -189,7 +203,7 @@ function floorDone(g: Game, e: Expedition) {
 }
 
 /** Força de um ninja na mesma escala do poder de equipe das missões, pesada pela vida atual. */
-function unitPower(u: Unit) {
+export function unitPower(u: Unit) {
   const n = u.ninja!;
   const avg = STAT_KEYS.reduce((a, k) => a + n.stats[k], 0) / STAT_KEYS.length;
   const rankBonus = ['genin', 'chunin', 'jounin', 'kage'].indexOf(n.rank) * 4;
@@ -214,7 +228,7 @@ function finish(g: Game, e: Expedition) {
   const got = Object.keys(e.loot).length ? costLabel(e.loot) : 'nada';
   note(e, `De volta à vila! Trouxeram: ${got}.`);
   const tm = g.team(e.teamId);
-  g.toast(`{pickaxe} ${tm?.name ?? 'A equipe'} voltou da mina com ${got}.`, 'good', p);
+  g.toast(`${e.kind === 'mine' ? '{pickaxe}' : '{map}'} ${tm?.name ?? 'A equipe'} voltou${e.kind === 'mine' ? ' da mina' : ''} com ${got}.`, 'good', p);
 }
 
 function lost(g: Game, e: Expedition) {
@@ -228,3 +242,6 @@ export const teamMinePower = (g: Game, teamId: number) => {
   const tm = g.team(teamId);
   return tm ? Math.round(teamUnits(g, tm).reduce((a, u) => a + unitPower(u), 0)) : 0;
 };
+
+/** Mesmo bloqueio para a mina (nome antigo usado pelo painel). */
+export const mineBlock = teamBusy;

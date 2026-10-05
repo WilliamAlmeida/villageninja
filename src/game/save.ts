@@ -2,6 +2,7 @@ import { SAVE_KEY, SAVE_VERSION } from '../config';
 import { Game, type System } from './game';
 import type { GameState } from './types';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
+import { newRegion } from './region';
 
 /**
  * Migrações de save: cada entrada transforma a versão N na N+1.
@@ -73,6 +74,13 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.res.gold = 0;
     s.res.darksteel = 0;
     s.expeditions = [];
+  },
+  11: (s) => {
+    // mapa da região, honra e infâmia
+    s.region = newRegion();
+    s.regionDay = s.day;
+    s.honor = 0;
+    s.infamy = 0;
   },
 };
 

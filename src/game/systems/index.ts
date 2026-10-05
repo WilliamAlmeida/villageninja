@@ -5,6 +5,7 @@ import { bossSystem } from './bosses';
 import { examSystem } from './exam';
 import { exploreSystem } from './explore';
 import { expeditionSystem } from './expeditions';
+import { regionSystem } from './region';
 import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
@@ -41,4 +42,5 @@ export const SYSTEMS: System[] = [
   villageSystem,
   exploreSystem,
   expeditionSystem,
+  regionSystem,
 ];

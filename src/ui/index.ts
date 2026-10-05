@@ -67,7 +67,7 @@ export function createUI(app: App, root: HTMLElement) {
     }
     if (a === 'village') toggleWindow({ kind: 'village' }, VILLAGE_VIEWS);
     if (a === 'missions') toggleWindow({ kind: 'missions' }, ['missions']);
-    if (a === 'world') toggleWindow({ kind: 'expeditions' }, WORLD_VIEWS);
+    if (a === 'world') toggleWindow({ kind: 'region' }, WORLD_VIEWS);
     if (a === 'roster') toggleWindow({ kind: 'roster' }, NINJA_VIEWS);
     if (a === 'select') {
       app.selectTool = !app.selectTool;

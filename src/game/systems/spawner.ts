@@ -2,6 +2,7 @@ import { DAY_LENGTH, MAP_H, MAP_W } from '../../config';
 import { pick, rand, randi, weightedPick } from '../../core/rng';
 import { ANIMAL_LIST } from '../../data/animals';
 import { ROGUE_ROLES, type RogueRole } from '../../data/enemies';
+import { FAME } from '../../data/region';
 import { levelDef } from '../../data/villageLevels';
 import { isNight } from '../time';
 import type { Rank } from '../../data/ninja';
@@ -113,10 +114,15 @@ export function raidStrength(day: number, threat: number) {
   };
 }
 
-function spawnRaid(g: Game) {
+/**
+ * Invasão de renegados. `extra` = invasores a mais (vingança de vilarejo saqueado); `msg` troca o aviso.
+ * Vila infame atrai caçadores de recompensa: +1 invasor.
+ */
+export function spawnRaid(g: Game, extra = 0, msg?: string) {
   const s = g.state;
   const p = edgePoint(g);
   const r = raidStrength(s.day, levelDef(s.level).threat);
+  r.count += extra + (s.infamy >= FAME.hunters ? 1 : 0);
   const roles = raidRoles(s.day, r.count);
   for (let i = 0; i < r.count; i++) {
     const u = createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day, { rank: r.rank, stats: r.stats });
@@ -127,7 +133,7 @@ function spawnRaid(g: Game) {
   const special = roles.filter(Boolean).map((k) => ROGUE_ROLES[k!].name.toLowerCase());
   s.flags.raidActive = true;
   s.flags.raidStole = false;
-  g.toast(`{swords} ${n} ninja(s) renegado(s) estão invadindo a vila!${special.length ? ` Entre eles: ${special.join(' e ')}.` : ''}`, 'danger', p);
+  g.toast(`${msg ?? `{swords} ${n} ninja(s) renegado(s) estão invadindo a vila!`}${special.length ? ` Entre eles: ${special.join(' e ')}.` : ''}`, 'danger', p);
 }
 
 /** Quem da invasão tem função especial: um bombardeiro (2+ invasores) e um médico (3+), a partir de certos dias. */

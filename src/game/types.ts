@@ -3,6 +3,7 @@
 import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
 import type { SiteKind } from '../data/sites';
+import type { ContractKind, RegionAction } from '../data/region';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
 import type { KekkeiId } from '../data/kekkei';
@@ -48,6 +49,8 @@ export interface NinjaInfo {
   equip: Equip;
   /** Kekkei genkai despertada (natureza combinada). */
   kekkei: KekkeiId | null;
+  /** Contrato de invocação (sapo, serpente ou lesma). */
+  contract?: ContractKind;
 }
 
 /** Herança de família: o que um morador traz de berço (usado ao virar ninja). */
@@ -228,12 +231,15 @@ export interface Building {
 /** Expedição: equipe fora do mapa (mina e, depois, lugares da região). Ver game/expeditions.ts. */
 export interface Expedition {
   id: number;
-  kind: 'mine';
+  kind: 'mine' | 'region';
+  /** Região: lugar do mapa da região e o que a equipe foi fazer lá. */
+  node?: string;
+  action?: RegionAction;
   teamId: number;
   /** Quem foi (fica fora do mapa até voltar). */
   unitIds: number[];
-  /** Mina: local de onde saiu (a equipe reaparece lá na volta). */
-  siteId: number;
+  /** Mina: entrada de onde saiu. */
+  siteId?: number;
   /** Andar atual (0 = a caminho). */
   floor: number;
   /** Segundos até o próximo passo. */
@@ -244,6 +250,18 @@ export interface Expedition {
   /** O que já foi achado (só entra no estoque quando a equipe volta). */
   loot: Cost;
   day: number;
+}
+
+/** Situação de um lugar do mapa da região (ver data/region.ts). */
+export interface RegionState {
+  /** Relação com o vilarejo (-100 inimigo … 100 aliado). */
+  rel: number;
+  status: 'neutral' | 'protected' | 'vassal' | 'hostile';
+  /** Ilha já explorada / com posto avançado. */
+  explored?: boolean;
+  outpost?: boolean;
+  /** Dia em que o vilarejo saqueado manda a vingança. */
+  revengeDay?: number;
 }
 
 /** Local especial do mapa (ver data/sites.ts). */
@@ -349,6 +367,12 @@ export interface GameState {
   scrolls: string[];
   /** Expedições (em andamento e as últimas terminadas). */
   expeditions: Expedition[];
+  /** Mapa da região: situação de cada vilarejo/ilha/lugar sagrado, e o último dia processado. */
+  region: Record<string, RegionState>;
+  regionDay: number;
+  /** Fama da vila: honra (proteger, comerciar, anexar em paz) e infâmia (saquear, anexar à força). */
+  honor: number;
+  infamy: number;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;

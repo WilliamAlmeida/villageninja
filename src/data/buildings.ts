@@ -19,7 +19,8 @@ export type BuildingType =
   | 'pharmacy'
   | 'sealshop'
   | 'arena'
-  | 'monument';
+  | 'monument'
+  | 'port';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
@@ -134,6 +135,11 @@ const LIST: BuildingDef[] = [
     type: 'sealshop', name: 'Oficina de Selos', icon: '{paper}', desc: 'Faz papel de selo com madeira e papéis-bomba.',
     w: 2, h: 2, cost: { wood: 60, stone: 30, ryo: 120 }, buildTime: 20, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 2,
     roof: '#8e2a22', wall: '#f3e7cf',
+  },
+  {
+    type: 'port', name: 'Porto', icon: '{ship}', desc: 'Barcos para as ilhas e os lugares sagrados da região (janela Mundo → Região).',
+    w: 3, h: 2, cost: { wood: 150, stone: 60, ryo: 100 }, buildTime: 30, unique: true, buildable: true, lights: true, minLevel: 1,
+    roof: '#3d5a80', wall: '#c8a26a',
   },
   {
     type: 'arena', name: 'Arena do Exame', icon: '{arena}', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',

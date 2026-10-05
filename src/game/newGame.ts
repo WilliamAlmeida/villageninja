@@ -6,6 +6,7 @@ import { Game, type System } from './game';
 import { createTeam, joinAsMember } from './teams';
 import type { GameState } from './types';
 import { emptyExplored, generateSites, revealStart } from './explore';
+import { newRegion } from './region';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
 export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31) | 0): Game {
@@ -41,6 +42,10 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     sites: [],
     scrolls: [],
     expeditions: [],
+    region: newRegion(),
+    regionDay: 1,
+    honor: 0,
+    infamy: 0,
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

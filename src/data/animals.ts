@@ -1,6 +1,6 @@
 import type { Cost } from '../game/types';
 
-export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey' | 'spider' | 'tiger' | 'rhino' | 'hydra' | 'golem';
+export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey' | 'spider' | 'tiger' | 'rhino' | 'hydra' | 'golem' | 'toad' | 'slug' | 'dog';
 
 export interface AnimalDef {
   type: AnimalType;
@@ -47,6 +47,10 @@ const LIST: AnimalDef[] = [
     desc: 'Três cabeças: quando a vida zera, uma cabeça cai e ela volta inteira. Cospe veneno em área de longe.' },
   { type: 'golem', name: 'Golem de Barro', hp: 600, damage: 24, attackCd: 2.2, speed: 38, aggro: 200, range: 32, size: 22, color: '#a0603a', reward: { stone: 40 }, xp: 60, minDay: 9999, weight: 0, pack: [1, 1],
     desc: 'Quando cai, se divide em dois golems menores (duas vezes). Só é vencido quando todos os pedaços caírem.' },
+  // aliados da vila (invocações dos contratos e cães ninja): nunca surgem sozinhos
+  { type: 'toad', name: 'Sapo guerreiro', hp: 230, damage: 18, attackCd: 1.6, speed: 62, aggro: 200, range: 32, size: 16, color: '#d9542b', reward: {}, xp: 0, minDay: 9999, weight: 0, pack: [1, 1] },
+  { type: 'slug', name: 'Lesma curandeira', hp: 170, damage: 4, attackCd: 2, speed: 40, aggro: 160, range: 24, size: 14, color: '#cfe3f0', reward: {}, xp: 0, minDay: 9999, weight: 0, pack: [1, 1] },
+  { type: 'dog', name: 'Ninken', hp: 80, damage: 9, attackCd: 0.9, speed: 92, aggro: 170, range: 18, size: 8, color: '#b07a45', reward: {}, xp: 0, minDay: 9999, weight: 0, pack: [1, 1] },
   // golpes especiais
   { type: 'spider', name: 'Aranha gigante', hp: 95, damage: 8, attackCd: 1.3, speed: 60, aggro: 150, range: 22, size: 11, color: '#3a2440', reward: { herbs: 6, ryo: 15 }, xp: 30, minDay: 5, weight: 2, pack: [1, 2],
     desc: 'Cospe teia que prende o alvo por alguns segundos. Lute em grupo para ninguém ficar sozinho preso.', ability: 'web' },

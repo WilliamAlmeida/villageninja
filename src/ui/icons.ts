@@ -92,6 +92,7 @@ const I: Record<string, string> = {
   gold: '<path d="M3 17l3-6h12l3 6z"/><path d="M8 11l2-4h4l2 4"/>',
   darksteel: '<path d="M5 19L19 5"/><path d="M15 5h4v4"/><path d="M8 16l-3 3M6 13l5 5"/>',
   pickaxe2: '<path d="M4 20l9-9"/><path d="M8 5c4-2 8-1 11 2-3-1-6-1-9 1"/>',
+  ship: '<path d="M3 15h18l-3 5H6z"/><path d="M12 3v12M12 4l6 9h-6"/>',
   map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500h.010"/>',
 };

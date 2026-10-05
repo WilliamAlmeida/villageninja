@@ -19,7 +19,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 # largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles
 BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'academy': 6, 'hospital': 5, 'tower': 2.6,
              'library': 5, 'missions': 4, 'ironmine': 4, 'forge': 4, 'pharmacy': 4, 'sealshop': 4, 'monument': 6,
-             'farm': 6, 'training': 6, 'herbgarden': 4}
+             'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4}
 FLIP = {'lumber', 'quarry', 'market', 'academy', 'tower'}
 # níveis de upgrade (<tipo>-2, <tipo>-3): mesma largura e mesmo espelhamento do nível 1
 for _name in list(BUILDINGS):
@@ -33,10 +33,11 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
           **{f'ninja-hair-{s}': (56, 'biped') for s in ('spiky', 'ponytail', 'short', 'long', 'buns', 'bald')},
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
-          'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped')}
+          'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
+          'dog': (44, 'quadruped'), 'toad': (64, 'quadruped'), 'slug': (52, 'quadruped')}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
-TRUST_FACING = {'spider'}
+TRUST_FACING = {'spider', 'slug'}
 SINGLE = {'ruin': 128, 'chest': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}
 COLS, ROWS = 4, 3
 problems: list[str] = []

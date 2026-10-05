@@ -428,3 +428,33 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .mcard.exp.ended { opacity: 0.6; }
 .explog { list-style: none; margin: 0.3rem 0; padding: 0 0 0 0.6rem; border-left: 2px solid var(--line); font-size: 0.82rem; color: var(--muted); display: flex; flex-direction: column; gap: 0.15rem; }
 .explog li:last-child { color: var(--text); }
+
+/* mapa da região (janela Mundo) */
+.regionwrap { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(15rem, 1fr); gap: 0.9rem; align-items: start; }
+@media (max-width: 760px) { .regionwrap { grid-template-columns: 1fr; } }
+.rmap { position: relative; border-radius: 0.8rem; overflow: hidden; border: 1px solid var(--line); aspect-ratio: 3 / 2; background: #1f4f8a; }
+.rmap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; user-select: none; }
+.rnode {
+  position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+  padding: 0.2rem; border-radius: 0.6rem; background: none; color: #fff; font-size: 0.72rem; font-weight: 700; text-shadow: 0 1px 2px #000, 0 0 4px #000;
+}
+.rnode .ic { width: 1.5rem; height: 1.5rem; padding: 0.22rem; border-radius: 50%; background: rgba(20, 14, 10, 0.82); border: 2px solid #fff; box-sizing: content-box; color: #fff; }
+.rnode span { white-space: nowrap; padding: 0 0.3rem; border-radius: 0.3rem; background: rgba(0, 0, 0, 0.45); }
+.rnode.home .ic { border-color: var(--accent); color: var(--accent); }
+.rnode.k-island .ic { border-color: #7fd8ff; } .rnode.k-sacred .ic { border-color: #c9a0ff; }
+.rnode.s-protected .ic { border-color: var(--good); } .rnode.s-vassal .ic { border-color: #ffd34d; background: #4a3a10; } .rnode.s-hostile .ic { border-color: var(--bad); }
+.rnode.on .ic { box-shadow: 0 0 0 3px var(--accent); }
+.rnode .tdot { position: absolute; top: 0; right: 0.1rem; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--c); border: 1px solid #000; }
+@media (hover: hover) { .rnode:hover .ic { filter: brightness(1.25); } }
+.rside .fame { display: flex; gap: 0.6rem; margin-bottom: 0.5rem; }
+.rside .fame span { flex: 1; padding: 0.4rem 0.55rem; border-radius: 0.55rem; background: var(--card); font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; }
+.rside .fame .hon { color: #ffd34d; } .rside .fame .inf { color: #ff8a8a; }
+.relbar { position: relative; height: 1.15rem; border-radius: 0.4rem; background: linear-gradient(90deg, rgba(255,90,90,0.35), rgba(255,255,255,0.08), rgba(94,224,94,0.35)); overflow: hidden; margin: 0.25rem 0; }
+.relbar i { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; box-shadow: 0 0 4px #000; }
+.relbar span { position: relative; display: block; text-align: center; font-size: 0.8rem; line-height: 1.15rem; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.badge.st-protected { background: rgba(94,224,94,0.25); } .badge.st-vassal { background: rgba(255,211,77,0.3); } .badge.st-hostile { background: rgba(255,90,90,0.3); }
+.rteams { grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
+.rteams .dot { margin-right: 0.25rem; }
+.ractions { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.4rem; }
+.ractions .btn { flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+.ractions .btn small { font-weight: 500; color: var(--muted); font-size: 0.78rem; }
