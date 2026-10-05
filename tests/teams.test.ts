@@ -7,7 +7,7 @@ import { trainTick } from '../src/game/progression';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import {
-  createTeamWith, disbandTeam, joinAsMember, joinAsSensei, MAX_MEMBERS, orderAttack, orderMove, orderRetreat, teamOf, teamUnits,
+  autoTeams, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, MAX_MEMBERS, orderAttack, orderMove, orderRetreat, teamOf, teamUnits,
 } from '../src/game/teams';
 import type { Unit } from '../src/game/types';
 import { doorPos } from '../src/game/world';
@@ -150,5 +150,32 @@ describe('save', () => {
     expect(s.version).toBe(SAVE_VERSION);
     expect(s.teams).toEqual([]);
     expect(s.units.every((u) => u.command === null)).toBe(true);
+  });
+
+  test('equipes automáticas: completa vagas e cria equipes equilibradas com sensei', () => {
+    const g = createNewGame(SYSTEMS, 9);
+    // Time 1 começa com 2 genin: ganha 1 membro; sobram 6 genin (2 equipes novas) e 2 chunin (senseis)
+    const extra = Array.from({ length: 7 }, (_, i) => {
+      const u = createNinja(g, 100, 100, 'genin', 0);
+      u.ninja!.level = i + 1;
+      return u;
+    });
+    const leads = [createNinja(g, 100, 100, 'chunin', 0), createNinja(g, 100, 100, 'chunin', 0), createNinja(g, 100, 100, 'chunin', 0)];
+    const r = autoTeams(g);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.created).toBe(2);
+    expect(g.state.teams.length).toBe(3);
+    for (const t of g.state.teams) {
+      expect(t.memberIds.length).toBe(MAX_MEMBERS);
+      expect(t.senseiId).not.toBeNull();
+    }
+    for (const u of [...extra, ...leads]) expect(teamOf(g, u)).toBeDefined();
+    // equilíbrio: as equipes novas não têm diferença grande de nível somado
+    const sum = (t: (typeof g.state.teams)[number]) => t.memberIds.reduce((a, id) => a + g.unit(id)!.ninja!.level, 0);
+    const [a, b] = g.state.teams.slice(1).map(sum);
+    expect(Math.abs(a! - b!)).toBeLessThanOrEqual(2);
+    // de novo: ninguém livre
+    expect(autoTeams(g).ok).toBe(false);
   });
 });

@@ -14,15 +14,15 @@ export const STAT_KEYS = [
 export type StatKey = (typeof STAT_KEYS)[number];
 export type Stats = Record<StatKey, number>;
 
-export const STAT_INFO: Record<StatKey, { label: string; short: string; color: string }> = {
-  ninjutsu: { label: 'Ninjutsu', short: 'Nin', color: '#4da6ff' },
-  taijutsu: { label: 'Taijutsu', short: 'Tai', color: '#ff8a3d' },
-  genjutsu: { label: 'Genjutsu', short: 'Gen', color: '#b36bff' },
-  inteligencia: { label: 'Inteligência', short: 'Int', color: '#5ad1c8' },
-  forca: { label: 'Força', short: 'For', color: '#ff5a5a' },
-  velocidade: { label: 'Velocidade', short: 'Vel', color: '#ffe14d' },
-  stamina: { label: 'Stamina', short: 'Sta', color: '#7ddc6b' },
-  selos: { label: 'Selos', short: 'Sel', color: '#d9d9d9' },
+export const STAT_INFO: Record<StatKey, { label: string; short: string; color: string; /** O que o atributo melhora (dica do foco de treino). */ desc: string }> = {
+  ninjutsu: { label: 'Ninjutsu', short: 'Nin', color: '#4da6ff', desc: 'Força dos jutsus de ninjutsu e chakra máximo.' },
+  taijutsu: { label: 'Taijutsu', short: 'Tai', color: '#ff8a3d', desc: 'Dano e ritmo do corpo a corpo; força dos jutsus de taijutsu.' },
+  genjutsu: { label: 'Genjutsu', short: 'Gen', color: '#b36bff', desc: 'Força e duração das ilusões; resistência a genjutsu.' },
+  inteligencia: { label: 'Inteligência', short: 'Int', color: '#5ad1c8', desc: 'Aprende jutsus e treina mais rápido, gasta menos chakra e recupera chakra mais rápido.' },
+  forca: { label: 'Força', short: 'For', color: '#ff5a5a', desc: 'Dano no corpo a corpo, vida máxima e defesa.' },
+  velocidade: { label: 'Velocidade', short: 'Vel', color: '#ffe14d', desc: 'Corre mais rápido, ataca mais vezes, esquiva e acerta mais com kunai.' },
+  stamina: { label: 'Stamina', short: 'Sta', color: '#7ddc6b', desc: 'Vida e chakra máximos, defesa e recuperação de chakra.' },
+  selos: { label: 'Selos', short: 'Sel', color: '#d9d9d9', desc: 'Recarga dos jutsus mais curta, chakra máximo e dano de kunai.' },
 };
 
 export type Rank = 'genin' | 'chunin' | 'jounin' | 'kage';

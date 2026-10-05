@@ -25,7 +25,7 @@ import { ITEM_LIST, ITEMS, MAX_QUEUE, SLOT_LABEL, type ItemSlot } from '../data/
 import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip } from '../game/gear';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
-  clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
+  autoTeams, clearCommand, commandLabel, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamOf, teamUnits,
 } from '../game/teams';
 import type { Building, Mission, NinjaOrder, Team, Unit } from '../game/types';
@@ -36,6 +36,7 @@ import { esc, el } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { housingOf, levelOf, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { rich } from './icons';
+import { blocked, blockedClick, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
 type UnitTab = 'info' | 'cmd' | 'gear';
@@ -67,6 +68,14 @@ const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
 const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village' };
 
 type BuildingTab = 'main' | 'inside';
+
+const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']];
+/** O que cada rotina faz (dica e texto abaixo dos botões). */
+const ROUTINE_TIP: Record<NinjaOrder, string> = {
+  auto: 'Decide sozinho: acompanha o líder da equipe; sem equipe, treina na maior parte do dia e patrulha no resto. Dorme à noite.',
+  train: 'Passa o dia no Campo de Treino ganhando atributos e XP. Dorme à noite.',
+  patrol: 'Só patrulha o território, também à noite: não dorme nem treina.',
+};
 
 /**
  * Painel de detalhes em dois modos:
@@ -220,13 +229,17 @@ export class Panel {
         <span class="badge ${u.faction === 'enemy' ? 'enemy' : 'rank'}">${u.faction === 'enemy' ? 'Renegado · ' : ''}${RANKS[n.rank].name}</span>
         <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div></div>`;
       html += `<div class="sub">Nível ${n.level} · <span data-t="state"></span></div>`;
-      html += `<div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
-      html += `<div class="bar ck"><i data-b="ck"></i><span data-t="ck"></span></div>`;
-      t.ck = `Chakra ${Math.floor(u.chakra)} / ${u.maxChakra}`;
+      // vida, chakra e XP lado a lado (economiza altura no painel)
+      const vit = (k: string, label: string, tip: string) =>
+        `<div ${tipAttr(label, tip, true)}><small>${label}</small><div class="bar ${k}"><i data-b="${k}"></i><span data-t="${k}"></span></div></div>`;
+      html += `<div class="vit">${vit('hp', 'Vida', 'Chega a zero e o ninja cai. Recupera descansando em casa ou no hospital.')}${vit(
+        'ck', 'Chakra', 'Gasto pelos jutsus. Recupera sozinho com o tempo (Stamina e Inteligência aceleram).',
+      )}${isOwn ? vit('xp', 'XP', 'Experiência de lutas, treinos e missões. Ao encher, sobe de nível e ganha atributos.') : ''}</div>`;
+      t.hp = `${Math.ceil(u.hp)}/${u.maxHp}`;
+      t.ck = `${Math.floor(u.chakra)}/${u.maxChakra}`;
       b.ck = u.chakra / Math.max(1, u.maxChakra);
       if (isOwn) {
-        html += `<div class="bar xp"><i data-b="xp"></i><span data-t="xp"></span></div>`;
-        t.xp = `XP ${Math.floor(n.xp)} / ${xpToNext(n.level)}`;
+        t.xp = `${Math.floor(n.xp)}/${xpToNext(n.level)}`;
         b.xp = n.xp / xpToNext(n.level);
         // abas: o painel do ninja mostra um assunto por vez em vez de uma lista comprida
         html += `<div class="seg subtabs">`;
@@ -314,13 +327,18 @@ export class Panel {
     if (u.command) html += `<button class="btn" data-act="cmd-clear" data-arg="self">{x} Cancelar</button>`;
     html += `</div><p class="hint">No computador: botão direito no mapa manda mover ou atacar.</p>`;
     html += `<h4>Rotina</h4><div class="seg">`;
-    for (const [k, label] of [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']] as [NinjaOrder, string][])
-      html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}">${label}</button>`;
-    html += `</div><h4>Foco do treino</h4><div class="chips">`;
-    const auto = team?.senseiId != null && team.senseiId !== u.id ? 'Sensei decide' : 'Aleatório';
-    html += `<button data-act="focus" data-arg="" class="${n.focus ? '' : 'on'}">${auto}</button>`;
-    for (const k of STAT_KEYS) html += `<button data-act="focus" data-arg="${k}" class="${n.focus === k ? 'on' : ''}">${STAT_INFO[k].label}</button>`;
-    html += `</div>`;
+    for (const [k, label] of ROUTINES)
+      html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
+    html += `</div><p class="hint">${ROUTINE_TIP[n.order]}</p>`;
+    html += `<h4>Foco do treino</h4><div class="chips">`;
+    const bySensei = team?.senseiId != null && team.senseiId !== u.id;
+    const auto = bySensei ? 'Sensei decide' : 'Aleatório';
+    const autoTip = bySensei ? 'Metade das vezes o sensei puxa o treino para os pontos fortes dele.' : 'Cada sessão treina um atributo ao acaso.';
+    html += `<button data-act="focus" data-arg="" class="${n.focus ? '' : 'on'}" ${tipAttr(auto, autoTip)}>${auto}</button>`;
+    for (const k of STAT_KEYS)
+      html += `<button data-act="focus" data-arg="${k}" class="${n.focus === k ? 'on' : ''}" ${tipAttr(STAT_INFO[k].label, STAT_INFO[k].desc)}>${STAT_INFO[k].label}</button>`;
+    // a explicação do foco atual fica visível (no celular não existe "passar o mouse")
+    html += `</div><p class="hint">${n.focus ? `<b>${STAT_INFO[n.focus].label}:</b> ${STAT_INFO[n.focus].desc}` : autoTip} Cada sessão no Campo de Treino sobe o atributo escolhido (até o limite da patente).</p>`;
     return html + this.teamSection(u, team);
   }
 
@@ -357,13 +375,12 @@ export class Panel {
     } else if (next) {
       const r = RANKS[next];
       const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
-      const can = n.level >= r.minLevel && villageOk && g.canAfford(r.promoteCost);
       const why = n.level < r.minLevel ? `· nível ${r.minLevel}` : !villageOk ? `· requer ${levelDef(r.minVillageLevel!).name}` : '';
-      html += `<button class="btn" data-act="promote" ${can ? '' : 'disabled'}>{medal} Promover a ${r.name} (${costLabel(r.promoteCost)}) ${why}</button>`;
+      html += `<button class="btn" data-act="promote" ${blocked(g, [n.level < r.minLevel && `Precisa chegar ao nível ${r.minLevel} (está no ${n.level}).`, !villageOk && `A vila precisa ser ${levelDef(r.minVillageLevel!).name}.`], r.promoteCost)}>{medal} Promover a ${r.name} (${costLabel(r.promoteCost)}) ${why}</button>`;
     }
     if (n.rank !== 'genin' && !clanOf(g, u)) {
       const fc = canFoundClan(g, u);
-      html += `<button class="btn" data-act="found-clan" ${fc.ok ? '' : 'disabled'}>{castle} Fundar clã ${esc(surname(u))} (${costLabel(FOUND_COST)})${fc.ok ? '' : ` · ${esc(fc.error)}`}</button>`;
+      html += `<button class="btn" data-act="found-clan" ${blocked(g, [!fc.ok && fc.error !== 'Recursos insuficientes.' && fc.error], FOUND_COST)}>{castle} Fundar clã ${esc(surname(u))} (${costLabel(FOUND_COST)})${fc.ok ? '' : ` · ${esc(fc.error)}`}</button>`;
     }
     html += `</div><p class="hint">Abates: ${n.kills}</p>`;
     return html;
@@ -404,17 +421,17 @@ export class Panel {
     for (const o of jutsuOptions(u)) {
       const d = o.def;
       const afford = g.canAfford(d.cost);
-      const enabled = o.ok && afford && !!academy && !n.learning;
+      const learnBlock = blocked(g, [!academy && 'Construa a Academia Ninja para ensinar jutsus.', !!n.learning && 'Já está estudando outro jutsu.'], d.cost);
       html += `<div class="jcard ${o.ok ? '' : 'locked'}" style="--c:${d.color}"><div class="jn">${esc(d.name)}</div>
         <div class="jm">Rank ${JUTSU_RANK_LABEL[d.rank]} · ${JUTSU_TYPE_LABEL[d.type]} · ${d.chakra} chakra · ${costLabel(d.cost)} · ${d.learnTime}s</div>
         <div class="jd">${esc(d.desc)}</div>`;
       if (!o.ok) html += `<div class="why">${esc(o.reason ?? '')}</div>`;
       else {
         html += `<div class="jb">`;
-        if (free >= 0) html += `<button class="btn primary" data-act="learn" data-arg="${d.id}" data-slot="${free}" ${enabled ? '' : 'disabled'}>Aprender (slot ${free + 1})</button>`;
+        if (free >= 0) html += `<button class="btn primary" data-act="learn" data-arg="${d.id}" data-slot="${free}" ${learnBlock}>Aprender (slot ${free + 1})</button>`;
         else
           for (const s of [0, 1])
-            html += `<button class="btn" data-act="learn" data-arg="${d.id}" data-slot="${s}" ${enabled ? '' : 'disabled'}>Substituir ${esc(JUTSUS[n.jutsu[s]!]!.shout.replace('!', ''))}</button>`;
+            html += `<button class="btn" data-act="learn" data-arg="${d.id}" data-slot="${s}" ${learnBlock}>Substituir ${esc(JUTSUS[n.jutsu[s]!]!.shout.replace('!', ''))}</button>`;
         html += `</div>`;
         if (!afford) html += `<div class="why">Faltam recursos</div>`;
       }
@@ -469,7 +486,7 @@ export class Panel {
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
         html += `<h4>Recrutamento</h4><p class="hint">Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.</p>`;
-        html += `<div class="actions"><button class="btn primary" data-act="recruit" ${g.canAfford(RECRUIT_COST) && villagers > 1 ? '' : 'disabled'}>{ninja} Recrutar ninja (${costLabel(RECRUIT_COST)})</button></div>`;
+        html += `<div class="actions"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ninja (${costLabel(RECRUIT_COST)})</button></div>`;
         html += `<p class="hint">Para ensinar jutsu: selecione um ninja → "Ensinar jutsu".</p>`;
       }
       if (bd.type === 'training') html += `<p class="hint">Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP.</p>`;
@@ -544,7 +561,7 @@ export class Panel {
     }
     if (lvl >= MAX_BUILDING_LEVEL) return html + `</div>`;
     const st = upgradeStatus(g, bd);
-    html += `<div class="actions"><button class="btn primary big" data-act="upgrade-building" ${st.reason ? 'disabled' : ''}>
+    html += `<div class="actions"><button class="btn primary big" data-act="upgrade-building" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>
       <span>{up} Nível ${lvl + 1}: ${esc(def.perks[lvl]!)}</span><span class="cost">${costLabel(st.cost ?? {})}</span></button></div>`;
     if (st.reason && st.reason !== 'Recursos insuficientes.') html += `<p class="why">${esc(st.reason)}</p>`;
     return html + `</div>`;
@@ -591,16 +608,27 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
+    const RANK_ICON: Record<string, string> = { genin: 'leaf', chunin: 'medal', jounin: 'star', kage: 'crown' };
     const byRank = Object.entries(RANKS)
-      .map(([k, r]) => [r.name, ninjas.filter((u) => u.ninja!.rank === k).length] as const)
+      .map(([k, r]) => [r.name, ninjas.filter((u) => u.ninja!.rank === k).length, RANK_ICON[k] ?? 'ninja'] as const)
       .filter(([, n]) => n > 0);
-    const cell = (label: string, v: string | number) => `<div class="statcard"><span>${label}</span><b>${v}</b></div>`;
+    const cell = (icon: string, label: string, v: string | number, tip: string) =>
+      `<div class="statcard" ${tipAttr(label, tip, true)}><span class="si ic-wrap">{${icon}}</span><span>${label}</span><b>${v}</b></div>`;
     let html = this.tabs('stats') + `<div class="statgrid">`;
-    html += cell('Dia', s.day) + cell('População', `${g.population()} / ${g.popCap()}`) + cell('Ninjas', ninjas.length) + cell('Reputação', s.reputation);
-    html += cell('Abates', s.stats.kills) + cell('Invasões repelidas', s.stats.raidsRepelled) + cell('Chefes derrotados', s.stats.bossesDefeated);
-    html += cell('Missões cumpridas', s.stats.missionsDone) + cell('Nascimentos', s.stats.born) + cell('Perdas', s.stats.lost) + cell('Clãs', s.clans.length) + cell('Equipes', s.teams.length);
+    html += cell('sun', 'Dia', s.day, 'Dias desde a fundação da vila.');
+    html += cell('users', 'População', `${g.population()} / ${g.popCap()}`, 'Moradores e ninjas / vagas nas casas. Construa ou melhore casas para crescer.');
+    html += cell('ninja', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
+    html += cell('star', 'Reputação', s.reputation, 'Sobe com missões, exames, chefes vencidos e o Monte dos Kages; cai quando uma missão fracassa.');
+    html += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');
+    html += cell('shield', 'Invasões repelidas', s.stats.raidsRepelled, 'Ataques de renegados que a vila venceu.');
+    html += cell('skull', 'Chefes derrotados', s.stats.bossesDefeated, 'Ameaças-chefe vencidas.');
+    html += cell('clipboard', 'Missões cumpridas', s.stats.missionsDone, 'Missões da Mesa de Missões concluídas com sucesso.');
+    html += cell('baby', 'Nascimentos', s.stats.born, 'Crianças nascidas na vila.');
+    html += cell('candle', 'Perdas', s.stats.lost, 'Moradores e ninjas que morreram.');
+    html += cell('castle', 'Clãs', s.clans.length, 'Clãs fundados por ninjas da vila.');
+    html += cell('flag', 'Equipes', s.teams.length, 'Equipes de ninjas montadas.');
     html += `</div>`;
-    if (byRank.length) html += `<h4>Ninjas por patente</h4><div class="statgrid">${byRank.map(([n, c]) => cell(n, c)).join('')}</div>`;
+    if (byRank.length) html += `<h4>Ninjas por patente</h4><div class="statgrid">${byRank.map(([n, c, i]) => cell(i, n, c, `Ninjas com a patente ${n}.`)).join('')}</div>`;
     return { html, t: {}, b: {} };
   }
 
@@ -636,7 +664,7 @@ export class Panel {
         else if (!opts.length) html += `<span class="why">Para despertar, o clã precisa de ninjas de duas naturezas compatíveis (ex.: 風+水 = 氷 Gelo).</span>`;
         else
           for (const k of opts)
-            html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${g.canAfford(AWAKEN_COST) ? '' : 'disabled'}>${k.kanji} Despertar ${k.name} (${k.pt}) · ${costLabel(AWAKEN_COST)}</button>`;
+            html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${blocked(g, [], AWAKEN_COST)}>${k.kanji} Despertar ${k.name} (${k.pt}) · ${costLabel(AWAKEN_COST)}</button>`;
         html += `</div>`;
       }
       html += `</div>`;
@@ -687,7 +715,7 @@ export class Panel {
     for (const c of st.checks)
       html += `<li class="${c.ok ? 'ok' : ''}">${c.ok ? '{check}' : '{todo}'} ${esc(c.label)} <b>${Math.min(c.have, c.need)}/${c.need}</b></li>`;
     html += `</ul></div><div><h4>Benefícios</h4><ul class="reqs perks">${st.def.perks.map((p) => `<li class="ok">{star} ${esc(p)}</li>`).join('')}</ul></div></div>`;
-    html += `<div class="actions"><button class="btn primary big" data-act="upgrade" ${st.ready && st.afford ? '' : 'disabled'}>
+    html += `<div class="actions"><button class="btn primary big" data-act="upgrade" ${blocked(g, st.checks.filter((c) => !c.ok).map((c) => `{todo} ${c.label}: ${Math.min(c.have, c.need)} de ${c.need}`), st.def.cost, st.ready ? undefined : 'Faltam requisitos')}>
       <span>{up} Elevar a ${st.def.name}</span><span class="cost">${costLabel(st.def.cost)}</span></button></div>`;
     if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
     return html;
@@ -719,7 +747,7 @@ export class Panel {
     html += `<h4>Exame Chunin</h4><p class="hint">Genins de nível ${EXAM_MIN_LEVEL}+ lutam 1×1 contra colegas e convidados de outras vilas.
       O campeão e quem tiver bom desempenho (vitórias, dano, jutsus) viram Chunin de graça. Convidados trazem ryo e reputação.</p>`;
     if (st.eligible.length) html += `<p class="hint">Inscritos possíveis: ${st.eligible.map((u) => esc(u.name.split(' ').pop()!)).join(', ')}</p>`;
-    html += `<div class="actions"><button class="btn primary" data-act="exam-start" ${st.ready ? '' : 'disabled'}>{megaphone} Convocar Exame Chunin</button></div>`;
+    html += `<div class="actions"><button class="btn primary" data-act="exam-start" ${blocked(g, [!st.ready && st.reason])}>{megaphone} Convocar Exame Chunin</button></div>`;
     if (!st.ready) html += `<p class="why">${esc(st.reason)}</p>`;
     const last = g.state.lastExam;
     if (last) {
@@ -751,10 +779,9 @@ export class Panel {
     html += `<h4>Receitas</h4>`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
-      const can = !locked && g.canAfford(r.cost) && queue.length + (bd.craft ? 1 : 0) < MAX_QUEUE;
       html += `<div class="jcard ${locked ? 'locked' : ''}"><div class="jn">${r.icon} ${esc(r.name)} <small>· ${SLOT_LABEL[r.slot]}</small></div>
         <div class="jm">${costLabel(r.cost)} · ${r.craftTime}s</div><div class="jd">${esc(r.desc)}</div>
-        <div class="jb">${locked ? `<span class="why">{lock} Requer ${levelDef(r.minLevel!).name}</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${can ? '' : 'disabled'}>Fabricar</button>`}</div></div>`;
+        <div class="jb">${locked ? `<span class="why">{lock} Requer ${levelDef(r.minLevel!).name}</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${blocked(g, [queue.length + (bd.craft ? 1 : 0) >= MAX_QUEUE && `A fila está cheia (máximo ${MAX_QUEUE}).`], r.cost)}>Fabricar</button>`}</div></div>`;
     }
     return html;
   }
@@ -858,7 +885,12 @@ export class Panel {
         <span class="rn"><span class="dot"></span>${esc(tm.name)}</span><span class="badge">${tm.memberIds.length}/${MAX_MEMBERS}</span>
         <span class="rm">Sensei: ${sensei ? esc(sensei.name) : '—'} · ${tm.memberIds.map((id) => esc(g.unit(id)?.name.split(' ').pop() ?? '?')).join(', ') || 'sem membros'}</span></button>`;
     }
-    html += `</div><div class="actions"><button class="btn primary" data-act="team-new">{plus} Nova equipe</button></div>`;
+    const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja!.rank !== 'kage' && !teamOf(g, u)).length;
+    html += `</div><div class="actions"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
+      'Montar automaticamente',
+      'Completa as vagas das equipes que já existem e cria novas com quem está sem equipe, equilibrando a força e dando um sensei Chunin+ a cada uma quando houver.',
+    )}>{users} Montar equipes automaticamente${free ? ` (${free} sem equipe)` : ''}</button>
+      <button class="btn" data-act="team-new">{plus} Nova equipe vazia</button></div>`;
     if (!g.state.teams.length) html += `<p class="hint">Nenhuma equipe ainda.</p>`;
     return { html, t: {}, b: {} };
   }
@@ -924,8 +956,8 @@ export class Panel {
         <button class="btn" data-act="cmd-clear" data-arg="team">{x} Cancelar</button>
         <button class="btn" data-act="team-autoequip">{gear} Equipar equipe</button></div>
         <h4>Rotina da equipe</h4><div class="seg">`;
-      for (const [k, label] of [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']] as [NinjaOrder, string][])
-        html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}">${label}</button>`;
+      for (const [k, label] of ROUTINES)
+        html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
       html += `</div>`;
     }
     html += `<div class="actions"><button class="btn danger" data-act="team-disband">${this.armedDemolish ? 'Toque de novo para confirmar' : '{trash} Desfazer equipe'}</button></div>`;
@@ -958,6 +990,7 @@ export class Panel {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
     if (!btn) return;
     const g = this.app.game;
+    if (blockedClick(g, btn)) return; // bloqueado: mostra o que falta em vez de não fazer nada
     const act = btn.dataset.act;
     const arg = btn.dataset.arg ?? '';
     const v = this.view;
@@ -992,6 +1025,12 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'team-auto': {
+        const r = autoTeams(g);
+        if (!r.ok) return this.report(r);
+        g.toast(`{users} ${r.placed} ninja(s) em equipe${r.created ? ` · ${r.created} equipe(s) nova(s)` : ''}.`, 'good');
+        return this.report(r);
+      }
       case 'team-new': {
         const tm = createTeam(g);
         if (this.mode === 'window') this.show({ kind: 'team', id: tm.id });

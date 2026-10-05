@@ -155,7 +155,9 @@ button:disabled { cursor: not-allowed; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); }
 .btn.danger { background: #8e2a22; }
 .btn.ghost { background: none; box-shadow: inset 0 0 0 1px var(--line); }
-.btn:disabled { opacity: 0.4; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.45; }
+/* bloqueado mas clicável: o toque mostra o que falta (popup.ts) */
+.btn[aria-disabled="true"] { cursor: help; }
 .btn.mini { padding: 0.22rem 0.5rem; font-size: 0.85rem; }
 .btn.icon { padding: 0.45rem; }
 
@@ -259,6 +261,9 @@ h4 small { text-transform: none; letter-spacing: 0; }
 @media (max-width: 700px) { #win .cols { grid-template-columns: 1fr; } }
 .statgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.5rem; }
 .statcard { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.6rem 0.75rem; border-radius: 0.65rem; background: var(--card); }
+.statcard { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 0.65rem; align-items: center; }
+.statcard .si { grid-row: span 2; width: 2.4rem; height: 2.4rem; border-radius: 0.6rem; background: var(--card-hi); display: grid; place-items: center; color: var(--accent); }
+.statcard .si .ic { width: 1.4rem; height: 1.4rem; }
 .statcard span { color: var(--muted); font-size: 0.82rem; }
 .statcard b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 /* botão grande com custo à direita (não quebra no meio do custo) */
@@ -331,7 +336,7 @@ h4 small { text-transform: none; letter-spacing: 0; }
 
 /* ---------- mouse (desktop) ---------- */
 @media (hover: hover) {
-  .btn:not(:disabled):hover, .iconbtn:hover, #panel .close:hover, .bigbtn:hover, .bcard:not(.off):hover { filter: brightness(1.18); }
+  .btn:not(:disabled):not([aria-disabled="true"]):hover, .iconbtn:hover, #panel .close:hover, .bigbtn:hover, .bcard:not(.off):hover { filter: brightness(1.18); }
   .rrow:hover { background: var(--card-hi); box-shadow: inset 0 0 0 1px rgba(255, 211, 77, 0.45); }
   .seg button:not(.on):hover, .chips button:not(.on):hover, .speed button:not(.on):hover { background: var(--card-hi); }
   .toast.go:hover, .banner:hover { filter: brightness(1.15); }
@@ -368,3 +373,45 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   #topbar { height: 2.6rem; }
   #panel, #toasts { top: 3.1rem; }
 }
+
+/* vida · chakra · XP lado a lado no painel do ninja */
+.vit { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 0.35rem; margin: 0.2rem 0 0.35rem; }
+.vit small { display: block; font-size: 0.72rem; color: var(--muted); line-height: 1.1; }
+.vit .bar { margin: 0.1rem 0 0; }
+.vit .bar span { font-size: 0.74rem; }
+
+/* card de construção: "i" abre os detalhes */
+.bcard .info { position: absolute; top: 0.3rem; right: 0.3rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); color: var(--text); }
+.bcard .info .ic { width: 1.1rem; height: 1.1rem; }
+@media (hover: hover) { .bcard .info:hover { background: var(--accent); color: var(--accent-ink); } }
+
+/* dica flutuante (popup.ts) */
+#tip {
+  position: fixed; z-index: 40; max-width: min(20rem, 86vw); padding: 0.5rem 0.7rem; border-radius: 0.6rem;
+  background: #120d09; border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 0.85rem; line-height: 1.35;
+  pointer-events: none; animation: fade 0.1s ease-out;
+}
+#tip b { display: block; color: var(--accent); margin-bottom: 0.15rem; }
+#tip .ic { width: 1em; height: 1em; vertical-align: -0.12em; }
+
+/* aviso central (popup.ts) */
+#alertbox { position: fixed; inset: 0; z-index: 30; background: rgba(8, 6, 4, 0.55); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: fade 0.12s ease-out; }
+#alertbox[hidden] { display: none; }
+#alertbox .card {
+  width: min(26rem, 100%); max-height: 100%; overflow-y: auto; padding: 1rem 1.1rem; border-radius: 1rem; background: var(--bg2);
+  border: 1px solid var(--line); border-top: 0.25rem solid var(--warn); box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6); animation: pop 0.14s ease-out;
+}
+#alertbox .card.info { border-top-color: var(--accent); }
+@keyframes pop { from { transform: scale(0.94); opacity: 0; } }
+#alertbox .at { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+#alertbox .card.warn .at { color: var(--warn); }
+#alertbox p { margin: 0.3rem 0 0.5rem; color: var(--text); line-height: 1.4; }
+#alertbox p small { color: var(--muted); }
+#alertbox .need { list-style: none; margin: 0.4rem 0 0.2rem; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.3rem; }
+#alertbox .card:has(.need li:nth-child(5)) { width: min(34rem, 100%); }
+#alertbox .need li { padding: 0.3rem 0.55rem; font-size: 0.9rem; border-radius: 0.5rem; background: var(--card); display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+#alertbox .need b { color: var(--bad); }
+#alertbox .need .lbl { color: var(--muted); font-size: 0.82rem; min-width: 4.2rem; }
+#alertbox .aimg { display: grid; place-items: center; height: 5.5rem; overflow: hidden; margin: 0.2rem 0 0.3rem; border-radius: 0.7rem; background: radial-gradient(circle at 50% 70%, rgba(255, 214, 150, 0.12), transparent 70%); }
+#alertbox .aimg img { height: 5.5rem; width: auto; max-width: 70%; object-fit: contain; image-rendering: pixelated; }
+#alertbox .ab { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.8rem; }

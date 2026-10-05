@@ -4,9 +4,15 @@ import { canBuild, canMove, costLabel, moveBuilding, placeBuilding } from '../ga
 import { toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
+import { UPGRADES } from '../data/upgrades';
+import { lackRows, showAlert } from './popup';
 import { el } from './dom';
 import { rich } from './icons';
 import { artUrl } from '../render/art';
+
+/** Dica do card (texto puro): o que faz e o custo. */
+const plainInfo = (d: (typeof BUILDINGS)[BuildingType]) => `${plainTokens(d.desc)}
+Custo: ${plainTokens(costLabel(d.cost))}`;
 
 /** Menu de construção + modo de posicionamento (fantasma no mapa), usado também para mover prédios prontos. */
 export class BuildUI {
@@ -21,13 +27,21 @@ export class BuildUI {
     for (const d of BUILDING_LIST) {
       if (!d.buildable) continue;
       this.bar.appendChild(
-        el('button', { class: 'bcard', 'data-type': d.type }, rich(`${artUrl(d.type) ? `<img class="bg" src="${artUrl(d.type)}" alt="" draggable="false">` : ''}<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span>`)),
+        el(
+          'button',
+          { class: 'bcard', 'data-type': d.type, 'data-tip-title': d.name, 'data-tip': plainInfo(d) },
+          rich(`${artUrl(d.type) ? `<img class="bg" src="${artUrl(d.type)}" alt="" draggable="false">` : ''}<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span>
+            <span class="info" data-info title="Detalhes">{info}</span>`),
+        ),
       );
     }
     this.bar.addEventListener('click', (e) => {
       if (this.dragged) return; // foi um arraste, não um clique no card
       const c = (e.target as HTMLElement).closest<HTMLElement>('[data-type]');
-      if (c) this.start(c.dataset.type as BuildingType);
+      if (!c) return;
+      const type = c.dataset.type as BuildingType;
+      if ((e.target as HTMLElement).closest('[data-info]')) this.info(type);
+      else this.start(type);
     });
     this.enableMouseScroll();
     this.bar.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -101,7 +115,6 @@ export class BuildUI {
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const r = canBuild(this.app.game, c.dataset.type as BuildingType);
       c.classList.toggle('off', !r.ok);
-      c.title = r.ok ? '' : plainTokens(r.error);
       const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;
       const lock = min > this.app.game.state.level ? `{lock} ${levelDef(min).name}` : '';
       const le = c.querySelector('.lock')!;
@@ -112,10 +125,39 @@ export class BuildUI {
     });
   }
 
+  /** Cartão com o que o prédio faz, antes de construir (o "i" do card). */
+  info(type: BuildingType) {
+    const g = this.app.game;
+    const d = BUILDINGS[type];
+    const r = canBuild(g, type);
+    const up = UPGRADES[type];
+    const facts = [
+      d.workers && `${d.workers} trabalhador(es)`,
+      `Tamanho ${d.w}×${d.h}`,
+      `Obra: ${d.buildTime}s`,
+      d.unique && 'Só um por vila',
+      d.walkable && 'Dá para andar por cima',
+    ].filter(Boolean);
+    const lack = lackRows(g, d.cost);
+    const rows = [`<span class="lbl">Custo</span> ${costLabel(d.cost)}`];
+    if (up) rows.push(`<span class="lbl">Upgrades</span> ${up.perks.map((p, i) => `Nv ${i + 1}: ${p}`).join(' · ')}`);
+    if (!r.ok) rows.push(...(lack.length ? lack : [`{lock} ${r.error}`]));
+    const img = artUrl(type);
+    showAlert({
+      kind: 'info',
+      title: `${d.name}`,
+      extra: img ? `<div class="aimg"><img src="${img}" alt=""></div>` : '',
+      text: `${d.desc}<br><small>${facts.join(' · ')}</small>`,
+      rows,
+      action: { label: '{hammer} Construir', run: () => this.start(type), disabled: !r.ok },
+    });
+  }
+
   private start(type: BuildingType) {
     const r = canBuild(this.app.game, type);
     if (!r.ok) {
-      this.app.game.toast(r.error, 'warn');
+      // mesmo aviso com o que falta (em vez de um toast que some)
+      this.info(type);
       return;
     }
     const cam = this.app.camera;

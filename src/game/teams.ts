@@ -133,6 +133,55 @@ export function createTeamWith(g: Game, unitId: number): Result {
   return r;
 }
 
+/**
+ * Monta equipes sozinho com os ninjas sem equipe: primeiro completa as vagas das equipes que já existem
+ * (sensei Chunin+ e membros), depois cria equipes novas equilibradas (o mais forte com o mais fraco)
+ * com um sensei cada, enquanto houver. Retorna quantas equipes foram criadas e quantos ninjas entraram.
+ */
+export function autoTeams(g: Game): { ok: true; created: number; placed: number } | { ok: false; error: string } {
+  const free = g.state.units
+    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && u.ninja.rank !== 'kage' && !teamOf(g, u))
+    .sort((a, b) => b.ninja!.level - a.ninja!.level);
+  if (!free.length) return { ok: false, error: 'Todos os ninjas já estão em equipes.' };
+  const leads = free.filter(canBeSensei);
+  const genins = free.filter((u) => !canBeSensei(u));
+  let placed = 0;
+  // 1) vagas das equipes atuais
+  for (const t of g.state.teams) {
+    if (t.senseiId == null && leads.length && joinAsSensei(g, t.id, leads[0]!.id).ok) {
+      leads.shift();
+      placed++;
+    }
+    while (t.memberIds.length < MAX_MEMBERS && genins.length && joinAsMember(g, t.id, genins[0]!.id).ok) {
+      genins.shift();
+      placed++;
+    }
+  }
+  // 2) equipes novas: genins em "serpentina" (1º, 2º, 3º… e volta) para equilibrar a força
+  let created = 0;
+  const k = Math.ceil(genins.length / MAX_MEMBERS);
+  const fresh = Array.from({ length: k }, () => createTeam(g));
+  genins.forEach((u, i) => {
+    const round = Math.floor(i / k);
+    const col = i % k;
+    const t = fresh[round % 2 ? k - 1 - col : col]!;
+    if (joinAsMember(g, t.id, u.id).ok) placed++;
+  });
+  for (const t of fresh) {
+    if (leads.length && joinAsSensei(g, t.id, leads.shift()!.id).ok) placed++;
+  }
+  created += fresh.length;
+  // 3) sobraram só Chunin+: um sensei com até 3 colegas por equipe
+  while (leads.length >= 2) {
+    const t = createTeam(g);
+    created++;
+    if (joinAsSensei(g, t.id, leads.shift()!.id).ok) placed++;
+    while (t.memberIds.length < MAX_MEMBERS && leads.length && joinAsMember(g, t.id, leads.shift()!.id).ok) placed++;
+  }
+  if (!placed) return { ok: false, error: 'Nenhuma vaga: as equipes estão cheias e não há ninjas suficientes para uma nova.' };
+  return { ok: true, created, placed };
+}
+
 export function disbandTeam(g: Game, teamId: number): Result {
   const t = g.team(teamId);
   if (!t) return fail('Equipe não encontrada.');

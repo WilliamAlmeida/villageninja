@@ -57,12 +57,14 @@ import hairPonytail from '../art/ninja-hair-ponytail.png';
 import hairShort from '../art/ninja-hair-short.png';
 import hairLong from '../art/ninja-hair-long.png';
 import hairBuns from '../art/ninja-hair-buns.png';
+import hairBald from '../art/ninja-hair-bald.png';
+import snake from '../art/snake.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, ninja, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, 'rock-cracked': rockCracked,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
-  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns };
+  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, snake };
 
 /**
  * Folhas de sprite no padrão de scripts/sprite-template.py: 4 quadros (ciclo de caminhada) × 3 linhas
@@ -71,8 +73,8 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
 export const SHEET_ROWS = { side: 0, front: 1, back: 2 } as const;
 const SHEET = { frames: 4, rows: 3, idle: 1 };
 /** Bases de ninja (uma por penteado) desenhadas em cores-chave: cabelo verde e roupa azul, recoloridas por ninja. */
-export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns'] as const;
-const SHEETS = new Set(['ninja', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
+export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns', 'bald'] as const;
+const SHEETS = new Set(['ninja', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
 
 const images = new Map<string, HTMLImageElement>();
 let enabled = true;
@@ -82,7 +84,11 @@ let enabled = true;
  * Escala extra de alguns sprites de prédio em relação à largura da base. Usado quando os níveis de upgrade
  * ganham alas laterais: sem isso o corpo do prédio encolhe para caber na mesma largura e parece que diminuiu.
  */
-export const ART_SCALE: Record<string, number> = { hospital: 0.85, 'hospital-2': 1.05, 'hospital-3': 1.22 };
+export const ART_SCALE: Record<string, number> = {
+  hospital: 0.85, 'hospital-2': 1.05, 'hospital-3': 1.22,
+  quarry: 0.8, 'quarry-2': 1.08, 'quarry-3': 1.26,
+  'tower-3': 1.06,
+};
 
 export const artUrl = (name: string): string | null => URLS[name] ?? null;
 

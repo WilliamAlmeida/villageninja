@@ -1,4 +1,5 @@
 import type { App } from '../app';
+import { alertOpen, closeAlert, installTips } from './popup';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { orderAttack, orderMove, teamUnits } from '../game/teams';
@@ -15,6 +16,7 @@ const isOwnNinja = (u: Unit) => !u.dead && u.kind === 'ninja' && u.faction === '
 
 /** Monta a interface DOM sobre o canvas e conecta os toques no mapa. */
 export function createUI(app: App, root: HTMLElement) {
+  installTips();
   const hud = new Hud(app);
   const panel = new Panel(app);
   /** Janela central (telas de gestão com abas). */
@@ -79,8 +81,9 @@ export function createUI(app: App, root: HTMLElement) {
     if (e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest('input, textarea')) return;
     const k = e.key.toLowerCase();
     if (k === 'escape') {
-      // fecha a camada mais de cima: janela → modos de mapa → painel lateral
-      if (!win.root.hidden) win.show(null);
+      // fecha a camada mais de cima: aviso → janela → modos de mapa → painel lateral
+      if (alertOpen()) closeAlert();
+      else if (!win.root.hidden) win.show(null);
       else if (app.buildType) build.cancel();
       else if (app.orderMode || app.selectTool) {
         setOrderMode(false);

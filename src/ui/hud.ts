@@ -23,15 +23,15 @@ export class Hud {
       'div',
       { id: 'topbar' },
       rich(`<div class="res">
-        <span class="chip" title="Madeira">{wood} <b data-r="wood"></b></span>
-        <span class="chip" title="Pedra">{stone} <b data-r="stone"></b></span>
-        <span class="chip" title="Comida">{food} <b data-r="food"></b></span>
-        <span class="chip" title="Ryo">{ryo} <b data-r="ryo"></b></span>
-        <span class="chip adv" title="Ferro">{iron} <b data-r="iron"></b></span>
-        <span class="chip adv" title="Ervas">{herbs} <b data-r="herbs"></b></span>
-        <span class="chip adv" title="Papel de selo">{paper} <b data-r="paper"></b></span>
-        <span class="chip" title="População / moradia">{users} <b data-r="pop"></b></span>
-        <span class="chip" title="Ninjas">{ninja} <b data-r="ninjas"></b></span>
+        <span class="chip" data-tip-tap data-tip-title="Madeira" data-tip="Cortada pelos lenhadores e moradores nas árvores. Usada em quase todas as construções.">{wood} <b data-r="wood"></b></span>
+        <span class="chip" data-tip-tap data-tip-title="Pedra" data-tip="Quebrada na pedreira e nas rochas do mapa. Usada em construções e upgrades.">{stone} <b data-r="stone"></b></span>
+        <span class="chip" data-tip-tap data-tip-title="Comida" data-tip="Colhida nas fazendas. A população come todo dia e nascimentos gastam comida; sem ela a vila passa fome.">{food} <b data-r="food"></b></span>
+        <span class="chip" data-tip-tap data-tip-title="Ryo" data-tip="Dinheiro: impostos dos moradores, mercado, missões e caças. Paga recrutamento, promoções e upgrades.">{ryo} <b data-r="ryo"></b></span>
+        <span class="chip adv" data-tip-tap data-tip-title="Ferro" data-tip="Extraído na mina de ferro. Usado na forja para armas e coletes.">{iron} <b data-r="iron"></b></span>
+        <span class="chip adv" data-tip-tap data-tip-title="Ervas" data-tip="Colhidas na horta e nas ervas do mapa. Viram remédios na farmácia.">{herbs} <b data-r="herbs"></b></span>
+        <span class="chip adv" data-tip-tap data-tip-title="Papel de selo" data-tip="Feito na oficina de selos a partir de madeira. Usado nos papéis-bomba.">{paper} <b data-r="paper"></b></span>
+        <span class="chip" data-tip-tap data-tip-title="População" data-tip="Moradores e ninjas / vagas de moradia. Construa ou melhore casas para a vila crescer.">{users} <b data-r="pop"></b></span>
+        <span class="chip" data-tip-tap data-tip-title="Ninjas" data-tip="Ninjas da vila. Recrute moradores na Academia.">{ninja} <b data-r="ninjas"></b></span>
       </div>
       <div class="spacer"></div>
       <div class="clock"><span data-r="lvl"></span> <span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span></div>

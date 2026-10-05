@@ -88,6 +88,7 @@ const I: Record<string, string> = {
   paw: '<ellipse cx="12" cy="16" rx="4" ry="3"/><circle cx="6.500" cy="11" r="1.800"/><circle cx="10" cy="7" r="1.800"/><circle cx="14" cy="7" r="1.800"/><circle cx="17.500" cy="11" r="1.800"/>',
   cart: '<path d="M3 5h3l2 10h10l2-7H7"/><circle cx="9" cy="19" r="1.500"/><circle cx="17" cy="19" r="1.500"/>',
   candle: '<rect x="9" y="10" width="6" height="11" rx="1"/><path d="M12 10V8M12 2c2 2 2 4 0 5-2-1-2-3 0-5z"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500h.010"/>',
 };
 
 /** `<svg>` do ícone (herda a cor do texto; alguns têm cor própria via `.ic-nome`). */
