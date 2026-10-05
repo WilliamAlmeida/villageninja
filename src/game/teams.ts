@@ -1,7 +1,7 @@
 // Equipes (time de até 3 ninjas + sensei) e ordens diretas do jogador.
 import { fx } from './fx';
 import type { Game } from './game';
-import type { Team, Unit } from './types';
+import type { NinjaOrder, Team, Unit } from './types';
 import { doorPos } from './world';
 
 export const MAX_MEMBERS = 3;
@@ -190,7 +190,7 @@ export function disbandTeam(g: Game, teamId: number): Result {
   return ok;
 }
 
-export function setTeamOrder(g: Game, teamId: number, order: 'auto' | 'train' | 'patrol'): Result {
+export function setTeamOrder(g: Game, teamId: number, order: NinjaOrder): Result {
   const t = g.team(teamId);
   if (!t) return fail('Equipe não encontrada.');
   for (const u of teamUnits(g, t)) {
@@ -296,6 +296,7 @@ export const commandLabel = (u: Unit) => {
   if (!c) return 'Nenhuma (IA automática)';
   if (c.kind === 'move') return `Defender ponto (${Math.ceil(c.time)}s)`;
   if (c.kind === 'attack') return 'Atacar alvo';
+  if (c.kind === 'investigate') return 'Investigar local';
   return u.state === 'cmdRest' ? 'Recuado (curando)' : 'Recuar';
 };
 

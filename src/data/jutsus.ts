@@ -45,7 +45,12 @@ export interface JutsuDef {
   cost: Cost;
   /** Segundos de estudo na Academia (antes do bônus de inteligência). */
   learnTime: number;
+  /** Jutsu proibido: só aparece depois de achar o pergaminho nas ruínas e pode deixar sequela ao aprender. */
+  forbidden?: boolean;
 }
+
+/** Chance de o ninja ficar com sequela (perde Stamina) ao terminar de aprender um jutsu proibido. */
+export const FORBIDDEN_RISK = 0.35;
 
 const LIST: JutsuDef[] = [
   {
@@ -143,6 +148,22 @@ const LIST: JutsuDef[] = [
     id: 'kajosatsu', name: 'Shakuton: Kajōsatsu', shout: 'Kajōsatsu!', desc: 'Esferas de calor que queimam tudo ao redor do alvo.',
     nature: null, kekkei: 'shakuton', type: 'ninjutsu', rank: 3, chakra: 30, cooldown: 8, range: 130, power: 30, effect: 'aoe',
     radius: 70, color: '#ffb347', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+  },
+  // ---- proibidos (pergaminhos achados nas ruínas)
+  {
+    id: 'kuroduki', name: 'Kinjutsu: Lua Negra', shout: 'Lua Negra!', desc: 'Ilusão proibida: mergulha o alvo num pesadelo que o paralisa por muito tempo.',
+    nature: null, type: 'genjutsu', rank: 3, chakra: 38, cooldown: 14, range: 160, power: 0, effect: 'stun', forbidden: true,
+    duration: 5.5, color: '#5a2a8a', req: { genjutsu: 4 }, cost: { ryo: 220, paper: 6 }, learnTime: 50,
+  },
+  {
+    id: 'chisoku', name: 'Kinjutsu: Passo de Sangue', shout: 'Passo de Sangue!', desc: 'Força o corpo além do limite numa investida brutal.',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 30, cooldown: 11, range: 160, power: 62, effect: 'dash', forbidden: true,
+    color: '#c0182b', req: { taijutsu: 5, velocidade: 4 }, cost: { ryo: 280, herbs: 10 }, learnTime: 55,
+  },
+  {
+    id: 'senbari', name: 'Kinjutsu: Mil Agulhas', shout: 'Mil Agulhas!', desc: 'Chuva de agulhas de chakra que cobre uma área inteira.',
+    nature: null, type: 'ninjutsu', rank: 4, chakra: 46, cooldown: 12, range: 170, power: 13, effect: 'multi', forbidden: true,
+    count: 10, projSpeed: 340, projKind: 'blade', color: '#d9d9ff', req: { ninjutsu: 5, selos: 4 }, cost: { ryo: 300, paper: 10 }, learnTime: 60,
   },
 ];
 

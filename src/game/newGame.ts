@@ -5,6 +5,7 @@ import { createNinja, createVillager, rollInnateCount } from './entities';
 import { Game, type System } from './game';
 import { createTeam, joinAsMember } from './teams';
 import type { GameState } from './types';
+import { emptyExplored, generateSites, revealStart } from './explore';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
 export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31) | 0): Game {
@@ -36,6 +37,9 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     lastExam: null,
     projectiles: [],
     effects: [],
+    explored: emptyExplored(),
+    sites: [],
+    scrolls: [],
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,
@@ -65,5 +69,8 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
   const team = createTeam(g, 'Time 1');
   joinAsMember(g, team.id, a.id);
   joinAsMember(g, team.id, b.id);
+  // névoa: só os arredores da vila começam explorados; locais especiais escondidos pelo mapa
+  revealStart(state);
+  state.sites = generateSites(state, () => g.newId());
   return g;
 }

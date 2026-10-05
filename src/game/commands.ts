@@ -168,9 +168,11 @@ export interface JutsuOption {
 }
 
 /** Lista de jutsus com o motivo de poder/não poder aprender. */
-export function jutsuOptions(u: Unit): JutsuOption[] {
+/** Jutsus que o ninja pode estudar. Proibidos só aparecem com o pergaminho (`scrolls`, achados nas ruínas). */
+export function jutsuOptions(u: Unit, scrolls: readonly string[] = []): JutsuOption[] {
   const n = u.ninja!;
-  const allowed = (j: JutsuDef) => (j.kekkei ? n.kekkei === j.kekkei : j.nature === null || j.nature === n.nature);
+  const allowed = (j: JutsuDef) =>
+    (!j.forbidden || scrolls.includes(j.id)) && (j.kekkei ? n.kekkei === j.kekkei : j.nature === null || j.nature === n.nature);
   return JUTSU_LIST.filter(allowed).map((def) => {
     const known = n.jutsu.includes(def.id);
     if (known) return { def, ok: false, reason: 'Já conhece', known };
@@ -187,7 +189,7 @@ export function teachJutsu(g: Game, unitId: number, jutsuId: string, slot: 0 | 1
   if (!u?.ninja || !def) return fail('Inválido.');
   if (!g.findBuilt('academy')) return fail('Construa a Academia Ninja primeiro.');
   if (u.ninja.learning) return fail('Já está estudando um jutsu.');
-  const opt = jutsuOptions(u).find((o) => o.def.id === jutsuId);
+  const opt = jutsuOptions(u, g.state.scrolls).find((o) => o.def.id === jutsuId);
   if (!opt?.ok) return fail(opt?.reason ?? 'Não pode aprender.');
   if (!g.pay(def.cost)) return fail('Recursos insuficientes.');
   u.ninja.learning = { jutsuId, slot, progress: 0, total: def.learnTime };

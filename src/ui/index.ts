@@ -3,8 +3,9 @@ import { alertOpen, closeAlert, installTips } from './popup';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { orderAttack, orderMove, teamUnits } from '../game/teams';
-import type { Building, Unit } from '../game/types';
-import { toTile } from '../game/world';
+import type { Building, Site, Unit } from '../game/types';
+import { isExploredPx } from '../game/explore';
+import { tileCenter, toTile } from '../game/world';
 import { BuildUI } from './build';
 import { el } from './dom';
 import { Hud } from './hud';
@@ -166,6 +167,7 @@ export function createUI(app: App, root: HTMLElement) {
     let bd = tolPx * Math.max(1, zoom);
     for (const u of app.game.state.units) {
       if (u.dead || u.hidden || !filter(u)) continue;
+      if (u.faction !== 'village' && !isExploredPx(app.game.state, u.x, u.y)) continue; // escondido na névoa
       const p = app.camera.worldToScreen(u.x, u.y);
       const d = Math.hypot(p.x - sx, p.y - 10 * zoom - sy);
       if (d < bd) {
@@ -185,6 +187,23 @@ export function createUI(app: App, root: HTMLElement) {
       if (b && (lift === 0 || !BUILDINGS[b.type].walkable)) return b;
     }
     return undefined;
+  }
+
+  /** Local especial (já descoberto) sob o ponto da tela. */
+  function siteAt(sx: number, sy: number): Site | undefined {
+    const zoom = app.camera.zoom;
+    let best: Site | undefined;
+    let bd = 26 * Math.max(1, zoom);
+    for (const site of app.game.state.sites) {
+      if (!site.found || (site.done && site.kind !== 'cave')) continue;
+      const p = app.camera.worldToScreen(tileCenter(site.tx), tileCenter(site.ty));
+      const d = Math.hypot(p.x - sx, p.y - 12 * zoom - sy);
+      if (d < bd) {
+        bd = d;
+        best = site;
+      }
+    }
+    return best;
   }
 
   /** Ordem no ponto da tela: atacar se houver inimigo ali, senão mover/defender no chão. */
@@ -231,6 +250,11 @@ export function createUI(app: App, root: HTMLElement) {
     const u = unitAt(sx, sy, 16);
     if (u) {
       g.select({ kind: 'unit', id: u.id });
+      return;
+    }
+    const site = siteAt(sx, sy);
+    if (site) {
+      g.select({ kind: 'site', id: site.id });
       return;
     }
     const b = buildingAt(sx, sy);
@@ -301,7 +325,7 @@ export function createUI(app: App, root: HTMLElement) {
     const u = unitAt(sx, sy, 16);
     app.hoverUnitId = u?.id ?? panel.hoverId;
     if (app.orderMode) return 'crosshair';
-    return u || buildingAt(sx, sy) ? 'pointer' : 'grab';
+    return u || siteAt(sx, sy) || buildingAt(sx, sy) ? 'pointer' : 'grab';
   }
   panel.onHover = (id) => (app.hoverUnitId = id);
 

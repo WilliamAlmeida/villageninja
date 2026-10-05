@@ -3,6 +3,7 @@ import { effectSystem } from './effects';
 import { hostileSystem } from './hostiles';
 import { bossSystem } from './bosses';
 import { examSystem } from './exam';
+import { exploreSystem } from './explore';
 import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
@@ -37,4 +38,5 @@ export const SYSTEMS: System[] = [
   projectileSystem,
   effectSystem,
   villageSystem,
+  exploreSystem,
 ];

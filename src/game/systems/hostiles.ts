@@ -92,6 +92,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (u.cloak) revealSpy(g, u);
   if (!u.cloak) trySupport(g, u);
   if (u.missionId != null) return guardHome(g, u, dt, 220);
+  if (u.guard != null) return guardHome(g, u, dt, 110, 60); // guardião não se afasta do altar
   if (u.state !== 'escape' && u.role === 'spy' && spy(g, u, dt)) return;
   if (u.state !== 'escape' && u.role === 'puppeteer' && puppeteer(g, u, dt)) return;
   if (u.state !== 'escape' && u.role === 'summoner') summonTick(g, u, dt);
@@ -137,13 +138,14 @@ function rogue(g: Game, u: Unit, dt: number) {
  * Alvos de missão: defendem o próprio local (acampamento, covil, ninho).
  * Lutam com quem chega perto, mas não perseguem longe nem marcham até a vila.
  */
-function guardHome(g: Game, u: Unit, dt: number, aggro: number) {
+function guardHome(g: Game, u: Unit, dt: number, aggro: number, chaseExtra = 200) {
   const hx = u.homeX ?? u.x;
   const hy = u.homeY ?? u.y;
-  const leash = aggro + 200;
+  const leash = aggro + chaseExtra;
   let t = validTarget(g, u, leash);
   if (t && Math.hypot(t.x - hx, t.y - hy) > leash) t = null;
   t ??= g.nearestHostile(u, aggro);
+  if (t && u.guard != null && t.kind !== 'ninja' && t.kind !== 'clone') t = null; // guardião: só ninjas
   if (t) {
     u.targetId = t.id;
     // feras de missão também usam o golpe especial (teia, bote, investida, veneno da hidra)

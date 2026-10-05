@@ -2,6 +2,7 @@
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
+import type { SiteKind } from '../data/sites';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
 import type { KekkeiId } from '../data/kekkei';
@@ -14,7 +15,7 @@ import type { ResKey } from '../data/resources';
 export type Cost = Partial<Record<ResKey, number>>;
 export type Faction = 'village' | 'wild' | 'enemy' | 'guest';
 export type UnitKind = 'villager' | 'ninja' | 'animal' | 'rogue' | 'clone';
-export type NinjaOrder = 'auto' | 'train' | 'patrol';
+export type NinjaOrder = 'auto' | 'train' | 'patrol' | 'scout';
 export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai';
 
 export interface Look {
@@ -140,6 +141,8 @@ export interface Unit {
   role?: RogueRole;
   /** O que o bicho ladrão (corvo, macaco) levou da vila; volta se ele for abatido. */
   loot?: Cost;
+  /** Guardião de um local especial (id do local): defende o lugar em vez de marchar. */
+  guard?: number;
   /** Bombas já lançadas (o bombardeiro desiste depois de algumas). */
   bombs?: number;
   /** Investida do rinoceronte: quem já foi atropelado nesta corrida. */
@@ -157,7 +160,9 @@ export interface Unit {
 export type Command =
   | { kind: 'move'; x: number; y: number; time: number }
   | { kind: 'attack'; targetId: number }
-  | { kind: 'retreat' };
+  | { kind: 'retreat' }
+  /** Ir até um local especial (ruínas, baú) e investigar por `t` segundos acumulados. */
+  | { kind: 'investigate'; siteId: number; t: number };
 
 export type MissionStatus = 'offered' | 'active' | 'done' | 'failed';
 
@@ -216,6 +221,18 @@ export interface Building {
   shot?: number;
   /** Torres: ângulo (mundo) do último alvo, para o guarda olhar para ele. */
   aim?: number;
+}
+
+/** Local especial do mapa (ver data/sites.ts). */
+export interface Site {
+  id: number;
+  kind: SiteKind;
+  tx: number;
+  ty: number;
+  /** Já foi visto (saiu da névoa). */
+  found: boolean;
+  /** Já foi saqueado/investigado (ruína e baú somem do jogo depois disso; a mina fica). */
+  done: boolean;
 }
 
 export interface ResourceNode {
@@ -301,6 +318,12 @@ export interface GameState {
   lastExam: ExamResult | null;
   projectiles: Projectile[];
   effects: Effect[];
+  /** Névoa: tiles já explorados, 1 bit por tile (32 por número). Ver game/explore.ts. */
+  explored: number[];
+  /** Locais especiais escondidos pelo mapa. */
+  sites: Site[];
+  /** Pergaminhos proibidos encontrados (ids de jutsu liberados para ensinar). */
+  scrolls: string[];
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;
@@ -339,4 +362,4 @@ export interface ExamResult {
   ranking: { name: string; village: boolean; score: number; promoted: boolean }[];
 }
 
-export type Selection = { kind: 'unit' | 'building' | 'team'; id: number };
+export type Selection = { kind: 'unit' | 'building' | 'team' | 'site'; id: number };

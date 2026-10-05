@@ -14,7 +14,9 @@ import { darkness } from '../game/time';
 import { missionFocus } from '../game/missionView';
 import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
-import type { Building, ResourceNode, Unit } from '../game/types';
+import type { Building, GameState, ResourceNode, Site, Unit } from '../game/types';
+import { fogVersion, isExplored, isExploredPx } from '../game/explore';
+import { MAP_H, MAP_W } from '../config';
 import { buildingCenter, doorPos } from '../game/world';
 import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
 import { drawEffect } from './effects';
@@ -38,7 +40,10 @@ export interface Overlay {
 const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 
 /** Item em pé na cena (prédio, nó ou unidade), ordenado por profundidade (y da cena). */
-type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit };
+/** Tiles de névoa em volta do mapa (só na textura). */
+const FOG_PAD = 3;
+
+type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -56,6 +61,11 @@ export class Renderer {
   private fade = new Map<string, number>();
   private lastTime = 0;
   private depth: Uint8Array = new Uint8Array(0);
+  /** Névoa: 1 pixel por tile, ampliado com suavização (borda macia). Refeita só quando algo é revelado. */
+  private fog: HTMLCanvasElement | null = null;
+  private fogVer = -1;
+  private fogOf: GameState | null = null;
+  private fogSoft: HTMLCanvasElement | null = null;
   private particles = new Particles();
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -112,6 +122,7 @@ export class Renderer {
     groundTransform(ctx);
     ctx.drawImage(this.terrain, 0, 0);
     drawWaterAnim(ctx, s, this.depth, time);
+    ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, WORLD_W + FOG_PAD * 2 * TILE, WORLD_H + FOG_PAD * 2 * TILE);
 
     // chão batido sob prédios
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
@@ -171,12 +182,19 @@ export class Renderer {
       const p = project(c.x, c.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, b });
     }
+    // na névoa não aparece nada em pé: nem recursos, nem bichos e inimigos, nem locais ainda não achados
     for (const n of s.nodes) {
+      if (!isExplored(s, n.tx, n.ty)) continue;
       const p = project(n.tx * TILE + TILE / 2, n.ty * TILE + TILE / 2);
       if (seen(p)) list.push({ x: p.x, y: p.y, n });
     }
+    for (const site of s.sites) {
+      if (!site.found || (site.done && site.kind !== 'cave')) continue;
+      const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
+      if (seen(p)) list.push({ x: p.x, y: p.y, site });
+    }
     for (const u of s.units) {
-      if (u.hidden) continue;
+      if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
       const p = project(u.x, u.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, u });
     }
@@ -187,8 +205,8 @@ export class Renderer {
     const blocks = list.filter((d) => d.b);
     for (const d of list) {
       if (d.b) continue;
-      const wx = d.u ? d.u.x / TILE : d.n!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.n!.ty + 0.5;
+      const wx = d.u ? d.u.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = d.u ? d.u.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       for (const o of blocks) {
         const b = o.b!;
         const def = BUILDINGS[b.type];
@@ -216,6 +234,7 @@ export class Renderer {
         ctx.globalAlpha = a;
       }
       if (d.b) this.building(d.b, time, night, s.level);
+      else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.n) {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
         ctx.save();
@@ -423,6 +442,76 @@ export class Renderer {
   }
 
   /** Destaque da unidade sob o mouse (no mapa ou na lista do painel): anel pulsante, seta e nome. */
+  /** Textura da névoa (refeita só quando o estado ou o explorado muda). */
+  private fogTexture(s: GameState) {
+    if (!this.fog) {
+      this.fog = document.createElement('canvas');
+      this.fog.width = MAP_W + FOG_PAD * 2;
+      this.fog.height = MAP_H + FOG_PAD * 2;
+    }
+    if (this.fogVer !== fogVersion || this.fogOf !== s) {
+      this.fogVer = fogVersion;
+      this.fogOf = s;
+      const c = this.fog.getContext('2d')!;
+      // moldura de névoa em volta do mapa: o desfoque não "vaza" pelas bordas
+      const W = this.fog.width;
+      const H = this.fog.height;
+      const img = c.createImageData(W, H);
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++) {
+          const i = (y * W + x) * 4;
+          img.data[i] = 10;
+          img.data[i + 1] = 13;
+          img.data[i + 2] = 18;
+          img.data[i + 3] = isExplored(s, x - FOG_PAD, y - FOG_PAD) ? 0 : 236;
+        }
+      c.putImageData(img, 0, 0);
+      // versão 8× maior com desfoque: borda da névoa macia em vez de degraus de tile
+      if (!this.fogSoft) {
+        this.fogSoft = document.createElement('canvas');
+        this.fogSoft.width = W * 8;
+        this.fogSoft.height = H * 8;
+      }
+      const sc = this.fogSoft.getContext('2d')!;
+      sc.clearRect(0, 0, this.fogSoft.width, this.fogSoft.height);
+      sc.imageSmoothingEnabled = true;
+      sc.filter = 'blur(6px)';
+      sc.drawImage(this.fog, 0, 0, this.fogSoft.width, this.fogSoft.height);
+      sc.filter = 'none';
+    }
+    return this.fogSoft ?? this.fog;
+  }
+
+  /** Local especial (ruínas, baú, mina): arte isométrica com um brilho que chama atenção enquanto não foi investigado. */
+  private drawSite(site: Site, x: number, y: number, time: number, selected: boolean) {
+    const ctx = this.ctx;
+    const pic = art(site.kind);
+    const w = site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90;
+    if (!site.done) {
+      const a = 0.25 + 0.2 * Math.sin(time * 3 + site.id);
+      ctx.fillStyle = `rgba(255,211,77,${a})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 4, w * 0.45, w * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (selected) {
+      ctx.strokeStyle = '#ffd34d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 4, w * 0.5, w * 0.21, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (pic) {
+      const h = (w / pic.naturalWidth) * pic.naturalHeight;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(pic, x - w / 2, y + w * 0.18 - h, w, h);
+      ctx.imageSmoothingEnabled = true;
+    } else {
+      ctx.fillStyle = site.kind === 'chest' ? '#8a5a2b' : '#777';
+      ctx.fillRect(x - w / 4, y - w / 3, w / 2, w / 3);
+    }
+  }
+
   private drawHover(g: Game, id: number | null, selectedId: number | null, cam: Camera, time: number) {
     const real = g.unit(id);
     if (!real || real.dead) return;

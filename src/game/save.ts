@@ -1,6 +1,7 @@
 import { SAVE_KEY, SAVE_VERSION } from '../config';
 import { Game, type System } from './game';
 import type { GameState } from './types';
+import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
 
 /**
  * Migrações de save: cada entrada transforma a versão N na N+1.
@@ -54,6 +55,17 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
       b.level = 1;
       b.upgrade = null;
     }
+  },
+  9: (s) => {
+    // névoa e locais especiais: revela os arredores da vila e o que os ninjas já andaram (território atual)
+    s.explored = emptyExplored();
+    s.sites = [];
+    s.scrolls = [];
+    revealStart(s);
+    let next = s.nextId;
+    s.sites = generateSites(s, () => next++);
+    s.nextId = next;
+    for (const site of s.sites) if (isExplored(s, site.tx, site.ty)) site.found = true;
   },
 };
 

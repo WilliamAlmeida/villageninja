@@ -4,6 +4,8 @@ import type { App } from '../app';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
+import { SITES } from '../data/sites';
+import { guardiansOf, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
 import { NATURES } from '../data/natures';
 import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
@@ -29,7 +31,7 @@ import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamOf, teamUnits,
 } from '../game/teams';
-import type { Building, Mission, NinjaOrder, Team, Unit } from '../game/types';
+import type { Building, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
 import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
@@ -53,7 +55,8 @@ export type View =
   | { kind: 'team'; id: number }
   | { kind: 'roster' }
   | { kind: 'teams' }
-  | { kind: 'clans' };
+  | { kind: 'clans' }
+  | { kind: 'site'; id: number };
 
 interface Built {
   html: string;
@@ -81,12 +84,13 @@ const ROSTER_SORTS: [RosterSort, string, string][] = [
 ];
 const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + b, 0);
 
-const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar']];
+const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar'], ['scout', 'Explorar']];
 /** O que cada rotina faz (dica e texto abaixo dos botões). */
 const ROUTINE_TIP: Record<NinjaOrder, string> = {
   auto: 'Decide sozinho: acompanha o líder da equipe; sem equipe, treina na maior parte do dia e patrulha no resto. Dorme à noite.',
   train: 'Passa o dia no Campo de Treino ganhando atributos e XP. Dorme à noite.',
   patrol: 'Só patrulha o território, também à noite: não dorme nem treina.',
+  scout: 'Batedor: de dia vai até a borda da névoa e revela o mapa (ruínas, baús, minas). À noite dorme.',
 };
 
 /**
@@ -200,6 +204,10 @@ export class Panel {
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamView(tm);
+    } else if (this.view.kind === 'site') {
+      const id = this.view.id;
+      const site = g.state.sites.find((x) => x.id === id);
+      if (site) built = this.siteView(site);
     } else if (this.view.kind === 'unit') {
       const u = g.unit(this.view.id);
       if (u) built = this.view.teach && u.ninja && u.faction === 'village' && u.kind === 'ninja' ? this.teach(u) : this.unit(u);
@@ -387,6 +395,40 @@ export class Panel {
     return html + `</div>`;
   }
 
+  /** Local especial: o que é, guardiões e quem mandar investigar. */
+  private siteView(site: Site): Built {
+    const g = this.app.game;
+    const def = SITES[site.kind];
+    const t: Record<string, string> = {};
+    let html = `<div class="ph"><div class="title">${def.icon} ${def.name}</div></div><p class="hint">${esc(def.desc)}</p>`;
+    if (site.kind === 'cave') return { html: html + this.caveSection(site), t, b: {} };
+    if (site.done) return { html: html + `<p class="hint">{check} Já investigado.</p>`, t, b: {} };
+    const guards = guardiansOf(g, site);
+    if (guards.length) html += `<div class="warnbox">{swords} ${guards.length} guardião(ões) protegem o local. Quem for investigar luta com eles primeiro.</div>`;
+    if (site.kind === 'ruin') {
+      const left = missingScrolls(g.state).length;
+      html += `<p class="hint">${left ? `{scroll} Pode haver um pergaminho proibido (${left} ainda perdidos pelo mundo).` : '{scroll} Os pergaminhos já foram achados: restam relíquias.'}</p>`;
+    }
+    const going = g.state.units.filter((u) => !u.dead && u.command?.kind === 'investigate' && u.command.siteId === site.id);
+    if (going.length) html += `<p class="hint">{run} A caminho: ${going.map((u) => esc(u.name.split(' ').pop()!)).join(', ')}</p>`;
+    const free = availableFighters(g);
+    html += `<h4>Mandar investigar</h4>`;
+    if (!free.length) return { html: html + `<p class="why">Nenhum ninja disponível.</p>`, t, b: {} };
+    html += `<div class="btnrow"><button class="btn primary" data-act="site-go" data-arg="near">{run} Ninja mais perto</button>`;
+    const ids = new Set(free.map((u) => u.id));
+    for (const tm of g.state.teams) {
+      const n = teamUnits(g, tm).filter((u) => ids.has(u.id)).length;
+      if (n) html += `<button class="btn" data-act="site-go" data-arg="team" data-team="${tm.id}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} (${n})</button>`;
+    }
+    html += `</div>`;
+    return { html, t, b: {} };
+  }
+
+  /** Entrada de mina (expedições entram na etapa das minas). */
+  private caveSection(_site: Site) {
+    return `<p class="hint">{pickaxe} Expedições às minas chegam em breve.</p>`;
+  }
+
   /** Arma, colete e consumível: o atual e o que há no estoque para trocar. */
   private equipSection(u: Unit) {
     const g = this.app.game;
@@ -463,7 +505,7 @@ export class Panel {
     if (!academy) html += `<div class="warnbox">Construa a <b>Academia Ninja</b> para ensinar jutsus.</div>`;
     if (n.learning) html += `<div class="warnbox">Já está estudando ${esc(JUTSUS[n.learning.jutsuId]!.name)}.</div>`;
     const free = n.jutsu[0] === null ? 0 : n.jutsu[1] === null ? 1 : -1;
-    for (const o of jutsuOptions(u)) {
+    for (const o of jutsuOptions(u, g.state.scrolls)) {
       const d = o.def;
       const afford = g.canAfford(d.cost);
       const learnBlock = blocked(g, [!academy && 'Construa a Academia Ninja para ensinar jutsus.', !!n.learning && 'Já está estudando outro jutsu.'], d.cost);
@@ -1102,6 +1144,26 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'site-go': {
+        if (v?.kind !== 'site') return;
+        const site = g.state.sites.find((x) => x.id === v.id);
+        if (!site || site.done) return;
+        const free = availableFighters(g);
+        const p = sitePos(site);
+        let ids: Unit[];
+        if (arg === 'team') {
+          const tm = g.team(Number(btn.dataset.team));
+          const ok = new Set(free.map((u) => u.id));
+          ids = tm ? teamUnits(g, tm).filter((u) => ok.has(u.id)) : [];
+        } else ids = free.sort((a, z) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(z.x - p.x, z.y - p.y)).slice(0, 1);
+        for (const u of ids) {
+          u.command = { kind: 'investigate', siteId: site.id, t: 0 };
+          u.hidden = false;
+          u.state = 'idle';
+        }
+        if (ids.length) g.toast(`{run} ${ids.length} ninja(s) a caminho de ${SITES[site.kind].name}.`, 'info');
+        return this.report({ ok: true });
+      }
       case 'atk': {
         if (v?.kind !== 'unit') return;
         const target = g.unit(v.id);

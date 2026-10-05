@@ -38,7 +38,7 @@ export function villagerSystem(g: Game, dt: number) {
       u.moving = false;
       continue;
     }
-    if (u.state !== 'flee' && u.state !== 'shelter' && !u.hidden && g.nearestHostile(u, FLEE_RADIUS)) {
+    if (u.state !== 'flee' && u.state !== 'shelter' && !u.hidden && dangerNear(g, u, FLEE_RADIUS)) {
       flee(g, u);
       continue;
     }
@@ -49,7 +49,7 @@ export function villagerSystem(g: Game, dt: number) {
         break;
       case 'shelter':
         if (u.timer <= 0) {
-          if (!g.nearestHostile(u, 200)) unhide(u);
+          if (!dangerNear(g, u, 200)) unhide(u);
           else u.timer = 2;
         }
         break;
@@ -93,6 +93,12 @@ function shelterFor(g: Game, u: Unit): Building | undefined {
   }
   return best;
 }
+
+/** Ameaça para morador: qualquer inimigo, menos guardiões de ruínas (eles só lutam com ninjas). */
+const dangerNear = (g: Game, u: Unit, r: number) => {
+  const t = g.nearestHostile(u, r);
+  return !!t && t.guard == null;
+};
 
 function flee(g: Game, u: Unit) {
   const s = shelterFor(g, u);

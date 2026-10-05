@@ -1,7 +1,10 @@
 import { TILE } from '../../config';
 import { chance, pick, rand, randi } from '../../core/rng';
 import { BUILDINGS } from '../../data/buildings';
-import { JUTSUS } from '../../data/jutsus';
+import { FORBIDDEN_RISK, JUTSUS } from '../../data/jutsus';
+import { SITES } from '../../data/sites';
+import { guardiansOf, resolveSite, scoutTarget, sitePos } from '../explore';
+import { refreshDerived } from '../entities';
 import { derive } from '../../data/ninja';
 import { engage, trySupport } from '../combat';
 import { canHit } from '../factions';
@@ -92,6 +95,46 @@ function runCommand(g: Game, u: Unit, dt: number): boolean {
       }
       u.state = 'fight';
       engage(g, u, t, dt);
+      return true;
+    }
+    case 'investigate': {
+      const site = g.state.sites.find((x) => x.id === c.siteId);
+      if (!site || site.done) {
+        u.command = null;
+        u.state = 'idle';
+        return false;
+      }
+      // guardiões ou inimigos no caminho: luta primeiro
+      const foe = g.nearestHostile(u, 120);
+      if (foe && u.hp >= u.maxHp * 0.2) {
+        u.hidden = false;
+        u.state = 'fight';
+        engage(g, u, foe, dt);
+        return true;
+      }
+      const p = sitePos(site);
+      if (Math.hypot(p.x - u.x, p.y - u.y) > 22) {
+        if (u.state !== 'cmdMove' || !u.hasGoal) {
+          if (!setDestination(g, u, p.x, p.y + 14)) {
+            u.command = null;
+            g.toast(`${u.name} não acha caminho até o local.`, 'warn', u);
+            return false;
+          }
+          u.state = 'cmdMove';
+        }
+        followPath(g, u, dt, 1.1);
+        return true;
+      }
+      if (guardiansOf(g, site).length) return true; // espera os guardiões caírem (a luta acima cuida deles)
+      u.moving = false;
+      u.state = 'investigate';
+      u.anim = 0.2;
+      c.t += dt;
+      if (c.t >= SITES[site.kind].work) {
+        resolveSite(g, site, u);
+        u.command = null;
+        u.state = 'idle';
+      }
       return true;
     }
     case 'move': {
@@ -187,6 +230,13 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         const def = JUTSUS[L.jutsuId]!;
         fxText(g, u.x, u.y - 30, def.shout, def.color, true);
         g.toast(`{scroll} ${u.name} aprendeu ${def.name}!`, 'good', u);
+        // jutsu proibido cobra um preço do corpo
+        if (def.forbidden && chance(FORBIDDEN_RISK)) {
+          n.stats.stamina = Math.max(1, n.stats.stamina - 1);
+          refreshDerived(u);
+          u.hp = Math.min(u.hp, u.maxHp);
+          g.toast(`{alert} O jutsu proibido deixou sequela: ${u.name} perdeu Stamina.`, 'warn', u);
+        }
       }
       break;
     }
@@ -226,8 +276,9 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
       chase(g, u, leader.x + o.x, leader.y + o.y, dt, 6);
       break;
     }
+    case 'scout':
     case 'patrol':
-      if (followPath(g, u, dt, 0.8)) {
+      if (followPath(g, u, dt, u.state === 'scout' ? 1 : 0.8)) {
         u.state = 'idle';
         u.timer = rand(1, 3);
       }
@@ -286,6 +337,14 @@ function decide(g: Game, u: Unit, night: boolean) {
     const y = (b.ty + rand(0.3, def.h - 0.3)) * TILE;
     if (setDestination(g, u, x, y)) {
       u.state = 'toTrain';
+      return;
+    }
+  }
+  if (n.order === 'scout' && !night) {
+    // batedor: anda até a borda da névoa mais próxima (sem névoa por perto, patrulha)
+    const p = scoutTarget(g, u);
+    if (p && setDestination(g, u, p.x, p.y)) {
+      u.state = 'scout';
       return;
     }
   }
