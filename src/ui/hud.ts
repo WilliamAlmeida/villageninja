@@ -137,7 +137,7 @@ export class Hud {
     chip.dataset.tip = `${moodFactors(g).map(([l, v]) => `${l}: ${v > 0 && l !== 'Base' ? '+' : ''}${v}`).join(' · ')}. Feliz: trabalham mais rápido e têm mais filhos; abaixo de ${MOOD.leave}, moradores vão embora.`;
     const season = SEASONS[seasonOf(s)];
     const w = WEATHERS[s.weather];
-    this.html(this.vals.get('season')!, `${season.icon}${s.weather !== 'clear' ? w.icon : ''}`);
+    this.html(this.vals.get('season')!, `${season.icon}${s.weather !== 'clear' && w.icon !== season.icon ? w.icon : ''}`);
     this.vals.get('season')!.dataset.tip = `${season.name} (faltam ${daysToNextSeason(s)} dia(s)): ${season.desc} Hoje: ${w.name}. ${w.desc}`;
     this.vals.get('food')!.parentElement!.classList.toggle('low', s.res.food < 15);
     this.vals.get('pop')!.parentElement!.classList.toggle('low', pop >= cap);

@@ -22,7 +22,8 @@ export type BuildingType =
   | 'monument'
   | 'port'
   | 'intel'
-  | 'puppetshop';
+  | 'puppetshop'
+  | 'kennel';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
@@ -152,6 +153,11 @@ const LIST: BuildingDef[] = [
     type: 'puppetshop', name: 'Oficina de Marionetes', icon: '{target}', desc: 'Forma ninjas marionetistas (Chunin+), que lutam com bonecos de madeira.',
     w: 2, h: 2, cost: { wood: 100, iron: 20, ryo: 150 }, buildTime: 24, unique: true, buildable: true, minLevel: 2,
     roof: '#5a2a6a', wall: '#c8a26a',
+  },
+  {
+    type: 'kennel', name: 'Canil', icon: '{paw}', desc: 'Cria ninken: cães ninja que acompanham o dono, lutam junto, farejam espiões e acham ervas.',
+    w: 2, h: 2, cost: { wood: 80, food: 40, ryo: 80 }, buildTime: 18, unique: true, buildable: true, minLevel: 1,
+    roof: '#2f4a6b', wall: '#c8a26a',
   },
   {
     type: 'arena', name: 'Arena do Exame', icon: '{arena}', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',

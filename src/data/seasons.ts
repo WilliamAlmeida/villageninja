@@ -36,7 +36,7 @@ export const SEASONS: Record<Season, SeasonDef> = {
     festival: 'Festival da Colheita', desc: 'Colheita +30%: hora de estocar comida para o inverno.',
   },
   winter: {
-    name: 'Inverno', icon: '{moon}', harvest: 0.4, food: 1.25, mood: -5, weather: [['clear', 3], ['snow', 6], ['storm', 1]],
+    name: 'Inverno', icon: '{snow}', harvest: 0.4, food: 1.25, mood: -5, weather: [['clear', 3], ['snow', 6], ['storm', 1]],
     festival: 'Festival das Lanternas', desc: 'Colheita 60% menor e todo mundo come 25% mais. Neve deixa todos mais lentos.',
   },
 };
@@ -55,9 +55,9 @@ export interface WeatherDef {
 
 export const WEATHERS: Record<Weather, WeatherDef> = {
   clear: { name: 'Tempo bom', icon: '{sun}', harvest: 1, speed: 1, boost: ['katon'], desc: 'Katon (fogo) +20% de dano.' },
-  rain: { name: 'Chuva', icon: '{drop}', harvest: 1.1, speed: 0.95, boost: ['suiton'], desc: 'Colheita +10%. Suiton (água) +20% de dano.' },
-  storm: { name: 'Tempestade', icon: '{alert}', harvest: 0.9, speed: 0.9, boost: ['raiton', 'fuuton'], desc: 'Raiton e Fuuton +20% de dano. Todos 10% mais lentos.' },
-  snow: { name: 'Neve', icon: '{star}', harvest: 0.8, speed: 0.85, boost: ['suiton'], desc: 'Todos 15% mais lentos. Suiton +20% de dano.' },
+  rain: { name: 'Chuva', icon: '{rain}', harvest: 1.1, speed: 0.95, boost: ['suiton'], desc: 'Colheita +10%. Suiton (água) +20% de dano.' },
+  storm: { name: 'Tempestade', icon: '{storm}', harvest: 0.9, speed: 0.9, boost: ['raiton', 'fuuton'], desc: 'Raiton e Fuuton +20% de dano. Todos 10% mais lentos.' },
+  snow: { name: 'Neve', icon: '{snow}', harvest: 0.8, speed: 0.85, boost: ['suiton'], desc: 'Todos 15% mais lentos. Suiton +20% de dano.' },
 };
 
 /** Festival: custo, quanto dura (dias) e intervalo mínimo entre festivais (dias). */

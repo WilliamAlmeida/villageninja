@@ -12,6 +12,7 @@ import { SPECS, type SpecKind } from '../data/specs';
 import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
 import { daysToNextSeason, festivalBlock, festivalOn, holdFestival, moodFactors, seasonOf } from '../game/mood';
 import { learnSpec, specBlock } from '../game/specs';
+import { adoptDog, DOG_COST, dogBlock, dogOf } from '../game/ninken';
 import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
@@ -346,6 +347,17 @@ export class Panel {
 
     if (u.animal) {
       const d = ANIMALS[u.animal];
+      const owner = u.faction === 'village' ? this.app.game.unit(u.ownerId) : undefined;
+      if (u.faction === 'village') {
+        // aliado: cão ninja ou invocação de contrato
+        html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge rank">${u.animal === 'dog' ? 'Ninken' : 'Invocação'}</span></div></div>`;
+        html += `<div class="sub"><span data-t="state"></span></div><div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
+        html += `<p class="hint">${owner ? `Acompanha ${esc(owner.name)}.` : ''} ${
+          u.animal === 'dog' ? 'Luta junto, fareja espiões invisíveis por perto e, fora da vila, acha ervas.' : `Some em ${Math.ceil(u.life ?? 0)}s.`
+        }</p>`;
+        if (owner) html += `<div class="btnrow"><button class="btn" data-act="pick" data-arg="${owner.id}">{ninja} Ver o dono</button></div>`;
+        return { html, t, b };
+      }
       html += `<div class="ph"><div class="title">${d.name}</div><div class="badges"><span class="badge enemy">Animal selvagem</span></div></div>`;
       html += `<div class="sub"><span data-t="state"></span></div><div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
       if (isAttackable(u)) html += this.attackSection(u, t);
@@ -643,6 +655,11 @@ export class Panel {
     html += n.contract
       ? `<p class="hint">{scroll} <b>Contrato: ${CONTRACTS[n.contract].name}.</b> ${esc(CONTRACTS[n.contract].desc)} (${CONTRACTS[n.contract].chakra} chakra, a cada ${CONTRACTS[n.contract].cd}s)</p>`
       : `<p class="hint">{scroll} Sem contrato de invocação. Os lugares sagrados (janela Mundo → Região) dão contratos.</p>`;
+    // ninken (cão ninja do Canil)
+    const dog = dogOf(g, u);
+    html += dog
+      ? `<p class="hint">{paw} <b>${esc(dog.name)}</b> acompanha ${esc(u.name.split(' ').pop()!)} · vida ${Math.ceil(dog.hp)}/${dog.maxHp}</p>`
+      : `<div class="btnrow"><button class="btn mini" data-act="dog" ${blocked(g, [dogBlock(g, u)], DOG_COST)} ${tipAttr('Ninken', 'Cão ninja que acompanha o ninja, luta junto, fareja espiões invisíveis e, fora da vila, acha ervas.')}>{paw} Adotar ninken (${costLabel(DOG_COST)})</button></div>`;
     html += `<p class="hint">Abates: ${n.kills}</p>`;
     return html;
   }
@@ -1342,6 +1359,10 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'dog': {
+        if (v?.kind !== 'unit') return;
+        return this.report(adoptDog(g, v.id));
+      }
       case 'festival':
         return this.report(holdFestival(g));
       case 'spec': {
