@@ -73,3 +73,31 @@ describe('mapa de missão jogável (invasão de vilarejo)', () => {
     expect(regionOf(g.state, 'arroz').status).not.toBe('hostile');
   });
 });
+
+describe('mina jogável (um mapa de caverna por andar)', () => {
+  test('cada andar é uma caverna com paredes, bichos e a descida; vencendo, escolhe descer ou voltar', async () => {
+    const { startMine, chooseExpedition } = await import('../src/game/expeditions');
+    const { T } = await import('../src/game/world');
+    const { g, team } = setup(904, 9);
+    const cave = g.state.sites.find((x) => x.kind === 'cave')!;
+    cave.found = true;
+    expect(startMine(g, team.id, cave.id).ok).toBe(true);
+    const e = g.state.expeditions.at(-1)!;
+    run(g, 20, () => !!g.state.scene);
+    const sg = sceneGame(g)!;
+    expect(sg.state.sceneInfo!.kind).toBe('mine');
+    expect(sg.state.tiles.filter((t) => t === T.ROCK).length).toBeGreaterThan(500);
+    expect(sceneFoes(sg).length).toBeGreaterThan(2);
+    expect(sg.state.sites.some((x) => x.id === sg.state.sceneInfo!.stairsId)).toBe(true);
+    // a equipe avança sozinha, luta e acha a descida
+    run(g, 300, () => e.status === 'choice' || e.status === 'lost' || e.status === 'done');
+    expect(e.status).toBe('choice');
+    expect(chooseExpedition(g, e.id, true).ok).toBe(true);
+    expect(e.floor).toBe(2);
+    expect(sceneGame(g)!.state.sceneInfo!.floor).toBe(2);
+    retreatScene(g);
+    run(g, 60, () => e.status === 'done' || e.status === 'lost');
+    expect(e.status).toBe('done');
+    expect(Object.keys(e.loot).length).toBeGreaterThan(0); // o saque do andar 1 voltou
+  });
+});

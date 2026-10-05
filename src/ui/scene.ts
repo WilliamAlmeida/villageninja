@@ -3,6 +3,8 @@
 import type { App } from '../app';
 import { advanceTarget, retreatScene, sceneFoes, sceneGame, sceneTeam } from '../game/scene';
 import { orderMove } from '../game/teams';
+import { chooseExpedition } from '../game/expeditions';
+import { MINE } from '../data/expeditions';
 import { el } from './dom';
 import { rich } from './icons';
 
@@ -21,6 +23,7 @@ export class SceneBar {
       if (a === 'view') this.app.setView(true);
       if (a === 'home') this.app.setView(false);
       if (a === 'retreat') retreatScene(home);
+      if (a === 'deeper' || a === 'leave') chooseExpedition(home, sg.state.sceneInfo!.expId, a === 'deeper');
       if (a === 'advance') {
         const p = advanceTarget(sg);
         if (p) orderMove(sg, sceneTeam(sg).map((u) => u.id), p.x, p.y + 10);
@@ -45,10 +48,15 @@ export class SceneBar {
       const foes = sceneFoes(sg).length;
       const prog =
         info.action === 'raid' && info.loot > 0 ? ` · saque ${Math.min(100, Math.floor((info.loot / info.lootNeed) * 100))}%` : '';
-      const done = info.result ? (info.result === 'win' ? ' · {check} Vitória! Voltando…' : ' · voltando…') : '';
+      const choice = info.kind === 'mine' && info.result === 'win' && (info.floor ?? 0) < MINE.floors;
+      const done = choice ? '' : info.result ? (info.result === 'win' ? ' · {check} Vitória! Voltando…' : ' · voltando…') : '';
       html = `<span class="sb-title">{swords} ${info.title}</span><span class="sb-goal">${info.goal} · inimigos ${foes}/${info.defenders} · equipe ${sceneTeam(sg).length}${prog}${done}</span>
-        <button class="btn primary" data-act="advance" title="A equipe avança até o objetivo, lutando no caminho">{run} Avançar</button>
-        <button class="btn danger" data-act="retreat" title="A equipe abandona a invasão e volta viva, sem o objetivo">{back} Recuar</button>
+        ${
+          choice
+            ? `<button class="btn primary" data-act="deeper">{pickaxe} Descer ao andar ${(info.floor ?? 0) + 1}</button><button class="btn" data-act="leave">{back} Voltar com o saque</button>`
+            : `<button class="btn primary" data-act="advance" title="A equipe avança até o objetivo, lutando no caminho">{run} Avançar</button>
+        <button class="btn danger" data-act="retreat" title="A equipe abandona e volta viva, sem o objetivo">{back} Recuar</button>`
+        }
         <button class="btn" data-act="home">{castle} Ver a vila</button>`;
     }
     if (html !== this.last) {

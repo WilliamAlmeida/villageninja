@@ -9,6 +9,7 @@ const BASE: Record<number, string> = {
   [T.DIRT]: '#a88355',
   [T.SAND]: '#d7c38c',
   [T.WATER]: '#2f6fb0',
+  [T.ROCK]: '#2e2925',
 };
 
 /** Desenha o terreno uma única vez num canvas offscreen. */
@@ -57,6 +58,18 @@ export function renderTerrain(state: GameState): HTMLCanvasElement {
       const t = state.tiles[idx(x, y)]!;
       const px = x * TILE;
       const py = y * TILE;
+      if (t === T.ROCK) {
+        // parede de caverna: blocos de pedra com aresta clara virada para o chão
+        for (let k = 0; k < 4; k++) {
+          ctx.fillStyle = k % 2 ? '#3a332d' : '#26211d';
+          ctx.fillRect(px + rng() * 22, py + rng() * 22, 6 + rng() * 10, 5 + rng() * 8);
+        }
+        const open = (dx: number, dy: number) => inBounds(x + dx, y + dy) && state.tiles[idx(x + dx, y + dy)] !== T.ROCK;
+        ctx.fillStyle = 'rgba(160,140,120,0.35)';
+        if (open(0, 1)) ctx.fillRect(px, py + TILE - 4, TILE, 4);
+        if (open(1, 0)) ctx.fillRect(px + TILE - 4, py, 4, TILE);
+        continue;
+      }
       if (t === T.GRASS || t === T.GRASS2) {
         for (let i = 0; i < 5; i++) {
           const gx = px + rng() * TILE;

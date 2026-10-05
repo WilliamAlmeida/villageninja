@@ -1,5 +1,5 @@
 // Expedições às minas: a equipe sai do mapa, desce andar por andar (eventos sorteados) e o jogador decide
-import { closeScene, createVillageScene, opensScene } from './scene';
+import { closeScene, createMineScene, createVillageScene, opensScene } from './scene';
 // entre descer mais (mais risco, minérios raros) ou voltar com o que achou. O saque só entra no estoque na volta.
 import { chance, rand, weightedPick } from '../core/rng';
 import { MINE, MINE_EVENTS, MINE_MONSTERS, mineLoot } from '../data/expeditions';
@@ -74,6 +74,22 @@ function leave(u: Unit, expId: number) {
 export function chooseExpedition(g: Game, id: number, deeper: boolean): Result {
   const e = g.state.expeditions.find((x) => x.id === id);
   if (!e || e.status !== 'choice') return fail('Nada para decidir agora.');
+  // andar jogado no mapa: fecha este andar (a equipe leva vida e saque) e abre o próximo, ou volta
+  if (g.state.scene?.sceneInfo?.expId === e.id) {
+    const { loot } = closeScene(g);
+    addLoot(e, loot);
+    if (!expeditionUnits(g, e).length) {
+      lost(g, e);
+      return { ok: true };
+    }
+    if (deeper && e.floor < MINE.floors) {
+      e.floor++;
+      g.state.scene = createMineScene(g, e, e.floor);
+      e.status = 'scene';
+      note(e, `Descendo ao andar ${e.floor}…`);
+    } else goBack(e, 'Voltando para a vila com o saque.');
+    return { ok: true };
+  }
   if (deeper && e.floor < MINE.floors) {
     e.status = 'explore';
     e.timer = MINE.floorTime;
@@ -113,7 +129,7 @@ export function tickExpeditions(g: Game, dt: number) {
       } else if (e.status === 'scene') {
         const sc = g.state.scene;
         if (sc?.sceneInfo?.expId === e.id && !sc.sceneInfo.result) continue; // ainda lutando
-        const result = sc?.sceneInfo?.expId === e.id ? closeScene(g) : 'retreat';
+        const { result } = sc?.sceneInfo?.expId === e.id ? closeScene(g) : { result: 'retreat' as const };
         if (!expeditionUnits(g, e).length) lost(g, e);
         else goBack(e, resolveRegion(g, e, result), ACTION_TIME[e.action!].travel);
       } else if (e.status === 'going') {
@@ -126,7 +142,29 @@ export function tickExpeditions(g: Game, dt: number) {
       } else if (e.status === 'return') finish(g, e);
       continue;
     }
-    if (e.status === 'going') {
+    if (e.status === 'going' && opensScene(g, e)) {
+      // mina jogável: um mapa de caverna por andar
+      e.floor = 1;
+      g.state.scene = createMineScene(g, e, 1);
+      e.status = 'scene';
+      note(e, 'Chegaram à mina e entraram no andar 1.');
+      g.toast(`{pickaxe} ${g.team(e.teamId)?.name ?? 'A equipe'} entrou na mina. Toque em "Ver invasão" no alto para comandar.`, 'warn');
+    } else if (e.status === 'scene') {
+      const sc = g.state.scene;
+      if (sc?.sceneInfo?.expId === e.id && !sc.sceneInfo.result) continue; // ainda explorando o andar
+      if (sc?.sceneInfo?.expId === e.id && sc.sceneInfo.result === 'win' && e.floor < MINE.floors) {
+        // andar vencido: espera a decisão (descer ou voltar) com a equipe ainda no mapa
+        addLoot(e, mineLoot(e.floor));
+        e.status = 'choice';
+        note(e, `Andar ${e.floor} concluído. Descer ou voltar?`);
+        continue;
+      }
+      const { result, loot } = sc?.sceneInfo?.expId === e.id ? closeScene(g) : { result: 'retreat' as const, loot: {} };
+      addLoot(e, loot);
+      if (result === 'win') addLoot(e, mineLoot(e.floor));
+      if (!expeditionUnits(g, e).length) lost(g, e);
+      else goBack(e, result === 'win' ? 'Limparam o fundo da mina! Voltando com o saque.' : 'A equipe saiu da mina.');
+    } else if (e.status === 'going') {
       e.floor = 1;
       e.status = 'explore';
       e.timer = MINE.floorTime;

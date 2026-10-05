@@ -131,7 +131,8 @@ export class Renderer {
       });
     }
 
-    const night = darkness(s);
+    // caverna (mapa de mina): sempre escura, iluminada pelas tochas da equipe
+    const night = s.sceneInfo?.kind === 'mine' ? 0.8 : darkness(s);
     const sel = g.selected;
     const hkSel = sel?.kind === 'building' && g.building(sel.id)?.type === 'hokage';
 
@@ -926,6 +927,8 @@ export class Renderer {
       glow(d.x, d.y, 14, winter ? 66 : 55, winter ? 'rgba(255,160,70,A)' : 'rgba(255,190,90,A)', (winter ? 0.5 : 0.35) * night);
     }
     for (const d of this.decos) if (d.kind === 'lantern') glow(d.x, d.y, 21, 34, 'rgba(255,120,50,A)', 0.6 * night);
+    if (g.state.sceneInfo?.kind === 'mine')
+      for (const u of g.state.units) if (!u.dead && !u.hidden && u.faction === 'village') glow(u.x, u.y, 12, 95, 'rgba(255,170,90,A)', 0.28);
     for (const p of g.state.projectiles) if (!p.dead && p.kind !== 'kunai') glow(p.x, p.y, 8, 40, hexA(p.color), 0.5 * night);
     for (const e of g.state.effects) if (e.kind === 'burst' || e.kind === 'bolt') glow(e.x, e.y, 0, (e.r ?? 20) * 2, hexA(e.color), 0.5 * night * (1 - e.t / e.life));
     ctx.globalCompositeOperation = 'source-over';

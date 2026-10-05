@@ -6,8 +6,10 @@ import { chance, mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { ACTION_LABEL, REGION, REL } from '../data/region';
 import { rescueChance } from './care';
-import { createRogue, refreshDerived } from './entities';
-import { revealCircle } from './explore';
+import { createAnimal, createRogue, refreshDerived } from './entities';
+import { resolveSite, revealCircle } from './explore';
+import { MINE } from '../data/expeditions';
+import type { AnimalType } from '../data/animals';
 import { fxText } from './fx';
 import { Game } from './game';
 import { baseState } from './newGame';
@@ -15,8 +17,8 @@ import { findPath, nearestWalkable } from './pathfinding';
 import { nodePower, regionOf } from './region';
 import { SCENE_SYSTEMS } from './systems';
 import { createTeam, joinAsMember, joinAsSensei } from './teams';
-import type { Expedition, GameState, SceneInfo, Unit } from './types';
-import { CENTER_TX, CENTER_TY, doorPos, tileCenter } from './world';
+import type { Cost, Expedition, GameState, SceneInfo, Unit } from './types';
+import { CENTER_TX, CENTER_TY, doorPos, T, tileCenter } from './world';
 
 // ------------------------------------------------------------------ o jogo do mapa de missão
 const games = new WeakMap<GameState, Game>();
@@ -36,7 +38,9 @@ export function sceneGame(home: Game): Game | null {
 
 /** Esta expedição vira um mapa jogável? (saquear; anexar à força). Só um mapa por vez. */
 export function opensScene(home: Game, e: Expedition) {
-  if (e.kind !== 'region' || home.state.scene) return false;
+  if (home.state.scene) return false;
+  if (e.kind === 'mine') return true;
+  if (e.kind !== 'region') return false;
   if (e.action === 'raid') return true;
   return e.action === 'annex' && regionOf(home.state, e.node!).rel < REL.annexPeace;
 }
@@ -161,7 +165,7 @@ function guard(u: Unit) {
 
 // ------------------------------------------------------------------ objetivo e fim
 /** Quem ainda defende o mapa. */
-export const sceneFoes = (g: Game) => g.state.units.filter((u) => !u.dead && u.faction === 'enemy');
+export const sceneFoes = (g: Game) => g.state.units.filter((u) => !u.dead && (u.faction === 'enemy' || u.faction === 'wild'));
 export const sceneTeam = (g: Game) => g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.origin != null);
 
 /** Confere o objetivo do mapa de missão (sistema do mapa). */
@@ -172,8 +176,9 @@ export function sceneTick(g: Game, dt: number) {
     info.result = r;
     g.toast(text, r === 'win' ? 'good' : 'danger');
   };
-  if (!sceneTeam(g).length) return end('lose', `{skull} A equipe caiu em ${REGION[info.node!]?.name ?? 'combate'}.`);
+  if (!sceneTeam(g).length) return end('lose', `{skull} A equipe caiu em ${info.kind === 'mine' ? 'na mina' : (REGION[info.node!]?.name ?? 'combate')}.`);
   const foes = sceneFoes(g);
+  if (info.kind === 'mine') return mineTick(g, info, foes, end);
   if (info.leaderId != null) {
     const leader = g.unit(info.leaderId);
     if (!leader || leader.dead) return end('win', '{crown} O chefe caiu! O vilarejo se rende.');
@@ -202,6 +207,12 @@ export function retreatScene(home: Game) {
 export function advanceTarget(g: Game) {
   const info = g.state.sceneInfo;
   if (!info) return null;
+  if (info.kind === 'mine') {
+    const boss = g.unit(info.bossId);
+    if (boss && !boss.dead) return { x: boss.x, y: boss.y };
+    const st = g.state.sites.find((x) => x.id === info.stairsId);
+    return st ? { x: tileCenter(st.tx), y: tileCenter(st.ty) } : null;
+  }
   const leader = g.unit(info.leaderId);
   if (leader && !leader.dead) return { x: leader.x, y: leader.y };
   const wh = g.building(info.warehouseId);
@@ -210,11 +221,13 @@ export function advanceTarget(g: Game) {
   return f ? { x: f.x, y: f.y } : null;
 }
 
-/** Fecha o mapa: devolve vida, XP, atributos e mortes aos ninjas da vila. Retorna o resultado. */
-export function closeScene(home: Game): 'win' | 'lose' | 'retreat' {
+/** Fecha o mapa: devolve vida, XP, atributos e mortes aos ninjas da vila. Retorna o resultado e o saque juntado lá. */
+export function closeScene(home: Game): { result: 'win' | 'lose' | 'retreat'; loot: Cost } {
   const s = home.state.scene;
   const result = s?.sceneInfo?.result ?? 'retreat';
-  if (!s) return result;
+  if (!s) return { result, loot: {} };
+  const loot: Cost = {};
+  for (const [k, v] of Object.entries(s.res)) if (v > 0) loot[k as keyof Cost] = Math.floor(v);
   for (const c of s.units) {
     if (c.origin == null) continue;
     const u = home.unit(c.origin);
@@ -242,6 +255,135 @@ export function closeScene(home: Game): 'win' | 'lose' | 'retreat' {
     }
   }
   home.state.scene = null;
-  return result;
+  return { result, loot };
+}
+
+// ------------------------------------------------------------------ mina: um mapa de caverna por andar
+/** Bichos de cada andar (o último tem o guardião). */
+const MINE_FAUNA: AnimalType[][] = [['spider', 'boar'], ['spider', 'bear'], ['spider', 'tiger', 'bear'], ['rhino', 'tiger'], ['rhino', 'bear']];
+
+/** Caverna gerada por autômato celular: galerias ligadas da entrada (à esquerda) até a descida (o ponto mais longe). */
+export function createMineScene(home: Game, e: Expedition, floor: number): GameState {
+  const seed = (home.state.seed ^ (e.id * 40503) ^ (floor * 2246822519)) >>> 0;
+  const s = baseState(seed);
+  const rnd = mulberry32(seed);
+  const W = MAP_W;
+  const H = MAP_H;
+  let wall = Array.from({ length: W * H }, (_, i) => {
+    const x = i % W;
+    const y = Math.floor(i / W);
+    return x < 2 || y < 2 || x >= W - 2 || y >= H - 2 ? 1 : rnd() < 0.44 ? 1 : 0;
+  });
+  for (let it = 0; it < 5; it++) {
+    const next = wall.slice();
+    for (let y = 1; y < H - 1; y++)
+      for (let x = 1; x < W - 1; x++) {
+        let n = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) n += wall[(y + dy) * W + x + dx]!;
+        next[y * W + x] = n >= 5 ? 1 : 0;
+      }
+    wall = next;
+  }
+  // entrada: chão mais à esquerda; só a galeria ligada a ela fica (o resto vira rocha)
+  let start = -1;
+  for (let x = 2; x < W && start < 0; x++) for (let y = Math.floor(H / 3); y < (H * 2) / 3 && start < 0; y++) if (!wall[y * W + x]) start = y * W + x;
+  if (start < 0) start = Math.floor(H / 2) * W + 4;
+  wall[start] = 0;
+  const dist = new Int32Array(W * H).fill(-1);
+  const q = [start];
+  dist[start] = 0;
+  for (let k = 0; k < q.length; k++) {
+    const i = q[k]!;
+    for (const d of [1, -1, W, -W]) {
+      const j = i + d;
+      if (j < 0 || j >= W * H || wall[j] || dist[j]! >= 0) continue;
+      dist[j] = dist[i]! + 1;
+      q.push(j);
+    }
+  }
+  let far = start;
+  for (let i = 0; i < W * H; i++) {
+    if (dist[i]! < 0) wall[i] = 1;
+    else if (dist[i]! > dist[far]!) far = i;
+  }
+  s.tiles = wall.map((w) => (w ? T.ROCK : T.DIRT));
+  s.nodes = [];
+  s.time = home.state.time;
+  s.day = home.state.day;
+  s.towersFaction = 'enemy';
+  s.res = { ...s.res, wood: 0, stone: 0, food: 0, ryo: 0 };
+  s.flags = { ...s.flags, shelterRookies: false };
+  s.timers = { ...s.timers, animal: 1e9, raid: 1e9 };
+  const g = new Game(s, SCENE_SYSTEMS);
+  g.isScene = true;
+  const floorCells = q.filter((i) => !wall[i]);
+  const at = (i: number) => ({ tx: i % W, ty: Math.floor(i / W) });
+  // veios de minério junto das paredes (enfeite) e alguns baús nos cantos mais fundos
+  for (const i of floorCells) {
+    const { tx, ty } = at(i);
+    const byWall = wall[i - 1] || wall[i + 1] || wall[i - W] || wall[i + W];
+    if (byWall && rnd() < 0.035) s.nodes.push({ id: g.newId(), type: rnd() < 0.7 ? 'ore' : 'rock', tx, ty, amount: 40, max: 40, variant: Math.floor(rnd() * 4) });
+  }
+  g.reindex();
+  const deep = floorCells.filter((i) => dist[i]! > dist[far]! * 0.35).sort(() => rnd() - 0.5);
+  for (let c = 0; c < 2 + Math.floor(floor / 2) && deep.length; c++) {
+    const { tx, ty } = at(deep.pop()!);
+    s.sites.push({ id: g.newId(), kind: 'chest', tx, ty, found: false, done: false });
+  }
+  const last = floor >= MINE.floors;
+  const stairs = at(far);
+  const stairsSite = { id: g.newId(), kind: 'cave' as const, tx: stairs.tx, ty: stairs.ty, found: false, done: false };
+  s.sites.push(stairsSite);
+  // bichos guardando as galerias, mais fortes a cada andar
+  const fauna = MINE_FAUNA[Math.min(MINE_FAUNA.length, floor) - 1]!;
+  const n = 3 + Math.round(floor * 1.5);
+  const spots = floorCells.filter((i) => dist[i]! > 14).sort(() => rnd() - 0.5);
+  for (let k = 0; k < n && spots.length; k++) {
+    const { tx, ty } = at(spots.pop()!);
+    const a = createAnimal(g, fauna[k % fauna.length]!, tileCenter(tx), tileCenter(ty));
+    a.maxHp = a.hp = Math.round(a.maxHp * (1 + floor * 0.3));
+    guard(a);
+  }
+  let bossId: number | undefined;
+  if (last) {
+    const boss = createAnimal(g, 'golem', tileCenter(stairs.tx) - 30, tileCenter(stairs.ty));
+    boss.boss = true;
+    boss.life = 1e9;
+    boss.name = 'Golem de cristal';
+    guard(boss);
+    bossId = boss.id;
+  }
+  const entry = { x: tileCenter(at(start).tx), y: tileCenter(at(start).ty) };
+  bringTeam(home, g, e, entry);
+  revealCircle(s, at(start).tx, at(start).ty, 6);
+  s.sceneInfo = {
+    kind: 'mine', expId: e.id, title: `Mina · andar ${floor}/${MINE.floors}`, floor, stairsId: stairsSite.id, bossId,
+    goal: last ? 'Derrote o guardião do fundo da mina.' : 'Ache a descida para o próximo andar (baús pelo caminho).',
+    result: null, loot: 0, lootNeed: 0, defenders: n + (bossId ? 1 : 0), entry,
+  };
+  return s;
+}
+
+/** Objetivo da mina: chegar à descida (sem bicho em cima) ou, no último andar, derrubar o guardião. Baús abrem ao encostar. */
+function mineTick(g: Game, info: SceneInfo, foes: Unit[], end: (r: 'win' | 'lose', text: string) => void) {
+  const team = sceneTeam(g);
+  for (const site of g.state.sites) {
+    if (site.kind !== 'chest' || site.done || !site.found) continue;
+    const x = tileCenter(site.tx);
+    const y = tileCenter(site.ty);
+    const who = team.find((u) => Math.hypot(u.x - x, u.y - y) < 30);
+    if (who) g.toast(resolveSite(g, site, who), 'good', { x, y });
+  }
+  if (info.bossId != null) {
+    const boss = g.unit(info.bossId);
+    if (!boss || boss.dead) end('win', '{crown} O guardião do fundo caiu! A mina é sua.');
+    return;
+  }
+  const st = g.state.sites.find((x) => x.id === info.stairsId);
+  if (!st) return;
+  const x = tileCenter(st.tx);
+  const y = tileCenter(st.ty);
+  if (team.some((u) => Math.hypot(u.x - x, u.y - y) < 36) && !foes.some((u) => Math.hypot(u.x - x, u.y - y) < 100))
+    end('win', `{pickaxe} Acharam a descida do andar ${info.floor}!`);
 }
 

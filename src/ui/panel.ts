@@ -504,7 +504,7 @@ export class Panel {
     const g = this.app.game;
     let html = `<div class="lvlcard"><div class="lvlname">{pickaxe} ${MINE.floors} andares</div><div class="hint">Força recomendada: andar 1 {swords}${floorPower(1)} · andar 3 {swords}${floorPower(3)} · andar 5 {swords}${floorPower(5)}.
       Os andares fundos têm ${RES_INFO.crystal.icon} cristal, ${RES_INFO.gold.icon} ouro e ${RES_INFO.darksteel.icon} aço negro.</div></div>`;
-    html += `<p class="hint">A equipe some do mapa enquanto explora. A cada andar você decide: descer mais (mais risco e minérios melhores) ou voltar. O saque só chega se voltarem.</p>`;
+    html += `<p class="hint">Cada andar é uma <b>caverna jogável</b>: a equipe entra (aparece "Ver invasão" no alto), luta com os bichos, abre os baús e procura a descida. Vencendo um andar, você decide: descer mais (mais risco e minérios melhores) ou voltar. No fundo há um guardião. O saque só chega se voltarem.</p>`;
     const here = activeExpeditions(g).filter((e) => e.siteId === site.id);
     if (here.length)
       html += `<p class="hint">{run} Na mina agora: ${here.map((e) => esc(g.team(e.teamId)?.name ?? '?')).join(', ')} <button class="btn mini" data-act="win" data-arg="expeditions">Acompanhar</button></p>`;
@@ -627,12 +627,14 @@ export class Panel {
       const tm = g.team(e.teamId);
       const live = e.status !== 'done' && e.status !== 'lost';
       const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
+      const mine = e.kind === 'mine';
+      const where = mine ? 'Mina' : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
       const label: Record<Expedition['status'], string> = {
-        going: 'a caminho da mina', explore: `explorando o andar ${e.floor}`, choice: `andar ${e.floor} concluído`, return: 'voltando para a vila',
-        done: 'terminou', lost: 'perdida', scene: 'em combate no mapa',
+        going: mine ? 'a caminho da mina' : 'a caminho', explore: mine ? `explorando o andar ${e.floor}` : 'no serviço', choice: `andar ${e.floor} concluído`,
+        return: 'voltando para a vila', done: 'terminou', lost: 'perdida', scene: mine ? `jogando o andar ${e.floor}` : 'invasão em andamento',
       };
-      html += `<div class="mcard exp ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="mt"><span class="dot"></span>${esc(tm?.name ?? 'Equipe')} · Mina
-        <span class="badge">${label[e.status]}</span>${live ? ` <span class="badge">{pickaxe} ${e.floor}/${MINE.floors}</span>` : ''}</div>`;
+      html += `<div class="mcard exp ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="mt"><span class="dot"></span>${esc(tm?.name ?? 'Equipe')} · ${esc(where)}
+        <span class="badge">${label[e.status]}</span>${live && mine ? ` <span class="badge">{pickaxe} ${e.floor}/${MINE.floors}</span>` : ''}</div>`;
       if (e.status === 'going' || e.status === 'explore' || e.status === 'return') {
         html += `<div class="bar pg"><i data-b="ex${e.id}"></i><span data-t="ex${e.id}"></span></div>`;
         b[`ex${e.id}`] = 1 - Math.max(0, e.timer) / total;

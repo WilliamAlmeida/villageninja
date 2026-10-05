@@ -396,7 +396,11 @@ export interface Cloud {
 
 /** Mapa de missão jogável (vilarejo invadido, andar de mina…): o que é, objetivo e resultado. */
 export interface SceneInfo {
-  kind: 'village';
+  kind: 'village' | 'mine';
+  /** Mina: andar, a descida (local) e o guardião do fundo. */
+  floor?: number;
+  stairsId?: number;
+  bossId?: number;
   /** Expedição da vila que está aqui. */
   expId: number;
   node?: string;

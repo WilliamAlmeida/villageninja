@@ -40,11 +40,13 @@ describe('expedições às minas', () => {
     expect(startMine(g, team.id, cave.id).ok).toBe(true);
     expect(us.every((u) => u.away != null && u.hidden)).toBe(true);
     const e = g.state.expeditions[0]!;
-    run(g, MINE.travel + MINE.floorTime + 2, () => e.status === 'choice' || e.status === 'return');
+    // cada andar agora é um mapa de caverna jogado (a equipe avança sozinha): leva o tempo da luta
+    const ended = () => e.status === 'choice' || e.status === 'return' || e.status === 'done' || e.status === 'lost';
+    run(g, MINE.travel + 300, ended);
     expect(e.floor).toBe(1);
     if (e.status === 'choice') {
       expect(chooseExpedition(g, e.id, true).ok).toBe(true);
-      run(g, MINE.floorTime + 2, () => e.status === 'choice' || e.status === 'return');
+      run(g, 300, ended);
       if (e.status === 'choice') chooseExpedition(g, e.id, false);
     }
     const before = { ...g.state.res };

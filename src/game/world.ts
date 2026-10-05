@@ -5,7 +5,8 @@ import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Building, GameState, ResourceNode } from './types';
 import { inTerritory } from './village';
 
-export const T = { GRASS: 0, GRASS2: 1, DIRT: 2, SAND: 3, WATER: 4 } as const;
+/** ROCK: parede de caverna (bloqueia como a água; só nos mapas de mina). */
+export const T = { GRASS: 0, GRASS2: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5 } as const;
 
 export const CENTER_TX = Math.floor(MAP_W / 2);
 export const CENTER_TY = Math.floor(MAP_H / 2);
@@ -43,7 +44,7 @@ export class World {
     const s = this.state;
     this.blocked.fill(0);
     this.occupied.fill(0);
-    for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER) this.blocked[i] = 1;
+    for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blocked[i] = 1;
     this.villageRects = [];
     for (const b of s.buildings) {
       const d = BUILDINGS[b.type];
@@ -80,7 +81,7 @@ export class World {
     for (let y = ty - 1; y <= ty + d.h; y++)
       for (let x = tx - 1; x <= tx + d.w; x++) if (inBounds(x, y) && this.occupied[idx(x, y)] !== 0) return false;
     for (let y = ty; y <= ty + d.h; y++)
-      for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER) return false;
+      for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER || this.state.tiles[idx(x, y)] === T.ROCK) return false;
     for (const n of this.state.nodes)
       // rocha/veio esgotado (rachado, crescendo de volta) não bloqueia: some quando constroem em cima
       if ((n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;

@@ -8,8 +8,10 @@ export function sceneRunSystem(g: Game, dt: number) {
   const s = sg.state;
   s.time = g.state.time;
   s.day = g.state.day;
-  s.weather = g.state.weather;
-  s.snow = g.state.snow;
+  // dentro da caverna não chove nem neva
+  const cave = s.sceneInfo?.kind === 'mine';
+  s.weather = cave ? 'clear' : g.state.weather;
+  s.snow = cave ? 0 : g.state.snow;
   s.pace = g.state.pace;
   sg.step(dt);
 }
