@@ -489,7 +489,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .breed .pic { width: 4rem; height: 4rem; background-size: 400% 300%; background-position: 33.333% 50%; background-repeat: no-repeat; image-rendering: pixelated; }
 .breed .pic.none { display: grid; place-items: center; color: var(--muted); }
 .breed .n { font-size: 0.82rem; font-weight: 700; text-align: center; line-height: 1.15; }
-.gearbar.workshop-bar .btn { flex: 1; justify-content: center; }
+.gearbar.workshop-bar .btn { flex: 1; justify-content: center; text-align: center; }
 
 /* Oficinas: as três lado a lado (uma coluna no celular) */
 .craftgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.6rem; margin-top: 0.4rem; }
