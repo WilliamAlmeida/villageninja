@@ -1,9 +1,10 @@
 import { bus, type ToastKind } from '../core/events';
 import { dist2 } from '../core/math';
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import type { BuildingType } from '../data/buildings';
 import { RES_KEYS } from '../data/resources';
 import type { Building, Cost, Faction, GameState, ResourceNode, Selection, Team, Unit } from './types';
 import { canHit } from './factions';
+import { housingOf } from './upgrade';
 import { World } from './world';
 
 export type System = (g: Game, dt: number) => void;
@@ -123,7 +124,7 @@ export class Game {
   }
   popCap() {
     let n = 0;
-    for (const b of this.state.buildings) if (b.built) n += BUILDINGS[b.type].housing ?? 0;
+    for (const b of this.state.buildings) if (b.built) n += housingOf(b);
     return n;
   }
 

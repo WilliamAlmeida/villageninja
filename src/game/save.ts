@@ -49,6 +49,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.pendingBoss = null;
     s.stats.bossesDefeated = 0;
   },
+  8: (s) => {
+    for (const b of s.buildings) {
+      b.level = 1;
+      b.upgrade = null;
+    }
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

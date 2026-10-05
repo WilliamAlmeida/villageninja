@@ -5,14 +5,18 @@ import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Game } from '../game/game';
-import { DEFENSES } from '../game/systems/towers';
+import { DEFENSES, GUARD_SHOW } from '../game/systems/towers';
+import { upgradeTime } from '../game/upgrade';
+
+/** Altura da plataforma da torre (fração da altura do sprite, de baixo para cima) por nível. */
+const GUARD_PLATFORM: Record<number, number> = { 1: 0.58, 2: 0.6, 3: 0.6 };
 import { darkness } from '../game/time';
 import { missionFocus } from '../game/missionView';
 import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, ResourceNode, Unit } from '../game/types';
 import { buildingCenter, doorPos } from '../game/world';
-import { art, drawArt } from './art';
+import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
 import { drawEffect } from './effects';
 import { Particles } from './particles';
 import { drawBuilding, drawNode, drawProjectile, drawUnit, type WorkAction } from './sprites';
@@ -339,7 +343,10 @@ export class Renderer {
     const ctx = this.ctx;
     const d = BUILDINGS[b.type];
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
-    const pic = art(b.type);
+    // arte do nível do prédio (upgrade), se existir; senão a do nível 1
+    const lvl = b.level ?? 1;
+    const artName = lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type;
+    const pic = art(artName);
     if (!pic) {
       ctx.save();
       ctx.translate(front.x - (b.tx + d.w / 2) * TILE, front.y - 6 - (b.ty + d.h) * TILE);
@@ -350,14 +357,44 @@ export class Renderer {
     const k = b.built ? 1 : b.progress / Math.max(1, d.buildTime);
     ctx.save();
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
-    drawArt(ctx, pic, front.x, front.y + 4, (width / pic.naturalWidth) * pic.naturalHeight);
+    const h = ((width * (ART_SCALE[artName] ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
+    drawArt(ctx, pic, front.x, front.y + 4, h);
     ctx.restore();
+    if (b.type === 'tower' && b.built && (b.shot ?? 0) > 0) this.towerGuard(b, front.x, front.y + 4 - h * (GUARD_PLATFORM[lvl] ?? 0.58), time);
+    // obra de upgrade: barra amarela na base
+    if (b.built && b.upgrade != null) {
+      const k2 = Math.min(1, b.upgrade / upgradeTime(b));
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(front.x - 20, front.y + 6, 40, 4);
+      ctx.fillStyle = '#5ee05e';
+      ctx.fillRect(front.x - 19, front.y + 7, 38 * k2, 2);
+    }
     if (!b.built) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(front.x - 20, front.y + 6, 40, 4);
       ctx.fillStyle = '#ffd34d';
       ctx.fillRect(front.x - 19, front.y + 7, 38 * k, 2);
     }
+  }
+
+  /** Guarda no alto da torre: arremessa a kunai (ciclo do golpe) e depois fica de vigia, olhando para o alvo. */
+  private towerGuard(b: Building, x: number, y: number, time: number) {
+    const pic = art('tower-guard');
+    if (!pic) return;
+    const since = GUARD_SHOW - (b.shot ?? 0);
+    const sheet = artFrames(pic);
+    const frame = since < 0.5 ? Math.min(sheet.frames - 1, Math.floor((since / 0.5) * sheet.frames)) : sheet.idle;
+    const a = projectAngle(b.aim ?? Math.PI / 4);
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    const row = Math.abs(dy) > Math.abs(dx) * 1.2 ? (dy > 0 ? SHEET_ROWS.front : SHEET_ROWS.back) : SHEET_ROWS.side;
+    const ctx = this.ctx;
+    ctx.save();
+    // some devagar no fim da vigia
+    ctx.globalAlpha = Math.min(1, (b.shot ?? 0) / 0.4);
+    drawArt(ctx, pic, x, y, 26, row === SHEET_ROWS.side && dx < 0, frame, row);
+    ctx.restore();
+    void time;
   }
 
   /** Canteiros recém-colhidos: terra à mostra que some aos poucos (a planta volta a crescer), com brotinhos. */
@@ -702,7 +739,7 @@ export class Renderer {
     const { front, width } = this.footprint(gh.type, gh.tx, gh.ty);
     const ctx = this.ctx;
     ctx.globalAlpha = 0.6;
-    drawArt(ctx, pic, front.x, front.y + 4, (width / pic.naturalWidth) * pic.naturalHeight);
+    drawArt(ctx, pic, front.x, front.y + 4, ((width * (ART_SCALE[gh.type] ?? 1)) / pic.naturalWidth) * pic.naturalHeight);
     ctx.globalAlpha = 1;
   }
 }

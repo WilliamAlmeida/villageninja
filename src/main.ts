@@ -7,6 +7,7 @@ import { createNewGame } from './game/newGame';
 import { clearSave, loadGame, saveGame } from './game/save';
 import { SYSTEMS } from './game/systems';
 import { doorPos } from './game/world';
+import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
 import { applySettings } from './ui/settings';
@@ -104,7 +105,26 @@ function frame(now: number) {
   ui.update(dt, clock);
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+
+// só começa a desenhar com as imagens prontas (senão aparece o desenho antigo enquanto elas chegam)
+const loading = document.getElementById('loading');
+const bar = loading?.querySelector<HTMLElement>('.lbar i');
+preloadArt((k) => bar && (bar.style.width = `${Math.round(k * 100)}%`)).then(() => {
+  last = performance.now();
+  requestAnimationFrame(frame);
+  loading?.classList.add('done');
+  setTimeout(() => loading?.remove(), 400);
+});
+
+// PWA: manifesto e ícone (de public/, servidos fora do bundle — por isso entram aqui e não no index.html)
+// + service worker: tornam o jogo instalável (abre em tela cheia, deitado, sem a barra do navegador)
+for (const [rel, href] of [['manifest', '/app.webmanifest'], ['apple-touch-icon', '/app-icons/apple-touch-icon.png']]) {
+  const link = document.createElement('link');
+  link.rel = rel!;
+  link.href = href!;
+  document.head.append(link);
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw-v1.js').catch(() => {});
 
 // útil para depurar no console do navegador
 (window as unknown as { vila: App }).vila = app;

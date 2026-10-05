@@ -77,7 +77,7 @@ function furnish(ctx: Ctx, kind: Kind, def: BuildingDef, beds: number): Spot[] {
   return spots;
 }
 
-export function drawInterior(ctx: Ctx, w: number, h: number, def: BuildingDef, occupants: Unit[], time: number, night: boolean) {
+export function drawInterior(ctx: Ctx, w: number, h: number, def: BuildingDef, occupants: Unit[], time: number, night: boolean, housing = def.housing ?? 0) {
   const k = Math.min(w / ROOM_W, h / ROOM_H);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, w, h);
@@ -103,8 +103,8 @@ export function drawInterior(ctx: Ctx, w: number, h: number, def: BuildingDef, o
   rect(ctx, '#5a3b22', ROOM_W / 2 - 9, ROOM_H - 4, 18, 4);
 
   const kind = KIND[def.type] ?? (def.housing ? 'home' : 'work');
-  const beds = kind === 'ward' ? 5 : (def.housing ?? 0);
-  const spots = furnish(ctx, kind, def, Math.min(beds, 5));
+  const beds = kind === 'ward' ? 5 : housing;
+  const spots = furnish(ctx, kind, def, Math.min(beds, 8));
 
   const free = spots.slice();
   for (const u of occupants) {

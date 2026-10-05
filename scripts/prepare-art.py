@@ -21,10 +21,18 @@ BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'ac
              'library': 5, 'missions': 4, 'ironmine': 4, 'forge': 4, 'pharmacy': 4, 'sealshop': 4, 'monument': 6,
              'farm': 6, 'training': 6, 'herbgarden': 4}
 FLIP = {'lumber', 'quarry', 'market', 'academy', 'tower'}
+# níveis de upgrade (<tipo>-2, <tipo>-3): mesma largura e mesmo espelhamento do nível 1
+for _name in list(BUILDINGS):
+    for _lv in (2, 3):
+        if (ISO / f'{_name}-{_lv}.png').exists():
+            BUILDINGS[f'{_name}-{_lv}'] = BUILDINGS[_name]
+            if _name in FLIP:
+                FLIP.add(f'{_name}-{_lv}')
 # altura (px) do quadro na folha final — ≈ 2× a altura em que aparece no mundo
 SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'biped'),
           **{f'ninja-hair-{s}': (56, 'biped') for s in ('spiky', 'ponytail', 'short', 'long', 'buns')},
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
+          'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped')}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 SINGLE = {'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}

@@ -1,6 +1,7 @@
 import type { App } from '../app';
 import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
+import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 import { rich } from './icons';
 import { artOn, FONT_SIZES, fontSize, setArtOn, setFontSize, type FontSize } from './settings';
 
@@ -20,7 +21,11 @@ export class Menu {
         const ok = this.app.save();
         this.app.game.toast(ok ? '{save} Jogo salvo!' : 'Não foi possível salvar.', ok ? 'good' : 'warn');
       }
-      if (a === 'full') this.fullscreen();
+      if (a === 'full') {
+        if (isIOS() && !canFullscreen()) this.app.game.toast(IOS_HINT, 'info');
+        else toggleFullscreen();
+      }
+      if (a === 'install') install().then(() => this.render());
       if (a === 'art') {
         setArtOn((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
         this.render();
@@ -63,7 +68,9 @@ export class Menu {
       <div class="col">
         <button class="btn primary" data-act="resume">{play} Continuar</button>
         <button class="btn" data-act="save">{save} Salvar agora</button>
-        <button class="btn" data-act="full">{fullscreen} Tela cheia</button>
+        ${isStandalone() ? '' : `<button class="btn" data-act="full">{fullscreen} ${isFullscreen() ? 'Sair da tela cheia' : 'Tela cheia'}</button>`}
+        ${canInstall() ? `<button class="btn" data-act="install">{phone} Instalar como app (sem barra do navegador)</button>` : ''}
+        ${!isStandalone() && isIOS() ? `<p class="hint">${IOS_HINT}</p>` : ''}
         <div class="setrow">{text} Texto<div class="seg">${FONT_SIZES.map((f) => `<button data-act="font" data-arg="${f.id}" class="${f.id === fs ? 'on' : ''}">${f.label}</button>`).join('')}</div></div>
         <div class="setrow">{eye} Arte<div class="seg"><button data-act="art" data-arg="1" class="${artOn() ? 'on' : ''}">Pixel art</button><button data-act="art" data-arg="0" class="${artOn() ? '' : 'on'}">Antiga</button></div></div>
         <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
@@ -87,13 +94,4 @@ export class Menu {
     </div>`);
   }
 
-  private async fullscreen() {
-    try {
-      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-      const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
-      await o.lock?.('landscape');
-    } catch {
-      /* nem todo navegador permite */
-    }
-  }
 }

@@ -5,6 +5,7 @@ import { createVillager } from '../entities';
 import type { Game } from '../game';
 import type { Unit } from '../types';
 import { doorPos } from '../world';
+import { housingOf, needsBuilders } from '../upgrade';
 
 const BIRTH_INTERVAL = 30;
 
@@ -71,12 +72,12 @@ function assignHomes(g: Game) {
   for (const u of people) {
     const h = g.building(u.homeId);
     if (!h || !h.built) u.homeId = null;
-    else if ((used.get(h.id) ?? 0) >= (BUILDINGS[h.type].housing ?? 0)) u.homeId = null; // casa cheia: procura outra
+    else if ((used.get(h.id) ?? 0) >= housingOf(h)) u.homeId = null; // casa cheia: procura outra
     else used.set(h.id, (used.get(h.id) ?? 0) + 1);
   }
   for (const u of people) {
     if (u.homeId != null) continue;
-    const h = g.state.buildings.find((b) => b.built && (BUILDINGS[b.type].housing ?? 0) > (used.get(b.id) ?? 0));
+    const h = g.state.buildings.find((b) => b.built && housingOf(b) > (used.get(b.id) ?? 0));
     if (!h) break;
     u.homeId = h.id;
     used.set(h.id, (used.get(h.id) ?? 0) + 1);
@@ -98,7 +99,7 @@ function assignJobs(g: Game) {
   const unemployed: Unit[] = villagers.filter((u) => u.jobId == null);
   // se há obras, reserva até 2 construtores — tirando gente do emprego se todos estiverem trabalhando
   // (antes a obra ficava parada para sempre quando não sobrava ninguém desempregado)
-  const pending = s.buildings.filter((b) => !b.built).length;
+  const pending = s.buildings.filter(needsBuilders).length;
   const builders = Math.min(2, pending, villagers.length);
   if (unemployed.length < builders) {
     const food = (u: Unit) => (BUILDINGS[g.building(u.jobId)!.type].job === 'farmer' ? 1 : 0);

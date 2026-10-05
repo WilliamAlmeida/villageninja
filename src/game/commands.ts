@@ -11,6 +11,7 @@ import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
 import { doorPos } from './world';
+import { workersOf } from './upgrade';
 
 export type Result = { ok: true } | { ok: false; error: string };
 const ok: Result = { ok: true };
@@ -126,7 +127,7 @@ export function demolish(g: Game, id: number): Result {
 export function setDesiredWorkers(g: Game, id: number, delta: number): Result {
   const b = g.building(id);
   if (!b) return fail('Prédio não encontrado.');
-  const max = BUILDINGS[b.type].workers ?? 0;
+  const max = workersOf(b);
   b.desired = Math.max(0, Math.min(max, b.desired + delta));
   g.state.timers.jobs = 0;
   return ok;

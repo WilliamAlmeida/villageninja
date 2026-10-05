@@ -6,6 +6,7 @@ import { arenaSpots, examLabel } from '../game/exam';
 import { BOSSES } from '../data/bosses';
 import { el, esc, fmt } from './dom';
 import { rich } from './icons';
+import { canFullscreen, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen, watchFullscreen } from './fullscreen';
 
 const MAX_TOASTS = 4;
 
@@ -37,6 +38,7 @@ export class Hud {
       <div class="speed">
         <button data-speed="0" title="Pausar">{pause}</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
       </div>
+      <button class="iconbtn" data-act="full" title="Tela cheia">{fullscreen}</button>
       <button class="iconbtn" data-act="menu" title="Menu">{menu}</button>`),
     );
     this.top.querySelectorAll<HTMLElement>('[data-r]').forEach((e) => this.vals.set(e.dataset.r!, e));
@@ -45,8 +47,28 @@ export class Hud {
       if (!t) return;
       if (t.dataset.speed) this.app.game.state.speed = Number(t.dataset.speed);
       if (t.dataset.act === 'menu') this.onMenu();
+      if (t.dataset.act === 'full') {
+        if (isIOS() && !canFullscreen()) this.toast(IOS_HINT, 'info');
+        else toggleFullscreen();
+      }
     });
     this.top.addEventListener('pointerdown', (e) => e.stopPropagation());
+    // botão de tela cheia: some quando já está em tela cheia ou aberto como app instalado
+    const fullBtn = this.top.querySelector<HTMLElement>('[data-act="full"]')!;
+    const syncFull = () => (fullBtn.hidden = isStandalone() || isFullscreen());
+    watchFullscreen(syncFull);
+    syncFull();
+    // no celular pelo navegador, avisa uma vez por sessão que dá para esconder a barra
+    if (matchMedia('(pointer: coarse)').matches && !isStandalone()) {
+      try {
+        if (!sessionStorage.getItem('vn.fullHint')) {
+          sessionStorage.setItem('vn.fullHint', '1');
+          setTimeout(() => this.toast(isIOS() ? IOS_HINT : 'Toque em {fullscreen} (no alto, à direita) para jogar em tela cheia. No menu dá para instalar como app.', 'info'), 1500);
+        }
+      } catch {
+        /* sem sessionStorage: só não avisa */
+      }
+    }
 
     this.alert = el('div', { id: 'banners' });
     const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, rich('{alert} Inimigos na vila — toque para ver'));

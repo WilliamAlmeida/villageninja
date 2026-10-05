@@ -2,6 +2,7 @@ import { TILE } from '../../config';
 import { pick, rand, randi } from '../../core/rng';
 import { BUILDINGS } from '../../data/buildings';
 import { fx, fxText } from '../fx';
+import { farmYield, marketYield, needsBuilders, workUpgrade } from '../upgrade';
 import { advanceCraft } from '../gear';
 import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
@@ -135,8 +136,9 @@ function work(g: Game, u: Unit, dt: number) {
       if (u.timer <= 0) {
         const job = g.building(u.jobId);
         const out = job && BUILDINGS[job.type].job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
-        g.state.res[out.res] += out.amount;
-        fxText(g, u.x, u.y - 20, `+${out.amount}${RES_INFO[out.res].icon}`, '#ffe08a');
+        const amount = out.res === 'food' ? farmYield(job) : out.amount;
+        g.state.res[out.res] += amount;
+        fxText(g, u.x, u.y - 20, `+${amount}${RES_INFO[out.res].icon}`, '#ffe08a');
         // o pedaço colhido fica sem planta e volta a crescer aos poucos
         fx(g, 'harvest', u.x + Math.cos(u.facing) * 8, u.y + Math.sin(u.facing) * 8, { life: 30, r: 10, color: '#6b4a2b' });
         u.state = 'idle';
@@ -196,8 +198,9 @@ function work(g: Game, u: Unit, dt: number) {
       u.moving = false;
       if (!g.building(u.jobId)?.built) u.state = 'idle';
       else if (u.timer <= 0) {
-        g.state.res.ryo += 3;
-        fxText(g, u.x, u.y - 20, '+3{ryo}', '#ffe08a');
+        const ryo = marketYield(g.building(u.jobId));
+        g.state.res.ryo += ryo;
+        fxText(g, u.x, u.y - 20, `+${ryo}{ryo}`, '#ffe08a');
         u.timer = 8;
       }
       break;
@@ -232,13 +235,13 @@ function work(g: Game, u: Unit, dt: number) {
     }
     case 'toSite': {
       const b = g.building(u.taskId);
-      if (!b || b.built) u.state = 'idle';
+      if (!b || !needsBuilders(b)) u.state = 'idle';
       else if (followPath(g, u, dt)) u.state = 'build';
       break;
     }
     case 'build': {
       const b = g.building(u.taskId);
-      if (!b || b.built) {
+      if (!b || !needsBuilders(b)) {
         u.state = 'idle';
         break;
       }
@@ -246,8 +249,12 @@ function work(g: Game, u: Unit, dt: number) {
       u.anim = 0.2;
       const p = doorPos(b);
       u.facing = Math.atan2(p.y - 16 - u.y, p.x - u.x);
-      b.progress += dt;
       if (Math.random() < dt * 2) fx(g, 'chips', u.x + Math.cos(u.facing) * 10, u.y + Math.sin(u.facing) * 10, { color: '#d9b77a', life: 0.4 });
+      if (b.built) {
+        workUpgrade(g, b, dt); // upgrade: o prédio segue funcionando durante a obra
+        break;
+      }
+      b.progress += dt;
       if (b.progress >= BUILDINGS[b.type].buildTime) completeBuilding(g, b);
       break;
     }
@@ -351,7 +358,7 @@ function nearestSite(g: Game, u: Unit) {
   let best: Building | undefined;
   let bd = Infinity;
   for (const b of g.state.buildings) {
-    if (b.built) continue;
+    if (!needsBuilders(b)) continue;
     const p = doorPos(b);
     const d = Math.hypot(p.x - u.x, p.y - u.y);
     if (d < bd) {

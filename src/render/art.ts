@@ -35,6 +35,23 @@ import mine from '../art/villager-mine.png';
 import hoe from '../art/villager-farm.png';
 import stump from '../art/stump.png';
 import rockCracked from '../art/rock-cracked.png';
+import house2 from '../art/house-2.png';
+import house3 from '../art/house-3.png';
+import lumber2 from '../art/lumber-2.png';
+import lumber3 from '../art/lumber-3.png';
+import quarry2 from '../art/quarry-2.png';
+import quarry3 from '../art/quarry-3.png';
+import market2 from '../art/market-2.png';
+import market3 from '../art/market-3.png';
+import tower2 from '../art/tower-2.png';
+import tower3 from '../art/tower-3.png';
+import hospital2 from '../art/hospital-2.png';
+import hospital3 from '../art/hospital-3.png';
+import farm2 from '../art/farm-2.png';
+import farm3 from '../art/farm-3.png';
+import training2 from '../art/training-2.png';
+import training3 from '../art/training-3.png';
+import towerGuard from '../art/tower-guard.png';
 import hairSpiky from '../art/ninja-hair-spiky.png';
 import hairPonytail from '../art/ninja-hair-ponytail.png';
 import hairShort from '../art/ninja-hair-short.png';
@@ -43,6 +60,8 @@ import hairBuns from '../art/ninja-hair-buns.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, ninja, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, 'rock-cracked': rockCracked,
+  // níveis de upgrade dos prédios e o guarda da torre
+  'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
   'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns };
 
 /**
@@ -53,12 +72,18 @@ export const SHEET_ROWS = { side: 0, front: 1, back: 2 } as const;
 const SHEET = { frames: 4, rows: 3, idle: 1 };
 /** Bases de ninja (uma por penteado) desenhadas em cores-chave: cabelo verde e roupa azul, recoloridas por ninja. */
 export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns'] as const;
-const SHEETS = new Set(['ninja', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'villager-chop', 'villager-mine', 'villager-farm', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
+const SHEETS = new Set(['ninja', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
 
 const images = new Map<string, HTMLImageElement>();
 let enabled = true;
 
 /** URL do PNG (para usar no DOM, ex.: fundo dos cards de construção). */
+/**
+ * Escala extra de alguns sprites de prédio em relação à largura da base. Usado quando os níveis de upgrade
+ * ganham alas laterais: sem isso o corpo do prédio encolhe para caber na mesma largura e parece que diminuiu.
+ */
+export const ART_SCALE: Record<string, number> = { hospital: 0.85, 'hospital-2': 1.05, 'hospital-3': 1.22 };
+
 export const artUrl = (name: string): string | null => URLS[name] ?? null;
 
 export function setArtEnabled(v: boolean) {
@@ -66,8 +91,34 @@ export function setArtEnabled(v: boolean) {
 }
 
 /** Imagem pronta para desenhar, ou null (arte desligada, nome sem imagem, ainda carregando). */
+/**
+ * Carrega todas as imagens antes do jogo começar a desenhar (senão, enquanto um PNG não chega, aparece o
+ * desenho antigo no lugar). `onProgress` recebe 0..1. Imagem que falhar não trava: o jogo usa o desenho antigo nela.
+ */
+export function preloadArt(onProgress: (k: number) => void = () => {}): Promise<void> {
+  const names = Object.keys(URLS);
+  let done = 0;
+  return new Promise((resolve) => {
+    if (typeof Image === 'undefined' || !names.length) return resolve();
+    for (const name of names) {
+      art(name); // cria o <img> e começa a baixar
+      const img = images.get(name)!;
+      const finish = () => {
+        done++;
+        onProgress(done / names.length);
+        if (done === names.length) resolve();
+      };
+      if (img.complete) finish();
+      else {
+        img.addEventListener('load', finish, { once: true });
+        img.addEventListener('error', finish, { once: true });
+      }
+    }
+  });
+}
+
 export function art(name: string): HTMLImageElement | null {
-  if (!enabled || typeof Image === 'undefined' || !(name in URLS)) return null;
+  if (typeof Image === 'undefined' || !(name in URLS)) return null;
   let img = images.get(name);
   if (!img) {
     img = new Image();
@@ -75,7 +126,7 @@ export function art(name: string): HTMLImageElement | null {
     img.dataset.name = name;
     images.set(name, img);
   }
-  return img.complete && img.naturalWidth > 0 ? img : null;
+  return enabled && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
 type Pic = HTMLImageElement | HTMLCanvasElement;

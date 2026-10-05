@@ -1,4 +1,5 @@
 import { FOOD_PER_DAY, DAY_LENGTH } from '../../config';
+import { healMult } from '../upgrade';
 import { BUILDINGS } from '../../data/buildings';
 import { derive } from '../../data/ninja';
 import type { Game } from '../game';
@@ -17,7 +18,7 @@ export function statusSystem(g: Game, dt: number) {
     if (starving) g.toast('{food} A vila está passando fome! Construa fazendas.', 'danger');
   }
 
-  const healers = s.buildings.filter((b) => b.built && BUILDINGS[b.type].healRate).map((b) => ({ ...doorPos(b), rate: BUILDINGS[b.type].healRate! }));
+  const healers = s.buildings.filter((b) => b.built && BUILDINGS[b.type].healRate).map((b) => ({ ...doorPos(b), rate: BUILDINGS[b.type].healRate! * healMult(b) }));
 
   for (const u of s.units) {
     if (u.dead) continue;

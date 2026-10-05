@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun scripts/dev.ts",
-    "build": "bun build ./index.html --outdir=dist --minify",
+    "build": "bun build ./index.html --outdir=dist --minify && bun -e \"require('fs').cpSync('public', 'dist', { recursive: true })\"",
     "preview": "bun run build && bun scripts/serve.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",

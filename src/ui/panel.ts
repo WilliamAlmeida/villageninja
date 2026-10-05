@@ -33,6 +33,8 @@ import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
 import { esc, el } from './dom';
+import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
+import { housingOf, levelOf, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { rich } from './icons';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
@@ -144,7 +146,7 @@ export class Panel {
       cv.width = w;
       cv.height = h;
     }
-    drawInterior(cv.getContext('2d')!, w, h, BUILDINGS[b.type], occupantsOf(this.app.game, b), time, isNight(this.app.game.state));
+    drawInterior(cv.getContext('2d')!, w, h, BUILDINGS[b.type], occupantsOf(this.app.game, b), time, isNight(this.app.game.state), housingOf(b));
   }
 
   show(view: View | null) {
@@ -437,7 +439,7 @@ export class Panel {
         if (d.housing) {
           const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
           html += `<p class="hint">Moradia: <span data-t="res"></span> moradores</p>`;
-          t.res = `${residents} / ${d.housing}`;
+          t.res = `${residents} / ${housingOf(bd)}`;
         }
         return { html: html + this.interiorSection(bd, t, b), t, b };
       }
@@ -448,6 +450,7 @@ export class Panel {
       b.prog = Math.min(1, bd.progress / d.buildTime);
       t.prog = `${Math.floor(b.prog * 100)}%`;
     } else {
+      html += this.upgradeSection(bd, t, b);
       if (bd.type === 'hokage') html += this.villageSummary();
       if (bd.type === 'missions') html += this.missionsSummary();
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
@@ -456,12 +459,12 @@ export class Panel {
       if (d.workers) {
         html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
           <b data-t="workers"></b><button class="btn" data-act="workers" data-arg="1">{plus}</button></div>`;
-        t.workers = `${bd.workers.length} / ${bd.desired} (máx ${d.workers})`;
+        t.workers = `${bd.workers.length} / ${bd.desired} (máx ${workersOf(bd)})`;
       }
       if (d.housing) {
         const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
         html += `<h4>Moradia</h4><p class="hint"><span data-t="res"></span> moradores</p>`;
-        t.res = `${residents} / ${d.housing}`;
+        t.res = `${residents} / ${housingOf(bd)}`;
       }
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
@@ -524,6 +527,27 @@ export class Panel {
     const tabs = WINDOW_TABS[TAB_GROUP[active] ?? ''];
     if (!tabs) return '';
     return `<div class="seg tabs">${tabs.map(([k, label]) => `<button data-act="tab" data-arg="${k}" class="${active === k ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+  }
+
+  /** Nível do prédio, o que o próximo nível dá e o botão de upgrade (ou a obra em andamento). */
+  private upgradeSection(bd: Building, t: Record<string, string>, b: Record<string, number>) {
+    const def = UPGRADES[bd.type];
+    if (!def) return '';
+    const g = this.app.game;
+    const lvl = levelOf(bd);
+    let html = `<div class="lvlcard upg"><div class="lvlname">{star} Nível ${lvl} de ${MAX_BUILDING_LEVEL}</div><div class="hint">${esc(def.perks[lvl - 1]!)}</div>`;
+    if (bd.upgrade != null) {
+      html += `<div class="bar pg"><i data-b="upg"></i><span data-t="upg"></span></div><div class="hint">Moradores sem emprego estão fazendo a obra; o prédio continua funcionando.</div></div>`;
+      b.upg = Math.min(1, bd.upgrade / upgradeTime(bd));
+      t.upg = `Obra do nível ${lvl + 1}: ${Math.floor(b.upg * 100)}%`;
+      return html;
+    }
+    if (lvl >= MAX_BUILDING_LEVEL) return html + `</div>`;
+    const st = upgradeStatus(g, bd);
+    html += `<div class="actions"><button class="btn primary big" data-act="upgrade-building" ${st.reason ? 'disabled' : ''}>
+      <span>{up} Nível ${lvl + 1}: ${esc(def.perks[lvl]!)}</span><span class="cost">${costLabel(st.cost ?? {})}</span></button></div>`;
+    if (st.reason && st.reason !== 'Recursos insuficientes.') html += `<p class="why">${esc(st.reason)}</p>`;
+    return html + `</div>`;
   }
 
   /** Resumo da vila no painel da Residência do Hokage; o detalhe abre na janela. */
@@ -1101,6 +1125,8 @@ export class Panel {
         case 'move':
           this.onMove(v.id);
           return;
+        case 'upgrade-building':
+          return this.report(startUpgrade(g, v.id));
         case 'demolish':
           if (!this.armedDemolish) {
             this.armedDemolish = 1;

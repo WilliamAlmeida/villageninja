@@ -193,6 +193,14 @@ export interface Building {
   /** Oficinas: itens na fila e o que está sendo feito agora. */
   queue?: string[];
   craft?: { itemId: string; progress: number } | null;
+  /** Nível do prédio (1–3, ver data/upgrades.ts). */
+  level?: number;
+  /** Upgrade em obra: segundos trabalhados (null = nenhum). O prédio continua funcionando. */
+  upgrade?: number | null;
+  /** Torres: segundos desde o último arremesso contados para trás (o guarda aparece enquanto > 0; só visual). */
+  shot?: number;
+  /** Torres: ângulo (mundo) do último alvo, para o guarda olhar para ele. */
+  aim?: number;
 }
 
 export interface ResourceNode {
