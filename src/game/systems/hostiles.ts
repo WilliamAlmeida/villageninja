@@ -1,12 +1,16 @@
 import { MAP_H, MAP_W, TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
-import { ANIMALS } from '../../data/animals';
+import { ANIMALS, type AnimalDef } from '../../data/animals';
+import { BUILDINGS } from '../../data/buildings';
+import { BOMB, HEAL } from '../../data/enemies';
+import { costLabel } from '../../data/resources';
 import { areaDamage, engage, trySupport } from '../combat';
 import { fx, fxText } from '../fx';
+import { occupantsOf } from '../interior';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
-import type { Unit } from '../types';
-import { CENTER_TX, CENTER_TY, doorPos, tileCenter, toTile } from '../world';
+import type { Building, Unit } from '../types';
+import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, tileCenter, toTile } from '../world';
 
 /** Animais selvagens, ninjas renegados e clones das sombras. */
 export function hostileSystem(g: Game, dt: number) {
@@ -37,6 +41,7 @@ function animal(g: Game, u: Unit, dt: number) {
   }
   if (u.missionId != null) return guardHome(g, u, dt, def.aggro);
   if (u.boss) return titan(g, u, dt, def.aggro);
+  if (def.thief) return thief(g, u, dt, def);
   const t = validTarget(g, u, def.aggro * 2.5) ?? g.nearestHostile(u, def.aggro);
   if (t) {
     engage(g, u, t, dt);
@@ -73,6 +78,8 @@ function rogue(g: Game, u: Unit, dt: number) {
   }
   trySupport(g, u);
   if (u.missionId != null) return guardHome(g, u, dt, 220);
+  if (u.state !== 'escape' && u.role === 'medic' && medic(g, u, dt)) return;
+  if (u.state !== 'escape' && u.role === 'bomber' && bomber(g, u, dt)) return;
   if (u.state !== 'escape') {
     const t = validTarget(g, u, 320) ?? g.nearestHostile(u, 220);
     if (t) {
@@ -160,6 +167,180 @@ function titan(g: Game, u: Unit, dt: number, aggro: number) {
     u.timer = 3;
   }
   followPath(g, u, dt);
+}
+
+/** Vai embora pela borda mais próxima (o que levou, levou). */
+function flee(g: Game, u: Unit) {
+  u.state = 'escape';
+  const e = nearestEdge(u.x, u.y);
+  setDestination(g, u, e.x, e.y);
+}
+
+const dist = (u: Unit, p: { x: number; y: number }) => Math.hypot(u.x - p.x, u.y - p.y);
+const inside = (u: Unit, b: Building) => {
+  const d = BUILDINGS[b.type];
+  return u.x > b.tx * TILE && u.x < (b.tx + d.w) * TILE && u.y > b.ty * TILE && u.y < (b.ty + d.h) * TILE;
+};
+
+/**
+ * Bichos ladrões. Corvo: bica a fazenda e leva comida aos poucos. Macaco: pega ryo (ou ervas) uma vez e foge.
+ * Não caçam ninguém; o corvo só bica quem chega muito perto. Abatido, devolve o que levou (ver killUnit).
+ */
+function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
+  if (u.state === 'escape') {
+    if (followPath(g, u, dt, def.thief === 'stash' ? 1.15 : 0.9)) {
+      u.dead = true;
+      if (u.loot) g.toast(`{paw} ${def.name} fugiu com ${costLabel(u.loot)}.`, 'warn');
+    }
+    return;
+  }
+  const near = def.aggro ? g.nearestHostile(u, def.aggro) : null;
+  if (near) return engage(g, u, near, dt);
+  if ((u.life ?? 0) <= 0) return flee(g, u);
+  const res = g.state.res;
+  if (def.thief === 'farm') {
+    const farms = g.builtOf('farm');
+    if (!farms.length || (u.loot?.food ?? 0) >= 12) return flee(g, u);
+    const cur = g.building(u.taskId);
+    const b = cur && cur.built ? cur : farms.reduce((a, f) => (dist(u, buildingCenter(f)) < dist(u, buildingCenter(a)) ? f : a));
+    u.taskId = b.id;
+    if (!inside(u, b)) {
+      if (!u.hasGoal || u.timer <= 0) {
+        u.timer = 3;
+        const d = BUILDINGS[b.type];
+        setDestination(g, u, (b.tx + rand(0.3, d.w - 0.3)) * TILE, (b.ty + rand(0.3, d.h - 0.3)) * TILE);
+      }
+      followPath(g, u, dt);
+      return;
+    }
+    u.moving = false;
+    if (u.timer > 0) return;
+    u.timer = 2.5;
+    u.anim = 0.3;
+    const take = Math.min(2, Math.floor(res.food));
+    if (take <= 0) return flee(g, u);
+    res.food -= take;
+    u.loot = { food: (u.loot?.food ?? 0) + take };
+    fxText(g, u.x, u.y - 14, `-${take}{food}`, '#ff8a8a');
+    return;
+  }
+  // macaco: vai até o estoque (Residência do Hokage, ou a horta se houver ervas), pega e foge
+  const garden = g.findBuilt('herbgarden');
+  const herbs = res.herbs >= 5 && !!garden && u.id % 2 === 0;
+  const b = herbs ? garden : g.hokage();
+  if (!b) return flee(g, u);
+  const p = doorPos(b);
+  if (!u.hasGoal || u.timer <= 0) {
+    u.timer = 3;
+    if (!setDestination(g, u, p.x, p.y + 4)) return flee(g, u);
+  }
+  if (followPath(g, u, dt) && Math.hypot(p.x - u.x, p.y - u.y) < 36) {
+    const key = herbs ? 'herbs' : 'ryo';
+    const amount = herbs ? Math.min(Math.floor(res.herbs), 6 + g.state.day) : Math.min(Math.floor(res.ryo), 15 + g.state.day * 3);
+    if (amount > 0) {
+      res[key] -= amount;
+      u.loot = { [key]: amount };
+      fxText(g, u.x, u.y - 24, `-${amount}{${key}}`, '#ff5a5a', true);
+      g.toast(`{paw} Um macaco roubou ${costLabel(u.loot)}! Alcance-o antes que fuja.`, 'danger', u);
+    }
+    flee(g, u);
+  }
+}
+
+/** Prédio que o bombardeiro mira: o mais perto que esteja de pé (a Residência e os campos não). */
+function bombTarget(g: Game, u: Unit): Building | null {
+  let best: Building | null = null;
+  let bd = Infinity;
+  for (const b of g.state.buildings) {
+    const d = BUILDINGS[b.type];
+    if (!b.built || b.type === 'hokage' || d.walkable) continue;
+    const k = dist(u, buildingCenter(b));
+    if (k < bd) {
+      bd = k;
+      best = b;
+    }
+  }
+  return best;
+}
+
+/** Bombardeiro: vai até um prédio e lança papel-bomba; só luta com quem chega bem perto. Retorna true se agiu. */
+function bomber(g: Game, u: Unit, dt: number): boolean {
+  if ((u.bombs ?? 0) >= BOMB.max) return false; // sem bombas: vira um renegado comum
+  const close = g.nearestHostile(u, 50);
+  if (close) {
+    engage(g, u, close, dt);
+    return true;
+  }
+  const b = bombTarget(g, u);
+  if (!b) return false;
+  u.abilityCd = (u.abilityCd ?? 0) - dt;
+  const c = buildingCenter(b);
+  if (dist(u, c) > BOMB.range) {
+    if (!u.hasGoal || u.timer <= 0) {
+      u.timer = 2;
+      if (!setDestination(g, u, c.x, c.y + 30)) return false;
+    }
+    followPath(g, u, dt);
+    return true;
+  }
+  u.moving = false;
+  u.facing = Math.atan2(c.y - u.y, c.x - u.x);
+  if (u.abilityCd > 0) return true;
+  u.abilityCd = BOMB.cd;
+  u.bombs = (u.bombs ?? 0) + 1;
+  u.anim = 0.4;
+  bombBuilding(g, u, b);
+  return true;
+}
+
+/** O papel-bomba explode: o prédio vira obra pela metade (os construtores refazem) e fere quem está perto. */
+export function bombBuilding(g: Game, src: Unit | null, b: Building) {
+  const d = BUILDINGS[b.type];
+  const c = buildingCenter(b);
+  fx(g, 'burst', c.x, c.y, { r: BOMB.radius, color: '#ff8a3d', life: 0.6 });
+  fx(g, 'smoke', c.x, c.y - 10, { r: 30, life: 1, color: '#6b6b6b' });
+  areaDamage(g, src, 'enemy', c.x, c.y, BOMB.radius, BOMB.unitDmg, null, 30);
+  // quem estava lá dentro sai pela porta (não fica escondido nas ruínas)
+  const door = doorPos(b);
+  for (const o of occupantsOf(g, b)) {
+    o.hidden = false;
+    o.state = 'idle';
+    o.timer = 0;
+    o.x = door.x;
+    o.y = door.y + 6;
+  }
+  b.built = false;
+  b.progress = d.buildTime * (1 - BOMB.damage);
+  b.upgrade = null;
+  g.state.timers.jobs = 0; // chama construtores já
+  g.toast(`{bomb} Papel-bomba! ${d.name} foi danificado e parou de funcionar até os moradores reconstruírem.`, 'danger', c);
+}
+
+/** Médico: segue o grupo e cura o aliado mais ferido. Retorna true se agiu (senão luta como os outros). */
+function medic(g: Game, u: Unit, dt: number): boolean {
+  u.abilityCd = (u.abilityCd ?? 0) - dt;
+  const allies = g.state.units.filter((o) => !o.dead && o !== u && o.faction === 'enemy' && o.kind === 'rogue' && o.missionId == null);
+  if (!allies.length) return false;
+  const hurt = allies
+    .filter((o) => o.hp < o.maxHp * 0.85 && dist(u, o) < HEAL.range)
+    .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+  if (hurt && u.abilityCd <= 0) {
+    u.abilityCd = HEAL.cd;
+    u.anim = 0.4;
+    const amount = Math.round(hurt.maxHp * HEAL.amount);
+    hurt.hp = Math.min(hurt.maxHp, hurt.hp + amount);
+    fx(g, 'ring', hurt.x, hurt.y, { r: 20, color: '#7dff8a', life: 0.6 });
+    fxText(g, hurt.x, hurt.y - 26, `+${amount}`, '#7dff8a');
+  }
+  const close = g.nearestHostile(u, 45);
+  if (close) {
+    engage(g, u, close, dt);
+    return true;
+  }
+  // fica um pouco atrás do aliado mais ferido (ou do mais perto)
+  const lead = hurt ?? allies.reduce((a, o) => (dist(u, o) < dist(u, a) ? o : a));
+  chase(g, u, lead.x - 24, lead.y - 18, dt, 20);
+  return true;
 }
 
 function nearestEdge(x: number, y: number) {

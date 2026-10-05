@@ -1,6 +1,7 @@
 // Todo o estado do jogo é dado puro (serializável em JSON).
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
+import type { RogueRole } from '../data/enemies';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
 import type { KekkeiId } from '../data/kekkei';
@@ -133,8 +134,14 @@ export interface Unit {
   heritage?: Heritage;
   /** Chefe de ameaça (aparece na barra de vida da tela). */
   boss?: boolean;
-  /** Recarga de habilidade especial (pisão da Fera Colossal). */
+  /** Recarga de habilidade especial (pisão da Fera Colossal, bomba, cura). */
   abilityCd?: number;
+  /** Renegado com função especial (ver data/enemies.ts). */
+  role?: RogueRole;
+  /** O que o bicho ladrão (corvo, macaco) levou da vila; volta se ele for abatido. */
+  loot?: Cost;
+  /** Bombas já lançadas (o bombardeiro desiste depois de algumas). */
+  bombs?: number;
   /** Ordem direta do jogador; sobrepõe a IA até ser cumprida ou cancelada. */
   command: Command | null;
 }

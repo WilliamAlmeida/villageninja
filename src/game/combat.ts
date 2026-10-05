@@ -1,6 +1,7 @@
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
+import { costLabel } from '../data/resources';
 import { isRangedJutsu, JUTSUS, jutsuChakra, jutsuCooldown, jutsuDuration, jutsuPower, type JutsuDef } from '../data/jutsus';
 import { natureMultiplier, type Nature } from '../data/natures';
 import { derive } from '../data/ninja';
@@ -378,6 +379,12 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   fx(g, 'burst', t.x, t.y, { r: 18, color: '#ffffff', life: 0.4 });
   const killer = src?.kind === 'clone' ? g.unit(src.ownerId) : src;
   if (t.boss) bossDefeated(g, t);
+  // ladrão abatido: o que ele levou volta para a vila
+  if (t.loot) {
+    g.give(t.loot);
+    fxText(g, t.x, t.y - 40, `Recuperado: ${costLabel(t.loot)}`, '#7dff8a', true);
+    t.loot = undefined;
+  }
   if (t.faction !== 'village') {
     // killer nulo = torre / Residência do Hokage
     if (!killer || killer.faction === 'village') {

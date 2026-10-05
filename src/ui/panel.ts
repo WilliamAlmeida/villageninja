@@ -3,6 +3,7 @@
 import type { App } from '../app';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS } from '../data/buildings';
+import { ROGUE_ROLES } from '../data/enemies';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
 import { NATURES } from '../data/natures';
 import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
@@ -226,7 +227,7 @@ export class Panel {
       const isOwn = u.faction === 'village' && u.kind === 'ninja';
       const title = u.kind === 'clone' ? `Clone de ${esc(u.name)}` : esc(u.name);
       html += `<div class="ph"><div class="title">${title}</div><div class="badges">
-        <span class="badge ${u.faction === 'enemy' ? 'enemy' : 'rank'}">${u.faction === 'enemy' ? 'Renegado · ' : ''}${RANKS[n.rank].name}</span>
+        <span class="badge ${u.faction === 'enemy' ? 'enemy' : 'rank'}">${u.faction === 'enemy' ? `${u.role ? ROGUE_ROLES[u.role].name : 'Renegado'} · ` : ''}${RANKS[n.rank].name}</span>
         <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div></div>`;
       html += `<div class="sub">Nível ${n.level} · <span data-t="state"></span></div>`;
       // vida, chakra e XP lado a lado (economiza altura no painel)
@@ -238,6 +239,7 @@ export class Panel {
       t.hp = `${Math.ceil(u.hp)}/${u.maxHp}`;
       t.ck = `${Math.floor(u.chakra)}/${u.maxChakra}`;
       b.ck = u.chakra / Math.max(1, u.maxChakra);
+      if (u.role) html += `<div class="warnbox">${u.role === 'bomber' ? '{bomb}' : '{medic}'} ${esc(ROGUE_ROLES[u.role].desc)}</div>`;
       if (!isOwn && isAttackable(u)) html += this.attackSection(u, t);
       if (isOwn) {
         t.xp = `${Math.floor(n.xp)}/${xpToNext(n.level)}`;
@@ -293,7 +295,8 @@ export class Panel {
       html += `<div class="ph"><div class="title">${d.name}</div><div class="badges"><span class="badge enemy">Animal selvagem</span></div></div>`;
       html += `<div class="sub"><span data-t="state"></span></div><div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
       if (isAttackable(u)) html += this.attackSection(u, t);
-      html += `<p class="hint">Ataca moradores que chegam perto. Ao ser abatido rende ${costLabel(d.reward)} e XP.</p>`;
+      if (u.loot) html += `<div class="warnbox">{paw} Está levando ${costLabel(u.loot)}. Abata antes que fuja para recuperar.</div>`;
+      html += `<p class="hint">${d.desc ? esc(d.desc) : 'Ataca moradores que chegam perto.'} Ao ser abatido rende ${costLabel(d.reward)} e XP.</p>`;
       html += `<p class="hint">Dano ${d.damage} · Velocidade ${d.speed}</p>`;
       return { html, t, b };
     }

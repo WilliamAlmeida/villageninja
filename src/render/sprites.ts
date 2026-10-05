@@ -129,7 +129,7 @@ export function drawNode(ctx: Ctx, n: ResourceNode) {
 
 // ---------------------------------------------------------------- unidades
 /** Altura da arte do bicho em relação ao `size` (a cobra é baixa e comprida: precisa de mais para parecer gigante). */
-const ART_SIZE: Record<string, number> = { snake: 3.8 };
+const ART_SIZE: Record<string, number> = { snake: 3.8, crow: 3.4, monkey: 3 };
 const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'hammer' };
 
 /**
@@ -196,6 +196,42 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
   }
   const hostile = u.faction !== 'village';
   if (selected || u.hp < u.maxHp || (hostile && u.kind !== 'animal')) drawBars(ctx, u, selected);
+  if (u.role || u.loot) drawMark(ctx, u, t);
+}
+
+/** Marca acima da cabeça: função do renegado (bomba / cruz de médico) ou saque do ladrão (moeda). */
+function drawMark(ctx: Ctx, u: Unit, t: number) {
+  const x = u.x + (u.animal ? 0 : 13);
+  const y = u.y - (u.animal ? ANIMALS[u.animal].size + 22 : 25) + Math.sin(t * 4 + u.id) * 0.8;
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+  if (u.loot) {
+    ctx.fillStyle = '#ffd34d';
+    circle(ctx, x, y, 3.6);
+    ctx.stroke();
+    ctx.fillStyle = '#b8860b';
+    ctx.fillRect(x - 0.6, y - 2, 1.2, 4);
+    return;
+  }
+  if (u.role === 'bomber') {
+    ctx.fillStyle = '#2b2622';
+    circle(ctx, x, y + 0.5, 3.6);
+    ctx.stroke();
+    ctx.strokeStyle = '#c8a26a';
+    ctx.beginPath();
+    ctx.moveTo(x + 1.5, y - 2.5);
+    ctx.lineTo(x + 3, y - 4.5);
+    ctx.stroke();
+    ctx.fillStyle = Math.sin(t * 18) > 0 ? '#ffd34d' : '#ff6a2b';
+    circle(ctx, x + 3.4, y - 5, 1.3);
+  } else if (u.role === 'medic') {
+    ctx.fillStyle = '#ffffff';
+    circle(ctx, x, y, 3.8);
+    ctx.stroke();
+    ctx.fillStyle = '#2fbf4f';
+    ctx.fillRect(x - 2.4, y - 0.8, 4.8, 1.6);
+    ctx.fillRect(x - 0.8, y - 2.4, 1.6, 4.8);
+  }
 }
 
 function drawBars(ctx: Ctx, u: Unit, selected: boolean) {

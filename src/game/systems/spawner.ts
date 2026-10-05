@@ -1,6 +1,7 @@
 import { DAY_LENGTH, MAP_H, MAP_W } from '../../config';
 import { pick, rand, randi, weightedPick } from '../../core/rng';
 import { ANIMAL_LIST } from '../../data/animals';
+import { ROGUE_ROLES, type RogueRole } from '../../data/enemies';
 import { levelDef } from '../../data/villageLevels';
 import type { Rank } from '../../data/ninja';
 import { createAnimal, createRogue } from '../entities';
@@ -78,8 +79,10 @@ function spawnAnimals(g: Game) {
   const wild = s.units.filter((u) => !u.dead && u.kind === 'animal' && u.missionId == null).length;
   const threat = levelDef(s.level).threat;
   if (wild >= 4 + Math.floor(s.day / 2) + threat * 2) return;
+  const hasFarm = g.builtOf('farm').length > 0;
   const def = weightedPick(
-    ANIMAL_LIST.filter((a) => a.minDay <= s.day + threat * 2),
+    // corvos só vêm se houver fazenda para bicar
+    ANIMAL_LIST.filter((a) => a.minDay <= s.day + threat * 2 && (a.thief !== 'farm' || hasFarm)),
     // vilas maiores atraem feras maiores
     (a) => a.weight + (a.type === 'bear' || a.type === 'snake' ? threat : 0),
   );
@@ -88,6 +91,8 @@ function spawnAnimals(g: Game) {
   const count = randi(def.pack[0], def.pack[1]);
   for (let i = 0; i < count; i++) createAnimal(g, def.type, p.x + rand(-14, 14), p.y + rand(-14, 14));
   if (def.type === 'snake' || def.type === 'bear') g.toast(`{paw} Um(a) ${def.name} foi avistado(a) na floresta!`, 'warn', p);
+  if (def.type === 'crow') g.toast('{paw} Um bando de corvos está vindo atacar a fazenda!', 'warn', p);
+  if (def.type === 'monkey') g.toast('{paw} Macacos ladrões estão rondando a vila!', 'warn', p);
 }
 
 /**
@@ -108,9 +113,22 @@ function spawnRaid(g: Game) {
   const s = g.state;
   const p = edgePoint(g);
   const r = raidStrength(s.day, levelDef(s.level).threat);
-  for (let i = 0; i < r.count; i++) createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day, { rank: r.rank, stats: r.stats });
+  const roles = raidRoles(s.day, r.count);
+  for (let i = 0; i < r.count; i++) {
+    const u = createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day, { rank: r.rank, stats: r.stats });
+    u.role = roles[i];
+  }
   const n = r.count;
+  const special = roles.filter(Boolean).map((k) => ROGUE_ROLES[k!].name.toLowerCase());
   s.flags.raidActive = true;
   s.flags.raidStole = false;
-  g.toast(`{swords} ${n} ninja(s) renegado(s) estão invadindo a vila!`, 'danger', p);
+  g.toast(`{swords} ${n} ninja(s) renegado(s) estão invadindo a vila!${special.length ? ` Entre eles: ${special.join(' e ')}.` : ''}`, 'danger', p);
+}
+
+/** Quem da invasão tem função especial: um bombardeiro (2+ invasores) e um médico (3+), a partir de certos dias. */
+export function raidRoles(day: number, count: number): (RogueRole | undefined)[] {
+  const roles: (RogueRole | undefined)[] = Array.from({ length: count }, () => undefined);
+  if (count >= 2 && day >= ROGUE_ROLES.bomber.minDay) roles[0] = 'bomber';
+  if (count >= 3 && day >= ROGUE_ROLES.medic.minDay) roles[count - 1] = 'medic';
+  return roles;
 }

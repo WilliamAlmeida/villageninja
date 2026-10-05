@@ -1,6 +1,6 @@
 import type { Cost } from '../game/types';
 
-export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan';
+export type AnimalType = 'wolf' | 'boar' | 'bear' | 'snake' | 'titan' | 'crow' | 'monkey';
 
 export interface AnimalDef {
   type: AnimalType;
@@ -20,6 +20,10 @@ export interface AnimalDef {
   minDay: number;
   weight: number;
   pack: [number, number];
+  /** Comportamento especial (painel do animal). */
+  desc?: string;
+  /** Ladrão: vai até a vila roubar em vez de caçar (ver systems/hostiles.ts). */
+  thief?: 'farm' | 'stash';
 }
 
 const LIST: AnimalDef[] = [
@@ -29,6 +33,11 @@ const LIST: AnimalDef[] = [
   // chefe: não surge sozinho (minDay alto), só como ameaça (ver data/bosses.ts)
   { type: 'titan', name: 'Fera Colossal', hp: 900, damage: 26, attackCd: 2.2, speed: 40, aggro: 230, range: 36, size: 26, color: '#7a2e2e', reward: { ryo: 400, food: 150 }, xp: 200, minDay: 9999, weight: 0, pack: [1, 1] },
   { type: 'snake', name: 'Cobra Gigante', hp: 260, damage: 22, attackCd: 2, speed: 48, aggro: 170, range: 30, size: 14, color: '#6b3fa0', reward: { ryo: 70 }, xp: 70, minDay: 6, weight: 1, pack: [1, 1] },
+  // ladrões: não caçam, vêm roubar e fogem
+  { type: 'crow', name: 'Corvo', hp: 14, damage: 2, attackCd: 0.8, speed: 96, aggro: 26, range: 16, size: 6, color: '#2a2a35', reward: { food: 2 }, xp: 4, minDay: 2, weight: 3, pack: [4, 6],
+    desc: 'Vêm em bando bicar a fazenda e levam comida. Abata-os para recuperar o que levaram.', thief: 'farm' },
+  { type: 'monkey', name: 'Macaco ladrão', hp: 34, damage: 3, attackCd: 1, speed: 92, aggro: 0, range: 18, size: 8, color: '#8a5a2e', reward: { ryo: 6 }, xp: 10, minDay: 4, weight: 2, pack: [2, 3],
+    desc: 'Rouba ryo da Residência do Hokage (ou ervas) e foge para a floresta. Alcance-o antes que saia do mapa para recuperar o saque.', thief: 'stash' },
 ];
 
 export const ANIMALS = Object.fromEntries(LIST.map((a) => [a.type, a])) as Record<AnimalType, AnimalDef>;
