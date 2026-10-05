@@ -9,6 +9,8 @@ import { GOLD_PRICE, MINE } from '../data/expeditions';
 import { ACTION_LABEL, ACTION_TIME, HOME_POS, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef } from '../data/region';
 import { CONTRACTS } from '../data/contracts';
 import { SPECS, type SpecKind } from '../data/specs';
+import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
+import { daysToNextSeason, festivalBlock, festivalOn, holdFestival, moodFactors, seasonOf } from '../game/mood';
 import { learnSpec, specBlock } from '../game/specs';
 import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
@@ -968,12 +970,29 @@ export class Panel {
     return html;
   }
 
+  /** Felicidade (com os fatores), estação, clima e festival. */
+  private lifeSection() {
+    const g = this.app.game;
+    const s = g.state;
+    const season = SEASONS[seasonOf(s)];
+    const w = WEATHERS[s.weather];
+    let html = `<div class="cols"><div><h4>{smile} Felicidade ${Math.round(s.happiness)}/100</h4><ul class="reqs">`;
+    for (const [l, v] of moodFactors(g)) html += `<li class="${v >= 0 ? 'ok' : ''}">${esc(l)} <b>${v > 0 && l !== 'Base' ? '+' : ''}${v}</b></li>`;
+    html += `</ul><p class="hint">Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.</p></div>`;
+    html += `<div><h4>${season.icon} ${season.name} · ${w.icon} ${w.name}</h4><p class="hint">${esc(season.desc)} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação.</p><p class="hint">Hoje: ${esc(w.desc)}</p>`;
+    const why = festivalBlock(g);
+    html += `<button class="btn primary" data-act="festival" ${blocked(g, [why], FESTIVAL.cost)}>{party} ${season.festival} (${costLabel(FESTIVAL.cost)})</button>
+      <p class="hint">${festivalOn(s) ? '{party} Festival acontecendo agora!' : `Festival: +${FESTIVAL.mood} de felicidade até o fim do dia seguinte.`}</p></div></div>`;
+    return html;
+  }
+
   /** Nível da vila, benefícios e requisitos do próximo nível (marco). */
   private villageSection() {
     const g = this.app.game;
     const cur = levelDef(g.state.level);
     let html = `<div class="lvlcard"><div class="lvlname">${cur.icon} ${cur.name}</div>
       <div class="hint">Nível ${g.state.level} de ${MAX_VILLAGE_LEVEL} · território ${cur.territory} · impostos ${cur.tax}{ryo}/morador</div></div>`;
+    html += this.lifeSection();
     const st = nextLevelStatus(g);
     if (!st) return html + `<p class="hint">{trophy} A vila chegou ao nível máximo!</p>`;
     // duas colunas na janela larga: o que falta (esquerda) e o que se ganha (direita)
@@ -1323,6 +1342,8 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'festival':
+        return this.report(holdFestival(g));
       case 'spec': {
         if (v?.kind !== 'unit') return;
         return this.report(learnSpec(g, v.id, arg as SpecKind));

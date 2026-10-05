@@ -1,5 +1,6 @@
 import { FOOD_PER_DAY, DAY_LENGTH } from '../../config';
 import { healMult } from '../upgrade';
+import { foodMult } from '../mood';
 import { BUILDINGS } from '../../data/buildings';
 import { derive } from '../../data/ninja';
 import type { Game } from '../game';
@@ -11,7 +12,7 @@ export function statusSystem(g: Game, dt: number) {
 
   // consumo de comida
   const pop = g.population();
-  s.res.food = Math.max(0, s.res.food - (pop * FOOD_PER_DAY * dt) / DAY_LENGTH);
+  s.res.food = Math.max(0, s.res.food - (pop * FOOD_PER_DAY * foodMult(s) * dt) / DAY_LENGTH);
   const starving = s.res.food <= 0 && pop > 0;
   if (starving !== s.flags.starving) {
     s.flags.starving = starving;

@@ -1,4 +1,5 @@
 import { pick } from '../../core/rng';
+import { birthMult } from '../mood';
 import { BUILDINGS } from '../../data/buildings';
 import { childOf, clanOf } from '../clans';
 import { createVillager } from '../entities';
@@ -12,7 +13,7 @@ const BIRTH_INTERVAL = 30;
 /** Nascimentos/migrantes, distribuição de casas e de empregos. */
 export function populationSystem(g: Game, dt: number) {
   const t = g.state.timers;
-  t.birth -= dt;
+  t.birth -= dt * birthMult(g.state);
   t.homes -= dt;
   t.jobs -= dt;
   if (t.birth <= 0) {

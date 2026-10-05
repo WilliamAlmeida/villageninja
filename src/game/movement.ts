@@ -1,4 +1,5 @@
 import { MAP_W, TILE } from '../config';
+import { weatherSpeed } from './mood';
 import type { Game } from './game';
 import { findPath } from './pathfinding';
 import type { Unit } from './types';
@@ -28,7 +29,7 @@ export function setDestination(g: Game, u: Unit, x: number, y: number): boolean 
 }
 
 /** Anda pela rota. Retorna true quando chegou (ou não tem destino). */
-export function followPath(_g: Game, u: Unit, dt: number, mult = 1): boolean {
+export function followPath(g: Game, u: Unit, dt: number, mult = 1): boolean {
   if (!u.hasGoal) {
     u.moving = false;
     return true;
@@ -46,7 +47,7 @@ export function followPath(_g: Game, u: Unit, dt: number, mult = 1): boolean {
   const dx = tx - u.x;
   const dy = ty - u.y;
   const d = Math.hypot(dx, dy);
-  const step = u.speed * mult * dt;
+  const step = u.speed * mult * weatherSpeed(g.state) * dt;
   if (d <= step) {
     u.x = tx;
     u.y = ty;
@@ -86,7 +87,7 @@ export function chase(g: Game, u: Unit, x: number, y: number, dt: number, stop: 
     return true;
   }
   if (clearLine(g, u.x, u.y, x, y)) {
-    const step = Math.min(u.speed * dt, d - stop);
+    const step = Math.min(u.speed * weatherSpeed(g.state) * dt, d - stop);
     u.x += (dx / d) * step;
     u.y += (dy / d) * step;
     u.facing = Math.atan2(dy, dx);

@@ -82,6 +82,15 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.honor = 0;
     s.infamy = 0;
   },
+  12: (s) => {
+    // estações, clima, felicidade e festivais
+    s.weather = 'clear';
+    s.happiness = 60;
+    s.grief = 0;
+    s.moodDay = s.day;
+    s.festivalDay = 0;
+    s.festivalUntil = 0;
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

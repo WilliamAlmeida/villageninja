@@ -6,6 +6,8 @@ import { arenaSpots, examLabel } from '../game/exam';
 import { BOSSES } from '../data/bosses';
 import { el, esc, fmt } from './dom';
 import { rich } from './icons';
+import { MOOD, SEASONS, WEATHERS } from '../data/seasons';
+import { daysToNextSeason, moodFactors, seasonOf } from '../game/mood';
 import { canFullscreen, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen, watchFullscreen } from './fullscreen';
 
 const MAX_TOASTS = 4;
@@ -35,9 +37,10 @@ export class Hud {
         <span class="chip adv" data-tip-tap data-tip-title="Aço negro" data-tip="O metal mais raro, no fundo das minas. A forja faz armas lendárias com ele.">{darksteel} <b data-r="darksteel"></b></span>
         <span class="chip" data-tip-tap data-tip-title="População" data-tip="Moradores e ninjas / vagas de moradia. Construa ou melhore casas para a vila crescer.">{users} <b data-r="pop"></b></span>
         <span class="chip" data-tip-tap data-tip-title="Ninjas" data-tip="Ninjas da vila. Recrute moradores na Academia.">{ninja} <b data-r="ninjas"></b></span>
+        <span class="chip mood" data-r="moodchip" data-tip-tap data-tip-title="Felicidade" data-tip=""><span data-r="moodicon"></span> <b data-r="mood"></b></span>
       </div>
       <div class="spacer"></div>
-      <div class="clock"><span data-r="lvl"></span> <span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span></div>
+      <div class="clock"><span data-r="lvl"></span> <span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span> <span class="season" data-r="season" data-tip-tap data-tip-title="Estação e clima" data-tip=""></span></div>
       <div class="speed">
         <button data-speed="0" title="Pausar">{pause}</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
       </div>
@@ -124,6 +127,18 @@ export class Hud {
     this.vals.get('lvl')!.title = levelDef(s.level).name;
     set('clock', clockLabel(s));
     this.html(this.vals.get('sun')!, isNight(s) ? '{moon}' : '{sun}');
+    // felicidade e estação/clima (dicas com o detalhe)
+    const mood = Math.round(s.happiness);
+    set('mood', String(mood));
+    this.html(this.vals.get('moodicon')!, mood >= MOOD.happy ? '{smile}' : mood < 40 ? '{frown}' : '{smile}');
+    const chip = this.vals.get('moodchip')!;
+    chip.classList.toggle('low', mood < 40);
+    chip.classList.toggle('good', mood >= MOOD.happy);
+    chip.dataset.tip = `${moodFactors(g).map(([l, v]) => `${l}: ${v > 0 && l !== 'Base' ? '+' : ''}${v}`).join(' · ')}. Feliz: trabalham mais rápido e têm mais filhos; abaixo de ${MOOD.leave}, moradores vão embora.`;
+    const season = SEASONS[seasonOf(s)];
+    const w = WEATHERS[s.weather];
+    this.html(this.vals.get('season')!, `${season.icon}${s.weather !== 'clear' ? w.icon : ''}`);
+    this.vals.get('season')!.dataset.tip = `${season.name} (faltam ${daysToNextSeason(s)} dia(s)): ${season.desc} Hoje: ${w.name}. ${w.desc}`;
     this.vals.get('food')!.parentElement!.classList.toggle('low', s.res.food < 15);
     this.vals.get('pop')!.parentElement!.classList.toggle('low', pop >= cap);
     this.top.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === s.speed));

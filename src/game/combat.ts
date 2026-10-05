@@ -4,6 +4,7 @@ import { ANIMALS } from '../data/animals';
 import { costLabel } from '../data/resources';
 import { SPEC } from '../data/specs';
 import { spyNinjaNear } from './specs';
+import { natureWeather } from './mood';
 import { createAnimal } from './entities';
 import { isRangedJutsu, JUTSUS, jutsuChakra, jutsuCooldown, jutsuDuration, jutsuPower, type JutsuDef } from '../data/jutsus';
 import { natureMultiplier, type Nature } from '../data/natures';
@@ -345,6 +346,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (src?.faction === 'village' && src.ninja && hasTeammateNear(g, src)) dmg *= 1.1;
   // "Vontade" do Kage: com um Kage vivo, todos os ninjas da vila batem mais forte
   if (src?.faction === 'village' && src.ninja && !src.arenaSide && g.state.kageId != null && !g.unit(g.state.kageId)?.dead) dmg *= KAGE_DAMAGE_BONUS;
+  // clima: algumas naturezas ficam mais fortes (chuva, tempestade, neve, sol)
+  dmg *= natureWeather(g.state, nature);
   // espião da vila por perto marca o alvo
   if (src?.faction === 'village' && t.faction !== 'village' && spyNinjaNear(g, t.x, t.y, SPEC.markRange)) dmg *= SPEC.markBonus;
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
@@ -424,6 +427,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
     }
   } else {
     g.state.stats.lost++;
+    g.state.grief = Math.min(30, g.state.grief + 8); // a vila fica de luto
     g.toast(t.kind === 'ninja' ? `{skull} O ninja ${t.name} caiu em combate!` : `{skull} ${t.name} foi morto(a).`, 'danger', t);
   }
 }

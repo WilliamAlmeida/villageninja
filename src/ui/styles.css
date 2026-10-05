@@ -458,3 +458,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .ractions { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.4rem; }
 .ractions .btn { flex-direction: column; align-items: flex-start; gap: 0.1rem; }
 .ractions .btn small { font-weight: 500; color: var(--muted); font-size: 0.78rem; }
+
+/* felicidade e estação na barra de cima */
+.chip.mood.good { color: var(--good); } .chip.mood.low { color: var(--bad); }
+.clock .season { display: inline-flex; gap: 0.1rem; cursor: help; }

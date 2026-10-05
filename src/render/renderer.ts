@@ -16,6 +16,7 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
+import { seasonOf } from '../game/mood';
 import { MAP_H, MAP_W } from '../config';
 import { buildingCenter, doorPos } from '../game/world';
 import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
@@ -299,6 +300,7 @@ export class Renderer {
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
       this.lights(g, cam, night);
     }
+    this.weatherOverlay(s, cam, time);
     this.missionArrows(g, cam);
     if (ov.selectBox) {
       const b = ov.selectBox;
@@ -442,6 +444,50 @@ export class Renderer {
   }
 
   /** Destaque da unidade sob o mouse (no mapa ou na lista do painel): anel pulsante, seta e nome. */
+  /** Clima e estação em espaço de tela: tom da estação, chuva, neve e relâmpagos (congela com o jogo pausado). */
+  private weatherOverlay(s: GameState, cam: Camera, time: number) {
+    const ctx = this.ctx;
+    const W = cam.viewW;
+    const H = cam.viewH;
+    const season = seasonOf(s);
+    if (season === 'winter') {
+      ctx.fillStyle = 'rgba(210,228,255,0.11)';
+      ctx.fillRect(0, 0, W, H);
+    } else if (season === 'autumn') {
+      ctx.fillStyle = 'rgba(255,150,50,0.06)';
+      ctx.fillRect(0, 0, W, H);
+    }
+    const hash = (i: number) => ((Math.sin(i * 127.1) * 43758.5453) % 1 + 1) % 1;
+    if (s.weather === 'rain' || s.weather === 'storm') {
+      const n = s.weather === 'storm' ? 220 : 130;
+      ctx.strokeStyle = 'rgba(185,205,255,0.42)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = (hash(i) * (W + 60) - time * 90) % (W + 60);
+        const y = (hash(i + 0.5) * H + time * (520 + hash(i + 1.7) * 200)) % (H + 30);
+        const xx = x < 0 ? x + W + 60 : x;
+        ctx.moveTo(xx, y - 14);
+        ctx.lineTo(xx - 4, y);
+      }
+      ctx.stroke();
+      // relâmpago de vez em quando
+      if (s.weather === 'storm' && hash(Math.floor(time * 3)) > 0.985) {
+        ctx.fillStyle = 'rgba(235,240,255,0.28)';
+        ctx.fillRect(0, 0, W, H);
+      }
+    } else if (s.weather === 'snow') {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let i = 0; i < 120; i++) {
+        const y = (hash(i) * H + time * (28 + hash(i + 3.1) * 30)) % (H + 10);
+        const x = (hash(i + 7.3) * W + Math.sin(time * 1.3 + i) * 14 + W) % W;
+        ctx.beginPath();
+        ctx.arc(x, y, 1 + hash(i + 2.2) * 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
   /** Textura da névoa (refeita só quando o estado ou o explorado muda). */
   private fogTexture(s: GameState) {
     if (!this.fog) {

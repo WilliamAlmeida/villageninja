@@ -5,6 +5,7 @@ import type { RogueRole } from '../data/enemies';
 import type { SiteKind } from '../data/sites';
 import type { ContractKind, RegionAction } from '../data/region';
 import type { SpecKind } from '../data/specs';
+import type { Weather } from '../data/seasons';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
 import type { KekkeiId } from '../data/kekkei';
@@ -378,6 +379,15 @@ export interface GameState {
   /** Fama da vila: honra (proteger, comerciar, anexar em paz) e infâmia (saquear, anexar à força). */
   honor: number;
   infamy: number;
+  /** Clima do dia, felicidade (0–100), luto pelas mortes recentes e festival. */
+  weather: Weather;
+  happiness: number;
+  grief: number;
+  /** Último dia em que o clima foi sorteado. */
+  moodDay: number;
+  /** Dia do último festival e até quando ele dura (0 = nenhum). */
+  festivalDay: number;
+  festivalUntil: number;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;
