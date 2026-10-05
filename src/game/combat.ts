@@ -2,6 +2,8 @@
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
 import { costLabel } from '../data/resources';
+import { SPEC } from '../data/specs';
+import { spyNinjaNear } from './specs';
 import { createAnimal } from './entities';
 import { isRangedJutsu, JUTSUS, jutsuChakra, jutsuCooldown, jutsuDuration, jutsuPower, type JutsuDef } from '../data/jutsus';
 import { natureMultiplier, type Nature } from '../data/natures';
@@ -343,6 +345,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (src?.faction === 'village' && src.ninja && hasTeammateNear(g, src)) dmg *= 1.1;
   // "Vontade" do Kage: com um Kage vivo, todos os ninjas da vila batem mais forte
   if (src?.faction === 'village' && src.ninja && !src.arenaSide && g.state.kageId != null && !g.unit(g.state.kageId)?.dead) dmg *= KAGE_DAMAGE_BONUS;
+  // espião da vila por perto marca o alvo
+  if (src?.faction === 'village' && t.faction !== 'village' && spyNinjaNear(g, t.x, t.y, SPEC.markRange)) dmg *= SPEC.markBonus;
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
   if (t.shield > 0) dmg *= 0.4;
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
@@ -382,7 +386,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   }
   t.dead = true;
   t.hp = 0;
-  if (t.kind === 'clone') {
+  if (t.kind === 'clone' || (t.faction === 'village' && t.ownerId != null)) {
     fx(g, 'smoke', t.x, t.y, { r: 16, life: 0.6, color: '#e8e8e8' });
     return;
   }

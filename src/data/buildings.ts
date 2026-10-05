@@ -20,7 +20,9 @@ export type BuildingType =
   | 'sealshop'
   | 'arena'
   | 'monument'
-  | 'port';
+  | 'port'
+  | 'intel'
+  | 'puppetshop';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
@@ -140,6 +142,16 @@ const LIST: BuildingDef[] = [
     type: 'port', name: 'Porto', icon: '{ship}', desc: 'Barcos para as ilhas e os lugares sagrados da região (janela Mundo → Região).',
     w: 3, h: 2, cost: { wood: 150, stone: 60, ryo: 100 }, buildTime: 30, unique: true, buildable: true, lights: true, minLevel: 1,
     roof: '#3d5a80', wall: '#c8a26a',
+  },
+  {
+    type: 'intel', name: 'Torre de Inteligência', icon: '{eye}', desc: 'Vê longe: revela a névoa ao redor e descobre espiões invisíveis. Forma ninjas espiões (Chunin+).',
+    w: 2, h: 2, cost: { wood: 80, stone: 80, ryo: 150 }, buildTime: 26, unique: true, buildable: true, lights: true, minLevel: 1,
+    roof: '#2d3a55', wall: '#6b4a2b',
+  },
+  {
+    type: 'puppetshop', name: 'Oficina de Marionetes', icon: '{target}', desc: 'Forma ninjas marionetistas (Chunin+), que lutam com bonecos de madeira.',
+    w: 2, h: 2, cost: { wood: 100, iron: 20, ryo: 150 }, buildTime: 24, unique: true, buildable: true, minLevel: 2,
+    roof: '#5a2a6a', wall: '#c8a26a',
   },
   {
     type: 'arena', name: 'Arena do Exame', icon: '{arena}', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',

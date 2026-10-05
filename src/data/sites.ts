@@ -28,6 +28,6 @@ export const SITES: Record<SiteKind, SiteDef> = {
 };
 
 /** Raio (tiles) que cada morador/ninja revela ao andar, o das torres e o revelado no começo do jogo. */
-export const SIGHT = { unit: 4, tower: 7, start: 13 };
+export const SIGHT = { unit: 4, tower: 7, intel: 14, start: 13 };
 /** Distância mínima (tiles) do centro para um local especial. */
 export const SITE_MIN_DIST = 16;

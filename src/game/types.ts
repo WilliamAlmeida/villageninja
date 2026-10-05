@@ -4,6 +4,7 @@ import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
 import type { SiteKind } from '../data/sites';
 import type { ContractKind, RegionAction } from '../data/region';
+import type { SpecKind } from '../data/specs';
 import type { BuildingType } from '../data/buildings';
 import type { MissionType } from '../data/missions';
 import type { KekkeiId } from '../data/kekkei';
@@ -51,6 +52,8 @@ export interface NinjaInfo {
   kekkei: KekkeiId | null;
   /** Contrato de invocação (sapo, serpente ou lesma). */
   contract?: ContractKind;
+  /** Profissão (médico, espião, marionetista). */
+  spec?: SpecKind;
 }
 
 /** Herança de família: o que um morador traz de berço (usado ao virar ninja). */
@@ -144,6 +147,8 @@ export interface Unit {
   role?: RogueRole;
   /** O que o bicho ladrão (corvo, macaco) levou da vila; volta se ele for abatido. */
   loot?: Cost;
+  /** Recarga da invocação do contrato (ninjas da vila). */
+  summonCd?: number;
   /** Fora do mapa numa expedição (id). Não age nem aparece até voltar. */
   away?: number;
   /** Guardião de um local especial (id do local): defende o lugar em vez de marchar. */

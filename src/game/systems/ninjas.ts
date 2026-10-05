@@ -5,6 +5,7 @@ import { FORBIDDEN_RISK, JUTSUS } from '../../data/jutsus';
 import { SITES } from '../../data/sites';
 import { guardiansOf, resolveSite, scoutTarget, sitePos } from '../explore';
 import { refreshDerived } from '../entities';
+import { specTick } from '../specs';
 import { derive } from '../../data/ninja';
 import { engage, trySupport } from '../combat';
 import { canHit } from '../factions';
@@ -32,6 +33,7 @@ export function ninjaSystem(g: Game, dt: number) {
       continue;
     }
     if (!u.hidden) trySupport(g, u);
+    specTick(g, u, dt); // profissão (médico, espião, marionetista) e contrato de invocação
     // consumível gasto: pega outro do estoque ao passar pela vila
     if (u.ninja!.equip.item && !u.ninja!.equip.itemReady && g.world.inVillage(u.x, u.y)) refillItem(g, u);
     if (u.command && runCommand(g, u, dt)) continue;

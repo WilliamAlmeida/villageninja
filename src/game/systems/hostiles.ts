@@ -3,6 +3,8 @@ import { rand, randi } from '../../core/rng';
 import { ANIMALS, type AnimalDef } from '../../data/animals';
 import { BUILDINGS } from '../../data/buildings';
 import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
+import { SPEC } from '../../data/specs';
+import { spyNinjaNear } from '../specs';
 import { createAnimal, createRogue } from '../entities';
 import { costLabel } from '../../data/resources';
 import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
@@ -47,6 +49,7 @@ function animal(g: Game, u: Unit, dt: number) {
     u.moving = false;
     return;
   }
+  if (u.faction === 'village') return ally(g, u, dt, def);
   if (u.state === 'charge') return charging(g, u, dt, def);
   if (u.missionId != null) return guardHome(g, u, dt, def.aggro);
   if (u.boss) return titan(g, u, dt, def.aggro);
@@ -503,7 +506,9 @@ function revealSpy(g: Game, u: Unit) {
 
 /** Torre por perto ou ninja da vila esperto o bastante e próximo. */
 function spyRevealed(g: Game, u: Unit) {
-  for (const b of g.state.buildings) if (b.type === 'tower' && b.built && dist(u, buildingCenter(b)) < SPY.towerRange) return true;
+  for (const b of g.state.buildings)
+    if ((b.type === 'tower' || b.type === 'intel') && b.built && dist(u, buildingCenter(b)) < SPY.towerRange * (b.type === 'intel' ? 1.6 : 1)) return true;
+  if (spyNinjaNear(g, u.x, u.y, SPEC.spyReveal)) return true;
   return g.state.units.some(
     (o) => !o.dead && !o.hidden && o.faction === 'village' && o.ninja && o.ninja.stats.inteligencia >= SPY.minInt && dist(u, o) < SPY.ninjaRange,
   );
@@ -582,6 +587,38 @@ function hydraSpit(g: Game, u: Unit, t: Unit): boolean {
     damage: 14 + g.state.level * 3, radius: 34, nature: null, color: '#7dff5a', size: 6, speed: 190, kind: 'orb', stun: 0, range: 230,
   });
   return true;
+}
+
+/** Bicho aliado da vila (invocação do contrato, cão ninja): luta perto do dono e o segue; a lesma cura. */
+function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
+  const owner = g.unit(u.ownerId);
+  if (!owner || owner.dead) {
+    u.dead = true;
+    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#e8e8e8' });
+    return;
+  }
+  if (u.animal === 'slug') {
+    u.abilityCd = (u.abilityCd ?? 0) - dt;
+    if (u.abilityCd <= 0) {
+      u.abilityCd = 3;
+      let healed = 0;
+      for (const o of g.state.units)
+        if (!o.dead && !o.hidden && o.faction === 'village' && o.hp < o.maxHp && dist(u, o) < 120) {
+          o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.08);
+          healed++;
+        }
+      if (healed) fx(g, 'heal', u.x, u.y, { r: 120, color: '#9fe8ff', life: 0.7 });
+    }
+  } else {
+    const t = validTarget(g, u, def.aggro * 1.5) ?? g.nearestHostile(u, def.aggro);
+    if (t) return engage(g, u, t, dt);
+  }
+  // fora do mapa (dono em expedição) ou escondido: espera; senão acompanha o dono
+  if (owner.hidden) {
+    u.moving = false;
+    return;
+  }
+  chase(g, u, owner.x - 18, owner.y + 10, dt, 20);
 }
 
 function nearestEdge(x: number, y: number) {

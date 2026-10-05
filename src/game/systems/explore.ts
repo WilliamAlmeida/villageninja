@@ -17,7 +17,10 @@ export function exploreSystem(g: Game, dt: number) {
     if (u.dead || u.hidden || u.faction !== 'village') continue;
     added += revealCircle(s, toTile(u.x), toTile(u.y), SIGHT.unit);
   }
-  for (const b of s.buildings) if (b.type === 'tower' && b.built) added += revealCircle(s, b.tx + 1, b.ty + 1, SIGHT.tower);
+  for (const b of s.buildings) {
+    if (b.type === 'tower' && b.built) added += revealCircle(s, b.tx + 1, b.ty + 1, SIGHT.tower);
+    if (b.type === 'intel' && b.built) added += revealCircle(s, b.tx + 1, b.ty + 1, SIGHT.intel);
+  }
   if (!added) return;
   bumpFog();
   for (const site of s.sites) if (!site.found && isExplored(s, site.tx, site.ty)) discover(g, site);

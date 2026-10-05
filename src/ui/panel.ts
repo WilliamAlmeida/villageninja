@@ -8,6 +8,9 @@ import { SITES } from '../data/sites';
 import { GOLD_PRICE, MINE } from '../data/expeditions';
 import { ACTION_LABEL, ACTION_TIME, HOME_POS, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef } from '../data/region';
 import { CONTRACTS } from '../data/contracts';
+import { SPECS, type SpecKind } from '../data/specs';
+import { learnSpec, specBlock } from '../game/specs';
+import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
 import { RES_INFO } from '../data/resources';
@@ -625,7 +628,20 @@ export class Panel {
       const fc = canFoundClan(g, u);
       html += `<button class="btn" data-act="found-clan" ${blocked(g, [!fc.ok && fc.error !== 'Recursos insuficientes.' && fc.error], FOUND_COST)}>{castle} Fundar clã ${esc(surname(u))} (${costLabel(FOUND_COST)})${fc.ok ? '' : ` · ${esc(fc.error)}`}</button>`;
     }
-    html += `</div><p class="hint">Abates: ${n.kills}</p>`;
+    html += `</div>`;
+    // profissão (prédio próprio, Chunin+) e contrato de invocação (lugares sagrados da região)
+    html += `<h4>{medal} Profissão</h4>`;
+    if (n.spec) html += `<p class="hint"><b>${SPECS[n.spec].name}:</b> ${esc(SPECS[n.spec].desc)}</p>`;
+    else {
+      html += `<div class="btnrow">`;
+      for (const k of Object.keys(SPECS) as SpecKind[])
+        html += `<button class="btn mini" data-act="spec" data-arg="${k}" ${blocked(g, [specBlock(g, u, k)], SPECS[k].cost)} ${tipAttr(SPECS[k].name, `${SPECS[k].desc} Custo: ${plainTokens(costLabel(SPECS[k].cost))}.`)}>${SPECS[k].icon} ${SPECS[k].name}</button>`;
+      html += `</div>`;
+    }
+    html += n.contract
+      ? `<p class="hint">{scroll} <b>Contrato: ${CONTRACTS[n.contract].name}.</b> ${esc(CONTRACTS[n.contract].desc)} (${CONTRACTS[n.contract].chakra} chakra, a cada ${CONTRACTS[n.contract].cd}s)</p>`
+      : `<p class="hint">{scroll} Sem contrato de invocação. Os lugares sagrados (janela Mundo → Região) dão contratos.</p>`;
+    html += `<p class="hint">Abates: ${n.kills}</p>`;
     return html;
   }
 
@@ -886,7 +902,9 @@ export class Panel {
     const kk = u.ninja?.kekkei;
     return (
       (clan ? `<span class="badge nat" style="--c:${clan.color}">家 ${esc(clan.name)}</span>` : '') +
-      (kk ? `<span class="badge nat" style="--c:${KEKKEI[kk].color}">${KEKKEI[kk].kanji} ${KEKKEI[kk].name}</span>` : '')
+      (kk ? `<span class="badge nat" style="--c:${KEKKEI[kk].color}">${KEKKEI[kk].kanji} ${KEKKEI[kk].name}</span>` : '') +
+      (u.ninja?.spec ? `<span class="badge">${SPECS[u.ninja.spec].icon} ${SPECS[u.ninja.spec].name}</span>` : '') +
+      (u.ninja?.contract ? `<span class="badge">{scroll} ${CONTRACTS[u.ninja.contract].name}</span>` : '')
     );
   }
 
@@ -1305,6 +1323,10 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'spec': {
+        if (v?.kind !== 'unit') return;
+        return this.report(learnSpec(g, v.id, arg as SpecKind));
+      }
       case 'r-node':
         this.regionNode = arg;
         return this.report({ ok: true });
