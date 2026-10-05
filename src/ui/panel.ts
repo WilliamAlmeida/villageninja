@@ -39,6 +39,8 @@ import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
 import { CARE, catchingUp, isRookie } from '../game/care';
+import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
+import { FIELD_FOCUS_BONUS, MARKET_GOOD_LIST, MARKET_GOODS, type MarketGood } from '../data/specialize';
 import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHUNSHIN } from '../game/techniques';
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
@@ -788,6 +790,7 @@ export class Panel {
         html += `<p class="hint">{medic} <b>Resgate:</b> ninja da vila que cair tem ${base}% de chance de ser trazido para cá gravemente ferido, em vez de morrer (+${Math.round(CARE.rescueMedic * 100)}% com um ninja médico por perto, até ${Math.round(CARE.rescueMax * 100)}%). Cada nível do Hospital aumenta a chance.</p>`;
       }
       if (bd.type === 'market') {
+        html += this.marketSection(bd);
         html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
         html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender 1 (+${GOLD_PRICE}{ryo})</button>
           <button class="btn" data-act="sell-gold" data-arg="all" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender tudo</button></div>`;
@@ -798,7 +801,7 @@ export class Panel {
         html += `<div class="actions"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ninja (${costLabel(RECRUIT_COST)})</button></div>`;
         html += `<p class="hint">Para ensinar jutsu: selecione um ninja → "Ensinar jutsu".</p>`;
       }
-      if (bd.type === 'training') html += `<p class="hint">Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP.</p>`;
+      if (bd.type === 'training') html += this.fieldSection(bd, t);
       if (d.healRate) html += `<p class="hint">Cura ${d.healRate} HP/s de quem descansa aqui.</p>`;
     }
     html += `<div class="actions"><button class="btn" data-act="move">{refresh} Mover de lugar (grátis)</button>`;
@@ -806,6 +809,40 @@ export class Panel {
       html += `<button class="btn danger" data-act="demolish">${this.armedDemolish ? 'Toque de novo para confirmar' : `{trash} Demolir (devolve ${bd.built ? '50%' : '100%'})`}</button>`;
     html += `</div>`;
     return { html, t, b };
+  }
+
+  /** Campo de Treino: vagas e foco. */
+  private fieldSection(bd: Building, t: Record<string, string>) {
+    const g = this.app.game;
+    t.slots = `${trainees(g, bd)} / ${trainSlots(bd)}`;
+    let html = `<p class="hint">Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP. Cada ninja vai ao campo com vaga mais perto, preferindo o do seu foco.</p>`;
+    html += `<p class="hint">{users} Vagas: <b data-t="slots"></b> treinando agora${levelOf(bd) < 3 ? ' (o upgrade abre mais vagas)' : ''}.</p>`;
+    html += `<h4>Foco do campo</h4><div class="chips">`;
+    html += `<button data-act="field-focus" data-arg="" class="${bd.focus ? '' : 'on'}" ${tipAttr('Livre', 'Sem especialidade: cada ninja treina o próprio foco (ou o que o sensei/acaso escolher).')}>Livre</button>`;
+    for (const k of STAT_KEYS)
+      html += `<button data-act="field-focus" data-arg="${k}" class="${bd.focus === k ? 'on' : ''}" ${tipAttr(STAT_INFO[k].label, `Treino de ${STAT_INFO[k].label} rende +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% aqui. Ninjas sem foco próprio treinam isto; quem tem esse foco prefere este campo.`)}>${STAT_INFO[k].label}</button>`;
+    html += `</div><p class="hint">${
+      bd.focus
+        ? `<b>${STAT_INFO[bd.focus].label}:</b> +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% neste atributo. Ninjas sem foco próprio treinam ${STAT_INFO[bd.focus].label} aqui.`
+        : 'Dica: com vários campos, dê um foco diferente a cada um (ex.: um de Taijutsu, outro de Ninjutsu).'
+    }</p>`;
+    return html;
+  }
+
+  /** Mercado: o que vende do excedente. */
+  private marketSection(bd: Building) {
+    let html = `<h4>{ryo} Vende o excedente</h4><div class="chips">`;
+    html += `<button data-act="market-good" data-arg="" class="${bd.sells ? '' : 'on'}" ${tipAttr('Nada', 'Só o ryo de sempre do comerciante.')}>Nada</button>`;
+    for (const k of MARKET_GOOD_LIST) {
+      const d = MARKET_GOODS[k];
+      html += `<button data-act="market-good" data-arg="${k}" class="${bd.sells === k ? 'on' : ''}" ${tipAttr(d.name, `Vende ${d.name.toLowerCase()} acima de ${d.keep} no estoque, a ${d.price} ryo cada.`)}>${RES_INFO[k].icon} ${d.name}</button>`;
+    }
+    html += `</div>`;
+    const m = marketLot(bd);
+    html += m
+      ? `<p class="hint">A cada venda (8 s) leva até ${m.lot} ${RES_INFO[bd.sells!].icon} por +${m.ryo}{ryo}, sempre deixando ${m.keep} no estoque. Dois mercados podem escoar coisas diferentes.</p>`
+      : `<p class="hint">Escolha uma mercadoria para o comerciante vender o que sobrar no estoque (madeira, pedra, comida ou ervas).</p>`;
+    return html;
   }
 
   /** Proteger novatos: Genins se abrigam de inimigos fortes demais (com veteranos em casa para defender). */
@@ -1480,6 +1517,14 @@ export class Panel {
       case 'gear-auto':
         setAutoGear(g, !g.state.flags.autoGear);
         return this.report({ ok: true });
+      case 'field-focus': {
+        if (v?.kind !== 'building') return;
+        return this.report(setFieldFocus(g, v.id, (arg || null) as StatKey | null));
+      }
+      case 'market-good': {
+        if (v?.kind !== 'building') return;
+        return this.report(setMarketGood(g, v.id, (arg || null) as MarketGood | null));
+      }
       case 'rookies':
         g.state.flags.shelterRookies = !g.state.flags.shelterRookies;
         g.toast(g.state.flags.shelterRookies ? '{ninja} Genins vão se abrigar de inimigos fortes demais.' : '{ninja} Genins voltam a lutar contra qualquer inimigo.', 'info');

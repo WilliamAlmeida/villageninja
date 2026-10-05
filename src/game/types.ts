@@ -1,6 +1,7 @@
 // Todo o estado do jogo é dado puro (serializável em JSON).
 import type { KageArtId } from '../data/kageArts';
 import type { DogBreed } from '../data/breeds';
+import type { MarketGood } from '../data/specialize';
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
@@ -182,6 +183,8 @@ export interface Unit {
   cast?: { id: string; targetId: number; t: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
   dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number };
+  /** Campo de Treino em que está treinando (ou indo treinar): ocupa uma vaga. */
+  trainId?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
   hitBy?: number[];
   /** Raça do ninken (sem = shiba). */
@@ -254,6 +257,10 @@ export interface Building {
   shot?: number;
   /** Torres: ângulo (mundo) do último alvo, para o guarda olhar para ele. */
   aim?: number;
+  /** Campo de Treino: atributo de foco (treino +50% nele; sem foco próprio, o ninja treina este). */
+  focus?: StatKey | null;
+  /** Mercado: o que o comerciante vende do excedente do estoque (além do ryo de sempre). */
+  sells?: MarketGood | null;
 }
 
 /** Expedição: equipe fora do mapa (mina e, depois, lugares da região). Ver game/expeditions.ts. */

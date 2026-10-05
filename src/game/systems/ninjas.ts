@@ -10,6 +10,7 @@ import { derive } from '../../data/ninja';
 import { engage, trySupport } from '../combat';
 import { escapeFlicker, hiraishinHome } from '../techniques';
 import { shelterTick } from '../care';
+import { hasSlot, pickField } from '../specialize';
 import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
@@ -19,7 +20,7 @@ import { academyLearnMult } from '../upgrade';
 import { refillItem } from '../gear';
 import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits } from '../teams';
 import { isNight } from '../time';
-import type { Unit } from '../types';
+import type { Building, Unit } from '../types';
 import { doorPos, tileCenter, toTile } from '../world';
 
 const DEFEND_RADIUS = 240;
@@ -272,8 +273,9 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         fx(g, 'slash', u.x + Math.cos(u.facing) * 12, u.y + Math.sin(u.facing) * 12, { r: 10, color: '#ffffff', life: 0.25 });
       }
       if (u.timer <= 0) {
-        trainTick(g, u, senseiNear(g, u));
+        trainTick(g, u, senseiNear(g, u), g.building(u.trainId));
         u.state = 'idle';
+        u.trainId = undefined;
       }
       break;
     case 'follow': {
@@ -339,18 +341,10 @@ function decide(g: Game, u: Unit, night: boolean) {
     }
   }
   if (n.order === 'auto' && followLeader(g, u)) return;
-  const tg = g.builtOf('training');
   const wantsTrain = n.order === 'train' || (n.order === 'auto' && chance(0.65));
-  if (tg.length && wantsTrain && !night) {
-    const b = pick(tg);
-    const def = BUILDINGS[b.type];
-    const x = (b.tx + rand(0.3, def.w - 0.3)) * TILE;
-    const y = (b.ty + rand(0.3, def.h - 0.3)) * TILE;
-    if (setDestination(g, u, x, y)) {
-      u.state = 'toTrain';
-      return;
-    }
-  }
+  // campo com vaga (o do foco do ninja primeiro, depois o mais perto); todos cheios: faz outra coisa
+  const field = wantsTrain && !night ? pickField(g, u) : null;
+  if (field && goTrain(g, u, field)) return;
   if (n.order === 'scout' && !night) {
     // batedor: anda até a borda da névoa mais próxima (sem névoa por perto, patrulha)
     const p = scoutTarget(g, u);
@@ -371,15 +365,33 @@ function followLeader(g: Game, u: Unit): boolean {
   const i = Math.max(0, t.memberIds.filter((id) => id !== leader.id).indexOf(u.id));
   const o = formationOffset(i);
   if (leader.state === 'train' || leader.state === 'toTrain') {
-    const x = (leader.hasGoal ? leader.goalX : leader.x) + o.x;
-    const y = (leader.hasGoal ? leader.goalY : leader.y) + o.y;
-    if (setDestination(g, u, x, y)) {
-      u.state = 'toTrain';
-      return true;
+    // treina no mesmo campo do líder se houver vaga; senão, no campo livre mais perto
+    const same = g.building(leader.trainId);
+    if (same && hasSlot(g, same)) {
+      const x = (leader.hasGoal ? leader.goalX : leader.x) + o.x;
+      const y = (leader.hasGoal ? leader.goalY : leader.y) + o.y;
+      if (setDestination(g, u, x, y)) {
+        u.state = 'toTrain';
+        u.trainId = same.id;
+        return true;
+      }
     }
+    const other = pickField(g, u);
+    if (other && goTrain(g, u, other)) return true;
   }
   u.state = 'follow';
   u.timer = rand(4, 7);
+  return true;
+}
+
+/** Vai até um ponto do campo de treino e ocupa uma vaga nele. */
+function goTrain(g: Game, u: Unit, b: Building): boolean {
+  const def = BUILDINGS[b.type];
+  const x = (b.tx + rand(0.3, def.w - 0.3)) * TILE;
+  const y = (b.ty + rand(0.3, def.h - 0.3)) * TILE;
+  if (!setDestination(g, u, x, y)) return false;
+  u.state = 'toTrain';
+  u.trainId = b.id;
   return true;
 }
 

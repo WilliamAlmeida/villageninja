@@ -6,6 +6,7 @@ import { farmYield, marketYield, needsBuilders, workUpgrade } from '../upgrade';
 import { harvestMult, workMult } from '../mood';
 import { levelOf } from '../upgrade';
 import { REGROW } from '../../data/regrow';
+import { marketSale } from '../specialize';
 import { advanceCraft } from '../gear';
 import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
@@ -214,9 +215,12 @@ function work(g: Game, u: Unit, dt: number) {
       u.moving = false;
       if (!g.building(u.jobId)?.built) u.state = 'idle';
       else if (u.timer <= 0) {
-        const ryo = marketYield(g.building(u.jobId));
+        const shop = g.building(u.jobId)!;
+        const ryo = marketYield(shop);
         g.state.res.ryo += ryo;
-        fxText(g, u.x, u.y - 20, `+${ryo}{ryo}`, '#ffe08a');
+        // mercado especializado: também vende o excedente da mercadoria escolhida
+        const sold = marketSale(g, shop);
+        fxText(g, u.x, u.y - 20, `+${ryo + sold}{ryo}`, '#ffe08a');
         u.timer = 8;
       }
       break;
