@@ -1,4 +1,5 @@
 // Expedições às minas: a equipe sai do mapa, desce andar por andar (eventos sorteados) e o jogador decide
+import { closeScene, createVillageScene, opensScene } from './scene';
 // entre descer mais (mais risco, minérios raros) ou voltar com o que achou. O saque só entra no estoque na volta.
 import { chance, rand, weightedPick } from '../core/rng';
 import { MINE, MINE_EVENTS, MINE_MONSTERS, mineLoot } from '../data/expeditions';
@@ -104,7 +105,18 @@ export function tickExpeditions(g: Game, dt: number) {
     if (e.timer > 0) continue;
     if (e.kind === 'region') {
       // região: ida → serviço → volta
-      if (e.status === 'going') {
+      if (e.status === 'going' && opensScene(g, e)) {
+        g.state.scene = createVillageScene(g, e);
+        e.status = 'scene';
+        note(e, `Chegaram a ${REGION[e.node!]!.name}. A invasão começou!`);
+        g.toast(`{swords} ${g.team(e.teamId)?.name ?? 'A equipe'} chegou a ${REGION[e.node!]!.name}. Toque em "Ver invasão" no alto da tela para comandar.`, 'warn');
+      } else if (e.status === 'scene') {
+        const sc = g.state.scene;
+        if (sc?.sceneInfo?.expId === e.id && !sc.sceneInfo.result) continue; // ainda lutando
+        const result = sc?.sceneInfo?.expId === e.id ? closeScene(g) : 'retreat';
+        if (!expeditionUnits(g, e).length) lost(g, e);
+        else goBack(e, resolveRegion(g, e, result), ACTION_TIME[e.action!].travel);
+      } else if (e.status === 'going') {
         e.status = 'explore';
         e.timer = ACTION_TIME[e.action!].work;
         note(e, `Chegaram a ${REGION[e.node!]!.name}.`);
@@ -233,8 +245,9 @@ function finish(g: Game, e: Expedition) {
 
 function lost(g: Game, e: Expedition) {
   e.status = 'lost';
-  note(e, 'Ninguém voltou da mina.');
-  g.toast('{skull} Uma expedição se perdeu na mina.', 'danger');
+  const where = e.kind === 'mine' ? 'da mina' : `de ${REGION[e.node!]?.name ?? 'lá'}`;
+  note(e, `Ninguém voltou ${where}.`);
+  g.toast(`{skull} Ninguém voltou ${where}.`, 'danger');
 }
 
 /** Usado pela força recomendada no painel: força atual da equipe. */

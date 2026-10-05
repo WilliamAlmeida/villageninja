@@ -51,7 +51,7 @@ export class Hud {
     this.top.addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest<HTMLElement>('button');
       if (!t) return;
-      if (t.dataset.speed) this.app.game.state.speed = Number(t.dataset.speed);
+      if (t.dataset.speed) this.app.home.state.speed = Number(t.dataset.speed);
       if (t.dataset.act === 'menu') this.onMenu();
       if (t.dataset.act === 'full') {
         if (isIOS() && !canFullscreen()) this.toast(IOS_HINT, 'info');
@@ -77,29 +77,39 @@ export class Hud {
     }
 
     this.alert = el('div', { id: 'banners' });
-    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, rich('{alert} Inimigos na vila — toque para ver'));
-    threat.addEventListener('click', () => this.focusThreat());
+    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, rich('{alert} Inimigos na sua vila — toque para ver'));
+    // os avisos de baixo são da vila: olhando a invasão, volta para a vila antes de levar a câmera
+    const toHome = () => this.app.viewScene && this.app.setView(false);
+    threat.addEventListener('click', () => {
+      toHome();
+      this.focusThreat();
+    });
     const exam = el('button', { class: 'banner exam', 'data-b': 'exam', hidden: '' });
-    exam.addEventListener('click', () => this.focusArena());
+    exam.addEventListener('click', () => {
+      toHome();
+      this.focusArena();
+    });
     const warn = el('button', { class: 'banner danger', 'data-b': 'bosswarn', hidden: '' });
     warn.addEventListener('click', () => {
-      const p = this.app.game.state.pendingBoss;
+      toHome();
+      const p = this.app.home.state.pendingBoss;
       if (p) this.app.camera.focus(p.x, p.y);
     });
     const boss = el('button', { class: 'banner boss', 'data-b': 'boss', hidden: '' }, '<span data-t="name"></span><span class="bossbar"><i></i></span>');
     boss.addEventListener('click', () => {
-      const b = this.app.game.state.units.find((u) => u.boss && !u.dead);
+      toHome();
+      const b = this.app.home.state.units.find((u) => u.boss && !u.dead);
       if (b) this.app.camera.focus(b.x, b.y);
     });
     this.alert.append(threat, exam, warn, boss);
 
     this.toasts = el('div', { id: 'toasts' });
-    bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y));
+    bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y, !!t.scene));
   }
 
   update() {
-    const s = this.app.game.state;
-    const g = this.app.game;
+    const s = this.app.home.state;
+    const g = this.app.home;
     const set = (k: string, v: string) => {
       const e = this.vals.get(k);
       if (e && e.textContent !== v) e.textContent = v;
@@ -176,7 +186,7 @@ export class Hud {
   }
 
   private focusArena() {
-    const a = this.app.game.findBuilt('arena');
+    const a = this.app.home.findBuilt('arena');
     if (a) {
       const c = arenaSpots(a).center;
       this.app.camera.focus(c.x, c.y);
@@ -185,17 +195,21 @@ export class Hud {
   }
 
   private focusThreat() {
-    const g = this.app.game;
+    const g = this.app.home;
     const t = g.state.units.find((u) => !u.dead && u.faction !== 'village' && g.world.inVillage(u.x, u.y));
     if (t) this.app.camera.focus(t.x, t.y);
   }
 
-  toast(text: string, kind: ToastKind, x?: number, y?: number) {
+  toast(text: string, kind: ToastKind, x?: number, y?: number, scene = false) {
     const t = el('div', { class: `toast ${kind}` }, rich(esc(text)));
     if (x != null && y != null) {
       t.classList.add('go');
       t.title = 'Ir até o local';
-      t.addEventListener('click', () => this.app.camera.focus(x, y));
+      // aviso de outro mapa (vila ↔ invasão): troca a tela antes de ir até o local
+      t.addEventListener('click', () => {
+        if (scene !== this.app.viewScene) this.app.setView(scene);
+        this.app.camera.focus(x, y);
+      });
     }
     this.toasts.prepend(t);
     while (this.toasts.children.length > MAX_TOASTS) this.toasts.lastElementChild!.remove();

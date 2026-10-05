@@ -3,6 +3,7 @@ import { alertOpen, closeAlert, installTips } from './popup';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { buildingTip } from './maptip';
+import { SceneBar } from './scene';
 import { orderAttack, orderMove, teamUnits } from '../game/teams';
 import type { Building, Site, Unit } from '../game/types';
 import { isExploredPx } from '../game/explore';
@@ -36,6 +37,14 @@ export function createUI(app: App, root: HTMLElement) {
   panel.onWindow = (v) => win.show(v);
   win.onWindow = (v) => win.show(v);
   const menu = new Menu(app);
+  const sceneBar = new SceneBar(app);
+  root.appendChild(sceneBar.root);
+  bus.on('view', () => {
+    win.show(null);
+    panel.show(null);
+    build.toggle(false);
+    if (app.buildType) build.exit();
+  });
 
   const dock = el(
     'div',
@@ -59,6 +68,8 @@ export function createUI(app: App, root: HTMLElement) {
 
   function dockAction(a: string) {
     if (a !== 'select') app.selectTool = false;
+    // gestão e construção são da vila: olhando a invasão, volta para a vila primeiro
+    if (a !== 'select' && app.viewScene) app.setView(false);
     if (a === 'build') {
       if (app.buildType) build.exit();
       build.toggle();
@@ -368,6 +379,7 @@ export function createUI(app: App, root: HTMLElement) {
     btnMissions.classList.toggle('on', win.kind === 'missions');
     btnWorld.classList.toggle('on', WORLD_VIEWS.includes(win.kind ?? ''));
     btnCrafts.classList.toggle('on', win.kind === 'crafts');
+    sceneBar.update();
     // dica do prédio: aparece depois de o mouse ficar parado sobre ele um instante
     const hb = tip.id != null ? app.game.building(tip.id) : undefined;
     if (hb && performance.now() - tip.since > 550 && win.root.hidden && !app.buildType) {

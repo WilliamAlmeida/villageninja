@@ -19,10 +19,10 @@ export class Menu {
       if (a === 'resume') this.close();
       if (a === 'save') {
         const ok = this.app.save();
-        this.app.game.toast(ok ? '{save} Jogo salvo!' : 'Não foi possível salvar.', ok ? 'good' : 'warn');
+        this.app.home.toast(ok ? '{save} Jogo salvo!' : 'Não foi possível salvar.', ok ? 'good' : 'warn');
       }
       if (a === 'full') {
-        if (isIOS() && !canFullscreen()) this.app.game.toast(IOS_HINT, 'info');
+        if (isIOS() && !canFullscreen()) this.app.home.toast(IOS_HINT, 'info');
         else toggleFullscreen();
       }
       if (a === 'install') install().then(() => this.render());
@@ -35,7 +35,7 @@ export class Menu {
         this.render();
       }
       if (a === 'pace') {
-        this.app.game.state.pace = (e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === 'tactical' ? 'tactical' : 'fast';
+        this.app.home.state.pace = (e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === 'tactical' ? 'tactical' : 'fast';
         this.render();
       }
       if (a === 'font') {
@@ -57,19 +57,19 @@ export class Menu {
 
   open() {
     this.armedNew = false;
-    this.prevSpeed = this.app.game.state.speed || 1;
-    this.app.game.state.speed = 0;
+    this.prevSpeed = this.app.home.state.speed || 1;
+    this.app.home.state.speed = 0;
     this.render();
     this.root.hidden = false;
   }
 
   close() {
     this.root.hidden = true;
-    this.app.game.state.speed = this.prevSpeed;
+    this.app.home.state.speed = this.prevSpeed;
   }
 
   private render() {
-    const s = this.app.game.state;
+    const s = this.app.home.state;
     const fs = fontSize();
     this.root.innerHTML = rich(`<div class="box">
       <h2>{leaf} Vila Ninja <small style="color:var(--muted);font-weight:400">— protótipo</small></h2>

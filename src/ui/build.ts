@@ -112,7 +112,7 @@ export class BuildUI {
 
   update() {
     if (this.bar.hidden) return;
-    const g = this.app.game;
+    const g = this.app.home;
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const type = c.dataset.type as BuildingType;
       // prédio único que a vila já tem (pronto ou em obra) sai da lista; volta se for demolido
@@ -122,7 +122,7 @@ export class BuildUI {
       const r = canBuild(g, type);
       c.classList.toggle('off', !r.ok);
       const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;
-      const lock = min > this.app.game.state.level ? `{lock} ${levelDef(min).name}` : '';
+      const lock = min > this.app.home.state.level ? `{lock} ${levelDef(min).name}` : '';
       const le = c.querySelector('.lock')!;
       if (le.getAttribute('data-raw') !== lock) {
         le.setAttribute('data-raw', lock);
@@ -133,7 +133,7 @@ export class BuildUI {
 
   /** Cartão com o que o prédio faz, antes de construir (o "i" do card). */
   info(type: BuildingType) {
-    const g = this.app.game;
+    const g = this.app.home;
     const d = BUILDINGS[type];
     const r = canBuild(g, type);
     const up = UPGRADES[type];
@@ -160,7 +160,7 @@ export class BuildUI {
   }
 
   private start(type: BuildingType) {
-    const r = canBuild(this.app.game, type);
+    const r = canBuild(this.app.home, type);
     if (!r.ok) {
       // mesmo aviso com o que falta (em vez de um toast que some)
       this.info(type);
@@ -177,7 +177,7 @@ export class BuildUI {
 
   /** Entra no modo de mover um prédio já existente. */
   startMove(id: number) {
-    const b = this.app.game.building(id);
+    const b = this.app.home.building(id);
     if (!b) return;
     const d = BUILDINGS[b.type];
     this.moveId = id;
@@ -195,7 +195,7 @@ export class BuildUI {
 
   private validAt(tx: number, ty: number) {
     const type = this.app.buildType!;
-    return this.moveId != null ? canMove(this.app.game, this.moveId, tx, ty).ok : this.app.game.world.canPlace(type, tx, ty);
+    return this.moveId != null ? canMove(this.app.home, this.moveId, tx, ty).ok : this.app.home.world.canPlace(type, tx, ty);
   }
 
   /** Chamado pelo toque no mapa durante o modo de construção. */
@@ -221,9 +221,9 @@ export class BuildUI {
   confirm() {
     const gh = this.app.ghost;
     if (!gh) return;
-    const r = this.moveId != null ? moveBuilding(this.app.game, this.moveId, gh.tx, gh.ty) : placeBuilding(this.app.game, gh.type, gh.tx, gh.ty);
+    const r = this.moveId != null ? moveBuilding(this.app.home, this.moveId, gh.tx, gh.ty) : placeBuilding(this.app.home, gh.type, gh.tx, gh.ty);
     if (!r.ok) {
-      this.app.game.toast(r.error, 'warn');
+      this.app.home.toast(r.error, 'warn');
       return;
     }
     this.exit();

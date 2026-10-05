@@ -4,13 +4,13 @@ import type { Game } from '../game';
 import { toTile } from '../world';
 
 const EVERY = 0.25;
-let acc = 0;
+const acc = new WeakMap<object, number>();
 
 /** Névoa: moradores, ninjas e torres da vila revelam os arredores; locais que saem da névoa são descobertos. */
 export function exploreSystem(g: Game, dt: number) {
-  acc += dt;
-  if (acc < EVERY) return;
-  acc = 0;
+  const t = (acc.get(g.state) ?? 0) + dt;
+  acc.set(g.state, t >= EVERY ? 0 : t);
+  if (t < EVERY) return;
   const s = g.state;
   let added = 0;
   for (const u of s.units) {

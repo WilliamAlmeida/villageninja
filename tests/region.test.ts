@@ -37,7 +37,8 @@ function act(g: Game, teamId: number, node: string, action: Parameters<typeof st
   if (!r.ok) return r;
   const e = g.state.expeditions.at(-1)!;
   const t = ACTION_TIME[action];
-  run(g, t.travel * 2 + t.work + 3, () => e.status === 'done' || e.status === 'lost');
+  // saque e anexação à força viram um mapa jogável: a luta lá leva mais tempo que o "serviço" de antes
+  run(g, t.travel * 2 + t.work + 240, () => e.status === 'done' || e.status === 'lost');
   for (const u of teamUnits(g, g.team(teamId)!)) u.hp = u.maxHp; // cura para a próxima ação
   return { ok: true as const, e };
 }

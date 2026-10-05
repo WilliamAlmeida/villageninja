@@ -9,10 +9,11 @@ import { emptyExplored, generateSites, revealStart } from './explore';
 import { newRegion } from './region';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
-export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31) | 0): Game {
+/** Estado inicial com o terreno gerado e tudo vazio (base da vila nova e dos mapas de missão). */
+export function baseState(seed: number): GameState {
   let nextId = 1;
   const { tiles, nodes } = generateMap(seed, () => nextId++);
-  const state: GameState = {
+  return {
     version: SAVE_VERSION,
     seed,
     level: 0,
@@ -62,6 +63,10 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     flags: { starving: false, alert: false, raidActive: false, raidStole: false, shelterRookies: true, autoTeach: false, autoSensei: true },
     stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0, missionsDone: 0, bossesDefeated: 0 },
   };
+}
+
+export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31) | 0): Game {
+  const state = baseState(seed);
   const g = new Game(state, systems);
 
   const place = (type: BuildingType, tx: number, ty: number) => {

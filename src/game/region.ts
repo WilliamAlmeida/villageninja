@@ -115,13 +115,13 @@ export function startRegion(g: Game, teamId: number, nodeId: string, action: Reg
 const add = (to: Cost, c: Cost | undefined, mult = 1) => {
   if (c) for (const k of RES_KEYS) if (c[k]) to[k] = (to[k] ?? 0) + Math.round(c[k]! * mult);
 };
-const hurt = (us: Unit[], frac: number) => {
+const hurtAll = (us: Unit[], frac: number) => {
   for (const u of us) u.hp = Math.max(1, u.hp - u.maxHp * frac);
 };
 const clampRel = (st: RegionState) => (st.rel = Math.max(-100, Math.min(100, st.rel)));
 
 /** A equipe chegou e fez o serviço: aplica o resultado. Retorna o texto para o diário. */
-export function resolveRegion(g: Game, e: Expedition): string {
+export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' | 'retreat'): string {
   const s = g.state;
   const def = REGION[e.node!]!;
   const st = regionOf(s, def.id);
@@ -129,6 +129,9 @@ export function resolveRegion(g: Game, e: Expedition): string {
   const power = us.reduce((a, u) => a + unitPower(u), 0);
   const ratio = power / Math.max(1, nodePower(s, def));
   for (const u of us) gainXp(g, u, 12);
+  // veio de um mapa jogável: o resultado é o da luta (os ferimentos já aconteceram lá)
+  const played = outcome != null;
+  const hurt = (list: Unit[], frac: number) => !played && hurtAll(list, frac);
   let text = '';
   switch (e.action) {
     case 'trade':
@@ -151,7 +154,7 @@ export function resolveRegion(g: Game, e: Expedition): string {
       }
       break;
     case 'raid':
-      if (ratio >= 1) {
+      if (played ? outcome === 'win' : ratio >= 1) {
         add(e.loot, def.loot, Math.min(1.3, ratio) * (1 + infamyBonus(s)));
         hurt(us, 0.15);
         st.rel -= 45;
@@ -163,7 +166,7 @@ export function resolveRegion(g: Game, e: Expedition): string {
         hurt(us, 0.4);
         st.rel -= 20;
         s.infamy += 2;
-        text = `O saque a ${def.name} fracassou: as defesas eram fortes demais.`;
+        text = outcome === 'retreat' ? `A equipe recuou de ${def.name} sem o saque.` : `O saque a ${def.name} fracassou: as defesas eram fortes demais.`;
       }
       break;
     case 'annex':
@@ -172,7 +175,7 @@ export function resolveRegion(g: Game, e: Expedition): string {
         s.honor += 6;
         text = `${def.name} aceitou se unir à vila! Tributo dobrado e novos moradores.`;
         immigrants(g, 2);
-      } else if (ratio >= 1.2) {
+      } else if (played ? outcome === 'win' : ratio >= 1.2) {
         st.status = 'vassal';
         st.rel = Math.max(st.rel, -30);
         s.infamy += 6;

@@ -6,6 +6,7 @@ import { Input } from './core/input';
 import { createNewGame } from './game/newGame';
 import { clearSave, loadGame, saveGame } from './game/save';
 import { SYSTEMS } from './game/systems';
+import { sceneGame, sceneTeam } from './game/scene';
 import { doorPos } from './game/world';
 import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
@@ -19,8 +20,41 @@ applySettings();
 const camera = new Camera();
 const renderer = new Renderer(canvas);
 
+let home = loadGame(SYSTEMS) ?? createNewGame(SYSTEMS);
+/** Câmera de cada tela (vila e mapa de missão), para voltar onde estava. */
+const cams: { home?: { x: number; y: number; zoom: number }; scene?: { x: number; y: number; zoom: number } } = {};
+
 const app: App = {
-  game: loadGame(SYSTEMS) ?? createNewGame(SYSTEMS),
+  get home() {
+    return home;
+  },
+  get game() {
+    return (app.viewScene && sceneGame(home)) || home;
+  },
+  viewScene: false,
+  setView(scene: boolean) {
+    const sg = sceneGame(home);
+    if (scene && !sg) return;
+    if (scene === app.viewScene) return;
+    app.game.select(null);
+    app.back = null;
+    cams[app.viewScene ? 'scene' : 'home'] = { x: camera.x, y: camera.y, zoom: camera.zoom };
+    app.viewScene = scene;
+    const saved = cams[scene ? 'scene' : 'home'];
+    if (scene && (!saved || sg!.state !== sceneOf)) {
+      // primeira vez nesta invasão: câmera na equipe
+      sceneOf = sg!.state;
+      const team = sceneTeam(sg!);
+      const p = team[0] ?? sg!.state.sceneInfo!.entry;
+      camera.jump(p.x, p.y);
+      camera.zoom = 1.6;
+    } else if (saved) {
+      camera.x = saved.x;
+      camera.y = saved.y;
+      camera.zoom = saved.zoom;
+    }
+    bus.emit('view', scene);
+  },
   camera,
   ghost: null,
   buildType: null,
@@ -32,16 +66,18 @@ const app: App = {
   selectTool: false,
   newGame() {
     clearSave();
-    app.game = createNewGame(SYSTEMS);
+    app.viewScene = false;
+    home = createNewGame(SYSTEMS);
     centerOnVillage();
     bus.emit('newGame', undefined);
-    saveGame(app.game);
+    saveGame(home);
   },
-  save: () => saveGame(app.game),
+  save: () => saveGame(home),
 };
+let sceneOf: object | null = null;
 
 function centerOnVillage() {
-  const hk = app.game.hokage();
+  const hk = home.hokage();
   if (hk) {
     const p = doorPos(hk);
     camera.jump(p.x, p.y);
@@ -72,9 +108,9 @@ input.onHover = (sx, sy) => input.setCursor(ui.onHover(sx, sy));
 // salvamento automático
 let saveTimer = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveGame(app.game);
+  if (document.hidden) saveGame(home);
 });
-window.addEventListener('pagehide', () => saveGame(app.game));
+window.addEventListener('pagehide', () => saveGame(home));
 
 // loop: simulação em passo fixo + render a cada frame
 let last = performance.now();
@@ -84,8 +120,9 @@ function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   // relógio das animações: congela junto com a simulação quando o jogo está pausado
-  if (app.game.state.speed > 0) clock += dt;
-  const g = app.game;
+  if (home.state.speed > 0) clock += dt;
+  // a vila roda sempre (e puxa o mapa de missão junto: sceneRunSystem); a tela mostra o que o jogador olha
+  const g = home;
   acc += dt * g.state.speed;
   let steps = 0;
   while (acc >= SIM_DT && steps < 12) {
@@ -101,8 +138,10 @@ function frame(now: number) {
     saveGame(g);
   }
 
+  // a invasão acabou enquanto o jogador olhava: volta para a vila
+  if (app.viewScene && !home.state.scene) app.setView(false);
   camera.update(dt);
-  renderer.render(g, camera, app.ghost, clock, app);
+  renderer.render(app.game, camera, app.ghost, clock, app);
   ui.update(dt, clock);
   requestAnimationFrame(frame);
 }

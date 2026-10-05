@@ -11,6 +11,7 @@ import { engage, trySupport } from '../combat';
 import { escapeFlicker, hiraishinHome } from '../techniques';
 import { shelterTick } from '../care';
 import { hasSlot, pickField } from '../specialize';
+import { advanceTarget } from '../scene';
 import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
@@ -316,6 +317,18 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
 
 function decide(g: Game, u: Unit, night: boolean) {
   const n = u.ninja!;
+  // mapa de missão: nada de treinar, estudar ou dormir; acompanham o líder e lutam com quem chegar
+  if (g.state.sceneInfo) {
+    if (followLeader(g, u)) return;
+    // sem ordem: avança para o objetivo (armazém, chefe), lutando com quem aparecer no caminho
+    const p = advanceTarget(g);
+    if (p && Math.hypot(p.x - u.x, p.y - u.y) > 40 && setDestination(g, u, p.x, p.y + 10)) u.state = 'patrol';
+    else {
+      u.state = 'idle';
+      u.timer = 1;
+    }
+    return;
+  }
   if (n.learning) {
     const academy = g.findBuilt('academy');
     if (!academy) {

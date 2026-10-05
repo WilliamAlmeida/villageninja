@@ -18,6 +18,8 @@ export class Game {
   readonly world: World;
   readonly bus = bus;
   selected: Selection | null = null;
+  /** Mapa de missão (não é a vila): avisos dele levam a câmera para lá. */
+  isScene = false;
   private unitMap = new Map<number, Unit>();
   private buildingMap = new Map<number, Building>();
   private nodeMap = new Map<number, ResourceNode>();
@@ -162,6 +164,6 @@ export class Game {
   }
 
   toast(text: string, kind: ToastKind = 'info', at?: { x: number; y: number }) {
-    this.bus.emit('toast', { text, kind, x: at?.x, y: at?.y });
+    this.bus.emit('toast', { text, kind, x: at?.x, y: at?.y, scene: this.isScene });
   }
 }

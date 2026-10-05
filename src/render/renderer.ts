@@ -57,14 +57,15 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private terrain: HTMLCanvasElement | null = null;
-  private terrainSeed = NaN;
+  /** Cache por mapa (a vila e o mapa de missão alternam na tela). */
+  private maps = new WeakMap<GameState, { terrain: HTMLCanvasElement; depth: Uint8Array; seasonal: Seasonal }>();
   private dpr = 1;
   private list: Drawable[] = [];
   /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
   private fade = new Map<string, number>();
   private lastTime = 0;
   /** Visual das estações (neve no chão, gelo, árvores, decorações). */
-  private seasonal = new Seasonal();
+  private seasonal!: Seasonal;
   /** Segundos desde o quadro anterior (0 com o jogo pausado no relógio do render). */
   private frameDt = 0;
   /** Decorações do quadro (lanternas acendem à noite em `lights`). */
@@ -97,11 +98,14 @@ export class Renderer {
 
   render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
-    if (!this.terrain || this.terrainSeed !== s.seed) {
-      this.terrain = renderTerrain(s);
-      this.terrainSeed = s.seed;
-      this.depth = waterDepth(s);
+    let cache = this.maps.get(s);
+    if (!cache) {
+      cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal() };
+      this.maps.set(s, cache);
     }
+    this.terrain = cache.terrain;
+    this.depth = cache.depth;
+    this.seasonal = cache.seasonal;
     const ctx = this.ctx;
     const z = cam.zoom * this.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);

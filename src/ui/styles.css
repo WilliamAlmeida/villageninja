@@ -496,3 +496,17 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 
 /* Os Três Sannin: três cartões lado a lado */
 .sannin { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.5rem; }
+
+/* barra da invasão (mapa de missão jogável) */
+#scenebar { position: fixed; top: 3.4rem; left: 50%; transform: translateX(-50%); z-index: 9; max-width: min(46rem, calc(100vw - 1rem));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; padding: 0.4rem 0.6rem; border-radius: var(--r);
+  background: var(--bg); border: 1px solid rgba(255, 90, 90, 0.45); box-shadow: var(--shadow); font-size: 0.85rem; }
+#scenebar .sb-title { font-weight: 700; color: #ffb0a0; }
+#scenebar .sb-goal { color: var(--muted); flex: 1 1 12rem; }
+#scenebar .btn { padding: 0.3rem 0.6rem; }
+
+/* Região: guia de como funciona */
+.howto { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 0.5rem 0.65rem; font-size: 0.85rem; }
+.howto ol, .howto ul { margin: 0.25rem 0 0.45rem 1.1rem; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.howto li { color: var(--muted); }
+.howto li b { color: var(--text); }

@@ -11,8 +11,8 @@ import { doorPos } from '../world';
 export function statusSystem(g: Game, dt: number) {
   const s = g.state;
 
-  // consumo de comida
-  const pop = g.population();
+  // consumo de comida (só na vila: num mapa de missão a equipe já é contada em casa)
+  const pop = s.sceneInfo ? 0 : g.population();
   s.res.food = Math.max(0, s.res.food - (pop * FOOD_PER_DAY * foodMult(s) * dt) / DAY_LENGTH);
   const starving = s.res.food <= 0 && pop > 0;
   if (starving !== s.flags.starving) {

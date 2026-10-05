@@ -146,7 +146,8 @@ export function migrate(s: any): GameState | null {
 /** Salva o estado no localStorage (o jogo é local por enquanto). */
 export function saveGame(g: Game): boolean {
   try {
-    const data: GameState = { ...g.state, effects: [], projectiles: [] };
+    const sc = g.state.scene;
+    const data: GameState = { ...g.state, effects: [], projectiles: [], scene: sc ? { ...sc, effects: [], projectiles: [] } : sc };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     return true;
   } catch {

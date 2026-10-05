@@ -189,6 +189,8 @@ export interface Unit {
   /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
   sage?: number;
   sanninCd?: number;
+  /** Cópia num mapa de missão: id do ninja original na vila (o resultado volta para ele). */
+  origin?: number;
   /** Campo de Treino em que está treinando (ou indo treinar): ocupa uma vaga. */
   trainId?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
@@ -287,7 +289,8 @@ export interface Expedition {
   floor: number;
   /** Segundos até o próximo passo. */
   timer: number;
-  status: 'going' | 'explore' | 'choice' | 'return' | 'done' | 'lost';
+  /** `scene`: a equipe está num mapa de missão jogável (state.scene) até ele terminar. */
+  status: 'going' | 'explore' | 'choice' | 'return' | 'done' | 'lost' | 'scene';
   /** Diário (mais novo por último). */
   log: string[];
   /** O que já foi achado (só entra no estoque quando a equipe volta). */
@@ -391,6 +394,26 @@ export interface Cloud {
   vy: number;
 }
 
+/** Mapa de missão jogável (vilarejo invadido, andar de mina…): o que é, objetivo e resultado. */
+export interface SceneInfo {
+  kind: 'village';
+  /** Expedição da vila que está aqui. */
+  expId: number;
+  node?: string;
+  action?: RegionAction;
+  title: string;
+  goal: string;
+  result: 'win' | 'lose' | 'retreat' | null;
+  /** Armazém a saquear (raid) e líder a derrotar (anexar à força). */
+  warehouseId?: number;
+  leaderId?: number;
+  /** Progresso do saque no armazém (s) e quanto precisa. */
+  loot: number;
+  lootNeed: number;
+  defenders: number;
+  entry: { x: number; y: number };
+}
+
 export interface GameState {
   version: number;
   seed: number;
@@ -452,6 +475,12 @@ export interface GameState {
   snow: number;
   /** Nuvens de chuva no mapa (só chove embaixo delas). */
   clouds: Cloud[];
+  /** Mapa de missão jogável em andamento (a equipe está lá; a vila continua andando). */
+  scene?: GameState | null;
+  /** Só nos mapas de missão: o que é e como termina. */
+  sceneInfo?: SceneInfo;
+  /** De que lado as torres e a Residência atiram (num mapa de missão as torres são do inimigo). */
+  towersFaction?: Faction;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;

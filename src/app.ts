@@ -13,7 +13,14 @@ export interface ScreenBox {
 
 /** Contexto compartilhado entre loop, render e UI. */
 export interface App {
-  game: Game;
+  /** Jogo que está na tela: a vila ou, quando o jogador olha a invasão, o mapa de missão. */
+  readonly game: Game;
+  /** A vila (recursos, velocidade, janelas de gestão e o save são sempre dela). */
+  readonly home: Game;
+  /** Olhando o mapa de missão (invasão) em vez da vila. */
+  viewScene: boolean;
+  /** Troca a tela entre a vila e o mapa de missão (cada um guarda a própria câmera). */
+  setView(scene: boolean): void;
   camera: Camera;
   ghost: Ghost | null;
   buildType: BuildingType | null;

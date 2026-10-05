@@ -114,8 +114,8 @@ const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = 
 const ACTION_TIP: Record<RegionAction, string> = {
   trade: 'Caravana de troca: paga na hora e volta com a mercadoria (honra dá bônus). Melhora a relação.',
   protect: 'A equipe defende o vilarejo de bandidos. Relação +20 e honra; com relação 60+ ele vira protegido e paga tributo todo dia.',
-  raid: 'Ataca e volta com o saque (infâmia dá bônus). Relação despenca, o vilarejo fica hostil e manda uma vingança à vila.',
-  annex: 'Com relação 90+ ele se une em paz; com relação -60 ou menos, só à força (precisa vencer as defesas). Vassalo paga tributo dobrado.',
+  raid: 'Vira uma invasão jogável: sua equipe entra no mapa do vilarejo e você comanda a luta (aparece "Ver invasão" no alto). Saqueie o armazém ou derrote os guardas. Relação despenca e eles mandam uma vingança.',
+  annex: 'Com relação 90+ ele se une em paz. Com relação -60 ou menos, só à força: vira uma invasão jogável e é preciso derrotar o chefe deles. Vassalo paga tributo dobrado e manda moradores.',
   explore: 'Primeira viagem à ilha: se a equipe aguentar, traz amostras e libera o posto avançado.',
   outpost: 'Monta um posto que produz recursos da ilha todo dia.',
   train: 'Os monges treinam a equipe: muito XP e atributos.',
@@ -539,7 +539,14 @@ export class Panel {
     html += `<div class="fame" ${tipAttr('Fama da vila', 'Honra (proteger, comerciar, anexar em paz): trocas melhores e ninjas errantes pedindo para entrar. Infâmia (saquear, dominar à força): saques maiores, mas vinganças e caçadores de recompensa.', true)}>
       <span class="hon">{star} Honra <b>${s.honor}</b></span><span class="inf">{skull} Infâmia <b>${s.infamy}</b></span></div>`;
     const def = this.regionNode ? REGION[this.regionNode] : undefined;
-    if (!def) html += `<p class="hint">Toque num lugar do mapa. Vilarejos: comerciar, proteger, saquear ou anexar. Ilhas e lugares sagrados precisam de um {ship} Porto.</p>`;
+    if (!def)
+      html += `<div class="howto"><b>Como funciona</b><ol>
+        <li><b>Toque num lugar</b> do mapa: {houses} vilarejos, {ship} ilhas ou {scroll} lugares sagrados.</li>
+        <li><b>Escolha a equipe</b>: compare a força dela {swords} com as defesas do lugar.</li>
+        <li><b>Escolha a ação</b>. A equipe viaja e some da vila; acompanhe em Expedições. Saquear e anexar à força viram uma <b>invasão jogável</b>: aparece "Ver invasão" no alto da tela.</li></ol>
+        <b>Para que serve</b><ul><li>{houses} Vilarejos: proteja e comercie para ganhar <b>tributo diário</b> e anexar (traz <b>moradores</b>); ou saqueie.</li>
+        <li>{ship} Ilhas (precisa de Porto): explore, monte <b>postos</b> que rendem recursos todo dia, e <b>treine no templo</b> (muito XP).</li>
+        <li>{scroll} Lugares sagrados (precisa de Porto): vença a prova e ganhe um <b>contrato de invocação</b> (sapo, serpente, lesma).</li></ul></div>`;
     else html += this.regionNodeSection(def);
     html += `</div></div>`;
     return { html, t: {}, b: {} };
@@ -567,6 +574,18 @@ export class Panel {
       html += `<p class="hint">{scroll} ${c.name}: ${esc(c.desc)}${owners.length ? ` Contratados: ${owners.join(', ')}.` : ''}</p>`;
     }
     html += `<p class="hint">Defesas {swords}${nodePower(s, def)}</p>`;
+    // próximo passo sugerido para o lugar
+    if (def.kind === 'village') {
+      const next =
+        st.status === 'vassal'
+          ? 'É seu vassalo: manda tributo dobrado todo dia.'
+          : st.rel >= REL.annexPeace
+            ? 'Relação alta: já dá para <b>anexar em paz</b>.'
+            : st.rel <= REL.annexForce
+              ? 'Relação péssima: só dá para <b>anexar à força</b> (invasão jogável) ou saquear de novo.'
+              : `Para anexar em paz: <b>proteja</b> e <b>comercie</b> até a relação chegar a ${REL.annexPeace}.`;
+      html += `<p class="hint">{todo} ${next}</p>`;
+    }
     // equipe que vai
     const teams = s.teams.filter((tm) => teamUnits(g, tm).length);
     if (!teams.length) return html + `<p class="why">Forme uma equipe em {ninja} Ninjas → Equipes.</p>`;
@@ -574,14 +593,18 @@ export class Panel {
     html += `<h4>Equipe</h4><div class="chips rteams">`;
     for (const tm of teams)
       html += `<button data-act="r-team" data-arg="${tm.id}" class="${this.regionTeam === tm.id ? 'on' : ''}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} {swords}${teamMinePower(g, tm.id)}</button>`;
-    html += `</div><h4>Ações</h4><div class="ractions">`;
+    const tp = teamMinePower(g, this.regionTeam);
+    const np = nodePower(s, def);
+    const k = tp / Math.max(1, np);
+    html += `</div><p class="${k >= 1.2 ? 'hint' : 'why'}">{swords} Sua equipe ${tp} × defesas ${np}: ${k >= 1.5 ? 'folgado' : k >= 1 ? 'equilibrado' : k >= 0.7 ? 'arriscado' : 'muito perigoso'}.</p>`;
+    html += `<h4>Ações</h4><div class="ractions">`;
     const busy = teamBusy(g, this.regionTeam);
     for (const a of nodeActions(def)) {
       const why = actionBlock(g, def.id, a);
       const cost = actionCost(def, a);
       const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
       html += `<button class="btn" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
-        <b>${ACTION_LABEL[a]}</b><small>${cost ? `${costLabel(cost)} · ` : ''}~${time}s</small></button>`;
+        <b>${ACTION_LABEL[a]}</b><small>${a === 'raid' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} invasão jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
     }
     return html + `</div>`;
   }
@@ -606,7 +629,7 @@ export class Panel {
       const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
       const label: Record<Expedition['status'], string> = {
         going: 'a caminho da mina', explore: `explorando o andar ${e.floor}`, choice: `andar ${e.floor} concluído`, return: 'voltando para a vila',
-        done: 'terminou', lost: 'perdida',
+        done: 'terminou', lost: 'perdida', scene: 'em combate no mapa',
       };
       html += `<div class="mcard exp ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="mt"><span class="dot"></span>${esc(tm?.name ?? 'Equipe')} · Mina
         <span class="badge">${label[e.status]}</span>${live ? ` <span class="badge">{pickaxe} ${e.floor}/${MINE.floors}</span>` : ''}</div>`;
@@ -756,6 +779,14 @@ export class Panel {
     const d = BUILDINGS[bd.type];
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
+    if (g.state.sceneInfo)
+      return {
+        html: `<div class="ph"><div class="title">${d.icon} ${d.name}</div><div class="badges"><span class="badge enemy">Do inimigo</span></div></div><p class="hint">${d.desc}</p>${
+          bd.id === g.state.sceneInfo.warehouseId ? `<p class="hint">{ryo} <b>Armazém:</b> fique na porta sem guardas por perto para saquear.</p>` : ''
+        }${bd.type === 'tower' ? `<p class="why">A torre atira kunais na sua equipe.</p>` : ''}`,
+        t,
+        b,
+      };
     let html = `<div class="ph"><div class="title">${d.icon} ${d.name}</div></div><p class="hint">${d.desc}</p>`;
     // aba "Lá dentro" para prédios com interior (moradia ou alguém dentro agora)
     const inside = d.walkable ? [] : occupantsOf(g, bd);

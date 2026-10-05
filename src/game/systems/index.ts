@@ -10,6 +10,7 @@ import { seasonSystem } from './seasons';
 import { natureSystem } from './nature';
 import { gearSystem } from './gear';
 import { automationSystem } from './automation';
+import { sceneRunSystem, sceneSystem } from './scene';
 import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
@@ -53,4 +54,19 @@ export const SYSTEMS: System[] = [
   natureSystem,
   gearSystem,
   automationSystem,
+  sceneRunSystem,
+];
+
+/** Mapa de missão (vilarejo invadido…): só luta, IA, torres do inimigo e névoa; a vida da vila fica na vila. */
+export const SCENE_SYSTEMS: System[] = [
+  statusSystem,
+  teamSystem,
+  ninjaSystem,
+  hostileSystem,
+  towerSystem,
+  techniqueSystem,
+  projectileSystem,
+  effectSystem,
+  exploreSystem,
+  sceneSystem,
 ];

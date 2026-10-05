@@ -16,6 +16,7 @@ export const DEFENSES: Partial<Record<BuildingType, { range: number; cd: number;
 export const GUARD_SHOW = 3;
 
 export function towerSystem(g: Game, dt: number) {
+  const side = g.state.towersFaction ?? 'village';
   for (const b of g.state.buildings) {
     const def = DEFENSES[b.type];
     if (!def || !b.built) continue;
@@ -27,7 +28,7 @@ export function towerSystem(g: Game, dt: number) {
     let best: Unit | null = null;
     let bd = range;
     for (const u of g.state.units) {
-      if (u.dead || u.hidden || !canHit('village', undefined, u)) continue;
+      if (u.dead || u.hidden || !canHit(side, undefined, u)) continue;
       const d = Math.hypot(u.x - c.x, u.y - c.y);
       if (d < bd) {
         bd = d;
@@ -36,7 +37,7 @@ export function towerSystem(g: Game, dt: number) {
     }
     if (!best) continue;
     b.cd = def.cd;
-    spawnProjectile(g, null, 'village', c.x, c.y - def.height, best.x, best.y - 6, {
+    spawnProjectile(g, null, side, c.x, c.y - def.height, best.x, best.y - 6, {
       damage: towerDamage(b, def.damage), radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 380, kind: 'kunai', stun: 0, range: range + 40,
     });
     // o guarda aparece no alto da torre arremessando e fica uns segundos de vigia (render: GUARD_SHOW)
