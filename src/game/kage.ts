@@ -46,7 +46,7 @@ export function electKage(g: Game, unitId: number): Result {
   if (!u) return fail('Candidato inválido.');
   g.pay(KAGE_COST);
   g.state.ceremony = { candidateId: u.id, timer: CEREMONY_TIME };
-  g.toast(`{crown} A vila se reúne na praça: ${u.name} será nomeado Kage!`, 'good', u);
+  g.toast(`{kage} A vila se reúne na praça: ${u.name} será nomeado Kage!`, 'good', u);
   return { ok: true };
 }
 
@@ -68,5 +68,5 @@ export function crownKage(g: Game) {
   s.reputation += 5;
   fx(g, 'ring', u.x, u.y, { r: 40, color: '#ffd34d', life: 1 });
   fxText(g, u.x, u.y - 36, `${u.name.split(' ').pop()}, o Kage!`, '#ffd34d', true);
-  g.toast(`{crown} ${u.name} é o novo Kage da vila! Ninjas +10% de dano. Monte dos Kages liberado.`, 'good', u);
+  g.toast(`{kage} ${u.name} é o novo Kage da vila! Ninjas +10% de dano. Monte dos Kages liberado.`, 'good', u);
 }

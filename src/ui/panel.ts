@@ -71,6 +71,7 @@ import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { atlasCell, rich } from './icons';
+import { GLYPHS } from './glyphs';
 import { morph } from './morph';
 import { blocked, blockedClick, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
@@ -108,7 +109,7 @@ interface Built {
 /** Abas da janela central: cada grupo de telas de gestão. */
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
-  village: [['village', '{home} Vila'], ['kage', '{crown} Kage'], ['stats', '{chart} Estatísticas']],
+  village: [['village', '{home} Vila'], ['kage', '{kage} Kage'], ['stats', '{chart} Estatísticas']],
   world: [['region', '{map} Região'], ['expeditions', '{pickaxe} Expedições']],
 };
 const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: '{map} Mundo' };
@@ -145,8 +146,9 @@ const pimg = (url: string | null | undefined, cls = '') =>
     : `<span class="${cls} skel"></span>`;
 /** Ícone de um requisito de nível da vila (prédio pelo nome; senão pelo assunto). */
 function reqIcon(label: string): string {
+  // lista uniforme: só glifos lisos (prédio sem glifo próprio usa o genérico)
   const b = Object.values(BUILDINGS).find((d) => d.name === label);
-  if (b) return b.icon;
+  if (b) return GLYPHS[b.icon.slice(1, -1)] ? b.icon : '{houses}';
   const l = label.toLowerCase();
   if (l.includes('popula')) return '{users}';
   if (l.includes('ninja')) return '{ninja}';
@@ -154,7 +156,7 @@ function reqIcon(label: string): string {
   if (l.includes('invas')) return '{shield}';
   if (l.includes('miss')) return '{clipboard}';
   if (l.includes('clã')) return '{castle}';
-  if (l.includes('kage')) return '{crown}';
+  if (l.includes('kage')) return '{kage}';
   return '{todo}';
 }
 /** Ilustração de um benefício de nível da vila, pelo assunto do texto. */
@@ -176,7 +178,7 @@ function perkArt(perk: string): string {
 const togBtn = (act: string, on: boolean, label: string, title: string, tip: string, arg = '') =>
   `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${arg ? `data-arg="${arg}"` : ''} ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
 const costTag = (cost: Partial<Record<ResKey, number>>) => `<small class="bcost">${costLabel(cost)}</small>`;
-const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{crown}' };
+const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{kage}' };
 const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
   safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
@@ -830,7 +832,7 @@ export class Panel {
     html += `<div class="factions"><button class="btn primary" data-act="teach-open">{books} Ensinar jutsu</button>`;
     const next = nextRank(u);
     if (next === 'kage') {
-      html += `<span class="hint">{crown} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</span>`;
+      html += `<span class="hint">{kage} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</span>`;
     } else if (next) {
       const r = RANKS[next];
       const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
@@ -1379,14 +1381,14 @@ export class Panel {
     let left = `<div class="bsec"><h4>{chart} Números da vila</h4><div class="statgrid">`;
     left += cell('calendar', 'Dia', s.day, 'Dias desde a fundação da vila.');
     left += cell('users', 'População', `${g.population()} / ${g.popCap()}`, 'Moradores e ninjas / vagas nas casas. Construa ou melhore casas para crescer.');
-    left += cell('ninja', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
+    left += cell('shinobi', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
     left += cell('star', 'Reputação', s.reputation, 'Sobe com missões, exames, chefes vencidos e o Monte dos Kages; cai quando uma missão fracassa.');
     left += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');
     left += cell('shield', 'Invasões repelidas', s.stats.raidsRepelled, 'Ataques de renegados que a vila venceu.');
     left += cell('skull', 'Chefes derrotados', s.stats.bossesDefeated, 'Ameaças-chefe vencidas.');
     left += cell('clipboard', 'Missões cumpridas', s.stats.missionsDone, 'Missões da Mesa de Missões concluídas com sucesso.');
     left += cell('baby', 'Nascimentos', s.stats.born, 'Crianças nascidas na vila.');
-    left += cell('candle', 'Perdas', s.stats.lost, 'Moradores e ninjas que morreram.');
+    left += cell('grave', 'Perdas', s.stats.lost, 'Moradores e ninjas que morreram.');
     left += cell('castle', 'Clãs', s.clans.length, 'Clãs fundados por ninjas da vila.');
     left += cell('flag', 'Equipes', s.teams.length, 'Equipes de ninjas montadas.');
     left += `</div></div>`;
@@ -1397,7 +1399,7 @@ export class Panel {
         .map(([ic, label, n, color]) => `<div class="sbar"><span class="sb-l">${ic} ${label}</span><div class="nc-bar"><i style="width:${(n / max) * 100}%;background:${color}"></i></div><b>${n}</b></div>`)
         .join('')}</div></div>`;
     };
-    const RANK_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', kage: '{crown}' };
+    const RANK_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', kage: '{kage}' };
     const RANK_COLOR: Record<string, string> = { genin: '#9fe08a', chunin: '#c9a6ff', jounin: '#ffd24a', kage: '#ff962e' };
     const ranks = Object.entries(RANKS).map(([k, r]) => [RANK_ICON[k] ?? '{ninja}', r.name, ninjas.filter((u) => u.ninja!.rank === k).length, RANK_COLOR[k] ?? '#ccc'] as [string, string, number, string]);
     ranks.splice(3, 0, ['{scroll}', 'Sannin', ninjas.filter((u) => u.ninja!.sannin).length, '#ff7a7a']);
@@ -1474,12 +1476,12 @@ export class Panel {
     if (n.sannin) {
       const s = SANNIN_PATHS[n.sannin];
       t.sart = ready(u.sanninCd);
-      html += `<span class="badge" style="color:${s.color}" ${tipAttr(`${s.title}: ${s.art}`, `${s.desc} Recarga ${s.cooldown}s.`, true)}>{crown} ${esc(s.art)} · <b data-t="sart"></b></span>`;
+      html += `<span class="badge" style="color:${s.color}" ${tipAttr(`${s.title}: ${s.art}`, `${s.desc} Recarga ${s.cooldown}s.`, true)}>{sparkle} ${esc(s.art)} · <b data-t="sart"></b></span>`;
     }
     if (n.kageArt) {
       const k = KAGE_ARTS[n.kageArt];
       t.kart = ready(u.artCd);
-      html += `<span class="badge" style="color:${k.color}" ${tipAttr(k.name, k.desc, true)}>{crown} ${esc(k.name.replace(' no Jutsu', ''))} · <b data-t="kart"></b></span>`;
+      html += `<span class="badge" style="color:${k.color}" ${tipAttr(k.name, k.desc, true)}>{kage} ${esc(k.name.replace(' no Jutsu', ''))} · <b data-t="kart"></b></span>`;
     }
     return html + `</div>`;
   }
@@ -1496,7 +1498,7 @@ export class Panel {
       const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
       const monument = g.state.buildings.some((b) => b.type === 'monument');
       html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${pimg(kagePortrait(k))}</button>
-        <div class="k-main"><div class="k-name">${esc(k.name)}<span class="kpill">{crown} Kage atual</span></div>
+        <div class="k-main"><div class="k-name">${esc(k.name)}<span class="kpill">{kage} Kage atual</span></div>
         <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{castle} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
       if (art) {
         const pic = ART['kunai-card'] ?? ART['kunai-hiraishin'];
@@ -1513,7 +1515,7 @@ export class Panel {
       if (st.candidates.length)
         html += `<div class="kcands">${st.candidates
           .slice(0, 3)
-          .map((c) => `<button class="kcand" data-act="elect" data-arg="${c.id}" ${blocked(g, [!st.ready && st.reason])}>${this.face(c)}<span><b>${esc(c.name)}</b><small>Jounin · Nv ${c.ninja!.level}</small></span><span class="btn primary mini">{crown} Eleger</span></button>`)
+          .map((c) => `<button class="kcand" data-act="elect" data-arg="${c.id}" ${blocked(g, [!st.ready && st.reason])}>${this.face(c)}<span><b>${esc(c.name)}</b><small>Jounin · Nv ${c.ninja!.level}</small></span><span class="btn primary mini">{kage} Eleger</span></button>`)
           .join('')}</div>`;
       else html += `<p class="why">${esc(st.reason)}</p>`;
     }
@@ -1611,13 +1613,13 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     const marks: [string, string, number, number][] = [
-      ['{crown}', 'Kage eleito', s.kageHistory.length ? 1 : 0, 1],
+      ['{kage}', 'Kage eleito', s.kageHistory.length ? 1 : 0, 1],
       ['{scroll}', 'Os Três Sannin', sannins(g).length, 3],
-      ['{skull}', 'Ordem do Eclipse destruída', s.org.done ? 8 : s.org.down.length, 8],
+      ['{moon}', 'Ordem do Eclipse destruída', s.org.done ? 8 : s.org.down.length, 8],
       ['{shield}', 'Invasões repelidas', s.stats.raidsRepelled, 100],
       ['{clipboard}', 'Missões cumpridas', s.stats.missionsDone, 100],
       ['{swords}', 'Abates', s.stats.kills, 2000],
-      ['{beast}', 'Chefes derrotados', s.stats.bossesDefeated, 50],
+      ['{skull}', 'Chefes derrotados', s.stats.bossesDefeated, 50],
       ['{castle}', 'Clãs fundados', s.clans.length, 5],
     ];
     let html = `<div class="bsec"><h4>{trophy} Marcos da vila</h4><div class="vmarks">`;

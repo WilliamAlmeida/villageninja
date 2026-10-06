@@ -4,6 +4,7 @@
 // (recursos, itens, ranks) ficam no atlas pixel art. Uso: node scripts/glyphs.mjs
 import fs from 'fs';
 import path from 'path';
+import { CUSTOM } from './custom-glyphs.mjs';
 
 const ROOT = path.dirname(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')));
 const BASE = path.join(ROOT, 'node_modules', '@phosphor-icons', 'core', 'assets');
@@ -40,6 +41,8 @@ for (const [name, [weight, src]] of Object.entries(MAP)) {
   const inner = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').trim();
   out.push(`  ${/^[a-z]+$/.test(name) ? name : `'${name}'`}: '${inner.replace(/'/g, "\\'")}',`);
 }
+// desenhados à mão para o que o Phosphor não tem (chapéu do Kage, cabeça de ninja, lápide)
+for (const [name, inner] of Object.entries(CUSTOM)) out.push(`  ${name}: '${inner.replace(/'/g, "\'")}',`);
 out.push('};', '');
 fs.writeFileSync(path.join(ROOT, 'src', 'ui', 'glyphs.ts'), out.join('\n'));
-console.log(`ok src/ui/glyphs.ts (${Object.keys(MAP).length} glifos)`);
+console.log(`ok src/ui/glyphs.ts (${Object.keys(MAP).length + Object.keys(CUSTOM).length} glifos)`);
