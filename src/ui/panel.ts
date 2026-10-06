@@ -151,6 +151,7 @@ const ROSTER_SORTS: [RosterSort, string, string][] = [
 ];
 const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + b, 0);
 
+const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{dummy}', patrol: '{flag}', scout: '{eye}' };
 const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar'], ['scout', 'Explorar']];
 /** O que cada rotina faz (dica e texto abaixo dos botões). */
 const ROUTINE_TIP: Record<NinjaOrder, string> = {
@@ -285,7 +286,7 @@ export class Panel {
     else if (this.view.kind === 'crafts') built = this.craftsView();
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
-      if (tm) built = this.teamView(tm);
+      if (tm) built = this.teamsList(tm);
     } else if (this.view.kind === 'site') {
       const id = this.view.id;
       const site = g.state.sites.find((x) => x.id === id);
@@ -1134,7 +1135,8 @@ export class Panel {
     const group = TAB_GROUP[active] ?? '';
     const tabs = WINDOW_TABS[group];
     if (!tabs) return '';
-    return this.winTop(GROUP_TITLE[group] ?? '', this.groupChips(group), right, tabs.map(([k, label]) => [k, label, active === k, 'tab']));
+    const on = active === 'team' ? 'teams' : active; // a equipe aberta fica sob a aba Equipes
+    return this.winTop(GROUP_TITLE[group] ?? '', this.groupChips(group), right, tabs.map(([k, label]) => [k, label, on === k, 'tab']));
   }
 
   /** Cabeçalho + abas (usado pelas janelas com grupo e pelo quadro de missões). */
@@ -1755,34 +1757,110 @@ export class Panel {
       <span class="rm">${esc(js)} · <span data-t="st${u.id}"></span></span><span class="mini"><i data-b="hp${u.id}"></i></span></button>`;
   }
 
-  private teamsList(): Built {
+  /**
+   * Equipes: cartões (cor, sensei, retratos, poder, o que estão fazendo) e, na janela larga, a equipe escolhida ao lado.
+   * Na estreita, a equipe aberta ocupa a tela (com Voltar).
+   */
+  private teamsList(sel: Team | null = null): Built {
     const g = this.app.game;
-    let html = this.tabs('teams');
-    html += `<p class="hint">Equipes treinam e lutam juntas: membros seguem o líder, focam o mesmo alvo (+10% de dano juntos) e treinam 50% mais rápido com um sensei Chunin+.</p>`;
-    html += `<div class="roster">`;
-    for (const tm of g.state.teams) {
-      const sensei = g.unit(tm.senseiId);
-      html += `<button class="rrow" data-act="open-team" data-arg="${tm.id}" style="--c:${tm.color}">
-        <span class="rn"><span class="dot"></span>${esc(tm.name)}</span><span class="badge">${tm.memberIds.length}/${MAX_MEMBERS}</span>
-        <span class="rm">Sensei: ${sensei ? esc(sensei.name) : '—'} · ${tm.memberIds.map((id) => esc(g.unit(id)?.name.split(' ').pop() ?? '?')).join(', ') || 'sem membros'}</span></button>`;
-    }
+    const t: Record<string, string> = {};
+    const b: Record<string, number> = {};
+    const wide = window.matchMedia(WIDE_BOARD).matches;
+    let html = this.tabs(sel ? 'team' : 'teams');
+    if (sel && !wide) return { html: html + this.teamDetail(sel, t, b, true), t, b };
+    let list = `<h4>Equipes da vila</h4><div class="tcards">`;
+    for (const tm of g.state.teams) list += this.teamCard(tm, sel?.id === tm.id);
+    if (!g.state.teams.length) list += `<p class="hint">Nenhuma equipe ainda. Monte automaticamente ou crie uma vazia.</p>`;
     const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja!.rank !== 'kage' && !teamOf(g, u)).length;
-    html += `</div><div class="actions"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
+    list += `</div><div class="wtools tfoot"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
       'Montar automaticamente',
       'Completa as vagas das equipes que já existem e cria novas com quem está sem equipe, equilibrando a força e dando um sensei Chunin+ a cada uma quando houver.',
-    )}>{users} Montar equipes automaticamente${free ? ` (${free} sem equipe)` : ''}</button>
-      <button class="btn" data-act="team-new">{plus} Nova equipe vazia</button>
-      <button class="btn ${g.state.flags.autoSensei ? 'primary' : ''}" data-act="auto-sensei" ${tipAttr(
+    )}>{users} Montar equipes${free ? ` (${free} sem equipe)` : ''}</button>
+      <button class="btn" data-act="team-new">{plus} Nova equipe</button>
+      <button class="btn tog ${g.state.flags.autoSensei ? 'on' : ''}" data-act="auto-sensei" ${tipAttr(
         'Senseis automáticos',
         'Ligado: equipe sem sensei recebe um sozinha (um Chunin+ da própria equipe ou o Jounin livre mais forte).',
-      )}>{crown} Senseis automáticos: ${g.state.flags.autoSensei ? 'ligado' : 'desligado'}</button></div>`;
-    if (!g.state.teams.length) html += `<p class="hint">Nenhuma equipe ainda.</p>`;
-    return { html, t: {}, b: {} };
+      )}>{crown} Senseis automáticos<i class="sw"></i></button></div>`;
+    if (!wide) return { html: html + list, t, b };
+    const detail = sel
+      ? this.teamDetail(sel, t, b, false)
+      : `<div class="tempty">{users}<p>Escolha uma equipe para ver a formação, dar ordens e trocar membros.</p><p class="hint">Equipes treinam e lutam juntas: seguem o líder, focam o mesmo alvo (+10% de dano juntos) e treinam 50% mais rápido com um sensei Chunin+.</p></div>`;
+    return { html: html + `<div class="tboard"><div class="tlist">${list}</div><div class="tdetail">${detail}</div></div>`, t, b };
   }
 
-  /** Linha de ninja da equipe com o botão de tirar da equipe ao lado. */
-  private memberRow(u: Unit, t: Record<string, string>, b: Record<string, number>, extra = '') {
-    return `<div class="trow">${this.ninjaRow(u, t, b, extra)}<button class="btn icon" data-act="team-remove" data-arg="${u.id}" title="Tirar da equipe">{x}</button></div>`;
+  /** O que a equipe está fazendo agora (selo do cartão). */
+  private teamStatus(tm: Team): [string, string, string] {
+    const g = this.app.game;
+    const m = missionOfTeam(g, tm.id);
+    if (m) {
+      const [ph, ic, cls] = this.missionPhaseInfo(m);
+      return [ph === 'A caminho' ? 'A caminho' : 'Em missão', ic, cls === 'danger' ? 'danger' : 'good'];
+    }
+    const us = teamUnits(g, tm);
+    if (!us.length) return ['Vazia', '{users}', 'info'];
+    if (us.some((u) => u.away != null)) return ['Expedição', '{map}', 'good'];
+    if (us.some((u) => u.state === 'fight')) return ['Em combate', '{swords}', 'danger'];
+    if (us.every((u) => u.state === 'train' || u.state === 'toTrain')) return ['Treinando', '{dummy}', 'info'];
+    return ['Livre', '{shield}', 'safe'];
+  }
+
+  private teamCard(tm: Team, on: boolean) {
+    const g = this.app.game;
+    const sensei = g.unit(tm.senseiId);
+    const us = tm.memberIds.map((id) => g.unit(id)).filter((u): u is Unit => !!u);
+    const faces = [sensei, ...us].filter((u): u is Unit => !!u).map((u) => this.face(u)).join('');
+    const empty = Math.max(0, MAX_MEMBERS - us.length);
+    const [st, ic, cls] = this.teamStatus(tm);
+    return `<button class="tcard ${on ? 'on' : ''}" data-act="open-team" data-arg="${tm.id}" style="--c:${tm.color}">
+      <span class="tc-name"><span class="dot"></span>${esc(tm.name)}</span>
+      <span class="tc-sensei">{crown} Sensei: <b>${sensei ? esc(sensei.name.split(' ')[0]!) : 'sem sensei'}</b></span>
+      <span class="tc-faces faces">${faces}${'<span class="face slot">{plus}</span>'.repeat(empty)}</span>
+      <span class="tc-side"><span class="mchip">{swords} Poder ${teamPower(g, tm)}</span><span class="mpill ${cls}">${ic} ${st}</span></span></button>`;
+  }
+
+  /** Detalhe da equipe: números, formação (sensei e membros), rotina, missão, ordens, quem pode entrar e desfazer. */
+  private teamDetail(tm: Team, t: Record<string, string>, b: Record<string, number>, back: boolean) {
+    const g = this.app.game;
+    const sensei = g.unit(tm.senseiId);
+    const units = teamUnits(g, tm);
+    const [st, ic, cls] = this.teamStatus(tm);
+    let html = `<div class="td-head" style="--c:${tm.color}">${back ? `<button class="btn icon" data-act="team-back" title="Voltar">{back}</button>` : ''}<span class="dot"></span><b class="td-name">${esc(tm.name)}</b><span class="mpill ${cls}">${ic} ${st}</span></div>
+      <div class="td-chips"><span class="mchip">{users} ${tm.memberIds.length}/${MAX_MEMBERS} membros</span><span class="mchip">{swords} Poder ${teamPower(g, tm)}</span>
+      <span class="mchip" ${tipAttr('Juntos', 'Membros perto uns dos outros focam o mesmo alvo e causam +10% de dano.', true)}>{star} +10% dano junto</span>
+      ${sensei ? `<span class="mchip" ${tipAttr('Sensei', 'Com um sensei Chunin+ a equipe treina 50% mais rápido.', true)}>{up} +50% treino</span>` : ''}</div>`;
+    if (!sensei && !tm.memberIds.length)
+      html += `<div class="warnbox">Monte a equipe aqui: escolha até ${MAX_MEMBERS} membros e, se quiser, um sensei Chunin ou Jounin (treinam 50% mais rápido).</div>`;
+    // formação: o sensei em cima, os membros embaixo, cada um com retrato
+    const tile = (u: Unit | undefined, role: string) => {
+      if (!u) return `<div class="ttile empty"><span class="tt-face">{plus}</span><span class="tt-role">${role}</span></div>`;
+      const pic = unitPortrait(u, true);
+      b[`thp${u.id}`] = u.hp / u.maxHp;
+      return `<div class="ttile"><button class="tt-x" data-act="team-remove" data-arg="${u.id}" ${tipAttr('Tirar da equipe', `${u.name} sai da equipe.`)}>{x}</button>
+        <button class="tt-pick" data-act="pick" data-arg="${u.id}"><span class="tt-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</span>
+        <span class="tt-name">${esc(u.name.split(' ')[0]!)}</span><span class="tt-role ${role === 'Sensei' ? 'sensei' : ''}">${role} · Nv ${u.ninja!.level}</span>
+        <span class="nc-bar hp"><i data-b="thp${u.id}"></i></span></button></div>`;
+    };
+    html += `<div class="td-cols"><div><h4>Formação</h4><div class="tform"><div class="tf-top">${tile(sensei, 'Sensei')}</div><div class="tf-row">`;
+    for (let i = 0; i < MAX_MEMBERS; i++) html += tile(g.unit(tm.memberIds[i]), 'Membro');
+    html += `</div></div></div><div>`;
+    const mission = missionOfTeam(g, tm.id);
+    html += `<h4>Missão atual</h4><p class="td-mission">${mission
+      ? `{clipboard} ${esc(mission.title)} (rank ${MISSION_RANKS[mission.rank]!.label}) · ${this.missionPhase(mission)}`
+      : `Livre · envie pela {clipboard} Mesa de Missões.`}</p>`;
+    if (units.length) {
+      const n0 = units[0]!.ninja!;
+      html += `<h4>Rotina da equipe</h4><div class="seg troutine">`;
+      for (const [k, label] of ROUTINES)
+        html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${ROUTINE_ICON[k]} ${label}</button>`;
+      html += `</div><h4>Ordens</h4><div class="tcmds">
+        <button class="btn primary" data-act="cmd-mode" data-arg="team">{pin} Dar ordem</button>
+        <button class="btn" data-act="cmd-retreat" data-arg="team">{run} Recuar</button>
+        <button class="btn" data-act="cmd-clear" data-arg="team">{x} Cancelar</button>
+        <button class="btn" data-act="team-autoequip">{kunai} Equipar equipe</button></div>`;
+    }
+    html += `</div></div>` + this.teamCandidates(tm);
+    html += `<div class="actions"><button class="btn danger" data-act="team-disband">${this.armedDemolish ? 'Toque de novo para confirmar' : '{trash} Desfazer equipe'}</button></div>`;
+    return html;
   }
 
   /** Ninjas sem equipe que podem entrar nesta: membro (qualquer patente) ou sensei (Chunin+). */
@@ -1793,60 +1871,18 @@ export class Panel {
     if (!room && tm.senseiId != null) return '';
     let html = `<h4>Adicionar à equipe</h4>`;
     if (!free.length) return html + `<p class="hint">Todos os ninjas já estão em equipes. Recrute mais na Academia ou tire alguém de outra equipe.</p>`;
-    html += `<div class="roster">`;
+    html += `<div class="roster tcands">`;
     for (const u of free) {
       const n = u.ninja!;
       const nat = NATURES[n.nature];
       const lead = n.rank !== 'genin';
-      html += `<div class="cand"><span class="rn">${esc(u.name)}</span>
+      html += `<div class="cand">${this.face(u)}<span class="rn">${esc(u.name)}</span>
         <span class="badges"><span class="badge rank">${RANKS[n.rank].name}</span><span class="badge nat" style="--c:${nat.color}">${nat.kanji}</span><span class="badge">Nv ${n.level}</span></span>
         <span class="btnrow">${room ? `<button class="btn mini primary" data-act="team-add" data-arg="${u.id}">{plus} Membro</button>` : ''}${
           lead && tm.senseiId == null ? `<button class="btn mini" data-act="team-sensei" data-arg="${u.id}">{crown} Sensei</button>` : ''
         }</span></div>`;
     }
     return html + `</div>`;
-  }
-
-  private teamView(tm: Team): Built {
-    const g = this.app.game;
-    const t: Record<string, string> = {};
-    const b: Record<string, number> = {};
-    const sensei = g.unit(tm.senseiId);
-    const units = teamUnits(g, tm);
-    let html = `<div class="ph"><div class="row"><button class="btn icon" data-act="team-back" title="Voltar">{back}</button>
-      <div class="title teamtag" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)}</div></div></div>`;
-    if (!sensei && !tm.memberIds.length)
-      html += `<div class="warnbox">Monte a equipe aqui: escolha até ${MAX_MEMBERS} membros e, se quiser, um sensei Chunin ou Jounin (treinam 50% mais rápido).</div>`;
-    html += `<h4>Sensei</h4>`;
-    html += sensei
-      ? `<div class="roster">${this.memberRow(sensei, t, b, '{crown} ')}</div>`
-      : `<p class="hint">Sem sensei.</p>`;
-    html += `<h4>Membros (${tm.memberIds.length}/${MAX_MEMBERS})</h4><div class="roster">`;
-    for (const id of tm.memberIds) {
-      const u = g.unit(id);
-      if (u) html += this.memberRow(u, t, b);
-    }
-    html += `</div>`;
-    if (!tm.memberIds.length) html += `<p class="hint">Nenhum membro ainda.</p>`;
-    html += this.teamCandidates(tm);
-    const mission = missionOfTeam(g, tm.id);
-    html += `<h4>Missão</h4>` + (mission
-      ? `<p class="hint">{clipboard} ${esc(mission.title)} (rank ${MISSION_RANKS[mission.rank]!.label}) · ${this.missionPhase(mission)}</p>`
-      : `<p class="hint">Livre · força {swords}${teamPower(g, tm)}. Envie em uma missão pela {clipboard} Mesa de Missões.</p>`);
-    if (units.length) {
-      const n0 = units[0]!.ninja!;
-      html += `<h4>Ordens para a equipe</h4><div class="btnrow">
-        <button class="btn primary" data-act="cmd-mode" data-arg="team">{pin} Ordem</button>
-        <button class="btn" data-act="cmd-retreat" data-arg="team">{run} Recuar</button>
-        <button class="btn" data-act="cmd-clear" data-arg="team">{x} Cancelar</button>
-        <button class="btn" data-act="team-autoequip">{gear} Equipar equipe</button></div>
-        <h4>Rotina da equipe</h4><div class="seg">`;
-      for (const [k, label] of ROUTINES)
-        html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
-      html += `</div>`;
-    }
-    html += `<div class="actions"><button class="btn danger" data-act="team-disband">${this.armedDemolish ? 'Toque de novo para confirmar' : '{trash} Desfazer equipe'}</button></div>`;
-    return { html, t, b };
   }
 
   // ------------------------------------------------------------------ ações
