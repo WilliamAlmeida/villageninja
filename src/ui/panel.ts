@@ -37,12 +37,12 @@ import {
   abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
-import { unitPortrait } from '../render/sprites';
+import { artPortrait, unitPortrait } from '../render/sprites';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
-import { ORG, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
+import { ORG, ORG_LAIR, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
 import { lairGuards } from '../game/org';
 import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { nameSannin, sanninBlock, sanninCandidates, sanninOf, statCapOf } from '../game/sannin';
@@ -1354,107 +1354,144 @@ export class Panel {
     return html + `</div>`;
   }
 
-  /** Kage atual ou eleição (cerimônia). */
+  /**
+   * Aba Kage: o Kage atual (retrato, técnica do Kage) ou a eleição; a Ordem do Eclipse ao lado; os Três Sannin embaixo.
+   */
   private kageSection() {
     const g = this.app.game;
     const k = currentKage(g);
-    let html = `<h4>{crown} Kage</h4>`;
+    let html = `<div class="kgrid"><div class="bsec kcard"><h4>{crown} Kage atual</h4>`;
     if (k) {
-      html += `<p class="hint"><b>${esc(k.name)}</b> governa a vila · ninjas +10% de dano${
-        g.state.buildings.some((b) => b.type === 'monument') ? '' : ' · construa o {monument} Monte dos Kages'
-      }</p>`;
+      const pic = unitPortrait(k, true);
       const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
-      if (art) html += `<p class="hint"><b style="color:${art.color}">{crown} ${esc(art.name)}</b> — ${esc(art.desc)}</p>`;
+      const monument = g.state.buildings.some((b) => b.type === 'monument');
+      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</button><div class="k-main">
+        <div class="k-name">${esc(k.name)} <span class="rbadge r-kage">{crown} Kage</span></div>
+        <div class="td-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{monument} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
+      if (art)
+        html += `<div class="kart" style="--c:${art.color}"><b>{crown} ${esc(art.name)}</b><p>${esc(art.desc)}</p></div>`;
+      html += `<button class="btn primary" data-act="pick" data-arg="${k.id}">{eye} Ver Kage</button></div></div>`;
     } else if (g.state.ceremony) {
       html += `<p class="hint">{party} Cerimônia em andamento…</p>`;
     } else {
       const st = electionStatus(g);
       html += `<p class="hint">Um Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage (${costLabel(KAGE_COST)}). Com Kage vivo, todos os ninjas causam +10% de dano.</p>`;
       if (st.candidates.length && st.ready)
-        html += `<div class="btnrow">${st.candidates
+        html += `<div class="kcands">${st.candidates
           .slice(0, 3)
-          .map((c) => `<button class="btn primary" data-act="elect" data-arg="${c.id}">{crown} Eleger ${esc(c.name.split(' ').pop()!)} (Nv ${c.ninja!.level})</button>`)
+          .map((c) => `<button class="kcand" data-act="elect" data-arg="${c.id}">${this.face(c)}<span><b>${esc(c.name)}</b><small>Jounin · Nv ${c.ninja!.level}</small></span><span class="btn primary mini">{crown} Eleger</span></button>`)
           .join('')}</div>`;
       else html += `<p class="why">${esc(st.reason)}</p>`;
     }
     if (g.state.kageHistory.length)
-      html += `<p class="hint">Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
-    return html + this.sanninSection() + this.orgSection();
+      html += `<p class="hint">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
+    html += `</div>${this.orgSection()}</div>`;
+    return html + this.sanninSection();
   }
 
-  /** A Ordem do Eclipse: duplas que caçam a vila, quem já caiu e o covil. */
+  /** Ordem do Eclipse: quantos caíram, a próxima aparição e cada membro com o retrato e o estado. */
   private orgSection() {
     const g = this.app.game;
     const o = g.state.org;
-    let html = `<h4>{skull} ${ORG.name}</h4>`;
-    if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p>`;
-    html += `<p class="hint">Oito ninjas lendários de capa preta. ${g.state.level < ORG.minVillage ? 'Ainda não sabem da vila (começam a aparecer na Vila Oculta).' : `Atacam em duplas e caçam os seus ninjas mais fortes${o.nextDay ? `; próxima aparição por volta do dia ${o.nextDay}` : ''}.`} Quem cai não volta.</p><div class="btnrow">`;
-    for (const pair of [...ORG_PAIRS, ['tsuchigumo', 'yomi'] as const])
-      for (const id of pair) {
-        const d = ORG_MEMBERS[id];
-        const down = o.down.includes(id);
-        html += `<span class="badge ${down ? '' : 'enemy'}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}>${down ? '{check} ' : ''}${d.name}</span>`;
-      }
+    const all = [...ORG_PAIRS.flat(), ...ORG_LAIR];
+    let html = `<div class="bsec ocard"><h4>{skull} ${ORG.name}</h4><p class="hint">8 lendários · atacam em duplas · quem cai não volta</p>`;
+    if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p></div>`;
+    const known = g.state.level >= ORG.minVillage;
+    html += `<div class="o-prog"><span><b>${o.down.length}/8</b> derrotados</span><div class="nc-bar"><i style="width:${(o.down.length / 8) * 100}%;background:var(--bad)"></i></div>
+      <span class="mpill ${known ? 'danger' : 'info'}">{hourglass} ${known ? (o.nextDay ? `Próxima aparição: dia ${o.nextDay}` : 'Logo') : 'Ainda não sabem da vila'}</span></div><div class="ogrid">`;
+    const onMap = new Set(g.state.units.filter((u) => !u.dead && u.org).map((u) => u.org));
+    for (const id of all) {
+      const d = ORG_MEMBERS[id];
+      const down = o.down.includes(id);
+      const lair = ORG_LAIR.includes(id);
+      const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : lair ? ['{lock} Covil', 'lair'] : ['{alert} À solta', ''];
+      const pic = artPortrait(`org-${id}`);
+      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}><span class="om-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
+    }
     html += `</div>`;
     if (o.lairKnown) html += `<p class="hint">{map} O covil foi descoberto: Mundo → Região → Covil do Eclipse.</p>`;
-    return html;
+    return html + `</div>`;
   }
 
-  /** Os Três Sannin: um por caminho (sapo, serpente, lesma), escolhidos entre os Jounins fortes. */
+  /** Os Três Sannin: um cartão por caminho (sapo, serpente, lesma) com quem tem o título ou os candidatos. */
   private sanninSection() {
     const g = this.app.game;
-    let html = `<h4>{crown} Os Três Sannin</h4><p class="hint">Título lendário para Jounins de nível ${SANNIN.minLevel}+ (${costLabel(SANNIN.cost)} cada): atributos até ${SANNIN.statCap}, o contrato do animal (invoca mais vezes) e uma técnica lendária.</p><div class="sannin">`;
+    let html = `<div class="bsec"><h4>{scroll} Os Três Sannin <small>Jounins nv ${SANNIN.minLevel}+ · ${costLabel(SANNIN.cost)} cada</small></h4>
+      <p class="hint">Título lendário: atributos até ${SANNIN.statCap}, o contrato do animal (invoca mais vezes) e uma técnica lendária.</p><div class="sgrid">`;
     const cands = sanninCandidates(g);
+    const BEAST: Record<string, string> = { toad: 'toad', snake: 'snake', slug: 'slug' };
     for (const path of ['toad', 'snake', 'slug'] as const) {
       const d = SANNIN_PATHS[path];
       const who = sanninOf(g, path);
-      html += `<div class="wscard"><div class="wshead"><span class="wsname" style="color:${d.color}">${esc(d.title)}</span></div><p class="hint"><b>${esc(d.art)}:</b> ${esc(d.desc)}</p>`;
-      if (who) html += `<button class="rrow" data-act="pick" data-arg="${who.id}"><span class="rn">${esc(who.name)}</span><span class="badge">Nv ${who.ninja!.level}</span></button>`;
+      const beast = artPortrait(BEAST[path]!, true);
+      html += `<div class="scard" style="--c:${d.color}"><div class="sc-head"><b>${esc(d.title)}</b>${who ? '<span class="mpill safe">{shield} Nomeado</span>' : ''}</div>
+        <div class="sc-body"><span class="sc-beast">${beast ? `<img src="${beast}" alt="" draggable="false">` : ''}<small>${esc(d.art)}</small></span><div class="sc-who">`;
+      if (who) html += `<button class="kcand" data-act="pick" data-arg="${who.id}">${this.face(who)}<span><b>${esc(who.name)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
       else if (!cands.length) html += `<p class="why">${esc(sanninBlock(g, undefined, path) ?? '')}</p>`;
       else
         for (const c of cands.slice(0, 3)) {
           const why = sanninBlock(g, c, path);
-          html += `<button class="btn" data-act="sannin" data-arg="${c.id}:${path}" ${blocked(g, [why && !why.startsWith('Custa') && why], SANNIN.cost)}>{crown} ${esc(c.name.split(' ').pop()!)} (Nv ${c.ninja!.level})</button>`;
+          html += `<button class="kcand" data-act="sannin" data-arg="${c.id}:${path}" ${blocked(g, [why && !why.startsWith('Custa') && why], SANNIN.cost)}>${this.face(c)}<span><b>${esc(c.name.split(' ').pop()!)}</b><small>Nv ${c.ninja!.level}</small></span><span class="btn primary mini">Nomear</span></button>`;
         }
-      html += `</div>`;
+      html += `</div></div><p class="hint">${esc(d.desc)}</p></div>`;
     }
-    return html + `</div>`;
+    return html + `</div></div>`;
   }
 
-  /** Felicidade (com os fatores), estação, clima e festival. */
+  /** Vida da vila: população e felicidade (com os fatores), estação e clima, e o festival. */
   private lifeSection() {
     const g = this.app.game;
     const s = g.state;
     const season = SEASONS[seasonOf(s)];
     const w = WEATHERS[s.weather];
-    let html = `<div class="cols"><div><h4>{smile} Felicidade ${Math.round(s.happiness)}/100</h4><ul class="reqs">`;
-    for (const [l, v] of moodFactors(g)) html += `<li class="${v >= 0 ? 'ok' : ''}">${esc(l)} <b>${v > 0 && l !== 'Base' ? '+' : ''}${v}</b></li>`;
-    html += `</ul><p class="hint">Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.</p></div>`;
-    html += `<div><h4>${season.icon} ${season.name} · ${w.icon} ${w.name}</h4><p class="hint">${esc(season.desc)} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação.</p><p class="hint">Hoje: ${esc(w.desc)}</p>`;
+    const pop = g.population();
+    const cap = g.popCap();
+    let html = `<div class="bsec"><h4>{users} Vida da vila</h4>
+      <div class="vstat"><span>{users} População</span><b>${pop}/${cap}</b></div><div class="nc-bar hp"><i style="width:${Math.min(100, (pop / Math.max(1, cap)) * 100)}%"></i></div>
+      <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.min(100, s.happiness)}%"></i></div>
+      <div class="vfactors">`;
+    for (const [l, v] of moodFactors(g)) html += `<span class="${v >= 0 ? 'ok' : 'bad'}">${esc(l)} <b>${v > 0 && l !== 'Base' ? '+' : ''}${v}</b></span>`;
+    html += `</div><p class="hint">Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.</p></div>`;
+    html += `<div class="bsec"><h4>{sun} Estação e clima</h4><div class="vseason"><span class="vs-ic">${season.icon}</span><div><b>${season.name} · ${w.icon} ${w.name}</b>
+      <p class="hint">${esc(season.desc)} Hoje: ${esc(w.desc)}</p><p class="hint">{hourglass} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação.</p></div></div></div>`;
     const why = festivalBlock(g);
-    html += `<button class="btn primary" data-act="festival" ${blocked(g, [why], FESTIVAL.cost)}>{party} ${season.festival} (${costLabel(FESTIVAL.cost)})</button>
-      <p class="hint">${festivalOn(s) ? '{party} Festival acontecendo agora!' : `Festival: +${FESTIVAL.mood} de felicidade até o fim do dia seguinte.`}</p></div></div>`;
+    const on = festivalOn(s);
+    html += `<div class="bsec vfest"><h4>{party} ${season.festival}</h4>${on ? '<span class="mpill safe">{party} Acontecendo agora</span>' : ''}
+      <p class="hint">+${FESTIVAL.mood} de felicidade até o fim do dia seguinte.</p>
+      <button class="btn primary" data-act="festival" ${blocked(g, [why], FESTIVAL.cost)}>{party} Realizar festival <small>${costLabel(FESTIVAL.cost)}</small></button></div>`;
     return html;
   }
 
-  /** Nível da vila, benefícios e requisitos do próximo nível (marco). */
+  /**
+   * Aba Vila: cartão da vila (arte, nível, próximo marco e progresso), requisitos e benefícios lado a lado, o botão de
+   * elevar com o custo e, à direita, a vida da vila (população, felicidade e fatores), a estação e o festival.
+   */
   private villageSection() {
     const g = this.app.game;
-    const cur = levelDef(g.state.level);
-    let html = `<div class="lvlcard"><div class="lvlname">${cur.icon} ${cur.name}</div>
-      <div class="hint">Nível ${g.state.level} de ${MAX_VILLAGE_LEVEL} · território ${cur.territory} · impostos ${cur.tax}{ryo}/morador</div></div>`;
-    html += this.lifeSection();
+    const s = g.state;
+    const cur = levelDef(s.level);
     const st = nextLevelStatus(g);
-    if (!st) return html + `<p class="hint">{trophy} A vila chegou ao nível máximo!</p>`;
-    // duas colunas na janela larga: o que falta (esquerda) e o que se ganha (direita)
-    html += `<div class="cols"><div><h4>Próximo: ${st.def.icon} ${st.def.name}</h4><ul class="reqs">`;
-    for (const c of st.checks)
-      html += `<li class="${c.ok ? 'ok' : ''}">${c.ok ? '{check}' : '{todo}'} ${esc(c.label)} <b>${Math.min(c.have, c.need)}/${c.need}</b></li>`;
-    html += `</ul></div><div><h4>Benefícios</h4><ul class="reqs perks">${st.def.perks.map((p) => `<li class="ok">{star} ${esc(p)}</li>`).join('')}</ul></div></div>`;
-    html += `<div class="actions"><button class="btn primary big" data-act="upgrade" ${blocked(g, st.checks.filter((c) => !c.ok).map((c) => `{todo} ${c.label}: ${Math.min(c.have, c.need)} de ${c.need}`), st.def.cost, st.ready ? undefined : 'Faltam requisitos')}>
-      <span>{up} Elevar a ${st.def.name}</span><span class="cost">${costLabel(st.def.cost)}</span></button></div>`;
-    if (st.ready && !st.afford) html += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
-    return html;
+    const url = artUrl(s.level > 0 ? `hokage-${s.level + 1}` : 'hokage') ?? artUrl('hokage');
+    const done = st ? st.checks.filter((c) => c.ok).length : 0;
+    let left = `<div class="vhero"><span class="vh-art">${url ? `<img src="${url}" alt="" draggable="false">` : cur.icon}</span><div class="vh-main">
+      <div class="vh-name">${cur.icon} ${cur.name}</div>
+      <div class="hint">Nível ${s.level + 1} de ${MAX_VILLAGE_LEVEL + 1} · território ${cur.territory} · impostos ${cur.tax}{ryo}/morador</div>`;
+    if (st) {
+      left += `<div class="vh-next"><span>Próximo marco: <b>${st.def.icon} ${st.def.name}</b></span><span class="mchip ${st.ready ? '' : 'gold'}">${done}/${st.checks.length} requisitos</span></div>
+        <div class="nc-bar xp vh-bar"><i style="width:${(done / Math.max(1, st.checks.length)) * 100}%"></i></div>`;
+    } else left += `<div class="vh-next">{trophy} A vila chegou ao nível máximo!</div>`;
+    left += `</div></div>`;
+    if (st) {
+      left += `<div class="vcols"><div class="bsec"><h4>{todo} Requisitos para elevar</h4><ul class="vreqs">`;
+      for (const c of st.checks)
+        left += `<li class="${c.ok ? 'ok' : ''}"><span>${esc(c.label)}</span><b>${Math.min(c.have, c.need)}/${c.need}</b><span class="mpill ${c.ok ? 'safe' : 'good'}">${c.ok ? '{check} Completo' : 'Pendente'}</span></li>`;
+      left += `</ul></div><div class="bsec"><h4>{star} Benefícios</h4><ul class="vperks">${st.def.perks.map((p) => `<li>{star} ${esc(p)}</li>`).join('')}</ul></div></div>`;
+      const chips = RES_KEYS.filter((k) => st.def.cost[k]).map((k) => `<span class="mchip ${s.res[k] < st.def.cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${st.def.cost[k]}</span>`).join('');
+      left += `<div class="vup"><button class="btn primary big" data-act="upgrade" ${blocked(g, st.checks.filter((c) => !c.ok).map((c) => `{todo} ${c.label}: ${Math.min(c.have, c.need)} de ${c.need}`), st.def.cost, st.ready ? undefined : 'Faltam requisitos')}>{up} Elevar a ${st.def.name}</button><span class="vup-cost">${chips}</span></div>`;
+      if (st.ready && !st.afford) left += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
+      else if (!st.ready) left += `<p class="hint">{info} Falta: ${st.checks.filter((c) => !c.ok).map((c) => esc(c.label.toLowerCase())).join(', ')}.</p>`;
+    }
+    return `<div class="vgrid"><div>${left}</div><div>${this.lifeSection()}</div></div>`;
   }
 
   /** Exame Chunin: convocar, chaveamento ao vivo e resultado do último exame. */

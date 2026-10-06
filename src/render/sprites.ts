@@ -171,14 +171,24 @@ const portraits = new Map<string, string>();
  */
 export function unitPortrait(u: Unit, full = false): string | null {
   const pic = unitPic(u);
-  if (!pic || typeof document === 'undefined') return null;
+  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}`) : null;
+}
+
+/** Retrato de uma arte pelo nome (ex.: `org-goen`), para quem não está no mapa. */
+export function artPortrait(name: string, full = false): string | null {
+  const pic = art(name);
+  return pic ? picPortrait(pic, full) : null;
+}
+
+function picPortrait(pic: HTMLImageElement | HTMLCanvasElement, full: boolean, tint = ''): string | null {
+  if (typeof document === 'undefined') return null;
   const sheet = artFrames(pic);
   const iw = pic instanceof HTMLImageElement ? pic.naturalWidth : pic.width;
   const ih = pic instanceof HTMLImageElement ? pic.naturalHeight : pic.height;
   const fw = Math.floor(iw / sheet.frames);
   const fh = Math.floor(ih / sheet.rows);
   const row = sheet.rows > 1 ? SHEET_ROWS.front : 0;
-  const key = `${pic instanceof HTMLImageElement ? pic.src : `${pic.dataset.name}|${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}`}|${full}`;
+  const key = `${pic instanceof HTMLImageElement ? pic.src : `${pic.dataset.name}|${tint}`}|${full}`;
   const hit = portraits.get(key);
   if (hit) return hit;
   // o quadro tem sobra transparente: acha o contorno do boneco e recorta nele (inteiro ou só cabeça e ombros)
