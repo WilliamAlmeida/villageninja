@@ -57,7 +57,8 @@
             <button data-tool="pencil" class="on" title="Lápis (B)">Lápis</button>
             <button data-tool="eraser" title="Borracha (E)">Borracha</button>
             <button data-tool="picker" title="Conta-gotas (I)">Conta-gotas</button>
-            <button data-tool="move" title="Mover a camada no quadro (M); setas movem 1 px">Mover</button>
+            <button data-tool="select" title="Seleção (S): arraste um retângulo; arrastar dentro dele ou as setas movem só o selecionado. Delete apaga, Ctrl+C/Ctrl+V copia e cola, Esc tira, Ctrl+A seleciona o quadro">Seleção</button>
+            <button data-tool="move" title="Mover (M): move a seleção ou, sem seleção, a camada inteira no quadro; setas movem 1 px">Mover</button>
           </div>
           <label class="check"><input type="checkbox" id="moveRow" /> mover a vista toda (4 quadros)</label>
           <span class="grow"></span>
@@ -73,7 +74,7 @@
         </div>
         <div class="stage" id="stageWrap"><canvas id="stage"></canvas></div>
         <div class="palette" id="palette"></div>
-        <p class="hint">Roda do mouse: zoom · botão do meio/espaço+arrastar: rolar · 1/2/3: vista · ,/.: quadro anterior/próximo · Alt+clique: conta-gotas</p>
+        <p class="hint">Roda do mouse: zoom · botão do meio/espaço+arrastar: rolar · 1/2/3: vista · ,/.: quadro anterior/próximo · Alt+clique: conta-gotas · S: seleção (arraste dentro dela para mover, Delete apaga, Ctrl+C/V copia e cola, Esc tira)</p>
       </section>
 
       <aside class="side" id="right">

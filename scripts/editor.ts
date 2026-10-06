@@ -22,7 +22,7 @@ const edits = (): string[] => (existsSync(EDITS) ? JSON.parse(readFileSync(EDITS
 Bun.serve({
   port,
   hostname: '127.0.0.1',
-  development: { hmr: true, console: true },
+  development: { hmr: false, console: true }, // HMR do Bun quebra com o await no topo do editor.ts; recarregue a página
   routes: {
     '/': page,
     '/api/art': () =>

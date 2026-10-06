@@ -4,7 +4,8 @@
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
-type Tool = 'pencil' | 'eraser' | 'picker' | 'move';
+type Tool = 'pencil' | 'eraser' | 'picker' | 'select' | 'move';
+type Rect = { x: number; y: number; w: number; h: number };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const layers = new Map<string, Layer>();
@@ -42,6 +43,9 @@ let color = '#ff00ff';
 let zoom = 10;
 let pan = { x: 0, y: 0 };
 let anim: 'walk' | 'idle' = 'walk';
+/** Retângulo selecionado no quadro (coordenadas do quadro); Mover/setas mexem só nele. */
+let sel: Rect | null = null;
+let clip: ImageData | null = null;
 const recent: string[] = [];
 const undoStack: { name: string; data: ImageData }[] = [];
 const redoStack: { name: string; data: ImageData }[] = [];
@@ -173,6 +177,22 @@ function drawStage() {
   }
   sctx.strokeStyle = '#ff9a3c';
   sctx.strokeRect(ox - 0.5, oy - 0.5, fw * zoom + 1, fh * zoom + 1);
+  if (sel) {
+    // seleção: tracejado claro e escuro (fácil de ver em qualquer cor)
+    const r = [ox + sel.x * zoom, oy + sel.y * zoom, sel.w * zoom, sel.h * zoom] as const;
+    sctx.fillStyle = 'rgba(120,190,255,0.12)';
+    sctx.fillRect(...r);
+    sctx.lineWidth = 2;
+    sctx.setLineDash([5, 5]);
+    sctx.strokeStyle = '#000';
+    sctx.lineDashOffset = 0;
+    sctx.strokeRect(...r);
+    sctx.strokeStyle = '#fff';
+    sctx.lineDashOffset = 5;
+    sctx.strokeRect(...r);
+    sctx.setLineDash([]);
+    sctx.lineDashOffset = 0;
+  }
   if (mode === 'doll') {
     // altura do corpo (o que o jogo considera os 56 px do boneco) e a linha dos pés
     const body = Math.round(fh / DOLL_FRAME_PAD);
@@ -260,36 +280,59 @@ function pick(x: number, y: number) {
   }
 }
 
-// mover: a camada ativa no quadro atual (ou nos 4 quadros da vista), recortada no quadro
-let moveSnap: { cells: number[]; snaps: HTMLCanvasElement[] } | null = null;
+// mover: a camada ativa no quadro atual (ou nos 4 quadros da vista), recortada no quadro; com seleção, só o retângulo
+let moveSnap: { cells: number[]; rect: Rect; base: HTMLCanvasElement[]; piece: HTMLCanvasElement[] } | null = null;
 function moveStart(l: Layer) {
   const { fw, fh, cols } = grid();
   const cells = $<HTMLInputElement>('moveRow').checked ? [...Array(cols).keys()] : [col];
-  const snaps = cells.map((c) => {
-    const t = document.createElement('canvas');
-    t.width = fw;
-    t.height = fh;
-    t.getContext('2d')!.drawImage(l.canvas, c * fw, row * fh, fw, fh, 0, 0, fw, fh);
-    return t;
-  });
-  moveSnap = { cells, snaps };
+  const rect = sel ?? { x: 0, y: 0, w: fw, h: fh };
+  const base: HTMLCanvasElement[] = [];
+  const piece: HTMLCanvasElement[] = [];
+  for (const c of cells) {
+    const b = document.createElement('canvas');
+    b.width = fw;
+    b.height = fh;
+    const bx = b.getContext('2d')!;
+    bx.drawImage(l.canvas, c * fw, row * fh, fw, fh, 0, 0, fw, fh);
+    const p = document.createElement('canvas');
+    p.width = rect.w;
+    p.height = rect.h;
+    p.getContext('2d')!.drawImage(b, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+    bx.clearRect(rect.x, rect.y, rect.w, rect.h); // o que fica para trás: o quadro sem o pedaço
+    base.push(b);
+    piece.push(p);
+  }
+  moveSnap = { cells, rect, base, piece };
 }
 function moveApply(l: Layer, dx: number, dy: number) {
   if (!moveSnap) return;
   const { fw, fh } = grid();
+  const { rect } = moveSnap;
   moveSnap.cells.forEach((c, i) => {
     l.ctx.save();
     l.ctx.beginPath();
     l.ctx.rect(c * fw, row * fh, fw, fh);
     l.ctx.clip();
     l.ctx.clearRect(c * fw, row * fh, fw, fh);
-    l.ctx.drawImage(moveSnap!.snaps[i]!, c * fw + dx, row * fh + dy);
+    l.ctx.drawImage(moveSnap!.base[i]!, c * fw, row * fh);
+    l.ctx.drawImage(moveSnap!.piece[i]!, c * fw + rect.x + dx, row * fh + rect.y + dy);
     l.ctx.restore();
   });
+  if (sel) sel = { ...rect, x: rect.x + dx, y: rect.y + dy };
   touched(l);
 }
 
-let drag: { kind: 'paint' | 'move' | 'pan'; last: { x: number; y: number }; start: { x: number; y: number }; client: { x: number; y: number } } | null = null;
+const inSel = (p: { x: number; y: number }) => !!sel && p.x >= sel.x && p.y >= sel.y && p.x < sel.x + sel.w && p.y < sel.y + sel.h;
+function rectOf(a: { x: number; y: number }, b: { x: number; y: number }): Rect {
+  const { fw, fh } = grid();
+  const x0 = Math.max(0, Math.min(a.x, b.x));
+  const y0 = Math.max(0, Math.min(a.y, b.y));
+  const x1 = Math.min(fw - 1, Math.max(a.x, b.x));
+  const y1 = Math.min(fh - 1, Math.max(a.y, b.y));
+  return { x: x0, y: y0, w: Math.max(1, x1 - x0 + 1), h: Math.max(1, y1 - y0 + 1) };
+}
+
+let drag: { kind: 'paint' | 'move' | 'pan' | 'select'; last: { x: number; y: number }; start: { x: number; y: number }; client: { x: number; y: number } } | null = null;
 let spaceDown = false;
 
 stage.addEventListener('pointerdown', (e) => {
@@ -305,8 +348,14 @@ stage.addEventListener('pointerdown', (e) => {
     pick(p.x, p.y);
     return;
   }
+  if (tool === 'select' && !inSel(p)) {
+    drag = { kind: 'select', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
+    sel = rectOf(p, p);
+    redraw();
+    return;
+  }
   pushUndo(l);
-  if (tool === 'move') {
+  if (tool === 'move' || tool === 'select') {
     moveStart(l);
     drag = { kind: 'move', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     return;
@@ -328,6 +377,11 @@ stage.addEventListener('pointermove', (e) => {
   }
   const l = activeLayer();
   if (!l) return;
+  if (drag.kind === 'select') {
+    sel = rectOf(drag.start, p);
+    redraw();
+    return;
+  }
   if (drag.kind === 'move') {
     moveApply(l, p.x - drag.start.x, p.y - drag.start.y);
     return;
@@ -540,7 +594,7 @@ function setColor(c: string) {
 function setTool(t: Tool) {
   tool = t;
   for (const b of $('tools').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tool === t);
-  stage.style.cursor = t === 'move' ? 'move' : t === 'picker' ? 'copy' : 'crosshair';
+  stage.style.cursor = t === 'move' ? 'move' : t === 'picker' ? 'copy' : t === 'select' ? 'cell' : 'crosshair';
 }
 
 function renderFrames() {
@@ -681,6 +735,47 @@ window.addEventListener('keydown', (e) => {
   if (e.ctrlKey && k === 's') {
     e.preventDefault();
     void save();
+  } else if (e.ctrlKey && k === 'a') {
+    e.preventDefault();
+    const { fw, fh } = grid();
+    sel = { x: 0, y: 0, w: fw, h: fh };
+    setTool('select');
+    redraw();
+  } else if (e.ctrlKey && k === 'c' && sel) {
+    const l = activeLayer();
+    const { fw, fh } = grid();
+    if (l) clip = l.ctx.getImageData(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
+    setStatus('Seleção copiada (Ctrl+V cola no quadro atual)');
+  } else if (e.ctrlKey && k === 'v' && clip) {
+    // cola no mesmo lugar do quadro atual (ou onde está a seleção) e já deixa selecionado para mover
+    const l = activeLayer();
+    const { fw, fh } = grid();
+    if (!l) return;
+    pushUndo(l);
+    const at = sel ?? { x: 0, y: 0 };
+    const t = document.createElement('canvas');
+    t.width = clip.width;
+    t.height = clip.height;
+    t.getContext('2d')!.putImageData(clip, 0, 0);
+    l.ctx.save();
+    l.ctx.beginPath();
+    l.ctx.rect(col * fw, row * fh, fw, fh);
+    l.ctx.clip();
+    l.ctx.drawImage(t, col * fw + at.x, row * fh + at.y);
+    l.ctx.restore();
+    sel = { x: at.x, y: at.y, w: clip.width, h: clip.height };
+    setTool('select');
+    touched(l);
+  } else if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
+    const l = activeLayer();
+    const { fw, fh } = grid();
+    if (!l) return;
+    pushUndo(l);
+    l.ctx.clearRect(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
+    touched(l);
+  } else if (e.key === 'Escape') {
+    sel = null;
+    redraw();
   } else if (e.ctrlKey && k === 'z') {
     e.preventDefault();
     undo(undoStack, redoStack);
@@ -691,6 +786,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'e') setTool('eraser');
   else if (k === 'i') setTool('picker');
   else if (k === 'm') setTool('move');
+  else if (k === 's' && !e.ctrlKey) setTool('select');
   else if (k === ' ') {
     spaceDown = true;
     e.preventDefault();
@@ -703,7 +799,7 @@ window.addEventListener('keydown', (e) => {
     col = (col + (k === '.' ? 1 : cols - 1)) % cols;
     renderFrames();
     redraw();
-  } else if (e.key.startsWith('Arrow') && tool === 'move') {
+  } else if (e.key.startsWith('Arrow') && (tool === 'move' || tool === 'select')) {
     e.preventDefault();
     nudge(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0, e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0);
   }
