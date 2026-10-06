@@ -66,7 +66,12 @@ import hairBald from '../art/ninja-hair-bald.png';
 // ninja em camadas (scripts/prepare-layers.py): corpo-base com folga no quadro + peças em cor-chave
 import ninjaBody from '../art/ninja-body.png';
 import layerOutfitGenin from '../art/layer-outfit-genin.png';
-import layerOutfitGeninTop from '../art/layer-outfit-genin-top.png';
+import layerHeadband from '../art/layer-headband.png';
+import layerVestJounin from '../art/layer-vest-jounin.png';
+import layerCoatSannin from '../art/layer-coat-sannin.png';
+import layerCloakKage from '../art/layer-cloak-kage.png';
+import layerHatKage from '../art/layer-hat-kage.png';
+import layerSwordZabuza from '../art/layer-sword-zabuza.png';
 import layerVestChunin from '../art/layer-vest-chunin.png';
 import layerHairSpiky from '../art/layer-hair-spiky.png';
 // bustos pintados (retratos da interface), nas mesmas cores-chave das bases: recoloridos por ninja com tintedArt
@@ -126,7 +131,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
   'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
-  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, 'ninja-body': ninjaBody, 'layer-outfit-genin': layerOutfitGenin, 'layer-outfit-genin-top': layerOutfitGeninTop, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
+  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, 'ninja-body': ninjaBody, 'layer-outfit-genin': layerOutfitGenin, 'layer-headband': layerHeadband, 'layer-vest-jounin': layerVestJounin, 'layer-coat-sannin': layerCoatSannin, 'layer-cloak-kage': layerCloakKage, 'layer-hat-kage': layerHatKage, 'layer-sword-zabuza': layerSwordZabuza, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
   // Ordem do Eclipse
   'org-goen': orgGoen, 'org-tetsuo': orgTetsuo, 'org-mizuchi': orgMizuchi, 'org-raiga': orgRaiga, 'org-kagero': orgKagero, 'org-shiryo': orgShiryo, 'org-tsuchigumo': orgTsuchigumo, 'org-yomi': orgYomi };
 
@@ -281,21 +286,22 @@ export function tintedArt(name: string, colors: { hair: string; cloth: string; s
 }
 
 // ------------------------------------------------------------------ ninja em camadas
-/** Uma peça da montagem: a arte (`ninja-body` ou `layer-*`) e a cor que substitui a cor-chave dela. */
+/** Uma peça da montagem: a arte (`ninja-body` ou `layer-*`), a cor da chave principal e a da segunda chave (amarelo). */
 export interface DollPart {
   name: string;
   color?: string;
+  color2?: string;
 }
 const dolls = new Map<string, HTMLCanvasElement>();
 const METAL: [number, number, number] = [150, 158, 172];
 
 /**
  * Monta o ninja desenhando as peças uma por cima da outra, cada uma recolorida: no corpo só a pele; nas peças o
- * magenta (roupa) e o verde (cabelo) viram a cor da peça e o ciano vira metal. Mantém o sombreado (brilho relativo).
+ * magenta (roupa) e o verde (cabelo) viram a cor da peça, o amarelo a segunda cor e o ciano vira metal. Mantém o sombreado (brilho relativo).
  * Fica em cache por combinação. Sem o corpo carregado, null (o jogo usa a folha antiga).
  */
 export function dollArt(parts: DollPart[], skin: string): HTMLCanvasElement | null {
-  const key = `${parts.map((p) => `${p.name}:${p.color ?? ''}`).join('+')}|${skin}`;
+  const key = `${parts.map((p) => `${p.name}:${p.color ?? ''}:${p.color2 ?? ''}`).join('+')}|${skin}`;
   const hit = dolls.get(key);
   if (hit) return hit;
   const body = art(parts[0]!.name);
@@ -318,6 +324,7 @@ export function dollArt(parts: DollPart[], skin: string): HTMLCanvasElement | nu
     const data = tx.getImageData(0, 0, tmp.width, tmp.height);
     const px = data.data;
     const col = p.color ? hex(p.color) : null;
+    const col2 = p.color2 ? hex(p.color2) : col;
     for (let j = 0; j < px.length; j += 4) {
       if (px[j + 3]! < 10) continue;
       const { h, s, v } = hsv(px[j]!, px[j + 1]!, px[j + 2]!);
@@ -328,6 +335,7 @@ export function dollArt(parts: DollPart[], skin: string): HTMLCanvasElement | nu
       } else if (s > 0.35) {
         if (col && ((h >= 280 && h <= 330) || (h >= 85 && h <= 165))) [to, mid] = [col, h < 200 ? 0.8 : 1];
         else if (h >= 170 && h <= 200) to = METAL;
+        else if (col2 && h >= 48 && h <= 72 && s > 0.5) to = col2;
       }
       if (!to) continue;
       const k = v / mid;

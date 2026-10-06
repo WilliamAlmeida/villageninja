@@ -165,20 +165,35 @@ function unitPic(u: Unit) {
   return (doll && dollArt(doll, u.look.skin)) ?? tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
 }
 
-/** Penteados que já existem como camada (os outros seguem na folha antiga até ganharem a sua). */
+/** Penteados que já existem como camada (os outros seguem na folha antiga até ganharem a sua; o Kage, de chapéu, não). */
 const DOLL_HAIR: Partial<Record<string, string>> = { spiky: 'layer-hair-spiky', bald: '' };
-/** Cor do colete por patente (Chunin verde-oliva; Jounin e acima, cinza-escuro). */
-const VEST_COLOR: Partial<Record<string, string>> = { chunin: '#5f6b3a', jounin: '#3f454e', kage: '#3f454e' };
+/** Colete por patente: arte e cor. */
+const VESTS: Partial<Record<string, [string, string]>> = { chunin: ['layer-vest-chunin', '#5f6b3a'], jounin: ['layer-vest-jounin', '#4e5a3a'] };
+/** Sobretudo de cada caminho dos Sannin (cor do casaco, cor do debrum e do emblema). */
+const SANNIN_COAT: Record<string, [string, string]> = { toad: ['#8c2a22', '#d4a03a'], snake: ['#4a3a6a', '#c9b06a'], slug: ['#3f6a46', '#d4a03a'] };
 
-/** Peças do ninja em camadas: corpo → roupa → colete da patente → cabelo → o que a roupa tem na cabeça (bandana). */
+/**
+ * Peças do ninja em camadas, de baixo para cima: corpo → roupa → colete da patente / sobretudo de Sannin / manto de
+ * Kage → espada nas costas (Jounin e Sannin de água, à moda do Zabuza) → cabelo → bandana; o Kage usa o chapéu no lugar
+ * de cabelo e bandana (base careca). Penteado ainda sem camada: null (folha antiga).
+ */
 function dollParts(u: Unit, style: string): DollPart[] | null {
+  const n = u.ninja;
+  const kage = n?.rank === 'kage';
   const hair = DOLL_HAIR[style];
-  if (hair === undefined || !u.look) return null;
-  const vest = u.ninja?.sannin ? VEST_COLOR.jounin : u.ninja ? VEST_COLOR[u.ninja.rank] : undefined;
+  if (!u.look || (hair === undefined && !kage)) return null;
   const parts: DollPart[] = [{ name: 'ninja-body' }, { name: 'layer-outfit-genin', color: u.look.cloth }];
-  if (vest) parts.push({ name: 'layer-vest-chunin', color: vest });
+  const vest = n && VESTS[n.rank];
+  if (kage) parts.push({ name: 'layer-cloak-kage', color: '#f0ece0', color2: '#c8352a' });
+  else if (n?.sannin) parts.push({ name: 'layer-coat-sannin', color: SANNIN_COAT[n.sannin]![0], color2: SANNIN_COAT[n.sannin]![1] });
+  else if (vest) parts.push({ name: vest[0], color: vest[1] });
+  if (n && n.nature === 'suiton' && (n.rank === 'jounin' || n.sannin)) parts.push({ name: 'layer-sword-zabuza', color: '#3a2a20' });
+  if (kage) {
+    parts.push({ name: 'layer-hat-kage', color: '#f0ece0', color2: '#c8352a' });
+    return parts;
+  }
   if (hair) parts.push({ name: hair, color: u.look.hair });
-  parts.push({ name: 'layer-outfit-genin-top', color: u.look.cloth });
+  parts.push({ name: 'layer-headband', color: u.look.cloth });
   return parts;
 }
 
