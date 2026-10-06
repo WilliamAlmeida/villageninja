@@ -50,7 +50,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011 (`bun run editor` ou PM2
   `villageninja-editor`; `scripts/editor.ts` + `tools/sprite-editor/`). Só escuta em 127.0.0.1, fora do túnel. Monta o
   ninja por patente/penteado/cores igual ao jogo, mostra a animação (lado nos dois sentidos, frente, costas), o tamanho
-  real no jogo e a folha inteira; edita pixel (lápis, borracha, conta-gotas, cores-chave), seleciona um retângulo (S)
+  real no jogo e a folha inteira; edita pixel (lápis, borracha, linha com Shift reta, balde, conta-gotas, cores-chave; botão direito ou
+  "apagar"/X fazem lápis, linha e balde apagarem), seleciona um retângulo (S)
   e move só ele (arrastar dentro / setas = 1 px; Delete apaga, Ctrl+C/V copia e cola) ou, sem seleção, a camada
   inteira num quadro ou na vista toda; com desfazer. Modo "Arquivo" abre qualquer PNG de src/art. Salvar grava em src/art
   (cópia do anterior em docs/arte/backup-editor/); camada editada à mão entra em `src/art/layer-edits.json` e o

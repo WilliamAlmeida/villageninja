@@ -4,7 +4,7 @@
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
-type Tool = 'pencil' | 'eraser' | 'picker' | 'select' | 'move';
+type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move';
 type Rect = { x: number; y: number; w: number; h: number };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -280,6 +280,47 @@ function pick(x: number, y: number) {
   }
 }
 
+/** Balde: a área contínua (4 vizinhos) da mesma cor do pixel clicado, só dentro do quadro, vira a cor (ou some). */
+function flood(l: Layer, x: number, y: number, erase: boolean) {
+  const { fw, fh } = grid();
+  if (x < 0 || y < 0 || x >= fw || y >= fh) return;
+  const img = l.ctx.getImageData(col * fw, row * fh, fw, fh);
+  const d = img.data;
+  const at = (i: number) => (d[i + 3]! < 10 ? 0 : ((d[i]! << 24) | (d[i + 1]! << 16) | (d[i + 2]! << 8) | 255) >>> 0);
+  const target = at((y * fw + x) * 4);
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16)) as [number, number, number];
+  const paint = erase ? 0 : (((r << 24) | (g << 16) | (b << 8) | 255) >>> 0);
+  if (target === paint) return;
+  const stack = [x, y];
+  const seen = new Uint8Array(fw * fh);
+  while (stack.length) {
+    const py = stack.pop()!;
+    const px = stack.pop()!;
+    if (px < 0 || py < 0 || px >= fw || py >= fh) continue;
+    const k = py * fw + px;
+    if (seen[k] || at(k * 4) !== target) continue;
+    seen[k] = 1;
+    const i = k * 4;
+    if (erase) d[i] = d[i + 1] = d[i + 2] = d[i + 3] = 0;
+    else [d[i], d[i + 1], d[i + 2], d[i + 3]] = [r, g, b, 255];
+    stack.push(px + 1, py, px - 1, py, px, py + 1, px, py - 1);
+  }
+  l.ctx.putImageData(img, col * fw, row * fh);
+}
+
+/** Linha com Shift: presa na horizontal, vertical ou 45°. */
+function snapLine(a: { x: number; y: number }, b: { x: number; y: number }, on: boolean) {
+  if (!on) return b;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if (Math.abs(dx) > Math.abs(dy) * 2) return { x: b.x, y: a.y };
+  if (Math.abs(dy) > Math.abs(dx) * 2) return { x: a.x, y: b.y };
+  const m = Math.max(Math.abs(dx), Math.abs(dy));
+  return { x: a.x + Math.sign(dx) * m, y: a.y + Math.sign(dy) * m };
+}
+let lineBase: ImageData | null = null;
+const erasing = (e: PointerEvent | MouseEvent) => tool === 'eraser' || e.button === 2 || (e.buttons & 2) !== 0 || $<HTMLInputElement>('eraseMode').checked;
+
 // mover: a camada ativa no quadro atual (ou nos 4 quadros da vista), recortada no quadro; com seleção, só o retângulo
 let moveSnap: { cells: number[]; rect: Rect; base: HTMLCanvasElement[]; piece: HTMLCanvasElement[] } | null = null;
 function moveStart(l: Layer) {
@@ -332,7 +373,7 @@ function rectOf(a: { x: number; y: number }, b: { x: number; y: number }): Rect 
   return { x: x0, y: y0, w: Math.max(1, x1 - x0 + 1), h: Math.max(1, y1 - y0 + 1) };
 }
 
-let drag: { kind: 'paint' | 'move' | 'pan' | 'select'; last: { x: number; y: number }; start: { x: number; y: number }; client: { x: number; y: number } } | null = null;
+let drag: { kind: 'paint' | 'move' | 'pan' | 'select' | 'line'; last: { x: number; y: number }; start: { x: number; y: number }; client: { x: number; y: number } } | null = null;
 let spaceDown = false;
 
 stage.addEventListener('pointerdown', (e) => {
@@ -360,8 +401,21 @@ stage.addEventListener('pointerdown', (e) => {
     drag = { kind: 'move', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     return;
   }
-  setPixel(l, p.x, p.y, tool === 'eraser' || e.button === 2);
-  if (tool === 'pencil' && e.button !== 2) remember(color);
+  if (tool === 'fill') {
+    flood(l, p.x, p.y, erasing(e));
+    if (!erasing(e)) remember(color);
+    touched(l);
+    return;
+  }
+  if (tool === 'line') {
+    lineBase = l.ctx.getImageData(0, 0, l.canvas.width, l.canvas.height);
+    setPixel(l, p.x, p.y, erasing(e));
+    touched(l);
+    drag = { kind: 'line', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
+    return;
+  }
+  setPixel(l, p.x, p.y, erasing(e));
+  if (tool === 'pencil' && !erasing(e)) remember(color);
   touched(l);
   drag = { kind: 'paint', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
 });
@@ -386,12 +440,21 @@ stage.addEventListener('pointermove', (e) => {
     moveApply(l, p.x - drag.start.x, p.y - drag.start.y);
     return;
   }
-  line(l, drag.last, p, tool === 'eraser' || (e.buttons & 2) !== 0);
+  if (drag.kind === 'line' && lineBase) {
+    // prévia: volta ao que era antes da linha e desenha até o ponteiro
+    l.ctx.putImageData(lineBase, 0, 0);
+    line(l, drag.start, snapLine(drag.start, p, e.shiftKey), erasing(e));
+    if (!erasing(e)) remember(color);
+    touched(l);
+    return;
+  }
+  line(l, drag.last, p, erasing(e));
   drag.last = p;
   touched(l);
 });
 const endDrag = () => {
   drag = null;
+  lineBase = null;
   moveSnap = null;
 };
 stage.addEventListener('pointerup', endDrag);
@@ -784,6 +847,12 @@ window.addEventListener('keydown', (e) => {
     undo(redoStack, undoStack);
   } else if (k === 'b') setTool('pencil');
   else if (k === 'e') setTool('eraser');
+  else if (k === 'l') setTool('line');
+  else if (k === 'g') setTool('fill');
+  else if (k === 'x') {
+    const c = $<HTMLInputElement>('eraseMode');
+    c.checked = !c.checked;
+  }
   else if (k === 'i') setTool('picker');
   else if (k === 'm') setTool('move');
   else if (k === 's' && !e.ctrlKey) setTool('select');
