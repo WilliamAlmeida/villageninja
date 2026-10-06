@@ -5,7 +5,7 @@ import { applyDamage, killUnit } from '../src/game/combat';
 import { refreshDerived } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
-import { createOrgMember, orgOnMap, orgTick } from '../src/game/org';
+import { createOrgMember, orgOnMap, orgTick, prepareDefense } from '../src/game/org';
 import { actionBlock, startRegion } from '../src/game/region';
 import { migrate } from '../src/game/save';
 import { sceneGame } from '../src/game/scene';
@@ -78,6 +78,16 @@ describe('Ordem do Eclipse', () => {
     run(g, 60, () => e.status === 'done' || e.status === 'lost');
     expect(g.state.org.done).toBe(true);
     expect(e.loot.darksteel).toBeGreaterThan(0);
+  });
+
+  test('Preparar defesa: ninjas livres patrulham e os novatos ficam protegidos', () => {
+    const g = createNewGame(SYSTEMS, 1005);
+    g.state.flags.shelterRookies = false;
+    const r = prepareDefense(g);
+    expect(r.ok).toBe(true);
+    const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
+    expect(ninjas.every((u) => u.ninja!.order === 'patrol')).toBe(true);
+    expect(g.state.flags.shelterRookies).toBe(true);
   });
 
   test('migra saves da versão 19 (Ordem do Eclipse)', () => {

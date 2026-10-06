@@ -78,6 +78,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   fatia — gasta 1/16 da cota. **Bustos dos ninjas** (`src/art/bust-<penteado>.png`, cores-chave como as bases dos
   sprites): `unitPortrait(u)` recolore com `tintedArt`; `unitPortrait(u, true)` dá o corpo inteiro do sprite. Bustos da
   Ordem (`org-<id>`), emblemas (`eclipse`, `path-*`) e o fundo do retrato do Kage (`kage-bg`): `scripts/ui-busts.sh`.
+  **Regra de ícones (como no mockup)**: interface = SVG liso do Phosphor com cor por tipo (`.ic-<nome>` no CSS) —
+  títulos, abas, etiquetas, botões, selos; pixel art só para recursos, itens, retratos, bustos, animais, cenas e selos
+  de rank. **Cabeçalho das janelas** numa linha (`winTop`): título · abas em botões (`.wtabs`) · etiquetas e ações à
+  direita (`.wright`; no celular as etiquetas somem). Abas que preenchem a janela sem sobra: `.kfill` (Kage) e `.vfill`
+  (Vila, Estatísticas) — o corpo da janela vira coluna flex e os painéis esticam. Retrato do Kage: `kagePortrait`
+  (bustos `kage-bust-<penteado>` com chapéu e manto, recoloridos). "Preparar defesa": `prepareDefense` (org.ts).
   **Glifos de interface** (fechar, voltar, menu, relógio, cadeado, engrenagem, casa, gráfico…) vêm do Phosphor Icons
   (MIT, só devDependency): `node scripts/glyphs.mjs` grava os caminhos em `src/ui/glyphs.ts`; `ico()` usa glifo →
   atlas pixel art → SVG de traço antigo. Retratos são blob URLs com cache (`canvasUrl` em sprites.ts; nada de data URL

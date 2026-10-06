@@ -195,6 +195,16 @@ export function unitPortrait(u: Unit, full = false): string | null {
   return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}`) : null;
 }
 
+/** Retrato do Kage: o busto do penteado dele com o chapéu e o manto de Kage, recolorido; sem a arte, o busto comum. */
+export function kagePortrait(u: Unit): string | null {
+  if (u.look && typeof document !== 'undefined') {
+    const style = NINJA_HAIRSTYLES[u.id % NINJA_HAIRSTYLES.length];
+    const bust = tintedArt(`kage-bust-${style}`, u.look);
+    if (bust) return canvasUrl(`kage|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}`, bust);
+  }
+  return unitPortrait(u);
+}
+
 /** Retrato de uma arte pelo nome (ex.: `org-goen`), para quem não está no mapa. */
 export function artPortrait(name: string, full = false): string | null {
   const pic = art(name);

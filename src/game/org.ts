@@ -198,5 +198,30 @@ export function orgMemberDown(g: Game, u: Unit) {
   }
 }
 
+/**
+ * Preparar defesa (botão da Ordem na aba Kage): ninjas livres na vila (fora de missão, expedição e mapa de missão)
+ * passam a patrulhar e os novatos se abrigam de inimigos fortes demais. Devolve quantos foram chamados.
+ */
+export function prepareDefense(g: Game): { ok: true; count: number } | { ok: false; error: string } {
+  const onMission = new Set(g.state.missions.filter((m) => m.status === 'active').map((m) => m.teamId));
+  let count = 0;
+  for (const u of g.state.units) {
+    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || u.away != null || !u.ninja) continue;
+    const team = g.state.teams.find((t) => t.memberIds.includes(u.id) || t.senseiId === u.id);
+    if (team && onMission.has(team.id)) continue;
+    u.ninja.order = 'patrol';
+    if (u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn' && u.state !== 'rest') {
+      u.state = 'idle';
+      u.timer = 0;
+      u.hidden = false;
+    }
+    count++;
+  }
+  if (!count) return { ok: false, error: 'Nenhum ninja livre na vila para patrulhar.' };
+  g.state.flags.shelterRookies = true;
+  g.toast(`{shield} Defesa preparada: ${count} ninja(s) patrulhando e novatos protegidos.`, 'good');
+  return { ok: true, count };
+}
+
 /** Membros que guardam o covil (os que ainda estão de pé). */
 export const lairGuards = (s: GameState) => ORG_LAIR.filter((id) => !s.org.down.includes(id));

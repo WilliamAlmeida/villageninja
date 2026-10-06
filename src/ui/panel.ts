@@ -37,14 +37,14 @@ import {
   abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
-import { artPortrait, unitPortrait } from '../render/sprites';
+import { artPortrait, kagePortrait, unitPortrait } from '../render/sprites';
 import { ART, CARDS, ICONS } from './pxicons';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
 import { ORG, ORG_LAIR, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
-import { lairGuards, nextPair } from '../game/org';
+import { lairGuards, nextPair, prepareDefense } from '../game/org';
 import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { nameSannin, sanninBlock, sanninCandidates, sanninOf, sannins, statCapOf } from '../game/sannin';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
@@ -142,6 +142,30 @@ const pimg = (url: string | null | undefined, cls = '') =>
   url
     ? `<img class="${cls} pim" src="${url}" alt="" draggable="false" decoding="async" loading="lazy" onload="this.classList.add('ok')">`
     : `<span class="${cls} skel"></span>`;
+/** Ícone de um requisito de nível da vila (prédio pelo nome; senão pelo assunto). */
+function reqIcon(label: string): string {
+  const b = Object.values(BUILDINGS).find((d) => d.name === label);
+  if (b) return b.icon;
+  const l = label.toLowerCase();
+  if (l.includes('popula')) return '{users}';
+  if (l.includes('ninja')) return '{ninja}';
+  if (l.includes('chunin') || l.includes('jounin')) return '{medal}';
+  if (l.includes('invas')) return '{shield}';
+  if (l.includes('miss')) return '{clipboard}';
+  if (l.includes('clã')) return '{castle}';
+  if (l.includes('kage')) return '{crown}';
+  return '{todo}';
+}
+/** Ilustração de um benefício de nível da vila, pelo assunto do texto. */
+function perkArt(perk: string): string {
+  const l = perk.toLowerCase();
+  if (l.includes('territ')) return 'perk-territory';
+  if (l.includes('clã') || l.includes('clan') || l.includes('kekkei')) return 'perk-clans';
+  if (l.includes('kage')) return 'perk-kage';
+  if (l.includes('imposto') || l.includes('ryo')) return 'perk-taxes';
+  if (l.includes('ameaça') || l.includes('invas') || l.includes('chefe')) return 'perk-threat';
+  return 'perk-buildings';
+}
 const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{crown}' };
 const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
@@ -1223,8 +1247,10 @@ export class Panel {
 
   /** Cabeçalho + abas (usado pelas janelas com grupo e pelo quadro de missões). */
   private winTop(title: string, chips: string, right: string, tabs: [string, string, boolean, string][]) {
-    return `<div class="wtop ${tabs.length ? '' : 'notabs'}"><div class="mhead"><div class="mh-title">${title}</div>${chips}${right ? `<span class="mh-right">${right}</span>` : ''}</div>
-      ${tabs.length ? `<div class="mtabs">${tabs.map(([k, label, on, act]) => `<button data-act="${act}" data-arg="${k}" class="${on ? 'on' : ''}">${label}</button>`).join('')}</div>` : ''}</div>`;
+    // uma linha só (como no mockup): título, abas em botões, e à direita as etiquetas e as ações; no celular as
+    // etiquetas descem para a segunda linha
+    const nav = tabs.length ? `<nav class="wtabs">${tabs.map(([k, label, on, act]) => `<button data-act="${act}" data-arg="${k}" class="${on ? 'on' : ''}">${label}</button>`).join('')}</nav>` : '';
+    return `<div class="wtop"><div class="whead"><div class="mh-title">${title}</div>${nav}<div class="wright">${chips}${right}</div></div></div>`;
   }
 
   /** Números de cada grupo de janelas, em etiquetas no cabeçalho. */
@@ -1238,7 +1264,7 @@ export class Panel {
       return chip('{ninja}', `${ninjas.length} ninjas`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
     }
     if (group === 'village')
-      return chip('{star}', `Nível ${s.level + 1}`, 'gold') + chip('{users}', `População ${g.population()}/${g.popCap()}`) + chip('{smile}', `Felicidade ${Math.round(s.happiness)}`) + chip('{sun}', `Dia ${s.day}`);
+      return chip('{star}', `Reputação ${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`) + chip('{pin}', levelDef(s.level).name);
     if (group === 'world') {
       const exps = s.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost').length;
       return chip('{star}', `Honra ${s.honor}`, 'gold') + chip('{skull}', `Infâmia ${s.infamy}`, s.infamy ? 'bad' : '') + chip('{flag}', `Expedições ${exps}`);
@@ -1307,7 +1333,9 @@ export class Panel {
   }
 
   private villageView(): Built {
-    return { html: this.tabs('village') + this.villageSection(), t: {}, b: {} };
+    const g = this.app.game;
+    const fest = `<button class="btn primary" data-act="festival" ${blocked(g, [festivalBlock(g)], FESTIVAL.cost)}>{party} Festival</button>`;
+    return { html: this.tabs('village', fest) + this.villageSection(), t: {}, b: {} };
   }
 
   private missionsView(): Built {
@@ -1363,7 +1391,7 @@ export class Panel {
     const right =
       top('{swords} Mais abates', [...ninjas].sort((a, z) => z.ninja!.kills - a.ninja!.kills).slice(0, 5), (u) => `${u.ninja!.kills}`) +
       top('{star} Nível mais alto', [...ninjas].sort((a, z) => z.ninja!.level - a.ninja!.level || z.ninja!.xp - a.ninja!.xp).slice(0, 5), (u) => `Nv ${u.ninja!.level}`);
-    return { html: this.tabs('stats') + `<div class="vgrid sgridw"><div>${left}</div><div>${right}</div></div>`, t: {}, b: {} };
+    return { html: this.tabs('stats') + `<div class="vfill vgrid sgridw"><div class="vcol">${left}</div><div class="vcol">${right}</div></div>`, t: {}, b: {} };
   }
 
   /** Insígnias de clã e kekkei genkai. */
@@ -1437,27 +1465,25 @@ export class Panel {
   }
 
   /**
-   * Aba Kage: o Kage atual (retrato, técnica do Kage) ou a eleição; a Ordem do Eclipse ao lado; os Três Sannin embaixo.
-   */
-  /**
-   * Aba Kage (fiel ao mockup kage.png): o Kage atual à esquerda (retrato grande, etiquetas, técnica do Kage com a
-   * ilustração e as ações) e a Ordem do Eclipse à direita; os Três Sannin embaixo, de ponta a ponta.
+   * Aba Kage (mockup kage.png): Kage atual à esquerda (retrato com chapéu e manto, etiquetas, Hiraishin, ações), a
+   * Ordem do Eclipse à direita, os Três Sannin embaixo. `.kfill` estica para ocupar a janela toda (sem sobra).
    */
   private kageSection() {
     const g = this.app.game;
     const k = currentKage(g);
-    let html = `<div class="kgrid"><section class="kpanel kcard"><div class="kp-head">{castle}<b>Kage atual</b></div>`;
+    let html = `<div class="kfill"><div class="kgrid"><section class="kpanel kcard"><div class="kp-head">{scroll}<b>Kage atual</b></div>`;
     if (k) {
       const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
       const monument = g.state.buildings.some((b) => b.type === 'monument');
-      const bust = unitPortrait(k);
-      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${pimg(bust)}</button>
+      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${pimg(kagePortrait(k))}</button>
         <div class="k-main"><div class="k-name">${esc(k.name)}<span class="kpill">{crown} Kage atual</span></div>
-        <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{monument} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
-      if (art)
-        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row">${ART['kunai-hiraishin'] ? `<span class="kart-pic">${pimg(ART['kunai-hiraishin'])}</span>` : ''}
-          <div class="kart-info"><div class="k-chips"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{target} Marca ${art.markLife}s</span></div>
+        <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{castle} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
+      if (art) {
+        const pic = ART['kunai-card'] ?? ART['kunai-hiraishin'];
+        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row"><span class="kart-pic ${ART['kunai-card'] ? 'full' : ''}">${pimg(pic)}</span>
+          <div class="kart-info"><div class="k-chips one"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{clock} Marca ${art.markLife}s</span></div>
           <p ${tipAttr(art.name, art.desc, true)}>Kunais marcadas; teleporte em clarão amarelo e retorno à Residência ao cair.</p></div></div></div>`;
+      }
       html += `<div class="k-acts"><button class="btn primary" data-act="pick" data-arg="${k.id}">Ver Kage</button><button class="btn ghost" data-act="go-hokage">{castle} Ir à Residência</button></div></div></div>`;
     } else if (g.state.ceremony) {
       html += `<p class="hint">{party} Cerimônia em andamento…</p>`;
@@ -1474,10 +1500,10 @@ export class Panel {
     if (g.state.kageHistory.length > 1)
       html += `<p class="hint k-hist">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
     html += `</section>${this.orgSection()}</div>`;
-    return html + this.sanninSection();
+    return html + this.sanninSection() + `</div>`;
   }
 
-  /** Ordem do Eclipse: emblema, progresso, a próxima aparição, os 8 bustos com o estado e a dupla atual. */
+  /** Ordem do Eclipse: emblema, progresso e próxima aparição, os 8 bustos com o estado, a dupla e as ações. */
   private orgSection() {
     const g = this.app.game;
     const o = g.state.org;
@@ -1486,29 +1512,37 @@ export class Panel {
     if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p></section>`;
     const known = g.state.level >= ORG.minVillage;
     html += `<div class="o-prog"><div class="o-count"><b>${o.down.length}/8 derrotados</b><div class="nc-bar"><i style="width:${(o.down.length / 8) * 100}%"></i></div></div>
-      <span class="o-next">{hourglass} ${known ? (o.nextDay ? `Próxima aparição: dia ${o.nextDay}` : 'Logo') : 'Não sabem da vila'}</span></div><div class="ogrid">`;
+      <span class="o-next">{clock} ${known ? (o.nextDay ? `Próxima aparição: dia ${o.nextDay}` : 'Logo') : 'Não sabem da vila'}</span></div><div class="ogrid">`;
     const live = g.state.units.filter((u) => !u.dead && u.org);
     const onMap = new Set(live.map((u) => u.org));
+    const cur = ORG_PAIRS.findIndex((p) => p.some((x) => !o.down.includes(x)));
     for (const id of [...ORG_PAIRS.flat(), ...ORG_LAIR]) {
       const d = ORG_MEMBERS[id];
       const down = o.down.includes(id);
       const lair = ORG_LAIR.includes(id);
-      const seen = down || onMap.has(id) || ORG_PAIRS.findIndex((p) => p.includes(id)) <= ORG_PAIRS.findIndex((p) => p.some((x) => !o.down.includes(x)));
-      const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : lair ? ['{lock} Covil', 'lair'] : seen ? ['{alert} À solta', ''] : ['{info} Desconhecido', 'unk'];
-      const bust = atlasCell(CARDS, `org-${id}`, 'om-bust') ?? pimg(artPortrait(`org-${id}`), 'om-bust');
-      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}><span class="om-face">${bust}${down ? '<span class="om-check">{check}</span>' : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
+      const pairIdx = ORG_PAIRS.findIndex((p) => p.includes(id));
+      // o líder fica em silhueta até cair; os guardiões aparecem quando o covil é descoberto
+      const hidden = id === 'yomi' && !down;
+      const unknown = !down && !onMap.has(id) && (lair ? !o.lairKnown && id !== 'yomi' : cur >= 0 && pairIdx > cur);
+      const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : unknown ? ['{question} Desconhecido', 'unk'] : lair ? ['{lock} Covil', 'lair'] : ['{alert} À solta', ''];
+      const bust = (hidden && atlasCell(CARDS, 'org-yomi-unknown', 'om-bust')) || atlasCell(CARDS, `org-${id}`, 'om-bust') || pimg(artPortrait(`org-${id}`), 'om-bust');
+      html += `<div class="omem ${cls}" ${tipAttr(hidden ? '???' : `${d.name}, ${d.title}`, hidden ? 'O líder da Ordem. Ninguém viu o rosto dele.' : `${d.art}: ${d.desc}`, true)}><span class="om-face">${bust}${down ? '<span class="om-check">{check}</span>' : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
     }
     html += `</div>`;
-    const pair = live.length ? live.map((u) => ORG_MEMBERS[u.org!].name) : (nextPair(g.state) ?? []).filter((id) => !o.down.includes(id)).map((id) => ORG_MEMBERS[id].name);
-    html += `<div class="o-foot"><span>{users} ${live.length ? 'Dupla atual' : 'Próxima dupla'}: <b>${pair.join(' & ') || '—'}</b></span>
+    const pairNow = live.map((u) => ORG_MEMBERS[u.org!].name);
+    const next = (nextPair(g.state) ?? []).filter((id) => !o.down.includes(id)).map((id) => ORG_MEMBERS[id].name);
+    const who = pairNow.length ? `Dupla atual: <b>${pairNow.join(' & ')}</b>` : next.length ? `Próxima dupla: <b>${next.join(' & ')}</b>` : o.lairKnown ? '<b>Restam os guardiões do covil</b>' : 'Duplas vencidas';
+    html += `<div class="o-foot"><span>{users} ${who}</span>
+      <button class="btn primary" data-act="org-defend" ${tipAttr('Preparar defesa', 'Todos os ninjas livres na vila passam a patrulhar e os novatos se abrigam de inimigos fortes demais.')}>{shield} Preparar defesa</button>
       <button class="btn ghost" data-act="win" data-arg="region" ${o.lairKnown ? tipAttr('Covil descoberto', 'Mundo → Região → Covil do Eclipse: a invasão final.') : ''}>{pin} ${o.lairKnown ? 'Ver o covil' : 'Ver região'}</button></div>`;
     return html + `</section>`;
   }
 
-  /** Os Três Sannin: um cartão por caminho com o emblema, o Sannin (ou os candidatos), o animal e o botão. */
+  /** Os Três Sannin: emblema do caminho, o Sannin (ou os candidatos), o animal com a técnica e o botão. */
   private sanninSection() {
     const g = this.app.game;
-    let html = `<section class="kpanel ssec"><div class="kp-head">{scroll}<b>Os Três Sannin</b><small>Jounins Nv ${SANNIN.minLevel}+ · custo ${costLabel(SANNIN.cost)}</small></div><div class="sgrid">`;
+    const cost = (['ryo', 'food', 'wood', 'stone'] as const).filter((k) => SANNIN.cost[k]).map((k) => `${SANNIN.cost[k]} ${RES_INFO[k].name.toLowerCase()}`).join(' + ');
+    let html = `<section class="kpanel ssec"><div class="kp-head">{sparkle}<b>Os Três Sannin</b><small>Jounins Nv ${SANNIN.minLevel}+ · custo ${cost}</small></div><div class="sgrid">`;
     const cands = sanninCandidates(g);
     for (const path of ['toad', 'snake', 'slug'] as const) {
       const d = SANNIN_PATHS[path];
@@ -1516,10 +1550,9 @@ export class Panel {
       const beast = ART[`beast-${path}`] ?? artPortrait(path, true);
       const emblem = atlasCell(ICONS, `path-${path}`, 'sc-emb') ?? `<span class="sc-emb none">{scroll}</span>`;
       html += `<div class="scard" style="--c:${d.color}"><div class="sc-head">${emblem}<b>${esc(d.title)}</b></div><div class="sc-body">`;
-      if (who) {
-        const bust = unitPortrait(who);
-        html += `<button class="sc-who" data-act="pick" data-arg="${who.id}">${pimg(bust)}<span class="sc-tag"><b>${esc(who.name.split(' ').pop()!)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
-      } else {
+      if (who)
+        html += `<button class="sc-who" data-act="pick" data-arg="${who.id}">${pimg(unitPortrait(who))}<span class="sc-tag"><b>${esc(who.name.split(' ').pop()!)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
+      else {
         const sel = this.sanninSel[path];
         html += `<div class="sc-cands"><small>${cands.length ? 'Candidatos disponíveis' : esc(sanninBlock(g, undefined, path) ?? 'Sem candidatos.')}</small>`;
         for (const c of cands.slice(0, 2))
@@ -1531,7 +1564,7 @@ export class Panel {
       else {
         const c = cands.find((x) => x.id === this.sanninSel[path]) ?? cands[0];
         const why = c ? sanninBlock(g, c, path) : 'Sem candidatos.';
-        html += `<button class="btn primary sc-go" data-act="sannin" data-arg="${c?.id ?? 0}:${path}" ${blocked(g, [!c && 'Nenhum Jounin de nível 20+ disponível.', why && !why.startsWith('Custa') && why], SANNIN.cost)}>{users} Nomear</button>`;
+        html += `<button class="btn primary sc-go" data-act="sannin" data-arg="${c?.id ?? 0}:${path}" ${blocked(g, [!c && 'Nenhum Jounin de nível 20+ disponível.', why && !why.startsWith('Custa') && why], SANNIN.cost)}>{userplus} Nomear</button>`;
       }
       html += `</div>`;
     }
@@ -1584,19 +1617,22 @@ export class Panel {
     const pop = g.population();
     const cap = g.popCap();
     const scene = (k: string) => (ART[k] ? pimg(ART[k], 'vscene') : '');
-    let html = `<div class="bsec"><h4>{users} Vida da vila</h4>${scene('scene-village')}
+    let html = `<div class="bsec vlife"><h4>{users} Vida da vila</h4><div class="vrow">${scene('scene-village')}<div class="vrow-main">
       <div class="vstat"><span>{users} População</span><b>${pop}/${cap}</b></div><div class="nc-bar hp"><i style="width:${Math.min(100, (pop / Math.max(1, cap)) * 100)}%"></i></div>
-      <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.min(100, s.happiness)}%"></i></div>
-      <div class="vfactors">`;
+      <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.min(100, s.happiness)}%"></i></div></div></div>
+      <h5>Fatores de felicidade</h5><div class="vfactors">`;
     for (const [l, v] of moodFactors(g)) html += `<span class="${v >= 0 ? 'ok' : 'bad'}">${esc(l)} <b>${v > 0 && l !== 'Base' ? '+' : ''}${v}</b></span>`;
-    html += `</div><p class="hint">Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.</p></div>`;
-    html += `<div class="bsec"><h4>{sun} Estação e clima</h4>${scene(`scene-${seasonOf(s)}`)}<div class="vseason"><span class="vs-ic">${season.icon}</span><div><b>${season.name} · ${w.icon} ${w.name}</b>
-      <p class="hint">${esc(season.desc)} Hoje: ${esc(w.desc)}</p><p class="hint">{hourglass} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação.</p></div></div></div>`;
+    html += `</div><p class="hint" ${tipAttr('Felicidade', `Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.`, true)}>{info} Felizes trabalham mais rápido e têm mais filhos.</p></div>`;
+    html += `<div class="bsec"><h4>{sun} Estação e clima</h4><div class="vrow">${scene(`scene-${seasonOf(s)}`)}<div class="vrow-main">
+      <b class="vr-title">${season.icon} ${season.name} · ${w.icon} ${w.name}</b><p class="vr-txt">${esc(season.desc)} Hoje: ${esc(w.desc)}</p>
+      <p class="vr-sub">{clock} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação</p></div></div></div>`;
     const why = festivalBlock(g);
     const on = festivalOn(s);
-    html += `<div class="bsec vfest"><h4>{party} ${season.festival}</h4>${scene('scene-festival')}${on ? '<span class="mpill safe">{party} Acontecendo agora</span>' : ''}
-      <p class="hint">+${FESTIVAL.mood} de felicidade até o fim do dia seguinte.</p>
-      <button class="btn primary" data-act="festival" ${blocked(g, [why], FESTIVAL.cost)}>{party} Realizar festival <small>${costLabel(FESTIVAL.cost)}</small></button></div>`;
+    const chips = RES_KEYS.filter((k) => FESTIVAL.cost[k]).map((k) => `<span class="mchip">${RES_INFO[k].icon} ${FESTIVAL.cost[k]} ${RES_INFO[k].name.toLowerCase()}</span>`).join('');
+    html += `<div class="bsec vfest"><h4>{party} ${season.festival}</h4><div class="vrow">${scene('scene-festival')}<div class="vrow-main">
+      ${on ? '<span class="mpill safe">{party} Acontecendo agora</span>' : '<span class="mpill safe">Disponível</span>'}
+      <p class="vr-txt">+${FESTIVAL.mood} de felicidade até o fim do dia seguinte.</p><div class="td-chips">${chips}</div>
+      <button class="btn primary" data-act="festival" ${blocked(g, [why], FESTIVAL.cost)}>{party} Realizar festival</button></div></div></div>`;
     return html;
   }
 
@@ -1620,10 +1656,15 @@ export class Panel {
     } else left += `<div class="vh-next">{trophy} A vila chegou ao nível máximo!</div>`;
     left += `</div></div>`;
     if (st) {
-      left += `<div class="vcols"><div class="bsec"><h4>{todo} Requisitos para elevar</h4><ul class="vreqs">`;
+      left += `<div class="vcols"><div class="bsec"><h4>{clipboard} Requisitos para elevar</h4><ul class="vreqs">`;
       for (const c of st.checks)
-        left += `<li class="${c.ok ? 'ok' : ''}"><span>${esc(c.label)}</span><b>${Math.min(c.have, c.need)}/${c.need}</b><span class="mpill ${c.ok ? 'safe' : 'good'}">${c.ok ? '{check} Completo' : 'Pendente'}</span></li>`;
-      left += `</ul></div><div class="bsec"><h4>{star} Benefícios</h4><ul class="vperks">${st.def.perks.map((p) => `<li>{star} ${esc(p)}</li>`).join('')}</ul></div></div>`;
+        left += `<li class="${c.ok ? 'ok' : ''}"><span class="vr-ic">${reqIcon(c.label)}</span><span>${esc(c.label)}</span><b>${Math.min(c.have, c.need)}/${c.need}</b><span class="mpill ${c.ok ? 'safe' : 'good'}">${c.ok ? '{check} Completo' : 'Pendente'}</span></li>`;
+      left += `</ul></div><div class="bsec"><h4>{star} Benefícios</h4><div class="vperks">${st.def.perks
+        .map((p) => {
+          const [title, ...rest] = p.split(/:\s*/);
+          return `<div class="vperk">${pimg(ART[perkArt(p)], 'vp-art')}<div><b>${esc(title!)}</b>${rest.length ? `<small>${esc(rest.join(': '))}</small>` : ''}</div></div>`;
+        })
+        .join('')}</div></div></div>`;
       const chips = RES_KEYS.filter((k) => st.def.cost[k]).map((k) => `<span class="mchip ${s.res[k] < st.def.cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${st.def.cost[k]}</span>`).join('');
       left += `<div class="vup"><button class="btn primary big" data-act="upgrade" ${blocked(g, st.checks.filter((c) => !c.ok).map((c) => `{todo} ${c.label}: ${Math.min(c.have, c.need)} de ${c.need}`), st.def.cost, st.ready ? undefined : 'Faltam requisitos')}>{up} Elevar a ${st.def.name}</button><span class="vup-cost">${chips}</span></div>`;
       if (st.ready && !st.afford) left += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
@@ -1631,7 +1672,7 @@ export class Panel {
     }
     // nível máximo: a coluna mostra o caminho percorrido e os marcos da vila (antes ficava vazia)
     if (!st) left += this.villagePath() + this.villageMarks();
-    return `<div class="vgrid"><div>${left}</div><div>${this.lifeSection()}</div></div>`;
+    return `<div class="vfill vgrid"><div class="vcol">${left}</div><div class="vcol">${this.lifeSection()}</div></div>`;
   }
 
   /** Exame Chunin: convocar, chaveamento ao vivo e resultado do último exame. */
@@ -2212,6 +2253,8 @@ export class Panel {
         return this.report({ ok: true });
       case 'awaken':
         return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
+      case 'org-defend':
+        return this.report(prepareDefense(g));
       case 'sannin-sel': {
         const [path, id] = arg.split(':');
         this.sanninSel[path!] = Number(id);

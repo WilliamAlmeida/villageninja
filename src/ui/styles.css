@@ -1276,3 +1276,295 @@ h4::after { background: var(--line); opacity: 0.6; }
 .vs-art { height: 4.6rem; width: 100%; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; } .vs-art img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
 .om-face { aspect-ratio: 1 / 0.6; } .om-bust { height: 130%; } .sc-body { height: 6rem; } .scard { gap: 0.35rem; padding-bottom: 0.5rem; } .kp-head { margin-bottom: 0.4rem; } .kpanel { margin-bottom: 0.6rem; padding-bottom: 0.65rem; } .o-prog { margin-bottom: 0.4rem; } .o-foot { margin-top: 0.4rem; padding-top: 0.4rem; } .sc-emb { width: 2rem; height: 2rem; }
 .kart-pic { width: 7rem; height: 5.4rem; } .k-name { font-size: 1.4rem; } .kart-info { gap: 0.35rem; } .kart-info p { font-size: 0.9rem; line-height: 1.3; } #win .body { padding-bottom: 0.6rem; }
+/* glifos SVG (Phosphor) com a cor de cada tipo, como no mockup; dentro de botões/abas herdam a cor do texto */
+.ic.gl { width: 1.15em; height: 1.15em; vertical-align: -0.18em; }
+.ic-star, .ic-trophy, .ic-crown, .ic-medal, .ic-coins { color: #ffc93a; }
+.ic-sun { color: #ffd24a; } .ic-moon { color: #b8c6ff; }
+.ic-drop { color: #4db3ff; } .ic-snow { color: #a8e4ff; } .ic-rain { color: #8fb8e8; } .ic-storm { color: #ffd24a; }
+.ic-check, .ic-leaf, .ic-tree { color: #55d957; } .ic-fail, .ic-pin, .ic-flag, .ic-medic { color: #ff5752; }
+.ic-alert { color: #ffc93a; } .ic-skull { color: #f2e6d0; } .ic-swords { color: #d8d2c8; } .ic-shield { color: #e7a92e; }
+.ic-hourglass, .ic-clock, .ic-calendar, .ic-users, .ic-castle, .ic-home, .ic-chart, .ic-clipboard, .ic-house, .ic-houses { color: #f0dcb4; }
+.ic-scroll, .ic-map, .ic-books { color: #e8c27a; } .ic-smile { color: #ffd24a; } .ic-frown { color: #8fb8e8; }
+.ic-party { color: #ff8a5a; } .ic-info { color: #6fc3ff; } .ic-dna { color: #c48bff; } .ic-paw { color: #d9a066; }
+.ic-target { color: #ff7a5a; } .ic-monument { color: #c9b8a0; } .ic-fire { color: #ff7a2b; } .ic-lightning { color: #ffe14d; }
+.btn .ic.gl, .mtabs .ic.gl, .seg .ic.gl, .fchips .ic.gl, .bigbtn .ic.gl, .speed .ic.gl, .iconbtn .ic.gl { color: inherit; }
+
+/* ===== cabeçalho das janelas em uma linha (mockup): título · abas em botões · etiquetas à direita ===== */
+#win .wtop { padding: 0.85rem 3.6rem 0.85rem 1.2rem; margin: -0.9rem -1.1rem 0.9rem; border-bottom: 1px solid #8a5b25; }
+.whead { display: flex; align-items: center; gap: 0.6rem 1rem; flex-wrap: wrap; }
+.whead .mh-title { font-size: 1.85rem; margin-right: 0.4rem; }
+.whead .mh-title .ic { width: 2rem; height: 2rem; color: #f0c674; }
+.wtabs { display: flex; gap: 0.45rem; }
+.wtabs button { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 1.25rem; border-radius: 0.55rem; font-size: 1.08rem; font-weight: 700; color: #e8d6b8;
+  background: linear-gradient(180deg, rgba(62, 42, 26, 0.96), rgba(38, 25, 16, 0.96)); border: 1px solid var(--line); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 220, 155, 0.08); }
+.wtabs button .ic { width: 1.3rem; height: 1.3rem; }
+.wtabs button.on { color: #1f1208; font-weight: 900; border-color: #ffc45d; background: linear-gradient(180deg, var(--accent-hi), var(--accent) 55%, var(--accent-low)); box-shadow: var(--shadow-btn); }
+.wtabs button:not(.on):hover { border-color: var(--line-hi); color: var(--text); }
+.wright { margin-left: auto; display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.wright .mchip { font-size: 1rem; min-height: 2.5rem; padding: 0.35rem 0.85rem; }
+.wright .mchip .ic { width: 1.3rem; height: 1.3rem; }
+#win .close { top: 0.85rem; right: 0.9rem; width: 2.5rem; height: 2.5rem; border-color: #8a5b25; }
+@media (max-width: 1100px), (max-height: 520px) {
+  .whead .mh-title { font-size: 1.35rem; }
+  .wtabs button { padding: 0.4rem 0.8rem; font-size: 0.95rem; }
+  .wright { margin-left: 0; width: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .wright .mchip { font-size: 0.85rem; min-height: 2rem; padding: 0.25rem 0.6rem; flex: 0 0 auto; }
+  #win .wtop { padding: 0.6rem 3.2rem 0.6rem 0.9rem; }
+}
+
+/* ===== aba Kage v3: escala do mockup e preenchendo a janela (sem sobra embaixo) ===== */
+#win .body:has(> .kfill) { display: flex; flex-direction: column; }
+.kfill { flex: 1 0 auto; display: flex; flex-direction: column; gap: 0.9rem; }
+.kfill .kpanel { margin: 0; padding: 0.9rem 1rem 1rem; border-color: #6e4a22; }
+.kfill .kgrid { flex: 1 0 auto; display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr); gap: 0.9rem; align-items: stretch; }
+.kfill .kp-head { margin-bottom: 0.7rem; gap: 0.6rem; }
+.kfill .kp-head > .ic { width: 1.8rem; height: 1.8rem; color: #f0c674; }
+.kfill .kp-head > b, .kfill .o-head b { font-size: 1.6rem; }
+.kfill .kp-head > small { font-size: 1rem; }
+.kcard { display: flex; flex-direction: column; }
+.kfill .kbody { flex: 1; grid-template-columns: minmax(11rem, 0.42fr) minmax(0, 1fr); gap: 1rem; padding: 0.8rem; align-items: stretch; }
+.kfill .k-face { width: auto; min-height: 15rem; height: 100%; position: relative; border-width: 2px; border-color: #a06a2c; }
+.kfill .k-face .pim, .kfill .k-face .skel { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: auto; max-height: 100%; object-fit: contain; object-position: bottom; }
+.kfill .k-face .skel { height: 70%; }
+.kfill .k-main { gap: 0.75rem; }
+.kfill .k-name { font-size: 2rem; gap: 0.8rem; }
+.kfill .kpill { font-size: 1.05rem; padding: 0.35rem 0.8rem; }
+.kfill .k-chips { gap: 0.5rem; }
+.kfill .k-chips .mchip { font-size: 0.98rem; min-height: 2.3rem; padding: 0.3rem 0.75rem; }
+.kfill .kart { padding: 0.8rem 0.9rem; }
+.kfill .kart-t { font-size: 1.3rem; margin-bottom: 0.6rem; }
+.kfill .kart-row { gap: 0.9rem; }
+.kfill .kart-pic { width: 10rem; height: 7.6rem; border: 2px solid #a06a2c; }
+.kart-pic.full .pim { width: 100%; height: 100%; object-fit: cover; }
+.kfill .k-chips.one { flex-wrap: nowrap; }
+.kfill .k-chips.one .mchip { font-size: 0.88rem; min-height: 2rem; padding: 0.25rem 0.6rem; white-space: nowrap; }
+.kfill .kart-info p { font-size: 1.08rem; line-height: 1.45; }
+.kfill .k-acts { gap: 0.8rem; margin-top: auto; }
+.kfill .k-acts .btn { font-size: 1.2rem; padding: 0.85rem 1rem; }
+/* Ordem */
+.kfill .ocard { display: flex; flex-direction: column; border: 2px solid rgba(214, 70, 60, 0.55); box-shadow: var(--shadow-card), 0 0 1.2rem rgba(214, 59, 54, 0.12) inset; }
+.kfill .o-emb { width: 3.4rem; height: 3.4rem; }
+.kfill .o-head small { font-size: 1.05rem; }
+.kfill .o-prog { padding: 0.6rem 0.75rem; margin-bottom: 0.65rem; }
+.kfill .o-count b { font-size: 1.2rem; }
+.kfill .o-next { font-size: 1rem; padding: 0.5rem 0.8rem; }
+.kfill .ogrid { flex: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 0.55rem; }
+.kfill .omem { display: flex; flex-direction: column; padding-bottom: 0.45rem; border-color: #5c3e20; }
+.kfill .om-face { flex: 1; aspect-ratio: auto; min-height: 5.6rem; }
+.kfill .om-bust { position: absolute; left: 0; right: 0; top: 0; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; object-position: top; }
+.kfill .omem b { font-size: 1.1rem; margin-top: 0.3rem; }
+.kfill .omem small { font-size: 0.9rem; display: flex; justify-content: center; gap: 0.25rem; }
+.kfill .omem.unk small { color: #b9a68a; }
+.kfill .omem.unk .om-face, .kfill .omem.lair .om-face { filter: none; }
+.kfill .om-check { width: 1.9rem; height: 1.9rem; }
+.kfill .o-foot { margin-top: 0.7rem; padding-top: 0.7rem; gap: 0.6rem; flex-wrap: wrap; }
+.kfill .o-foot > span { font-size: 1rem; }
+/* Sannin */
+.kfill .ssec .sgrid { gap: 0.9rem; }
+.kfill .scard { padding: 0.7rem 0.75rem 0.75rem; gap: 0.6rem; }
+.kfill .sc-emb { width: 2.8rem; height: 2.8rem; }
+.kfill .sc-head b { font-size: 1.3rem; }
+.kfill .sc-body { height: 9.5rem; grid-template-columns: 0.85fr 1.15fr; gap: 0.5rem; }
+.kfill .sc-who .pim, .kfill .sc-who .skel { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.kfill .sc-tag b { font-size: 1rem; }
+.kfill .sc-beast .pim { width: 100%; height: 100%; object-fit: contain; padding: 0.3rem 0.3rem 1.4rem; }
+.kfill .sc-beast b { font-size: 1.05rem; }
+.kfill .sc-done { background: rgba(72, 211, 78, 0.06); color: #7dff7d; font-size: 1.12rem; padding: 0.6rem; }
+.kfill .sc-done .ic { color: #55d957; width: 1.4rem; height: 1.4rem; }
+.kfill .sc-go { font-size: 1.12rem; padding: 0.6rem; }
+/* celular / janela estreita: uma coluna, tamanhos menores, rolagem normal */
+@media (max-width: 1100px), (max-height: 600px) {
+  .kfill .kgrid { grid-template-columns: 1fr; }
+  .kfill .k-name { font-size: 1.4rem; }
+  .kfill .kp-head > b, .kfill .o-head b { font-size: 1.25rem; }
+  .kfill .kart-pic { width: 7rem; height: 5.4rem; }
+  .kfill .k-chips.one { flex-wrap: wrap; }
+  .kfill .kart-info p { font-size: 0.95rem; }
+  .kfill .k-acts .btn { font-size: 1rem; padding: 0.6rem; }
+  .kfill .om-face { min-height: 4.6rem; }
+  .kfill .ssec .sgrid { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+  .kfill .sc-body { height: 7.5rem; }
+}
+@media (max-height: 520px) {
+  .kfill .kbody { grid-template-columns: 8.5rem minmax(0, 1fr); }
+  .kfill .k-face { min-height: 11rem; }
+  .kfill .ogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ===== Vila e Estatísticas v3 (vila.png): colunas que preenchem a janela, imagens à esquerda ===== */
+#win .body:has(> .vfill) { display: flex; flex-direction: column; }
+.vfill { flex: 1 0 auto; align-items: stretch; gap: 0.9rem; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+.vfill > .vcol { display: flex; flex-direction: column; gap: 0.75rem; }
+.vfill > .vcol > * { margin: 0; }
+.vfill > .vcol > .bsec:last-child, .vfill > .vcol > .vcols:last-child { flex: 1; }
+.vfill .bsec { padding: 0.8rem 0.9rem; border-color: #6e4a22; }
+.vfill .bsec h4 { font-size: 1rem; margin: 0 0 0.6rem; color: #f0dcb4; text-transform: none; letter-spacing: 0; font-weight: 900; }
+.vfill .bsec h4 .ic { width: 1.25rem; height: 1.25rem; }
+.vfill .bsec h5 { margin: 0.6rem 0 0.35rem; font-size: 0.9rem; color: #dcc5a3; }
+/* cartão da vila */
+.vfill .vhero { padding: 0.8rem 1rem; gap: 1rem; }
+.vfill .vh-art { width: 8.5rem; height: 7rem; }
+.vfill .vh-name { font-size: 1.7rem; }
+.vfill .vh-main .hint { font-size: 1rem; margin: 0; }
+.vfill .vh-next { font-size: 1.05rem; }
+.vfill .vh-next .mchip { font-size: 1rem; }
+.vfill .vh-bar { height: 0.8rem; }
+/* requisitos e benefícios */
+.vfill .vcols { gap: 0.75rem; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.vfill .vcols > .bsec { margin: 0; }
+.vfill .vreqs { gap: 0.3rem; }
+.vfill .vreqs li { grid-template-columns: 1.6rem minmax(0, 1fr) auto auto; padding: 0.4rem 0.55rem; font-size: 0.98rem; }
+.vr-ic .ic { width: 1.3rem; height: 1.3rem; }
+.vfill .vreqs .mpill { font-size: 0.82rem; padding: 0.15rem 0.6rem; }
+.vperks { display: flex; flex-direction: column; gap: 0.45rem; }
+.vperk { display: flex; align-items: center; gap: 0.7rem; padding: 0.45rem 0.6rem; border-radius: 0.55rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); }
+.vperk .vp-art { flex: 0 0 auto; width: 4.2rem; height: 3.4rem; object-fit: contain; image-rendering: auto; }
+.vperk b { display: block; font-size: 0.98rem; }
+.vperk small { display: block; color: var(--muted); font-size: 0.86rem; line-height: 1.3; }
+.vfill .vup { margin-top: 0.2rem; }
+.vfill .vup .btn.big { font-size: 1.15rem; padding: 0.8rem 1.3rem; }
+/* coluna da direita: imagem à esquerda, conteúdo à direita */
+.vrow { display: grid; grid-template-columns: minmax(7rem, 0.9fr) minmax(0, 1.1fr); gap: 0.75rem; align-items: stretch; }
+.vrow .vscene { width: 100%; height: 100%; min-height: 6.5rem; margin: 0; object-fit: cover; }
+.vrow-main { display: flex; flex-direction: column; gap: 0.35rem; justify-content: center; min-width: 0; }
+.vrow-main .vstat { font-size: 1rem; margin: 0; }
+.vrow-main .nc-bar { height: 0.65rem; margin-bottom: 0.25rem; }
+.vr-title { font-size: 1.1rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.vr-txt { margin: 0; font-size: 0.95rem; color: #e8d6b8; }
+.vr-sub { margin: 0; font-size: 0.88rem; color: var(--muted); display: flex; gap: 0.3rem; align-items: center; }
+.vfill .vfactors { font-size: 0.9rem; gap: 0.2rem 0.9rem; }
+.vfill .vfest .btn.primary { justify-content: center; width: 100%; font-size: 1.05rem; }
+.vfill .vfest .mpill { align-self: flex-start; }
+.vfill .vlife .hint { margin: 0.4rem 0 0; }
+/* nível máximo: caminho e marcos maiores */
+.vfill .vstep { padding: 0.6rem 0.5rem; }
+.vfill .vs-art { height: 5.5rem; }
+.vfill .vstep b { font-size: 1rem; }
+.vfill .vmark { padding: 0.55rem 0.7rem; }
+.vfill .vmark b { font-size: 0.98rem; }
+.vfill .vm-ic .ic { width: 1.7rem; height: 1.7rem; }
+/* estatísticas */
+.sgridw .statgrid { grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 0.5rem; }
+.sgridw .statcard { padding: 0.6rem 0.75rem; }
+.sgridw .statcard .si { width: 2.6rem; height: 2.6rem; }
+.sgridw .statcard .si .ic { width: 1.5rem; height: 1.5rem; }
+.sgridw .statcard span { font-size: 0.88rem; }
+.sgridw .statcard b { font-size: 1.45rem; }
+.vfill .scols { gap: 0.75rem; flex: 1; }
+.vfill .scols > .bsec { margin: 0; }
+.vfill .sbar { font-size: 1rem; grid-template-columns: 8rem minmax(0, 1fr) 2.5rem; }
+.vfill .sbar .nc-bar { height: 0.75rem; }
+.vfill .sbars { gap: 0.55rem; }
+.vfill .topr { padding: 0.45rem 0.6rem; }
+.vfill .topr .face { width: 2.8rem; height: 2.8rem; }
+.vfill .tp-name b { font-size: 1rem; }
+.vfill .tp-v { font-size: 1.25rem; }
+.vfill .tops { gap: 0.4rem; }
+@media (max-width: 1100px), (max-height: 600px) {
+  .vfill { grid-template-columns: 1fr; }
+  .vfill .vcols { grid-template-columns: 1fr; }
+  .vfill .vh-art { width: 6rem; height: 5rem; }
+  .vfill .vh-name { font-size: 1.3rem; }
+  .vrow { grid-template-columns: 7rem minmax(0, 1fr); }
+  .vfill .vpath { grid-template-columns: repeat(2, 1fr); }
+}
+/* ajuste de altura: cabe em ~1180×830 (a janela do jogador) sem rolagem; sobra vai para retrato e bustos */
+.whead { flex-wrap: nowrap; }
+.wright { flex-wrap: nowrap; }
+.kfill .k-chips.one { flex-wrap: wrap; }
+.kfill .k-acts .btn { white-space: nowrap; font-size: 1.1rem; padding: 0.75rem 0.8rem; }
+.kfill .om-face { min-height: 4.6rem; }
+.kfill .sc-body { height: 8rem; }
+.kfill .kp-head { margin-bottom: 0.55rem; }
+.kfill .kpanel { padding: 0.8rem 0.9rem 0.85rem; }
+.kfill .kart-pic { width: 9rem; height: 6.8rem; }
+.kfill .k-main { gap: 0.6rem; }
+.kfill .k-name { font-size: 1.8rem; }
+@media (max-width: 1100px), (max-height: 600px) { .whead { flex-wrap: wrap; } }
+.kfill .kbody { grid-template-columns: minmax(10rem, 0.36fr) minmax(0, 1fr); }
+.kfill .k-face .pim { left: 50%; right: auto; width: 128%; max-height: none; transform: translateX(-50%); }
+.kfill .kart-pic { width: 7.6rem; height: 6rem; }
+.kfill .kart-row { gap: 0.7rem; }
+.kfill .k-chips.one { gap: 0.35rem; }
+.kfill .k-chips.one .mchip { font-size: 0.8rem; padding: 0.2rem 0.5rem; min-height: 1.8rem; gap: 0.3rem; }
+.kfill .k-chips.one .mchip .ic { width: 1rem; height: 1rem; }
+.kfill .kart-info p { font-size: 1rem; line-height: 1.35; }
+.kfill .k-chips .mchip { font-size: 0.9rem; min-height: 2.1rem; }
+.kfill .o-foot > span { font-size: 0.92rem; }
+.kfill .k-chips:not(.one) { flex-wrap: nowrap; }
+.kfill .k-chips:not(.one) .mchip { font-size: 0.82rem; padding: 0.25rem 0.55rem; min-height: 2rem; white-space: nowrap; }
+.kfill .sc-body { height: 6.6rem; }
+.kfill .scard { padding: 0.55rem 0.65rem 0.6rem; gap: 0.45rem; }
+.kfill .sc-emb { width: 2.4rem; height: 2.4rem; }
+.kfill .sc-head b { font-size: 1.15rem; }
+.kfill .sc-done, .kfill .sc-go { padding: 0.45rem; font-size: 1.02rem; }
+.kfill .ssec .kp-head { margin-bottom: 0.45rem; }
+.kfill .ssec { padding-top: 0.65rem; padding-bottom: 0.7rem; }
+.kfill { gap: 0.7rem; }
+#win .box { height: min(62rem, 94vh); }
+.kfill .om-face { min-height: 4rem; }
+.kfill .o-head { margin-bottom: 0.4rem; }
+.kfill .o-emb { width: 3rem; height: 3rem; }
+.kfill .o-prog { padding: 0.45rem 0.65rem; margin-bottom: 0.5rem; }
+.kfill .o-foot { margin-top: 0.5rem; padding-top: 0.5rem; }
+.kfill .omem b { margin-top: 0.2rem; font-size: 1.02rem; }
+.kfill .omem { padding-bottom: 0.35rem; }
+.kfill .ogrid { gap: 0.45rem; }
+.vfill > .vcol > .vcols { flex: 1; }
+.vfill .bsec { padding: 0.7rem 0.85rem; }
+.vfill .topr { padding: 0.32rem 0.55rem; }
+.vfill .topr .face { width: 2.4rem; height: 2.4rem; }
+.vfill .tops { gap: 0.3rem; }
+.vrow .vscene { min-height: 5.6rem; }
+.vfill .vrow { gap: 0.6rem; }
+/* ===== celular deitado / tela baixa: por último, para valer sobre os tamanhos de desktop acima ===== */
+@media (max-height: 600px), (max-width: 900px) {
+  .whead .mh-title { font-size: 1.2rem; } .whead .mh-title .ic { width: 1.4rem; height: 1.4rem; }
+  .wtabs button { padding: 0.35rem 0.7rem; font-size: 0.9rem; }
+  .wright .mchip { font-size: 0.8rem; min-height: 1.9rem; }
+  .kfill, .vfill { gap: 0.55rem; }
+  .kfill .kgrid, .vfill { grid-template-columns: 1fr; }
+  .kfill .kpanel, .vfill .bsec { padding: 0.6rem 0.7rem; }
+  .kfill .kp-head > b, .kfill .o-head b { font-size: 1.15rem; }
+  .kfill .kp-head > small, .kfill .o-head small { font-size: 0.85rem; }
+  .kfill .kbody { grid-template-columns: 8rem minmax(0, 1fr); gap: 0.6rem; padding: 0.5rem; }
+  .kfill .k-face { min-height: 10rem; }
+  .kfill .k-name { font-size: 1.25rem; gap: 0.5rem; }
+  .kfill .kpill { font-size: 0.85rem; padding: 0.2rem 0.5rem; }
+  .kfill .k-chips:not(.one) { flex-wrap: wrap; }
+  .kfill .k-chips .mchip, .kfill .k-chips.one .mchip { font-size: 0.78rem; min-height: 1.7rem; padding: 0.15rem 0.45rem; }
+  .kfill .kart { padding: 0.5rem; } .kfill .kart-t { font-size: 1rem; margin-bottom: 0.35rem; }
+  .kfill .kart-pic { width: 5.6rem; height: 4.4rem; }
+  .kfill .kart-info p { font-size: 0.85rem; }
+  .kfill .k-acts .btn { font-size: 0.95rem; padding: 0.5rem 0.6rem; }
+  .kfill .o-emb { width: 2.2rem; height: 2.2rem; }
+  .kfill .o-count b { font-size: 0.95rem; } .kfill .o-next { font-size: 0.82rem; padding: 0.3rem 0.5rem; }
+  .kfill .om-face { min-height: 3.6rem; } .kfill .omem b { font-size: 0.85rem; } .kfill .omem small { font-size: 0.72rem; }
+  .kfill .o-foot > span { font-size: 0.82rem; flex-basis: 100%; }
+  .kfill .ssec .sgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
+  .kfill .sc-head b { font-size: 0.92rem; } .kfill .sc-emb { width: 1.8rem; height: 1.8rem; }
+  .kfill .sc-body { height: 5.4rem; grid-template-columns: 1fr 1fr; }
+  .kfill .sc-beast b, .kfill .sc-tag b { font-size: 0.78rem; }
+  .kfill .sc-done, .kfill .sc-go { font-size: 0.88rem; padding: 0.35rem; }
+  .vfill .vh-art { width: 5rem; height: 4.2rem; } .vfill .vh-name { font-size: 1.2rem; }
+  .vfill .vh-main .hint, .vfill .vh-next { font-size: 0.85rem; }
+  .vfill .vcols { grid-template-columns: 1fr 1fr; }
+  .vfill .vreqs li { font-size: 0.85rem; padding: 0.3rem 0.4rem; }
+  .vperk .vp-art { width: 3rem; height: 2.5rem; } .vperk b { font-size: 0.85rem; } .vperk small { font-size: 0.75rem; }
+  .vrow { grid-template-columns: 6.5rem minmax(0, 1fr); } .vrow .vscene { min-height: 4.6rem; }
+  .vr-title { font-size: 0.95rem; } .vr-txt { font-size: 0.82rem; }
+  .vfill .vpath { grid-template-columns: repeat(4, minmax(0, 1fr)); } .vfill .vs-art { height: 3.6rem; }
+  .vfill .vmarks { grid-template-columns: 1fr 1fr; }
+  .sgridw .statgrid { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
+  .sgridw .statcard b { font-size: 1.1rem; } .sgridw .statcard .si { width: 2rem; height: 2rem; }
+  .vfill .scols { grid-template-columns: 1fr 1fr; }
+  .vfill .sbar { grid-template-columns: 6rem minmax(0, 1fr) 2rem; font-size: 0.85rem; }
+}
+@media (max-height: 600px), (max-width: 900px) {
+  .whead { flex-wrap: nowrap; }
+  .wright { width: auto; margin-left: auto; }
+  .wright .mchip { display: none; }
+  .wright .btn { padding: 0.35rem 0.7rem; font-size: 0.9rem; }
+  #win .wtop { padding: 0.5rem 3rem 0.5rem 0.8rem; margin-bottom: 0.6rem; }
+  .kfill .om-bust { top: 50%; transform: translateY(-40%); }
+}
