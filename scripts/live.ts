@@ -5,12 +5,25 @@
 // CSS/JS mesmo quando o conteúdo muda, e a Cloudflare guarda esses arquivos em cache por horas: o celular
 // recebia CSS antigo. Aqui os arquivos têm hash do conteúdo no nome (podem ficar em cache para sempre)
 // e o index.html sai com no-store (sempre busca a versão nova).
-import { cpSync, rmSync, watch } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, rmSync, watch } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DIST = `${ROOT}dist/`;
 const port = Number(process.env.PORT ?? 3010);
+
+/**
+ * Copia public/ para dist/ arquivo por arquivo. O cpSync do Bun no Windows às vezes tentava recriar uma pasta que já
+ * existia (EEXIST em dist/app-icons) e derrubava o servidor; o PM2 reiniciava e o site ficava fora do ar por instantes.
+ */
+function copyDir(from: string, to: string) {
+  mkdirSync(to, { recursive: true });
+  for (const e of readdirSync(from, { withFileTypes: true })) {
+    if (e.isDirectory()) copyDir(join(from, e.name), join(to, e.name));
+    else copyFileSync(join(from, e.name), join(to, e.name));
+  }
+}
 
 let building: Promise<void> | null = null;
 let again = false;
@@ -22,14 +35,19 @@ async function build() {
   }
   building = (async () => {
     const t0 = performance.now();
-    const r = await Bun.build({ entrypoints: [`${ROOT}index.html`], outdir: DIST, minify: true });
-    if (!r.success) {
-      console.error('build falhou (continua servindo a versão anterior):');
-      for (const m of r.logs) console.error(String(m));
-      return;
+    try {
+      const r = await Bun.build({ entrypoints: [`${ROOT}index.html`], outdir: DIST, minify: true });
+      if (!r.success) {
+        console.error('build falhou (continua servindo a versão anterior):');
+        for (const m of r.logs) console.error(String(m));
+        return;
+      }
+      copyDir(join(ROOT, 'public'), DIST);
+      console.log(`build ok em ${Math.round(performance.now() - t0)} ms`);
+    } catch (e) {
+      // nunca derruba o servidor por causa de um build: segue servindo o que já está em dist/
+      console.error('build falhou (continua servindo a versão anterior):', e);
     }
-    cpSync(`${ROOT}public`, DIST, { recursive: true });
-    console.log(`build ok em ${Math.round(performance.now() - t0)} ms`);
   })();
   await building;
   building = null;
