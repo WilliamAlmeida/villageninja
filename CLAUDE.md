@@ -35,6 +35,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Ninjas "paper doll"**: bases `ninja-hair-<penteado>` desenhadas em cores-chave (cabelo verde puro, roupa azul pura);
   `tintedArt` (render/art.ts) recolore pelo `look` da unidade (cabelo/roupa/pele) e o penteado sai do id. Há 6 penteados (inclui careca, com olhos escuros para não pegar a cor da roupa). Penteado novo =
   gerar com as mesmas cores-chave e incluir em `NINJA_HAIRSTYLES`.
+- **Ninja em camadas** (substituindo aos poucos as folhas por penteado): corpo-base careca de malha cinza
+  (`docs/arte/sprites/ninja-base.png` → `src/art/ninja-base.png`) + peças, cada uma num pedido separado ao Codex desenhada
+  por cima do corpo em cor-chave (roupa magenta, metal ciano, cabelo verde): `bash scripts/layer-pieces.sh <peça>` gera a
+  folha inteira e a vista de lado (2×2, maior); `python scripts/prepare-layers.py` fica só com a cor-chave, encaixa cada
+  quadro no corpo (busca de escala/posição) e grava `src/art/layer-<peça>.png` + `ninja-body.png` (corpo com folga no
+  quadro, `FRAME_PAD` em art.ts); o que a roupa tem na cabeça vira `layer-<peça>-top` (bandana por cima do cabelo).
+  `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe as peças pela patente (colete do Chunin/Jounin).
+  Penteado sem camada ainda (`DOLL_HAIR`) segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
 - Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
 - Moradores trabalhando usam folhas de ação (`villager-chop|mine|farm`, gabarito `action`: levanta · balança · impacto ·
   recupera); árvore vira toco e rocha racha conforme se esgotam; colheita deixa um canteiro (`fx 'harvest'`) que rebrota.

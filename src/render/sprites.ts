@@ -1,7 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
-import { art, artFrames, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
+import { art, artFrames, dollArt, type DollPart, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
 import { ANIMALS } from '../data/animals';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
@@ -161,7 +161,25 @@ function unitPic(u: Unit) {
   if (u.faction === 'enemy') return art('rogue');
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
-  return tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
+  const doll = dollParts(u, style);
+  return (doll && dollArt(doll, u.look.skin)) ?? tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
+}
+
+/** Penteados que já existem como camada (os outros seguem na folha antiga até ganharem a sua). */
+const DOLL_HAIR: Partial<Record<string, string>> = { spiky: 'layer-hair-spiky', bald: '' };
+/** Cor do colete por patente (Chunin verde-oliva; Jounin e acima, cinza-escuro). */
+const VEST_COLOR: Partial<Record<string, string>> = { chunin: '#5f6b3a', jounin: '#3f454e', kage: '#3f454e' };
+
+/** Peças do ninja em camadas: corpo → roupa → colete da patente → cabelo → o que a roupa tem na cabeça (bandana). */
+function dollParts(u: Unit, style: string): DollPart[] | null {
+  const hair = DOLL_HAIR[style];
+  if (hair === undefined || !u.look) return null;
+  const vest = u.ninja?.sannin ? VEST_COLOR.jounin : u.ninja ? VEST_COLOR[u.ninja.rank] : undefined;
+  const parts: DollPart[] = [{ name: 'ninja-body' }, { name: 'layer-outfit-genin', color: u.look.cloth }];
+  if (vest) parts.push({ name: 'layer-vest-chunin', color: vest });
+  if (hair) parts.push({ name: hair, color: u.look.hair });
+  parts.push({ name: 'layer-outfit-genin-top', color: u.look.cloth });
+  return parts;
 }
 
 /**
@@ -192,7 +210,7 @@ export function unitPortrait(u: Unit, full = false): string | null {
     }
   }
   const pic = unitPic(u);
-  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}`) : null;
+  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}|${u.ninja?.rank ?? ''}|${u.ninja?.sannin ?? ''}`) : null;
 }
 
 /** Retrato do Kage: o busto do penteado dele com o chapéu e o manto de Kage, recolorido; sem a arte, o busto comum. */
