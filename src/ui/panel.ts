@@ -109,6 +109,7 @@ const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   village: [['village', '{castle} Vila'], ['kage', '{crown} Kage'], ['stats', '{trophy} Estatísticas']],
   world: [['region', '{map} Região'], ['expeditions', '{pickaxe} Expedições']],
 };
+const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: '{map} Mundo' };
 const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village', expeditions: 'world', region: 'world' };
 
 type BuildingTab = 'main' | 'inside';
@@ -132,6 +133,7 @@ const ACTION_TIP: Record<RegionAction, string> = {
 type MissionTab = 'active' | 'offered' | 'recent';
 /** Janela larga o bastante para os contratos ativos numa coluna ao lado das missões. */
 const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
+const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{crown}' };
 const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
   safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
@@ -1024,14 +1026,6 @@ export class Panel {
   }
 
   /** Proteger novatos: Genins se abrigam de inimigos fortes demais (com veteranos em casa para defender). */
-  private rookieBar() {
-    const on = !!this.app.game.state.flags.shelterRookies;
-    return `<div class="btnrow gearbar"><button class="btn ${on ? 'primary' : ''}" data-act="rookies" ${tipAttr(
-      'Proteger novatos',
-      `Ligado: Genins fogem para casa (ou para o Hospital) quando chega um inimigo ${CARE.danger}× mais forte que eles, e saem quando o perigo passa. Só vale se houver um Chunin ou acima na vila para defender; uma ordem sua (atacar, mover) sempre manda.`,
-    )}>{ninja} Proteger novatos: ${on ? 'ligado' : 'desligado'}</button></div>`;
-  }
-
   /** Equipar todos com o estoque agora, e o modo automático (passa sozinho o que for sendo fabricado). */
   private gearBar(compact = false) {
     const on = !!this.app.game.state.flags.autoGear;
@@ -1132,10 +1126,40 @@ export class Panel {
   }
 
   /** Barra de abas do grupo de telas da view (Ninjas/Equipes/Clãs ou Vila/Kage/Estatísticas). */
-  private tabs(active: View['kind']) {
-    const tabs = WINDOW_TABS[TAB_GROUP[active] ?? ''];
+  /**
+   * Topo das janelas com abas: título do grupo, etiquetas com os números do grupo, ações à direita e as abas
+   * sublinhadas. Fica preso no alto ao rolar.
+   */
+  private tabs(active: View['kind'], right = '') {
+    const group = TAB_GROUP[active] ?? '';
+    const tabs = WINDOW_TABS[group];
     if (!tabs) return '';
-    return `<div class="seg tabs">${tabs.map(([k, label]) => `<button data-act="tab" data-arg="${k}" class="${active === k ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+    return this.winTop(GROUP_TITLE[group] ?? '', this.groupChips(group), right, tabs.map(([k, label]) => [k, label, active === k, 'tab']));
+  }
+
+  /** Cabeçalho + abas (usado pelas janelas com grupo e pelo quadro de missões). */
+  private winTop(title: string, chips: string, right: string, tabs: [string, string, boolean, string][]) {
+    return `<div class="wtop"><div class="mhead"><div class="mh-title">${title}</div>${chips}${right ? `<span class="mh-right">${right}</span>` : ''}</div>
+      <div class="mtabs">${tabs.map(([k, label, on, act]) => `<button data-act="${act}" data-arg="${k}" class="${on ? 'on' : ''}">${label}</button>`).join('')}</div></div>`;
+  }
+
+  /** Números de cada grupo de janelas, em etiquetas no cabeçalho. */
+  private groupChips(group: string) {
+    const g = this.app.game;
+    const s = g.state;
+    const chip = (ic: string, text: string, cls = '') => `<span class="mchip ${cls}">${ic} ${text}</span>`;
+    if (group === 'ninjas') {
+      const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
+      const hurt = ninjas.filter((u) => u.hp < u.maxHp * 0.6).length;
+      return chip('{ninja}', `${ninjas.length} ninjas`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
+    }
+    if (group === 'village')
+      return chip('{star}', `Nível ${s.level + 1}`, 'gold') + chip('{users}', `População ${g.population()}/${g.popCap()}`) + chip('{smile}', `Felicidade ${Math.round(s.happiness)}`) + chip('{sun}', `Dia ${s.day}`);
+    if (group === 'world') {
+      const exps = s.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost').length;
+      return chip('{star}', `Honra ${s.honor}`, 'gold') + chip('{skull}', `Infâmia ${s.infamy}`, s.infamy ? 'bad' : '') + chip('{flag}', `Expedições ${exps}`);
+    }
+    return '';
   }
 
   /** Nível do prédio, o que o próximo nível dá e o botão de upgrade (ou a obra em andamento). */
@@ -1482,20 +1506,21 @@ export class Panel {
       const tm = recommendTeam(g, m);
       return !!tm && teamPower(g, tm) >= missionPower(m);
     });
-    let html = `<div class="mhead"><div class="mh-title">{clipboard} Quadro de missões</div>
-      <span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star} Reputação ${g.state.reputation}</span>
+    const chips = `<span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star} Reputação ${g.state.reputation}</span>
       <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{todo} ${g.state.stats.missionsDone} cumpridas</span>
-      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh} Em andamento ${active.length}/${max}</span>
-      <button class="btn primary mh-auto" data-act="m-auto" ${blocked(g, [full && 'Limite de missões simultâneas atingido.', !full && !canAuto && 'Nenhuma equipe livre dá conta das missões do quadro.'])} ${tipAttr('Auto designar', 'Das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que ainda dá conta (poupa as fortes). Só envia com risco Seguro ou Favorável.')}>{users} Auto designar</button></div>`;
+      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh} Em andamento ${active.length}/${max}</span>`;
+    const auto = `<button class="btn primary" data-act="m-auto" ${blocked(g, [full && 'Limite de missões simultâneas atingido.', !full && !canAuto && 'Nenhuma equipe livre dá conta das missões do quadro.'])} ${tipAttr('Auto designar', 'Das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que ainda dá conta (poupa as fortes). Só envia com risco Seguro ou Favorável.')}>{users} Auto designar</button>`;
     const tabs: [MissionTab, string, string, number][] = [
       ['active', '{swords}', 'Ativas', active.length],
       ['offered', '{scroll}', 'Disponíveis', offered.length],
       ['recent', '{hourglass}', 'Recentes', ended.length],
     ];
-    html += `<div class="mtabs">${tabs
-      .filter(([k]) => !(wide && k === 'active'))
-      .map(([k, ic, label, n]) => `<button data-act="m-tab" data-arg="${k}" class="${tab === k ? 'on' : ''}">${ic} ${label}${k === 'recent' ? '' : ` (${n})`}</button>`)
-      .join('')}</div>`;
+    let html = this.winTop(
+      '{clipboard} Quadro de missões',
+      chips,
+      auto,
+      tabs.filter(([k]) => !(wide && k === 'active')).map(([k, ic, label, n]) => [k, `${ic} ${label}${k === 'recent' ? '' : ` (${n})`}`, tab === k, 'm-tab']),
+    );
     let main = '';
     if (tab === 'active') {
       const list = this.activeContracts(active, t, b);
@@ -1635,14 +1660,14 @@ export class Panel {
       sannin: ['Sannin', (u) => !!u.ninja!.sannin],
       kage: ['Kage', (u) => u.ninja!.rank === 'kage'],
     };
-    // filtros: só mostra os que têm alguém (e o escolhido, mesmo vazio, para poder voltar)
-    html += `<div class="rfilters"><div class="chips rchips">`;
+    // filtros (os de status só aparecem com alguém; os de graduação sempre) e a ordem, numa faixa
+    html += `<div class="rfilters"><div class="fchips">`;
     for (const [k, [label, fn]] of Object.entries(tests) as [RosterFilter, [string, (u: Unit) => boolean]][]) {
       const n = ninjas.filter(fn).length;
       if (!n && k !== this.rosterFilter && k !== 'all' && !RANK_FILTERS.includes(k)) continue;
-      html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''}">${label} <small>${n}</small></button>`;
+      html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''} ${k === 'hurt' ? 'bad' : ''}">${label} <small>${n}</small></button>`;
     }
-    html += `</div><div class="seg rsort"><span class="lbl">Ordenar</span>`;
+    html += `</div><div class="fchips rsort"><span class="lbl">{refresh} Ordenar</span>`;
     for (const [k, label, tip] of ROSTER_SORTS)
       html += `<button data-act="r-sort" data-arg="${k}" class="${this.rosterSort === k ? 'on' : ''}" ${tipAttr(label, tip)}>${label}</button>`;
     html += `</div></div>`;
@@ -1655,13 +1680,66 @@ export class Panel {
       name: (a, z) => a.name.localeCompare(z.name, 'pt-BR'),
     };
     const list = ninjas.filter(tests[this.rosterFilter][1]).sort(by[this.rosterSort]);
-    html += this.gearBar() + this.rookieBar() + this.teachBar();
-    html += `<p class="hint">${list.length} de ${ninjas.length} ninja(s). Toque para selecionar.</p>`;
+    html += this.rosterTools();
     if (!list.length) html += `<p class="hint">Nenhum ninja neste filtro.</p>`;
-    html += `<div class="roster">`;
-    for (const u of list) html += this.ninjaRow(u, t, b);
+    html += `<div class="ncards">`;
+    for (const u of list) html += this.ninjaCard(u, t, b, onMission);
     html += `</div>`;
     return { html, t, b };
+  }
+
+  /** Faixa de ações em lote da lista de ninjas: equipar, ensinar e os automáticos (chave liga/desliga). */
+  private rosterTools() {
+    const g = this.app.game;
+    const f = g.state.flags;
+    const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && !u.ninja.learning && u.ninja.jutsu.includes(null)).length;
+    const tog = (act: string, on: boolean, label: string, title: string, tip: string) =>
+      `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
+    return `<div class="wtools">
+      <button class="btn primary" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar todos</button>
+      ${tog('gear-auto', !!f.autoGear, '{gear} Auto-equipar', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}
+      ${tog('rookies', !!f.shelterRookies, '{shield} Proteger novatos', 'Proteger novatos', `Ligado: Genins fogem para casa (ou para o Hospital) quando chega um inimigo ${CARE.danger}× mais forte que eles, e saem quando o perigo passa. Só vale se houver um Chunin ou acima na vila para defender; uma ordem sua sempre manda.`)}
+      <button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr('Ensinar todos agora', 'Cada ninja com espaço livre vai estudar o melhor jutsu que pode aprender (pela natureza, rank e atributos dele). Paga o ryo de cada jutsu.')}>{books} Ensinar todos (${free})</button>
+      ${tog('auto-teach', !!f.autoTeach, '{scroll} Ensino automático', 'Ensino automático', `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`)}
+    </div>`;
+  }
+
+  /** Cartão de ninja da janela: retrato, graduação, nível, vida e chakra, equipe, jutsus e o que está fazendo. */
+  private ninjaCard(u: Unit, t: Record<string, string>, b: Record<string, number>, onMission: Set<number | null>) {
+    const g = this.app.game;
+    const n = u.ninja!;
+    const nat = NATURES[n.nature];
+    const team = teamOf(g, u);
+    const js = n.jutsu.filter(Boolean).map((id) => JUTSUS[id!]!.shout.replace('!', '')).join(', ') || 'sem jutsu';
+    b[`hp${u.id}`] = u.hp / u.maxHp;
+    b[`ck${u.id}`] = u.chakra / Math.max(1, u.maxChakra);
+    t[`hpt${u.id}`] = `${Math.ceil(u.hp)}/${u.maxHp}`;
+    t[`ckt${u.id}`] = `${Math.floor(u.chakra)}/${u.maxChakra}`;
+    const rank = n.sannin ? 'sannin' : n.rank;
+    const rankLabel = n.sannin ? 'Sannin' : RANKS[n.rank].name;
+    const [stLabel, stIc, stCls] = this.ninjaStatus(u, team && onMission.has(team.id));
+    const pic = unitPortrait(u, true);
+    return `<button class="ncard" data-act="pick" data-arg="${u.id}" ${team ? `style="--c:${team.color}"` : ''}>
+      <span class="nc-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : `<span class="face none" style="--c:${u.look?.cloth ?? '#888'}"></span>`}</span>
+      <span class="nc-main"><span class="nc-name">${esc(u.name)}</span>
+        <span class="nc-badges"><span class="rbadge r-${rank}">${RANK_BADGE_ICON[rank] ?? ''} ${rankLabel}</span><span class="lvbadge">Nv ${n.level}</span><span class="badge nat" style="--c:${nat.color}">${nat.kanji}</span></span>
+        <span class="nc-bar hp"><i data-b="hp${u.id}"></i></span><span class="nc-num" data-t="hpt${u.id}"></span>
+        <span class="nc-bar ck"><i data-b="ck${u.id}"></i></span><span class="nc-num" data-t="ckt${u.id}"></span></span>
+      <span class="nc-line">${team ? `<span class="dot"></span>${esc(team.name)}` : `<span class="dot" style="--c:#666"></span>Sem equipe`}</span>
+      <span class="nc-line">{kunai} ${esc(js)}</span>
+      <span class="mpill ${stCls}">${stIc} ${stLabel}</span></button>`;
+  }
+
+  /** O que o ninja está fazendo, com ícone e cor (para o selo do cartão). */
+  private ninjaStatus(u: Unit, mission: boolean | undefined): [string, string, string] {
+    if (u.away != null) return ['Fora da vila', '{map}', 'good'];
+    if (mission) return ['Em missão', '{clipboard}', 'good'];
+    if (u.hp < u.maxHp * 0.6) return ['Ferido', '{medic}', 'danger'];
+    if (u.ninja?.learning) return ['Estudando', '{books}', 'info'];
+    const label = STATE_LABEL[u.state] ?? u.state;
+    if (u.state === 'train') return [label, '{dummy}', 'safe'];
+    if (u.state === 'fight' || u.state === 'attack' || u.state === 'engage') return [label, '{swords}', 'risky'];
+    return [label, '{house}', 'info'];
   }
 
   private ninjaRow(u: Unit, t: Record<string, string>, b: Record<string, number>, extra = '') {

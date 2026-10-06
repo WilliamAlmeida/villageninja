@@ -607,3 +607,71 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   .mchip { padding: 0.22rem 0.45rem; font-size: 0.8rem; }
 }
 .mactives { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: 0 0.55rem; }
+
+/* ---------- topo comum das janelas: título, etiquetas, ações e abas sublinhadas (preso ao rolar) ---------- */
+#win .wtop { position: sticky; top: -0.9rem; z-index: 2; margin: -0.9rem -1.1rem 0.7rem; padding: 0.75rem 1.1rem 0; background: var(--bg2); border-radius: 1rem 1rem 0 0; }
+#win .wtop .mtabs { margin-bottom: 0; }
+.mh-right { margin-left: auto; display: flex; gap: 0.4rem; align-items: center; }
+.mchip.bad { color: var(--bad); border-color: rgba(255, 90, 90, 0.4); background: rgba(255, 90, 90, 0.07); }
+.mpill.info { color: #7cc4ff; border-color: rgba(124, 196, 255, 0.5); background: rgba(124, 196, 255, 0.08); }
+@media (max-height: 520px) { #win .wtop { border-radius: 0; padding-top: 0.55rem; } }
+
+/* filtros e ordem em etiquetas finas */
+.rfilters { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.8rem; margin-bottom: 0.55rem; }
+.fchips { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.fchips button { padding: 0.3rem 0.6rem; border-radius: 0.5rem; background: var(--card); border: 1px solid var(--line); font-size: 0.85rem; color: var(--text); }
+.fchips button small { opacity: 0.65; margin-left: 0.15rem; }
+.fchips button.on { border-color: var(--accent); color: var(--accent); background: rgba(255, 138, 43, 0.1); font-weight: 700; }
+.fchips button.bad:not(.on) { color: #ff9a9a; }
+.fchips .lbl { color: var(--muted); font-size: 0.85rem; display: inline-flex; gap: 0.25rem; align-items: center; margin-right: 0.15rem; }
+.rsort { margin-left: auto; }
+
+/* ações em lote: botões com chave liga/desliga */
+.wtools { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.65rem; }
+.wtools .btn { padding: 0.5rem 0.85rem; }
+.btn.tog { background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.btn.tog .sw { position: relative; width: 1.9rem; height: 1.05rem; border-radius: 999px; background: rgba(255, 255, 255, 0.14); margin-left: 0.2rem; flex: 0 0 auto; transition: background 0.15s; }
+.btn.tog .sw::after { content: ""; position: absolute; top: 0.15rem; left: 0.15rem; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: #d8cbb6; transition: transform 0.15s; }
+.btn.tog.on { box-shadow: inset 0 0 0 1px rgba(94, 224, 94, 0.45); }
+.btn.tog.on .sw { background: #3e9a3e; }
+.btn.tog.on .sw::after { transform: translateX(0.85rem); background: #fff; }
+
+/* cartões de ninja */
+.ncards { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: 0.55rem; }
+.ncard { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 0.25rem 0.6rem; padding: 0.55rem 0.6rem 0.6rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); text-align: left; align-content: start; }
+.ncard:hover { background: var(--card-hi); }
+.nc-face { grid-row: span 1; width: 4.6rem; height: 4.6rem; border-radius: 0.55rem; background: rgba(0, 0, 0, 0.28); border: 1px solid var(--line); display: grid; place-items: end center; overflow: hidden; }
+.nc-face img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.nc-face .face.none { width: 2rem; height: 2rem; align-self: center; }
+.nc-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.12rem 0.4rem; align-items: center; align-content: start; }
+.nc-name { grid-column: 1 / -1; font-weight: 800; font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nc-badges { grid-column: 1 / -1; display: flex; gap: 0.25rem; flex-wrap: wrap; margin-bottom: 0.15rem; }
+.rbadge, .lvbadge { font-size: 0.76rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 0.4rem; display: inline-flex; align-items: center; gap: 0.2rem; border: 1px solid var(--line); white-space: nowrap; }
+.rbadge .ic { width: 0.85rem; height: 0.85rem; }
+.rbadge.r-genin { color: #9fe08a; border-color: rgba(159, 224, 138, 0.45); }
+.rbadge.r-chunin { color: #c9a6ff; border-color: rgba(201, 166, 255, 0.45); }
+.rbadge.r-jounin { color: var(--warn); border-color: rgba(255, 211, 77, 0.5); }
+.rbadge.r-sannin { color: #ff7a7a; border-color: rgba(255, 122, 122, 0.55); }
+.rbadge.r-kage { color: var(--accent); border-color: rgba(255, 138, 43, 0.6); background: rgba(255, 138, 43, 0.1); }
+.nc-bar { height: 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+.nc-bar i { display: block; height: 100%; width: 100%; transform-origin: left; border-radius: 999px; }
+.nc-bar.hp i { background: var(--good); }
+.nc-bar.ck i { background: #4da6ff; }
+.nc-num { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; min-width: 3.6rem; }
+.nc-line { grid-column: 1 / -1; font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid var(--line); padding-top: 0.25rem; }
+.nc-line .dot { margin-right: 0; }
+.ncard .mpill { grid-column: 1 / -1; justify-self: center; min-width: 60%; justify-content: center; margin-top: 0.15rem; padding: 0.25rem 0.6rem; }
+@media (max-height: 520px) {
+  .ncards { grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+  .ncard { grid-template-columns: 3.6rem minmax(0, 1fr); }
+  .nc-face { width: 3.6rem; height: 3.6rem; }
+}
+/* celular deitado: filtros, ordem e ações numa linha só, rolando para o lado */
+@media (max-height: 520px) {
+  .rfilters, .wtools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+  .rfilters::-webkit-scrollbar, .wtools::-webkit-scrollbar { display: none; }
+  .rfilters .fchips { flex-wrap: nowrap; flex: 0 0 auto; }
+  .rfilters .fchips button, .wtools .btn { flex: 0 0 auto; white-space: nowrap; }
+  .rsort { margin-left: 0; }
+  .wtools { margin-bottom: 0.5rem; }
+}
