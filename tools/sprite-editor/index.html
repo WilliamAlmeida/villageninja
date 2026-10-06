@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Editor de sprites — Vila Ninja</title>
+    <link rel="stylesheet" href="./editor.css" />
+  </head>
+  <body>
+    <header class="top">
+      <b class="brand">Editor de sprites</b>
+      <nav class="seg" id="mode">
+        <button data-mode="doll" class="on">Ninja montado</button>
+        <button data-mode="file">Arquivo</button>
+      </nav>
+      <span class="grow"></span>
+      <span id="status" class="status"></span>
+      <button id="undo" title="Desfazer (Ctrl+Z)">Desfazer</button>
+      <button id="redo" title="Refazer (Ctrl+Y)">Refazer</button>
+      <button id="save" class="primary" title="Salvar em src/art (Ctrl+S)">Salvar</button>
+    </header>
+
+    <main class="cols">
+      <aside class="side" id="left">
+        <section id="dollPanel">
+          <h3>Ninja</h3>
+          <label>Patente</label>
+          <div class="chips" id="rank"></div>
+          <label>Penteado</label>
+          <div class="chips" id="hair"></div>
+          <label class="check"><input type="checkbox" id="suiton" /> Natureza Suiton (espada do Zabuza em Jounin/Sannin)</label>
+          <div class="colors">
+            <label>Roupa <input type="color" id="cCloth" value="#2d4a9a" /></label>
+            <label>Cabelo <input type="color" id="cHair" value="#f2c94c" /></label>
+            <label>Pele <input type="color" id="cSkin" value="#f1c79a" /></label>
+          </div>
+          <button id="randomize">Cores aleatórias</button>
+          <h3>Camadas <small>(de baixo para cima)</small></h3>
+          <ul id="layers" class="layers"></ul>
+          <h3>Chamada das peças</h3>
+          <pre id="call" class="call"></pre>
+        </section>
+        <section id="filePanel" hidden>
+          <h3>Arquivos de src/art</h3>
+          <input id="filter" placeholder="Filtrar (ex.: layer, ninja, org)" />
+          <ul id="files" class="files"></ul>
+          <div class="grid2">
+            <label>Colunas <input type="number" id="fCols" min="1" max="16" value="4" /></label>
+            <label>Linhas <input type="number" id="fRows" min="1" max="16" value="3" /></label>
+          </div>
+        </section>
+      </aside>
+
+      <section class="center">
+        <div class="toolbar">
+          <div class="seg" id="tools">
+            <button data-tool="pencil" class="on" title="Lápis (B)">Lápis</button>
+            <button data-tool="eraser" title="Borracha (E)">Borracha</button>
+            <button data-tool="picker" title="Conta-gotas (I)">Conta-gotas</button>
+            <button data-tool="move" title="Mover a camada no quadro (M); setas movem 1 px">Mover</button>
+          </div>
+          <label class="check"><input type="checkbox" id="moveRow" /> mover a vista toda (4 quadros)</label>
+          <span class="grow"></span>
+          <label class="check"><input type="checkbox" id="grid" checked /> grade</label>
+          <label class="check"><input type="checkbox" id="focus" /> destacar camada</label>
+          <label class="check"><input type="checkbox" id="onion" /> quadro anterior</label>
+          <label class="check"><input type="checkbox" id="raw" /> cores-chave</label>
+        </div>
+        <div class="frames">
+          <div class="seg" id="rows"></div>
+          <div class="seg" id="colsSel"></div>
+          <span class="hint" id="pos"></span>
+        </div>
+        <div class="stage" id="stageWrap"><canvas id="stage"></canvas></div>
+        <div class="palette" id="palette"></div>
+        <p class="hint">Roda do mouse: zoom · botão do meio/espaço+arrastar: rolar · 1/2/3: vista · ,/.: quadro anterior/próximo · Alt+clique: conta-gotas</p>
+      </section>
+
+      <aside class="side" id="right">
+        <h3>Animação</h3>
+        <div class="seg" id="animMode">
+          <button data-anim="walk" class="on">Andando</button>
+          <button data-anim="idle">Parado</button>
+        </div>
+        <canvas id="anim"></canvas>
+        <h3 id="ingameTitle">Tamanho no jogo <small>(zoom 1× e 2,5×)</small></h3>
+        <canvas id="ingame"></canvas>
+        <h3>Folha inteira <small>(clique para escolher o quadro)</small></h3>
+        <canvas id="sheet"></canvas>
+      </aside>
+    </main>
+    <script type="module" src="./editor.ts"></script>
+  </body>
+</html>

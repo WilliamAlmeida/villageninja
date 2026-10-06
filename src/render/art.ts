@@ -1,6 +1,7 @@
 // Arte em pixel art (PNG pequenos em src/art, gerados por IA e preparados por scripts/prepare-art.py).
 // Cada desenho procedural tenta primeiro a imagem; sem ela (ou com a arte desligada no menu,
 // ou fora do navegador) cai no desenho antigo.
+import { DOLL_FRAME_PAD, type DollPart, hex, hsv, tintPixels } from './doll';
 import hokage from '../art/hokage.png';
 import house from '../art/house.png';
 import lumber from '../art/lumber.png';
@@ -212,7 +213,7 @@ const size = (img: Pic) => (img instanceof HTMLImageElement ? { w: img.naturalWi
 
 export const artFrames = (img: Pic) => (SHEETS.has(img.dataset.name ?? '') ? SHEET : { frames: 1, rows: 1, idle: 0 });
 /** Folhas com folga em cima do quadro (cabelo alto, chapéu): a altura pedida vale para o corpo, o quadro é maior. */
-const FRAME_PAD: Record<string, number> = { 'ninja-body': 80 / 56 };
+const FRAME_PAD: Record<string, number> = { 'ninja-body': DOLL_FRAME_PAD };
 
 /**
  * Desenha a imagem (ou o quadro `frame` da linha `row` de uma folha) com a base centrada em (x, baseY), na altura pedida.
@@ -235,16 +236,6 @@ export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, base
 
 // ------------------------------------------------------------------ recoloração ("paper doll")
 const tinted = new Map<string, HTMLCanvasElement>();
-
-const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)) as [number, number, number];
-
-function hsv(r: number, g: number, b: number) {
-  const max = Math.max(r, g, b);
-  const d = max - Math.min(r, g, b);
-  let h = 0;
-  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return { h: (h * 60 + 360) % 360, s: max ? d / max : 0, v: max / 255 };
-}
 
 /**
  * Folha recolorida: troca as cores-chave da base (cabelo verde, roupa azul) e o tom de pele pelas cores pedidas,
@@ -286,19 +277,11 @@ export function tintedArt(name: string, colors: { hair: string; cloth: string; s
 }
 
 // ------------------------------------------------------------------ ninja em camadas
-/** Uma peça da montagem: a arte (`ninja-body` ou `layer-*`), a cor da chave principal e a da segunda chave (amarelo). */
-export interface DollPart {
-  name: string;
-  color?: string;
-  color2?: string;
-}
 const dolls = new Map<string, HTMLCanvasElement>();
-const METAL: [number, number, number] = [150, 158, 172];
 
 /**
- * Monta o ninja desenhando as peças uma por cima da outra, cada uma recolorida: no corpo só a pele; nas peças o
- * magenta (roupa) e o verde (cabelo) viram a cor da peça, o amarelo a segunda cor e o ciano vira metal. Mantém o sombreado (brilho relativo).
- * Fica em cache por combinação. Sem o corpo carregado, null (o jogo usa a folha antiga).
+ * Monta o ninja desenhando as peças uma por cima da outra, cada uma recolorida (`tintPixels`, doll.ts). Fica em cache
+ * por combinação. Sem o corpo carregado, null (o jogo usa a folha antiga).
  */
 export function dollArt(parts: DollPart[], skin: string): HTMLCanvasElement | null {
   const key = `${parts.map((p) => `${p.name}:${p.color ?? ''}:${p.color2 ?? ''}`).join('+')}|${skin}`;
@@ -315,32 +298,13 @@ export function dollArt(parts: DollPart[], skin: string): HTMLCanvasElement | nu
   tmp.width = c.width;
   tmp.height = c.height;
   const tx = tmp.getContext('2d', { willReadFrequently: true })!;
-  const sk = hex(skin);
   for (const [i, p] of parts.entries()) {
     const img = art(p.name);
     if (!img) continue;
     tx.clearRect(0, 0, tmp.width, tmp.height);
     tx.drawImage(img, 0, 0);
     const data = tx.getImageData(0, 0, tmp.width, tmp.height);
-    const px = data.data;
-    const col = p.color ? hex(p.color) : null;
-    const col2 = p.color2 ? hex(p.color2) : col;
-    for (let j = 0; j < px.length; j += 4) {
-      if (px[j + 3]! < 10) continue;
-      const { h, s, v } = hsv(px[j]!, px[j + 1]!, px[j + 2]!);
-      let to: [number, number, number] | null = null;
-      let mid = 1;
-      if (i === 0) {
-        if (h >= 10 && h <= 45 && s > 0.12 && s < 0.65 && v > 0.55) [to, mid] = [sk, 0.96];
-      } else if (s > 0.35) {
-        if (col && ((h >= 280 && h <= 330) || (h >= 85 && h <= 165))) [to, mid] = [col, h < 200 ? 0.8 : 1];
-        else if (h >= 170 && h <= 200) to = METAL;
-        else if (col2 && h >= 48 && h <= 72 && s > 0.5) to = col2;
-      }
-      if (!to) continue;
-      const k = v / mid;
-      for (let q = 0; q < 3; q++) px[j + q] = k <= 1 ? to[q]! * k : to[q]! + (255 - to[q]!) * Math.min(1, k - 1);
-    }
+    tintPixels(data.data, p, i === 0, skin);
     tx.putImageData(data, 0, 0);
     ctx.drawImage(tmp, 0, 0);
   }

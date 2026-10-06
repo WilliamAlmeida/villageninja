@@ -8,7 +8,8 @@
 # lugar, então não dá para subtrair o molde: fica só a cor-chave, e cada quadro é encaixado no molde procurando a
 # escala e a posição em que as cores coincidem. A peça sai na mesma grade do corpo (uma camada por cima da outra).
 #
-#   python scripts/prepare-layers.py               extrai todas as peças que já têm imagem gerada
+#   python scripts/prepare-layers.py [--force]     extrai todas as peças que já têm imagem gerada (as editadas à mão
+#                                                  no editor de sprites ficam, a não ser com --force)
 #   python scripts/prepare-layers.py tpl <peça>    grava os moldes da peça (docs/arte/layers/tpl-<peça>[-side].png)
 #   bash scripts/layer-pieces.sh <peça>            gera a peça no Codex (folha inteira + vista de lado 2×2)
 #   python scripts/preview-layers.py               prévia recolorida
@@ -26,6 +27,7 @@ COLS, ROWS = 4, 3
 BASE = OUT / 'ninja-base.png'
 BODY = OUT / 'ninja-body.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
 PAD, PADX = 24, 18
+EDITS = OUT / 'layer-edits.json'  # camadas editadas à mão no editor de sprites (scripts/editor.ts): não refazer
 
 # peça → (tipo, peças de baixo no molde, cor neutra da peça no molde de quem vem depois [, segunda cor])
 # As três primeiras foram geradas sobre o corpo puro (antes dos moldes em camadas).
@@ -234,8 +236,15 @@ def side_cells(path):
     return [im.crop(((c % 2) * w, (c // 2) * h, (c % 2 + 1) * w, (c // 2 + 1) * h)) for c in range(COLS)]
 
 
+def edited():
+    import json
+    return set(json.loads(EDITS.read_text())) if EDITS.exists() else set()
+
+
 def body_sheet():
     """Corpo-base com folga em cima e dos lados de cada quadro."""
+    if BODY.name in edited() and '--force' not in sys.argv:
+        return
     raw = Image.open(BASE).convert('RGBA')
     rh, rw = raw.height // ROWS, raw.width // COLS
     base = Image.new('RGBA', ((rw + 2 * PADX) * COLS, (rh + PAD) * ROWS), (0, 0, 0, 0))
@@ -331,7 +340,11 @@ if __name__ == '__main__':
         for n in sys.argv[2:]:
             templates(n)
     else:
+        names = [a for a in sys.argv[1:] if not a.startswith('--')]
         for n in PIECES:  # em ordem: as de baixo antes (o molde das de cima usa as camadas já extraídas)
-            if len(sys.argv) > 1 and n not in sys.argv[1:]:
+            if names and n not in names:
+                continue
+            if f'layer-{n}.png' in edited() and '--force' not in sys.argv:
+                print(f'layer-{n}.png editada à mão no editor: mantida (use --force para refazer)')
                 continue
             extract(n)

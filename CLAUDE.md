@@ -46,6 +46,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   sobretudo de Sannin (cor por caminho), manto e chapéu de Kage (Kage = base careca com chapéu), espada do Zabuza
   (Jounin/Sannin de Suiton). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
   Penteado sem camada ainda (`DOLL_HAIR`) segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
+  Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
+- **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011 (`bun run editor` ou PM2
+  `villageninja-editor`; `scripts/editor.ts` + `tools/sprite-editor/`). Só escuta em 127.0.0.1, fora do túnel. Monta o
+  ninja por patente/penteado/cores igual ao jogo, mostra a animação (lado nos dois sentidos, frente, costas), o tamanho
+  real no jogo e a folha inteira; edita pixel (lápis, borracha, conta-gotas, cores-chave) e move uma camada num quadro
+  ou na vista toda (setas = 1 px), com desfazer. Modo "Arquivo" abre qualquer PNG de src/art. Salvar grava em src/art
+  (cópia do anterior em docs/arte/backup-editor/); camada editada à mão entra em `src/art/layer-edits.json` e o
+  `prepare-layers.py` não a refaz (só com `--force`).
 - Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
 - Moradores trabalhando usam folhas de ação (`villager-chop|mine|farm`, gabarito `action`: levanta · balança · impacto ·
   recupera); árvore vira toco e rocha racha conforme se esgotam; colheita deixa um canteiro (`fx 'harvest'`) que rebrota.
