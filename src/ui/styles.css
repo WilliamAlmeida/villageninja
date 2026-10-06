@@ -1568,3 +1568,23 @@ h4::after { background: var(--line); opacity: 0.6; }
   #win .wtop { padding: 0.5rem 3rem 0.5rem 0.8rem; margin-bottom: 0.6rem; }
   .kfill .om-bust { top: 50%; transform: translateY(-40%); }
 }
+
+/* ===== padrões de botão ===== */
+/* custo dentro do botão, à direita */
+.btn .bcost { margin-left: auto; padding: 0.1rem 0.45rem; border-radius: 0.4rem; background: rgba(0, 0, 0, 0.25); font-size: 0.82em; font-weight: 800; white-space: nowrap; display: inline-flex; gap: 0.25rem; align-items: center; }
+.btn.primary .bcost { background: rgba(60, 25, 0, 0.22); }
+.btn:has(.bcost) { gap: 0.6rem; }
+/* linhas de botões seguidas sempre com espaço entre si (space-y) */
+.btnrow + .btnrow, .actions + .btnrow, .btnrow + .actions, .actions + .actions, .wtools + .wtools, .btnrow + .wtools, .wtools + .btnrow { margin-top: 0.5rem; }
+.bsec .wtools { margin-bottom: 0; gap: 0.5rem; }
+.bsec .wtools + .hint { margin-top: 0.5rem; }
+/* chave liga/desliga também no painel lateral */
+#panel .wtools { gap: 0.45rem; }
+#panel .wtools .btn { flex: 1 1 auto; justify-content: center; }
+.wtools.workshop-bar { display: grid; grid-template-columns: 1fr 1fr; margin-top: 0.45rem; }
+/* arte do prédio no topo do painel: dentro da caixa (não invade o texto de baixo) */
+.bh-art { overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
+.bh-art .pim, .bh-art img { width: auto; height: 100%; max-width: 100%; object-fit: contain; }
+/* Sannin: busto inteiro reduzido (não cortado), bilinear (sem os pontinhos brancos do contorno) */
+.kfill .sc-who .pim, .kfill .sc-who .skel { object-fit: contain; object-position: bottom center; inset: auto 0 0 0; height: 92%; image-rendering: auto; }
+.sc-who .pim, .face, .k-face .pim, .sc-beast .pim, .om-bust { image-rendering: auto; }

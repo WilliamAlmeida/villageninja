@@ -21,7 +21,7 @@ import { doorPos, tileCenter } from '../game/world';
 import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
-import { RES_INFO, RES_KEYS } from '../data/resources';
+import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
 import { guardiansOf, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
@@ -71,6 +71,7 @@ import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { atlasCell, rich } from './icons';
+import { morph } from './morph';
 import { blocked, blockedClick, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
@@ -166,6 +167,15 @@ function perkArt(perk: string): string {
   if (l.includes('ameaça') || l.includes('invas') || l.includes('chefe')) return 'perk-threat';
   return 'perk-buildings';
 }
+/**
+ * Padrões de botão do jogo:
+ * - liga/desliga: rótulo curto e o estado na chave (`togBtn`), nunca "ligado/desligado" escrito;
+ * - ações em lote: verbo curto com a contagem entre parênteses ("Ensinar (4)"), a explicação vai na dica;
+ * - custo: etiqueta dentro do botão, à direita (`costTag`), sem parênteses.
+ */
+const togBtn = (act: string, on: boolean, label: string, title: string, tip: string, arg = '') =>
+  `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${arg ? `data-arg="${arg}"` : ''} ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
+const costTag = (cost: Partial<Record<ResKey, number>>) => `<small class="bcost">${costLabel(cost)}</small>`;
 const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{crown}' };
 const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
@@ -209,6 +219,8 @@ export class Panel {
   private teamFrom: View | null = null;
   private view: View | null = null;
   private lastHtml = '';
+  /** Dedo/mouse apertado dentro do painel: segura as trocas de estrutura até soltar. */
+  private pressing = false;
   private armedDemolish = 0;
   /** Aba do painel do ninja (mantida ao trocar de ninja). */
   private unitTab: UnitTab = 'info';
@@ -259,7 +271,17 @@ export class Panel {
       this.setHover(row ? Number(row.dataset.arg) : null);
     });
     this.root.addEventListener('pointerleave', () => this.setHover(null));
-    this.root.addEventListener('pointerdown', (e) => e.stopPropagation());
+    this.root.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.pressing = true;
+    });
+    const release = () => {
+      if (!this.pressing) return;
+      // solta um instante depois: o click (que vem depois do pointerup) ainda acha o mesmo botão
+      setTimeout(() => (this.pressing = false), 60);
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
   }
 
   get isOpen() {
@@ -340,10 +362,14 @@ export class Panel {
       this.show(null);
       return;
     }
-    if (built.html !== this.lastHtml) {
-      this.body.innerHTML = rich(built.html);
+    // estrutura mudou: aplica só a diferença (morph), e nunca com o dedo/mouse apertado no painel (o clique valeria
+    // num botão que acabou de ser trocado); a atualização espera soltar
+    if (built.html !== this.lastHtml && !this.pressing) {
+      const first = !this.body.firstChild;
+      if (first) this.body.innerHTML = rich(built.html);
+      else morph(this.body, rich(built.html));
       this.lastHtml = built.html;
-      this.frame(this.lastTime); // o canvas do interior é recriado junto: redesenha já
+      this.frame(this.lastTime); // o canvas do interior pode ter sido recriado: redesenha já
     }
     for (const [k, v] of Object.entries(built.t)) {
       const e = this.body.querySelector<HTMLElement>(`[data-t="${k}"]`);
@@ -927,7 +953,7 @@ export class Panel {
       }
       if (d.housing) {
         const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
-        html += `<h4>Moradia</h4><p class="hint"><span data-t="res"></span> moradores</p>`;
+        html += `<div class="bsec"><h4>{house} Moradia</h4><div class="bslots"><b data-t="res"></b><span>moradores</span></div></div>`;
         t.res = `${residents} / ${housingOf(bd)}`;
       }
       if (bd.type === 'kennel') html += this.kennelSection();
@@ -938,15 +964,15 @@ export class Panel {
       if (bd.type === 'market') {
         html += this.marketSection(bd) + this.rareSection();
         html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
-        html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender 1 (+${GOLD_PRICE}{ryo})</button>
+        html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>{gold} Vender 1 <small class="bcost">+${GOLD_PRICE}{ryo}</small></button>
           <button class="btn" data-act="sell-gold" data-arg="all" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender tudo</button></div>`;
       }
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
-        html += `<h4>Recrutamento</h4><p class="hint">Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.</p>`;
-        html += `<div class="actions"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ninja (${costLabel(RECRUIT_COST)})</button></div>`;
-        html += this.teachBar();
-        html += `<p class="hint">Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".</p>`;
+        html += `<div class="bsec"><h4>{userplus} Recrutamento</h4><p class="hint">Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.</p>
+          <div class="wtools"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ${costTag(RECRUIT_COST)}</button></div></div>`;
+        html += `<div class="bsec"><h4>{books} Ensino</h4><div class="wtools">${this.teachBar()}</div>
+          <p class="hint">Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".</p></div>`;
       }
       if (bd.type === 'training') html += this.fieldSection(bd, t);
       if (d.healRate) html += `<p class="hint">Cura ${d.healRate} HP/s de quem descansa aqui.</p>`;
@@ -994,19 +1020,15 @@ export class Panel {
     return html;
   }
 
-  /** Ensino de jutsus: todos de uma vez agora e o modo automático. */
+  /** Ensino de jutsus: ensinar agora quem tem espaço livre e o modo automático. */
   private teachBar() {
     const g = this.app.game;
     const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && !u.ninja.learning && u.ninja.jutsu.includes(null)).length;
-    const on = !!g.state.flags.autoTeach;
-    return `<div class="btnrow gearbar"><button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr(
-      'Ensinar todos agora',
+    return `<button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr(
+      'Ensinar',
       'Cada ninja com espaço livre vai estudar o melhor jutsu que pode aprender (pela natureza, rank e atributos dele). Paga o ryo de cada jutsu.',
-    )}>{scroll} Ensinar todos (${free})</button>
-      <button class="btn ${on ? 'primary' : ''}" data-act="auto-teach" ${tipAttr(
-        'Ensino automático',
-        `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`,
-      )}>{refresh} Ensino automático: ${on ? 'ligado' : 'desligado'}</button></div>`;
+    )}>{books} Ensinar (${free})</button>
+      ${togBtn('auto-teach', !!g.state.flags.autoTeach, '{scroll} Auto-ensino', 'Ensino automático', `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`)}`;
   }
 
   /** Mesa de Missões: contratar ninjas mercenários (destino para o ryo). */
@@ -1016,7 +1038,7 @@ export class Panel {
     for (const r of ['chunin', 'jounin'] as const) {
       const m = MERCS[r];
       const why = hireBlock(g, r);
-      html += `<button class="btn primary" data-act="hire" data-arg="${r}" ${blocked(g, [why && !why.startsWith('Custa') && why], m.cost)}>${RANKS[r].name} nível ${m.level} · ${costLabel(m.cost)}</button>`;
+      html += `<button class="btn primary" data-act="hire" data-arg="${r}" ${blocked(g, [why && !why.startsWith('Custa') && why], m.cost)}>${RANKS[r].name} nv ${m.level} ${costTag(m.cost)}</button>`;
     }
     return html + `</div>`;
   }
@@ -1045,8 +1067,8 @@ export class Panel {
     let html = this.winTop(
       '{anvil} Oficinas',
       `<span class="mchip">{users} De ${ninjas.length} ninjas:</span>${chip(lack('weapon'), '{kunai}', 'sem arma')}${chip(lack('armor'), '{vest}', 'sem colete')}${chip(lack('item'), '{pill}', 'sem consumível')}`,
-      `<button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{users} Equipar todos</button>
-       <button class="btn tog ${on ? 'on' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{gear} Automático<i class="sw"></i></button>`,
+      `<button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
+       ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}`,
       [],
     );
     html += `<div class="craftgrid">`;
@@ -1133,13 +1155,11 @@ export class Panel {
   }
 
   /** Proteger novatos: Genins se abrigam de inimigos fortes demais (com veteranos em casa para defender). */
-  /** Equipar todos com o estoque agora, e o modo automático (passa sozinho o que for sendo fabricado). */
+  /** Equipar com o estoque agora e o modo automático (passa sozinho o que for sendo fabricado). */
   private gearBar(compact = false) {
     const on = !!this.app.game.state.flags.autoGear;
-    // compacto (painel lateral da oficina): dois botões iguais lado a lado, rótulo curto para não quebrar a linha
-    const auto = compact ? `Auto: ${on ? 'ligado' : 'desligado'}` : `Automático: ${on ? 'ligado' : 'desligado'}`;
-    return `<div class="btnrow gearbar ${compact ? 'workshop-bar' : ''}"><button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{gear} Equipar todos</button>
-      <button class="btn ${on ? 'primary' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{refresh} ${auto}</button></div>`;
+    return `<div class="wtools ${compact ? 'workshop-bar' : ''}"><button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
+      ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}</div>`;
   }
 
   /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
@@ -1428,7 +1448,7 @@ export class Panel {
         else if (!opts.length) html += `<span class="why">Para despertar, o clã precisa de ninjas de duas naturezas compatíveis (ex.: 風+水 = 氷 Gelo).</span>`;
         else
           for (const k of opts)
-            html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${blocked(g, [], AWAKEN_COST)}>${k.kanji} Despertar ${k.name} (${k.pt}) · ${costLabel(AWAKEN_COST)}</button>`;
+            html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${blocked(g, [], AWAKEN_COST)} ${tipAttr(`Despertar ${k.name}`, `Kekkei genkai ${k.pt}.`)}>${k.kanji} Despertar ${k.name} ${costTag(AWAKEN_COST)}</button>`;
         html += `</div>`;
       }
       html += `</div>`;
@@ -1618,8 +1638,8 @@ export class Panel {
     const cap = g.popCap();
     const scene = (k: string) => (ART[k] ? pimg(ART[k], 'vscene') : '');
     let html = `<div class="bsec vlife"><h4>{users} Vida da vila</h4><div class="vrow">${scene('scene-village')}<div class="vrow-main">
-      <div class="vstat"><span>{users} População</span><b>${pop}/${cap}</b></div><div class="nc-bar hp"><i style="width:${Math.min(100, (pop / Math.max(1, cap)) * 100)}%"></i></div>
-      <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.min(100, s.happiness)}%"></i></div></div></div>
+      <div class="vstat"><span>{users} População</span><b>${pop}/${cap}</b></div><div class="nc-bar hp"><i style="width:${Math.round(Math.min(100, (pop / Math.max(1, cap)) * 100))}%"></i></div>
+      <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.round(Math.min(100, s.happiness))}%"></i></div></div></div>
       <h5>Fatores de felicidade</h5><div class="vfactors">`;
     for (const [l, v] of moodFactors(g)) html += `<span class="${v >= 0 ? 'ok' : 'bad'}">${esc(l)} <b>${v > 0 && l !== 'Base' ? '+' : ''}${v}</b></span>`;
     html += `</div><p class="hint" ${tipAttr('Felicidade', `Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.`, true)}>{info} Felizes trabalham mais rápido e têm mais filhos.</p></div>`;
@@ -1731,7 +1751,7 @@ export class Panel {
       t.craft = `${Math.floor(b.craft * 100)}%`;
     } else html += `<p class="hint">${bd.workers.length ? 'Nada em produção.' : 'Sem artesão: aumente os trabalhadores (+).'}</p>`;
     if (queue.length) html += `<p class="hint">Na fila: ${queue.map((id) => ITEMS[id]!.icon).join(' ')}</p>`;
-    if (queue.length || bd.craft) html += `<div class="btnrow"><button class="btn" data-act="craft-cancel">{run} Cancelar último (devolve recursos)</button></div>`;
+    if (queue.length || bd.craft) html += `<div class="btnrow"><button class="btn" data-act="craft-cancel" ${tipAttr('Cancelar último', 'Tira o último pedido da fila e devolve os recursos.')}>{x} Cancelar último</button></div>`;
     html += `<h4>Receitas</h4>`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
@@ -1948,14 +1968,13 @@ export class Panel {
     const g = this.app.game;
     const f = g.state.flags;
     const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && !u.ninja.learning && u.ninja.jutsu.includes(null)).length;
-    const tog = (act: string, on: boolean, label: string, title: string, tip: string) =>
-      `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
+    const tog = togBtn;
     return `<div class="wtools">
-      <button class="btn primary" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar todos</button>
+      <button class="btn primary" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
       ${tog('gear-auto', !!f.autoGear, '{gear} Auto-equipar', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}
       ${tog('rookies', !!f.shelterRookies, '{shield} Proteger novatos', 'Proteger novatos', `Ligado: Genins fogem para casa (ou para o Hospital) quando chega um inimigo ${CARE.danger}× mais forte que eles, e saem quando o perigo passa. Só vale se houver um Chunin ou acima na vila para defender; uma ordem sua sempre manda.`)}
-      <button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr('Ensinar todos agora', 'Cada ninja com espaço livre vai estudar o melhor jutsu que pode aprender (pela natureza, rank e atributos dele). Paga o ryo de cada jutsu.')}>{books} Ensinar todos (${free})</button>
-      ${tog('auto-teach', !!f.autoTeach, '{scroll} Ensino automático', 'Ensino automático', `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`)}
+      <button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr('Ensinar', 'Cada ninja com espaço livre vai estudar o melhor jutsu que pode aprender (pela natureza, rank e atributos dele). Paga o ryo de cada jutsu.')}>{books} Ensinar (${free})</button>
+      ${tog('auto-teach', !!f.autoTeach, '{scroll} Auto-ensino', 'Ensino automático', `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`)}
     </div>`;
   }
 
@@ -2028,12 +2047,12 @@ export class Panel {
     list += `</div><div class="wtools tfoot"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
       'Montar automaticamente',
       'Completa as vagas das equipes que já existem e cria novas com quem está sem equipe, equilibrando a força e dando um sensei Chunin+ a cada uma quando houver.',
-    )}>{users} Montar equipes${free ? ` (${free} sem equipe)` : ''}</button>
+    )}>{users} Montar${free ? ` (${free})` : ''}</button>
       <button class="btn" data-act="team-new">{plus} Nova equipe</button>
       <button class="btn tog ${g.state.flags.autoSensei ? 'on' : ''}" data-act="auto-sensei" ${tipAttr(
         'Senseis automáticos',
         'Ligado: equipe sem sensei recebe um sozinha (um Chunin+ da própria equipe ou o Jounin livre mais forte).',
-      )}>{crown} Senseis automáticos<i class="sw"></i></button></div>`;
+      )}>{crown} Auto-sensei<i class="sw"></i></button></div>`;
     if (!wide) return { html: html + list, t, b };
     const detail = sel
       ? this.teamDetail(sel, t, b, false)

@@ -609,6 +609,20 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
   const ownerIn = owner.hidden || owner.away != null;
   const night = isNight(g.state);
   if (u.animal === 'dog') {
+    // dono treinando no campo: o cão fica quieto junto dele, fora da tela (o campo de treino fica mais limpo); se
+    // aparecer inimigo o dono sai do treino para lutar e o cão volta junto
+    if (owner.state === 'train' && !ownerIn) {
+      if (!u.hidden && !g.nearestHostile(u, def.aggro)) {
+        u.hidden = true;
+        u.state = 'withOwner';
+        u.moving = false;
+      }
+      if (u.hidden) {
+        u.x = owner.x;
+        u.y = owner.y;
+        return;
+      }
+    }
     if (u.hidden) {
       if (ownerIn && night) return;
       u.hidden = false;

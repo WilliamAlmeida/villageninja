@@ -44,6 +44,34 @@ describe('ninken', () => {
     expect(dog.state).not.toBe('dogPatrol');
   });
 
+  test('dono treinando no campo: o cão some da tela junto dele e volta quando ele para', () => {
+    const g = createNewGame(SYSTEMS, 126);
+    Object.assign(g.state.res, { food: 999, ryo: 999 });
+    for (const u of g.state.units) if (u.kind !== 'villager') u.dead = true;
+    g.state.timers.animal = g.state.timers.raid = 1e9;
+    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 30, ty: 20, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const n = createNinja(g, 36 * 32, 24 * 32, 'genin', 0);
+    expect(adoptDog(g, n.id).ok).toBe(true);
+    const dog = dogOf(g, n)!;
+    g.addBuilding({ id: g.newId(), type: 'training', tx: 38, ty: 22, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    n.ninja!.order = 'train';
+    for (let t = 0; t < 60 && n.state !== 'train'; t += SIM_DT) {
+      g.state.time = 30;
+      g.step(SIM_DT);
+    }
+    expect(n.state).toBe('train');
+    run(g, 0.3);
+    expect(dog.hidden).toBe(true);
+    expect(Math.hypot(dog.x - n.x, dog.y - n.y)).toBeLessThan(40);
+    n.ninja!.order = 'patrol';
+    for (let t = 0; t < 30 && n.state === 'train'; t += SIM_DT) {
+      g.state.time = 30;
+      g.step(SIM_DT);
+    }
+    run(g, 0.2);
+    expect(dog.hidden).toBe(false);
+  });
+
   test('raças: buldogue aguenta mais, pug fareja de mais longe', () => {
     const g = createNewGame(SYSTEMS, 124);
     Object.assign(g.state.res, { food: 999, ryo: 999 });

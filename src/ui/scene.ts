@@ -1,5 +1,6 @@
 // Barra da invasão (mapa de missão jogável): aparece no alto enquanto há um em andamento. Na vila: "Ver invasão".
 // No mapa: objetivo, progresso e as ordens rápidas (Avançar, Recuar) e "Voltar à vila".
+import { morph } from './morph';
 import type { App } from '../app';
 import { advanceTarget, retreatScene, sceneFoes, sceneGame, sceneTeam } from '../game/scene';
 import { orderMove } from '../game/teams';
@@ -61,7 +62,8 @@ export class SceneBar {
     }
     if (html !== this.last) {
       this.last = html;
-      this.root.innerHTML = rich(html);
+      // só o que mudou (os botões continuam os mesmos: o contador de inimigos muda sem estragar um clique)
+      morph(this.root, rich(html));
     }
   }
 }
