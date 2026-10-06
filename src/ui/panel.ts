@@ -151,6 +151,9 @@ const ROSTER_SORTS: [RosterSort, string, string][] = [
 ];
 const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + b, 0);
 
+const ACTION_ICON: Record<string, string> = {
+  trade: '{cart}', protect: '{shield}', raid: '{swords}', annex: '{flag}', explore: '{map}', outpost: '{hut}', train: '{dummy}', contract: '{scroll}', assault: '{skull}',
+};
 const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{dummy}', patrol: '{flag}', scout: '{eye}' };
 const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar'], ['scout', 'Explorar']];
 /** O que cada rotina faz (dica e texto abaixo dos botões). */
@@ -568,8 +571,6 @@ export class Panel {
       html += `<button class="rnode k-${def.kind} s-${st.status} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${icon}<span>${def.name}${flags}</span>${dots}</button>`;
     }
     html += `</div><div class="rside">`;
-    html += `<div class="fame" ${tipAttr('Fama da vila', 'Honra (proteger, comerciar, anexar em paz): trocas melhores e ninjas errantes pedindo para entrar. Infâmia (saquear, dominar à força): saques maiores, mas vinganças e caçadores de recompensa.', true)}>
-      <span class="hon">{star} Honra <b>${s.honor}</b></span><span class="inf">{skull} Infâmia <b>${s.infamy}</b></span></div>`;
     const def = this.regionNode ? REGION[this.regionNode] : undefined;
     if (!def)
       html += `<div class="howto"><b>Como funciona</b><ol>
@@ -581,7 +582,11 @@ export class Panel {
         <li>{scroll} Lugares sagrados (precisa de Porto): vença a prova e ganhe um <b>contrato de invocação</b> (sapo, serpente, lesma).</li></ul></div>`;
     else html += this.regionNodeSection(def);
     html += `</div></div>`;
-    return { html, t: {}, b: {} };
+    const t: Record<string, string> = {};
+    const b: Record<string, number> = {};
+    const live = g.state.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost');
+    if (live.length) html += `<h4>{flag} Expedições ativas</h4><div class="xstrip">${live.map((e) => this.expCard(e, t, b, false)).join('')}</div>`;
+    return { html, t, b };
   }
 
   /** Detalhe de um lugar da região: situação, escolha da equipe e ações. */
@@ -591,13 +596,16 @@ export class Panel {
     const st = regionOf(s, def.id);
     const kindLabel = { village: 'Vilarejo', island: 'Ilha', sacred: 'Lugar sagrado', hideout: 'Covil' }[def.kind];
     const statusLabel = { neutral: 'Neutro', protected: 'Protegido', vassal: 'Vassalo', hostile: 'Hostil' }[st.status];
-    let html = `<div class="ph"><div class="title">${def.name}</div><div class="badges"><span class="badge">${kindLabel}</span>${
-      def.kind === 'village' ? `<span class="badge st-${st.status}">${statusLabel}</span>` : ''
-    }</div></div><p class="hint">${esc(def.desc)}</p>`;
+    const kindIcon = { village: '{houses}', island: '{ship}', sacred: '{scroll}', hideout: '{skull}' }[def.kind];
+    const stCls = { neutral: 'info', protected: 'safe', vassal: 'good', hostile: 'danger' }[st.status];
+    let html = `<div class="rhead"><span class="rh-ic k-${def.kind}">${kindIcon}</span><div><div class="rh-name">${def.name}</div><div class="td-chips">
+      <span class="mchip">${kindIcon} ${kindLabel}</span>${def.kind === 'village' ? `<span class="mpill ${stCls}">${statusLabel}</span>` : ''}<span class="mchip">{shield} Defesas ${nodePower(s, def)}</span></div></div></div>
+      <p class="bh-desc">${esc(def.desc)}</p>`;
     if (def.kind === 'village') {
       const pct = (st.rel + 100) / 2;
-      html += `<div class="relbar" ${tipAttr('Relação', `De -100 (inimigos) a 100 (aliados). Protegido a partir de ${REL.protected}; anexar em paz com ${REL.annexPeace}+ ou à força com ${REL.annexForce} ou menos.`)}><i style="left:calc(${pct}% - 1px)"></i><span>Relação ${st.rel}</span></div>`;
-      if (def.tribute) html += `<p class="hint">Tributo por dia: ${costLabel(def.tribute)} (protegido) · dobro como vassalo.</p>`;
+      html += `<div class="bsec rrel"><div class="rrel-top"><b>Relação ${st.rel}</b>${def.tribute ? `<span class="mchip" ${tipAttr('Tributo diário', 'Protegido manda isto todo dia; vassalo manda o dobro.', true)}>{ryo} Tributo: ${costLabel(def.tribute)}/dia</span>` : ''}</div>
+        <div class="relbar" ${tipAttr('Relação', `De -100 (inimigos) a 100 (aliados). Protegido a partir de ${REL.protected}; anexar em paz com ${REL.annexPeace}+ ou à força com ${REL.annexForce} ou menos.`)}><i style="left:calc(${pct}% - 1px)"></i></div>
+        <div class="rrel-lbl"><span>Hostil</span><span>Neutra</span><span>Aliada</span></div>`;
     } else if (def.kind === 'island') {
       html += `<p class="hint">${st.explored ? '{check} Explorada' : '{todo} Ainda não explorada'} · ${st.outpost ? `{flag} Posto avançado: ${costLabel(def.outpost ?? {})}/dia` : `Posto avançado renderia ${costLabel(def.outpost ?? {})} por dia`}</p>`;
     } else if (def.kind === 'hideout') {
@@ -607,7 +615,6 @@ export class Panel {
       const owners = s.units.filter((u) => !u.dead && u.ninja?.contract === def.contract).map((u) => esc(u.name.split(' ').pop()!));
       html += `<p class="hint">{scroll} ${c.name}: ${esc(c.desc)}${owners.length ? ` Contratados: ${owners.join(', ')}.` : ''}</p>`;
     }
-    html += `<p class="hint">Defesas {swords}${nodePower(s, def)}</p>`;
     // próximo passo sugerido para o lugar
     if (def.kind === 'village') {
       const next =
@@ -618,32 +625,74 @@ export class Panel {
             : st.rel <= REL.annexForce
               ? 'Relação péssima: só dá para <b>anexar à força</b> (invasão jogável) ou saquear de novo.'
               : `Para anexar em paz: <b>proteja</b> e <b>comercie</b> até a relação chegar a ${REL.annexPeace}.`;
-      html += `<p class="hint">{todo} ${next}</p>`;
+      html += `<p class="bnote">{info} ${next}</p></div>`;
     }
     // equipe que vai
     const teams = s.teams.filter((tm) => teamUnits(g, tm).length);
     if (!teams.length) return html + `<p class="why">Forme uma equipe em {ninja} Ninjas → Equipes.</p>`;
     if (this.regionTeam == null || !teams.some((tm) => tm.id === this.regionTeam)) this.regionTeam = teams[0]!.id;
-    html += `<h4>Equipe</h4><div class="chips rteams">`;
+    html += `<div class="bsec"><h4>{users} Equipe</h4><div class="fchips rteams">`;
     for (const tm of teams)
-      html += `<button data-act="r-team" data-arg="${tm.id}" class="${this.regionTeam === tm.id ? 'on' : ''}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} {swords}${teamMinePower(g, tm.id)}</button>`;
+      html += `<button data-act="r-team" data-arg="${tm.id}" class="${this.regionTeam === tm.id ? 'on' : ''}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} <small>{swords}${teamMinePower(g, tm.id)}</small></button>`;
     const tp = teamMinePower(g, this.regionTeam);
     const np = nodePower(s, def);
     const k = tp / Math.max(1, np);
-    html += `</div><p class="${k >= 1.2 ? 'hint' : 'why'}">{swords} Sua equipe ${tp} × defesas ${np}: ${k >= 1.5 ? 'folgado' : k >= 1 ? 'equilibrado' : k >= 0.7 ? 'arriscado' : 'muito perigoso'}.</p>`;
-    html += `<h4>Ações</h4><div class="ractions">`;
+    const sel = g.team(this.regionTeam);
+    const fit: [string, string] = k >= 1.5 ? ['folgado', 'safe'] : k >= 1 ? ['equilibrado', 'good'] : k >= 0.7 ? ['arriscado', 'risky'] : ['muito perigoso', 'danger'];
+    html += `</div><div class="rfit"><span class="faces">${sel ? teamUnits(g, sel).map((u) => this.face(u)).join('') : ''}</span><span class="mpill ${fit[1]}">{swords} ${tp} × defesas ${np} · ${fit[0]}</span></div></div>`;
+    html += `<div class="bsec"><h4>{target} Ações</h4><div class="ractions">`;
     const busy = teamBusy(g, this.regionTeam);
     for (const a of nodeActions(def)) {
       const why = actionBlock(g, def.id, a);
       const cost = actionCost(def, a);
       const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
       html += `<button class="btn" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
-        <b>${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
+        <b>${ACTION_ICON[a] ?? ''} ${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
+    }
+    return html + `</div></div>`;
+  }
+
+  /** Janela Mundo → Expedições: andamento, diário e decisões de cada expedição. */
+  /**
+   * Cartão de expedição: equipe, lugar e ação, o que está fazendo (selo), retratos com a vida, barra e tempo, e o saque.
+   * `full` (aba Expedições) mostra também o diário e as escolhas da mina.
+   */
+  private expCard(e: Expedition, t: Record<string, string>, b: Record<string, number>, full: boolean) {
+    const g = this.app.game;
+    const tm = g.team(e.teamId);
+    const live = e.status !== 'done' && e.status !== 'lost';
+    const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
+    const mine = e.kind === 'mine';
+    const where = mine ? `Mina · andar ${e.floor}/${MINE.floors}` : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
+    const label: Record<Expedition['status'], [string, string, string]> = {
+      going: ['A caminho', '{run}', 'good'], explore: [mine ? 'Explorando' : 'No serviço', mine ? '{pickaxe}' : '{shield}', 'safe'],
+      choice: ['Andar concluído', '{check}', 'safe'], return: ['Voltando', '{back}', 'info'], done: ['Terminou', '{check}', 'info'],
+      lost: ['Perdida', '{skull}', 'danger'], scene: [mine ? 'Jogando o andar' : 'Invasão jogável', '{swords}', 'danger'],
+    };
+    const [st, ic, cls] = label[e.status];
+    let html = `<div class="xcard ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="xc-top"><span class="dot"></span><div class="xc-t"><b>${esc(tm?.name ?? 'Equipe')}</b><span>${esc(where)}</span></div><span class="mpill ${cls}">${ic} ${st}</span></div>`;
+    const us = live ? expeditionUnits(g, e) : [];
+    html += `<div class="xc-mid"><span class="faces">${us.map((u) => this.face(u)).join('')}</span>`;
+    if (e.status === 'going' || e.status === 'explore' || e.status === 'return') {
+      html += `<div class="xc-prog"><div class="nc-bar xp"><i data-b="ex${e.id}"></i></div><span>{hourglass} <span data-t="ex${e.id}"></span></span></div>`;
+      b[`ex${e.id}`] = 1 - Math.max(0, e.timer) / total;
+      t[`ex${e.id}`] = `${Math.ceil(Math.max(0, e.timer))}s`;
+    } else if (e.status === 'scene') html += `<button class="btn danger mini" data-act="view-scene">{flag} Ver invasão</button>`;
+    html += `</div>`;
+    if (full && us.length) {
+      html += `<div class="jm">${us.map((u) => `${esc(u.name.split(' ').pop()!)} <span data-t="exh${u.id}"></span>`).join(' · ')}</div>`;
+      for (const u of us) t[`exh${u.id}`] = `${Math.round((u.hp / u.maxHp) * 100)}%`;
+    }
+    html += `<div class="xc-loot">{luggage} Saque: ${Object.keys(e.loot).length ? costLabel(e.loot) : '—'}</div>`;
+    if (full) html += `<ul class="explog">${e.log.slice(-5).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+    if (e.status === 'choice') {
+      const next = e.floor + 1;
+      html += `<div class="btnrow"><button class="btn primary" data-act="exp-deeper" data-arg="${e.id}">{pickaxe} Descer ao andar ${next} <small>{swords}${floorPower(next)}</small></button>
+        <button class="btn" data-act="exp-back" data-arg="${e.id}">{run} Voltar com o saque</button></div>`;
     }
     return html + `</div>`;
   }
 
-  /** Janela Mundo → Expedições: andamento, diário e decisões de cada expedição. */
   private expeditionsView(): Built {
     const g = this.app.game;
     const t: Record<string, string> = {};
@@ -657,37 +706,7 @@ export class Panel {
       }</div>`;
     if (caves.length)
       html += `<p class="hint">Minas conhecidas: ${caves.map((c) => `<button class="btn mini" data-act="site-open" data-arg="${c.id}">{pickaxe} Ver mina</button>`).join(' ')}</p>`;
-    for (const e of list) {
-      const tm = g.team(e.teamId);
-      const live = e.status !== 'done' && e.status !== 'lost';
-      const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
-      const mine = e.kind === 'mine';
-      const where = mine ? 'Mina' : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
-      const label: Record<Expedition['status'], string> = {
-        going: mine ? 'a caminho da mina' : 'a caminho', explore: mine ? `explorando o andar ${e.floor}` : 'no serviço', choice: `andar ${e.floor} concluído`,
-        return: 'voltando para a vila', done: 'terminou', lost: 'perdida', scene: mine ? `jogando o andar ${e.floor}` : 'invasão em andamento',
-      };
-      html += `<div class="mcard exp ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="mt"><span class="dot"></span>${esc(tm?.name ?? 'Equipe')} · ${esc(where)}
-        <span class="badge">${label[e.status]}</span>${live && mine ? ` <span class="badge">{pickaxe} ${e.floor}/${MINE.floors}</span>` : ''}</div>`;
-      if (e.status === 'going' || e.status === 'explore' || e.status === 'return') {
-        html += `<div class="bar pg"><i data-b="ex${e.id}"></i><span data-t="ex${e.id}"></span></div>`;
-        b[`ex${e.id}`] = 1 - Math.max(0, e.timer) / total;
-        t[`ex${e.id}`] = `${Math.ceil(Math.max(0, e.timer))}s`;
-      }
-      if (live) {
-        const us = expeditionUnits(g, e);
-        html += `<div class="jm">${us.map((u) => `${esc(u.name.split(' ').pop()!)} <span data-t="exh${u.id}"></span>`).join(' · ')}</div>`;
-        for (const u of us) t[`exh${u.id}`] = `${Math.round((u.hp / u.maxHp) * 100)}%`;
-      }
-      html += `<div class="jm">Saque: ${Object.keys(e.loot).length ? costLabel(e.loot) : '—'}</div>`;
-      html += `<ul class="explog">${e.log.slice(-5).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
-      if (e.status === 'choice') {
-        const next = e.floor + 1;
-        html += `<div class="btnrow"><button class="btn primary" data-act="exp-deeper" data-arg="${e.id}">{pickaxe} Descer ao andar ${next} (recomendado {swords}${floorPower(next)})</button>
-          <button class="btn" data-act="exp-back" data-arg="${e.id}">{run} Voltar com o saque</button></div>`;
-      }
-      html += `</div>`;
-    }
+    html += `<div class="xlist">${list.map((e) => this.expCard(e, t, b, true)).join('')}</div>`;
     return { html, t, b };
   }
 
@@ -2072,6 +2091,10 @@ export class Panel {
         return this.report({ ok: true });
       case 'awaken':
         return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
+      case 'view-scene':
+        if (this.mode === 'window') this.show(null);
+        this.app.setView(true);
+        return;
       case 'open-team':
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
