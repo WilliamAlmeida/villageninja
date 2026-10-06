@@ -57,6 +57,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   até 7 pedaços; conta como chefe derrotado uma vez só), ambos em `killUnit` (combat.ts).
   Missões de caça das feras novas ficam no FIM de `MISSION_TEMPLATES` (o save guarda o índice); feras de missão usam o golpe
   especial em `guardHome`.
+- **Quadro de missões** (redesenho a partir de mockup do Codex em `docs/arte/mockups/`): cabeçalho com chips e "Auto
+  designar" (`autoAssign`), abas Ativas/Disponíveis/Recentes, cada missão é um contrato (pergaminho `src/art/ui-scroll.png`
+  com selo do rank em CSS) com a equipe recomendada (`recommendTeam`: a mais fraca que dá conta), risco em palavras
+  (`missionRisk`) e "Trocar equipe" (`teamsForMission`); na janela larga os contratos ativos ficam numa coluna. Retratos
+  de ninja no DOM: `unitPortrait` (render/sprites.ts).
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Exploração** (`game/explore.ts`, `systems/explore.ts`): névoa em bitset (`state.explored`, 1 bit por tile);
   unidades/torres da vila revelam ao redor. Na névoa nada em pé é desenhado nem clicável (inimigos, recursos, locais).

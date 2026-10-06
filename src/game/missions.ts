@@ -114,6 +114,64 @@ export function acceptMission(g: Game, missionId: number, teamId: number): Resul
   return { ok: true };
 }
 
+// ------------------------------------------------------------------ escolha da equipe
+export type MissionRisk = 'safe' | 'good' | 'risky' | 'danger';
+/** Risco pela força da equipe contra a dificuldade: folga de 50% = seguro, empate = favorável, 70% = arriscado. */
+export function missionRisk(power: number, need: number): MissionRisk {
+  if (power >= need * 1.5) return 'safe';
+  if (power >= need) return 'good';
+  if (power >= need * 0.7) return 'risky';
+  return 'danger';
+}
+
+/** Equipes que podem partir agora (com ninjas, fora de missão e de expedição). */
+export const freeTeams = (g: Game) =>
+  g.state.teams.filter((tm) => {
+    const us = teamUnits(g, tm);
+    return us.length && !missionOfTeam(g, tm.id) && !us.some((u) => u.away != null);
+  });
+
+/**
+ * Equipe recomendada para a missão: a MAIS FRACA que ainda dá conta (poupa a elite para as difíceis);
+ * se nenhuma dá conta, a mais forte. `skip` = equipes já reservadas para outras missões.
+ */
+export function recommendTeam(g: Game, m: Mission, skip: ReadonlySet<number> = new Set()): Team | null {
+  const need = missionPower(m);
+  const pool = freeTeams(g)
+    .filter((tm) => !skip.has(tm.id))
+    .map((tm) => ({ tm, p: teamPower(g, tm) }));
+  if (!pool.length) return null;
+  const able = pool.filter((x) => x.p >= need).sort((a, z) => a.p - z.p);
+  return (able[0] ?? pool.sort((a, z) => z.p - a.p)[0]!).tm;
+}
+
+/** Equipes livres ordenadas para a missão: primeiro as que dão conta (da mais justa à mais forte), depois as fracas. */
+export function teamsForMission(g: Game, m: Mission) {
+  const need = missionPower(m);
+  const list = freeTeams(g).map((tm) => ({ team: tm, power: teamPower(g, tm), risk: missionRisk(teamPower(g, tm), need) }));
+  const able = list.filter((x) => x.power >= need).sort((a, z) => a.power - z.power);
+  const weak = list.filter((x) => x.power < need).sort((a, z) => z.power - a.power);
+  return [...able, ...weak];
+}
+
+/**
+ * Auto designar: das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que dá conta
+ * (só envios favoráveis ou seguros), até o limite de missões simultâneas.
+ */
+export function autoAssign(g: Game): Result & { sent?: number } {
+  const offered = g.state.missions.filter((m) => m.status === 'offered').sort((a, z) => missionPower(z) - missionPower(a));
+  if (!offered.length) return fail('Nenhuma missão no quadro.');
+  let sent = 0;
+  for (const m of offered) {
+    if (g.state.missions.filter((x) => x.status === 'active').length >= maxActiveMissions(g)) break;
+    const tm = recommendTeam(g, m);
+    if (!tm || teamPower(g, tm) < missionPower(m)) continue;
+    if (acceptMission(g, m.id, tm.id).ok) sent++;
+  }
+  if (!sent) return fail('Nenhuma equipe livre dá conta das missões do quadro (ou o limite foi atingido).');
+  return { ok: true, sent };
+}
+
 export function abandonMission(g: Game, missionId: number): Result {
   const m = g.state.missions.find((x) => x.id === missionId);
   if (!m || m.status !== 'active') return fail('Missão não está ativa.');

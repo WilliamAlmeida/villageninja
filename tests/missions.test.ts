@@ -4,7 +4,10 @@ import type { BuildingType } from '../src/data/buildings';
 import { MISSION_TEMPLATES } from '../src/data/missions';
 import { refreshDerived } from '../src/game/entities';
 import type { Game } from '../src/game/game';
-import { abandonMission, acceptMission, generateOffers, pickSite } from '../src/game/missions';
+import {
+  abandonMission, acceptMission, autoAssign, generateOffers, maxActiveMissions, missionPower, missionRisk, pickSite, recommendTeam, teamPower, teamsForMission,
+} from '../src/game/missions';
+import { createTeam, joinAsMember, leaveTeam } from '../src/game/teams';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
@@ -168,5 +171,55 @@ describe('missões', () => {
       webbed = s2.g.state.projectiles.some((p) => p.ownerId === spider.id) || n.stun > 1;
     }
     expect(webbed).toBe(true);
+  });
+});
+
+describe('quadro de missões: equipe recomendada e Auto designar', () => {
+  /** Time 1 forte e um Time 2 só com um dos ninjas (fraco). */
+  function twoTeams(seed: number) {
+    const { g, team } = setup(seed);
+    const weakId = team.memberIds.at(-1)!;
+    leaveTeam(g, weakId);
+    const weak = createTeam(g, 'Time Fraco');
+    expect(joinAsMember(g, weak.id, weakId).ok).toBe(true);
+    const w = g.unit(weakId)!.ninja!;
+    w.rank = 'genin';
+    for (const k of Object.keys(w.stats) as (keyof typeof w.stats)[]) w.stats[k] = 1;
+    refreshDerived(g.unit(weakId)!);
+    return { g, strong: team, weak };
+  }
+
+  test('recomenda a equipe mais fraca que dá conta; se nenhuma dá, a mais forte', () => {
+    const { g, strong, weak } = twoTeams(41);
+    const easy = offer(g, 'herbs', 0);
+    const pw = teamPower(g, weak);
+    const ps = teamPower(g, strong);
+    expect(ps).toBeGreaterThan(pw);
+    const rec = recommendTeam(g, easy)!;
+    expect(rec.id).toBe(pw >= missionPower(easy) ? weak.id : strong.id);
+    // missão impossível para as duas: vai a mais forte, e o risco aparece
+    const hard = offer(g, 'wanted', 4);
+    if (ps < missionPower(hard)) expect(recommendTeam(g, hard)!.id).toBe(strong.id);
+    expect(missionRisk(10, 100)).toBe('danger');
+    expect(missionRisk(160, 100)).toBe('safe');
+    // a lista de troca começa pelas que dão conta, da mais justa à mais forte
+    const list = teamsForMission(g, easy);
+    expect(list.length).toBe(2);
+    const able = list.filter((x) => x.power >= missionPower(easy)).map((x) => x.power);
+    expect([...able].sort((a, z) => a - z)).toEqual(able);
+  });
+
+  test('Auto designar só manda quem dá conta e respeita o limite', () => {
+    const { g, strong } = twoTeams(42);
+    g.state.missions = g.state.missions.filter((m) => m.status !== 'offered');
+    const easy = offer(g, 'herbs', 0);
+    const impossible = offer(g, 'wanted', 4);
+    const r = autoAssign(g);
+    if (teamPower(g, strong) >= missionPower(easy)) {
+      expect(r.ok).toBe(true);
+      expect(easy.status).toBe('active');
+    }
+    if (Math.max(...g.state.teams.map((t) => teamPower(g, t))) < missionPower(impossible)) expect(impossible.status).toBe('offered');
+    expect(g.state.missions.filter((m) => m.status === 'active').length).toBeLessThanOrEqual(maxActiveMissions(g));
   });
 });

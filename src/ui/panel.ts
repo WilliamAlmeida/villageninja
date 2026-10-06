@@ -21,7 +21,7 @@ import { doorPos, tileCenter } from '../game/world';
 import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
-import { RES_INFO } from '../data/resources';
+import { RES_INFO, RES_KEYS } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
 import { guardiansOf, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
@@ -34,8 +34,11 @@ import {
 import { nextRank } from '../game/progression';
 import { nextLevelStatus, upgradeVillage } from '../game/village';
 import {
-  abandonMission, acceptMission, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, teamPower, templateOf,
+  abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
+  recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
+import { unitPortrait } from '../render/sprites';
+import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
@@ -126,6 +129,13 @@ const ACTION_TIP: Record<RegionAction, string> = {
   assault: 'A invasão final: a equipe entra no covil (mapa jogável) e enfrenta os guardiões e o líder da Ordem do Eclipse. Vencendo, a Ordem acaba.',
 };
 
+type MissionTab = 'active' | 'offered' | 'recent';
+/** Janela larga o bastante para os contratos ativos numa coluna ao lado das missões. */
+const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
+const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
+const RISK_LABEL: Record<MissionRisk, [string, string]> = {
+  safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
+};
 type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin' | 'sannin' | 'kage';
 /** Filtros de graduação: aparecem sempre, mesmo vazios (dá para ver que existe Sannin e Kage). */
 const RANK_FILTERS: RosterFilter[] = ['genin', 'chunin', 'jounin', 'sannin', 'kage'];
@@ -166,6 +176,9 @@ export class Panel {
   /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
   private rosterFilter: RosterFilter = 'all';
   private rosterSort: RosterSort = 'level';
+  /** Quadro de missões: aba e missão com a lista de equipes aberta ("Trocar equipe"). */
+  private missionTab: MissionTab = 'offered';
+  private missionPick: number | null = null;
   /** Raça escolhida para a próxima adoção de ninken. */
   private dogBreed: DogBreed = 'shiba';
   /** Região: lugar aberto e equipe escolhida para as ações. */
@@ -1176,10 +1189,9 @@ export class Panel {
   private missionsView(): Built {
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
-    let html = `<div class="ph"><div class="title">{clipboard} Quadro de missões</div></div>`;
-    if (!this.app.game.findBuilt('missions')) return { html: html + `<div class="warnbox">Construa a {clipboard} Mesa de Missões (menu Construir) para receber pedidos.</div>`, t, b };
-    html += this.missionsSection(t, b);
-    return { html, t, b };
+    if (!this.app.game.findBuilt('missions'))
+      return { html: `<div class="ph"><div class="title">{clipboard} Quadro de missões</div></div><div class="warnbox">Construa a {clipboard} Mesa de Missões (menu Construir) para receber pedidos.</div>`, t, b };
+    return { html: this.missionsSection(t, b), t, b };
   }
 
   /** Números da vila. */
@@ -1451,55 +1463,146 @@ export class Panel {
     return html;
   }
 
-  /** Quadro de missões: ativas (com progresso), oferecidas (com envio de equipe) e histórico. */
+  /**
+   * Quadro de missões: cabeçalho com reputação e "Auto designar", abas (Ativas / Disponíveis / Recentes) e cada missão
+   * como um contrato com a equipe recomendada. Na janela larga os contratos ativos ficam numa coluna à direita.
+   */
   private missionsSection(t: Record<string, string>, b: Record<string, number>) {
     const g = this.app.game;
     const ms = g.state.missions;
     const active = ms.filter((m) => m.status === 'active');
     const offered = ms.filter((m) => m.status === 'offered');
-    const ended = ms.filter((m) => m.status === 'done' || m.status === 'failed').slice(-3).reverse();
-    let html = `<div class="lvlcard"><div class="lvlname">{star} Reputação ${g.state.reputation}</div>
-      <div class="hint">Missões cumpridas: ${g.state.stats.missionsDone} · em andamento ${active.length}/${maxActiveMissions(g)} · o quadro renova todo dia</div></div>`;
-    if (active.length) {
-      html += `<h4>Em andamento</h4>`;
-      for (const m of active) {
-        const team = g.team(m.teamId);
+    const ended = ms.filter((m) => m.status === 'done' || m.status === 'failed').slice(-8).reverse();
+    const wide = window.matchMedia(WIDE_BOARD).matches;
+    let tab = this.missionTab;
+    if (wide && tab === 'active') tab = 'offered'; // na larga as ativas já estão na coluna
+    const max = maxActiveMissions(g);
+    const full = active.length >= max;
+    const canAuto = !full && offered.some((m) => {
+      const tm = recommendTeam(g, m);
+      return !!tm && teamPower(g, tm) >= missionPower(m);
+    });
+    let html = `<div class="mhead"><div class="mh-title">{clipboard} Quadro de missões</div>
+      <span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star} Reputação ${g.state.reputation}</span>
+      <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{todo} ${g.state.stats.missionsDone} cumpridas</span>
+      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh} Em andamento ${active.length}/${max}</span>
+      <button class="btn primary mh-auto" data-act="m-auto" ${blocked(g, [full && 'Limite de missões simultâneas atingido.', !full && !canAuto && 'Nenhuma equipe livre dá conta das missões do quadro.'])} ${tipAttr('Auto designar', 'Das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que ainda dá conta (poupa as fortes). Só envia com risco Seguro ou Favorável.')}>{users} Auto designar</button></div>`;
+    const tabs: [MissionTab, string, string, number][] = [
+      ['active', '{swords}', 'Ativas', active.length],
+      ['offered', '{scroll}', 'Disponíveis', offered.length],
+      ['recent', '{hourglass}', 'Recentes', ended.length],
+    ];
+    html += `<div class="mtabs">${tabs
+      .filter(([k]) => !(wide && k === 'active'))
+      .map(([k, ic, label, n]) => `<button data-act="m-tab" data-arg="${k}" class="${tab === k ? 'on' : ''}">${ic} ${label}${k === 'recent' ? '' : ` (${n})`}</button>`)
+      .join('')}</div>`;
+    let main = '';
+    if (tab === 'active') {
+      const list = this.activeContracts(active, t, b);
+      main = list ? `<div class="mactives">${list}</div>` : `<p class="hint">Nenhuma missão em andamento. Envie uma equipe pela aba Disponíveis.</p>`;
+    }
+    else if (tab === 'recent') {
+      main = `<h4>Recentes</h4>`;
+      if (!ended.length) main += `<p class="hint">Nenhuma missão terminada ainda.</p>`;
+      for (const m of ended) {
         const r = MISSION_RANKS[m.rank]!;
-        html += `<div class="mcard" style="--c:${r.color}"><div class="mt"><span class="mrank">${r.label}</span>${esc(m.title)}</div>
-          <div class="hint">${team ? `<span class="dot" style="--c:${team.color}"></span>${esc(team.name)}` : '—'} · ${this.missionPhase(m)} · {hourglass} <span data-t="mt${m.id}"></span></div>
-          <div class="bar pg"><i data-b="mp${m.id}"></i><span data-t="mpl${m.id}"></span></div>
-          <div class="btnrow"><button class="btn" data-act="m-view" data-arg="${m.id}">{pin} Ver</button><button class="btn" data-act="m-abandon" data-arg="${m.id}">Abandonar</button></div></div>`;
-        t[`mt${m.id}`] = `${Math.ceil(m.timeLeft)}s`;
-        b[`mp${m.id}`] = m.progress / Math.max(1, m.goal);
-        t[`mpl${m.id}`] = `${m.progress}/${m.goal}`;
+        const ok = m.status === 'done';
+        main += `<div class="mrecent">${this.seal(r.label, r.color, true)}<span class="mr-t">${esc(m.title)}<small>${esc(m.result ?? '')}</small></span><span class="mpill ${ok ? 'safe' : 'danger'}">${ok ? '{check} Cumprida' : '{fail} Fracassou'}</span></div>`;
       }
+    } else {
+      main = `<h4>Missões disponíveis</h4>`;
+      if (!offered.length) main += `<p class="hint">Nenhuma missão no quadro hoje. Volte amanhã.</p>`;
+      const anyFree = freeTeams(g).length > 0;
+      for (const m of offered) main += this.contractCard(m, full, anyFree);
     }
-    html += `<h4>Missões disponíveis</h4>`;
-    if (!offered.length) html += `<p class="hint">Nenhuma missão no quadro hoje. Volte amanhã.</p>`;
-    const teams = g.state.teams.filter((tm) => teamUnits(g, tm).length && !missionOfTeam(g, tm.id));
-    const full = active.length >= maxActiveMissions(g);
-    for (const m of offered) {
-      const tpl = templateOf(m);
+    if (wide) {
+      const side = this.activeContracts(active, t, b) || `<p class="hint">Nenhuma em andamento. Escolha uma missão e toque em Enviar.</p>`;
+      html += `<div class="mboard"><div class="mmain">${main}</div><aside class="mside"><h4>Contratos ativos</h4>${side}</aside></div>`;
+    } else html += main;
+    return html;
+  }
+
+  /** Selo do rank: pergaminho com o lacre de cera (ou só o lacre, pequeno). */
+  private seal(label: string, color: string, small = false) {
+    return `<span class="mseal ${small ? 'sm' : ''}" style="--c:${color}">${small ? '' : `<img src="${missionScrollUrl}" alt="" draggable="false">`}<b>${label}</b></span>`;
+  }
+
+  /** Uma missão oferecida: contrato com recompensa, equipe recomendada (com risco) e a troca de equipe. */
+  private contractCard(m: Mission, full: boolean, anyFree: boolean) {
+    const g = this.app.game;
+    const tpl = templateOf(m);
+    const r = MISSION_RANKS[m.rank]!;
+    const need = missionPower(m);
+    const reward = missionReward(tpl);
+    const chips = RES_KEYS.filter((k) => reward[k])
+      .map((k) => `<span class="mchip">${RES_INFO[k].icon} ${reward[k]}${k === 'ryo' ? ' ryo' : ''}</span>`)
+      .join('');
+    let html = `<div class="mcontract" style="--c:${r.color}">${this.seal(r.label, r.color)}
+      <div class="mc-body"><div class="mc-top"><div class="mc-head"><div class="mc-title">${esc(m.title)}</div>
+        <div class="mc-meta">${MISSION_TYPE_ICON[m.type]} ${MISSION_TYPE_LABEL[m.type]} · Dificuldade ${need} · ${Math.round(MISSION_TIME)}s</div></div>
+        <div class="mc-reward">${chips}<span class="mchip">{star} +${r.xp} XP</span></div></div>
+        <div class="mc-desc">${esc(tpl.desc)}</div><div class="mc-foot">`;
+    const rec = recommendTeam(g, m);
+    if (full) html += `<span class="why">Limite de missões simultâneas atingido.</span>`;
+    else if (!anyFree || !rec) html += `<span class="why">Nenhuma equipe livre. Forme uma em {ninja} Ninjas → Equipes.</span>`;
+    else {
+      const p = teamPower(g, rec);
+      html += `<span class="mc-rec">{users} Recomendada: <span class="dot" style="--c:${rec.color}"></span><b>${esc(rec.name)}</b> · poder ${p}</span>${this.riskPill(missionRisk(p, need))}
+        <span class="mc-acts"><button class="btn primary" data-act="m-accept" data-arg="${m.id}" data-team="${rec.id}">Enviar</button><button class="btn ghost ${this.missionPick === m.id ? 'on' : ''}" data-act="m-pick" data-arg="${m.id}">Trocar equipe</button></span>`;
+    }
+    html += `</div>`;
+    if (this.missionPick === m.id && !full && rec) {
+      html += `<div class="mc-teams">`;
+      for (const x of teamsForMission(g, m)) {
+        const faces = teamUnits(g, x.team).slice(0, 4).map((u) => this.face(u)).join('');
+        html += `<button class="mteam" data-act="m-accept" data-arg="${m.id}" data-team="${x.team.id}"><span class="dot" style="--c:${x.team.color}"></span><b>${esc(x.team.name)}</b><span class="faces">${faces}</span><span class="pw">{swords} ${x.power}</span>${this.riskPill(x.risk)}</button>`;
+      }
+      html += `</div>`;
+    }
+    return html + `</div></div>`;
+  }
+
+  private riskPill(r: MissionRisk) {
+    const [label, ic] = RISK_LABEL[r];
+    return `<span class="mpill ${r}">${ic} ${label}</span>`;
+  }
+
+  /** Retratinho do ninja (arte de frente), ou uma bolinha com a cor da roupa sem arte. */
+  private face(u: Unit) {
+    const url = unitPortrait(u);
+    return url ? `<img class="face" src="${url}" alt="" draggable="false">` : `<span class="face none" style="--c:${u.look?.cloth ?? '#888'}"></span>`;
+  }
+
+  /** Contratos em andamento: equipe, fase, barra, tempo, Ver no mapa e Recuar. */
+  private activeContracts(active: Mission[], t: Record<string, string>, b: Record<string, number>) {
+    const g = this.app.game;
+    let html = '';
+    for (const m of active) {
+      const team = g.team(m.teamId);
       const r = MISSION_RANKS[m.rank]!;
-      html += `<div class="mcard" style="--c:${r.color}"><div class="mt"><span class="mrank">${r.label}</span>${esc(m.title)}</div>
-        <div class="jm">${MISSION_TYPE_LABEL[m.type]} · dificuldade {swords}${missionPower(m)} · ${Math.round(MISSION_TIME)}s · recompensa ${costLabel(missionReward(tpl))} + ${r.xp} XP</div>
-        <div class="jd">${esc(tpl.desc)}</div><div class="btnrow">`;
-      if (full) html += `<span class="why">Limite de missões simultâneas atingido.</span>`;
-      else if (!teams.length) html += `<span class="why">Nenhuma equipe livre. Forme uma em {ninja} Ninjas → Equipes.</span>`;
-      else
-        for (const tm of teams) {
-          const p = teamPower(g, tm);
-          const risk = p >= missionPower(m) ? 'p-ok' : p >= missionPower(m) * 0.7 ? 'p-risk' : 'p-bad';
-          html += `<button class="btn ${risk}" data-act="m-accept" data-arg="${m.id}" data-team="${tm.id}"><span class="dot" style="--c:${tm.color}"></span>${esc(tm.name)} {swords}${p}</button>`;
-        }
-      html += `</div></div>`;
-    }
-    if (ended.length) {
-      html += `<h4>Recentes</h4><ul class="reqs">`;
-      for (const m of ended) html += `<li class="${m.status === 'done' ? 'ok' : ''}">${m.status === 'done' ? '{check}' : '{fail}'} ${esc(m.title)} <b>${esc(m.result ?? '')}</b></li>`;
-      html += `</ul>`;
+      const [phase, ic, cls] = this.missionPhaseInfo(m);
+      const faces = team ? teamUnits(g, team).slice(0, 4).map((u) => this.face(u)).join('') : '';
+      html += `<div class="mactive"><div class="ma-top"><span class="dot" style="--c:${team?.color ?? '#888'}"></span><b>${esc(team?.name ?? 'Equipe')}</b><span class="mpill ${cls}">${ic} ${phase}</span></div>
+        <div class="ma-title">${this.seal(r.label, r.color, true)}${esc(m.title)}</div>
+        <div class="ma-mid"><span class="faces">${faces}</span><div class="ma-prog"><div class="bar pg"><i data-b="mp${m.id}"></i><span data-t="mpl${m.id}"></span></div>
+        <div class="ma-time">{hourglass} <span data-t="mt${m.id}"></span></div></div></div>
+        <div class="ma-acts"><button class="btn ghost" data-act="m-view" data-arg="${m.id}">{pin} Ver no mapa</button><button class="btn danger" data-act="m-abandon" data-arg="${m.id}" ${tipAttr('Recuar', 'A equipe abandona a missão e volta (conta como fracasso e a reputação cai).')}>{flag} Recuar</button></div></div>`;
+      const left = Math.max(0, Math.ceil(m.timeLeft));
+      t[`mt${m.id}`] = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+      b[`mp${m.id}`] = m.progress / Math.max(1, m.goal);
+      t[`mpl${m.id}`] = `${m.progress}/${m.goal}`;
     }
     return html;
+  }
+
+  /** Fase da missão para o selo do contrato: texto, ícone e cor. */
+  private missionPhaseInfo(m: Mission): [string, string, MissionRisk] {
+    const ph = this.missionPhase(m);
+    if (ph === 'emboscada!') return ['Emboscada!', '{alert}', 'danger'];
+    if (ph === 'em combate') return ['Em combate', '{swords}', 'danger'];
+    if (ph === 'a caminho' || ph === 'indo encontrar o mercador') return ['A caminho', '{run}', 'good'];
+    if (ph === 'escoltando') return ['Escoltando', '{cart}', 'safe'];
+    return ['Coletando', '{leaf}', 'safe'];
   }
 
   private missionPhase(m: Mission) {
@@ -1922,7 +2025,21 @@ export class Panel {
       case 'elect':
         return this.report(electKage(g, Number(arg)));
       case 'm-accept':
+        this.missionPick = null;
         return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
+      case 'm-pick':
+        this.missionPick = this.missionPick === Number(arg) ? null : Number(arg);
+        this.update();
+        return;
+      case 'm-tab':
+        this.missionTab = arg as MissionTab;
+        this.update();
+        return;
+      case 'm-auto': {
+        const r = autoAssign(g);
+        if (r.ok) g.toast(`{users} Auto designar: ${r.sent} equipe(s) partiram.`, 'good');
+        return this.report(r);
+      }
       case 'm-abandon':
         return this.report(abandonMission(g, Number(arg)));
       case 'm-view': {

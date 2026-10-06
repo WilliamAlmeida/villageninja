@@ -164,6 +164,55 @@ function unitPic(u: Unit) {
   return tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
 }
 
+const portraits = new Map<string, string>();
+/**
+ * Retrato para a interface (DOM): o quadro parado de frente da folha da unidade, recortado na parte de cima
+ * (cabeça e tronco) e ampliado sem borrar. Fica em cache por aparência. Sem arte carregada, null.
+ */
+export function unitPortrait(u: Unit, full = false): string | null {
+  const pic = unitPic(u);
+  if (!pic || typeof document === 'undefined') return null;
+  const sheet = artFrames(pic);
+  const iw = pic instanceof HTMLImageElement ? pic.naturalWidth : pic.width;
+  const ih = pic instanceof HTMLImageElement ? pic.naturalHeight : pic.height;
+  const fw = Math.floor(iw / sheet.frames);
+  const fh = Math.floor(ih / sheet.rows);
+  const row = sheet.rows > 1 ? SHEET_ROWS.front : 0;
+  const key = `${pic instanceof HTMLImageElement ? pic.src : `${pic.dataset.name}|${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}`}|${full}`;
+  const hit = portraits.get(key);
+  if (hit) return hit;
+  // o quadro tem sobra transparente: acha o contorno do boneco e recorta nele (inteiro ou só cabeça e ombros)
+  const f = document.createElement('canvas');
+  f.width = fw;
+  f.height = fh;
+  const fx = f.getContext('2d', { willReadFrequently: true })!;
+  fx.drawImage(pic, fw * sheet.idle, fh * row, fw, fh, 0, 0, fw, fh);
+  const px = fx.getImageData(0, 0, fw, fh).data;
+  let x0 = fw, y0 = fh, x1 = 0, y1 = 0;
+  for (let y = 0; y < fh; y++)
+    for (let x = 0; x < fw; x++)
+      if (px[(y * fw + x) * 4 + 3]! > 20) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  if (x1 < x0) return null;
+  const bw = x1 - x0 + 1;
+  const bh = y1 - y0 + 1;
+  const sh = full ? bh : Math.min(bh, Math.round(bw * 1.05));
+  const side = Math.max(bw, sh);
+  const c = document.createElement('canvas');
+  c.width = side;
+  c.height = side;
+  const ctx = c.getContext('2d')!;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(f, x0, y0, bw, sh, Math.round((side - bw) / 2), side - sh, bw, sh);
+  const url = c.toDataURL();
+  portraits.set(key, url);
+  return url;
+}
+
 /** Arte em pixel art da unidade (se houver): linha da folha conforme a direção (já projetada) em que anda. */
 function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean {
   const pic = action ? art(`villager-${action}`) : unitPic(u);
