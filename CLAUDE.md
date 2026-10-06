@@ -67,6 +67,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   sublinhadas `.mtabs`, preso ao rolar); selos de estado `.mpill` (safe/good/risky/danger/info), chaves liga/desliga
   `.btn.tog`, seções em cartões `.bsec`, cartão de melhoria `.bup`. Equipes: lista + equipe ao lado na janela larga
   (`WIDE_BOARD`). Desktop largo mostra o nome de cada recurso na barra de cima (vem do `data-tip-title`).
+  **Assets de interface em pixel art** (gerados pelo Codex com `scripts/ui-assets.sh`, originais em `docs/arte/ui/`,
+  preparados por `scripts/prepare-ui.py` → `src/art/ui/` + `src/ui/pxicons.ts`): ícones (`rich()`/`ico()` usam o PNG
+  no lugar do SVG quando existe; a moeda de ryo é a referência de estilo), selos de rank (`SEALS`), kunai do Hiraishin,
+  animais dos Sannin e cenas das estações/festival/vila (`ART`). Tokens do tema (cores, bordas âmbar, botões com relevo)
+  no bloco "Tema fiel aos mockups" no fim de styles.css.
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Exploração** (`game/explore.ts`, `systems/explore.ts`): névoa em bitset (`state.explored`, 1 bit por tile);
   unidades/torres da vila revelam ao redor. Na névoa nada em pé é desenhado nem clicável (inimigos, recursos, locais).

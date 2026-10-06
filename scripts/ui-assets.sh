@@ -151,4 +151,5 @@ if [ "$GROUP" = art ] || [ "$GROUP" = all ]; then
     jobs+=("art|$k|$ART_STYLE Subject: ${ART[$k]}.|docs/arte/mockups/vila.png|$size")
   done
 fi
-printf '%s\n' "${jobs[@]}" | xargs -P $PAR -I{} bash -c 'IFS="|" read -r g n p r s <<< "{}"; gen "$g" "$n" "$p" "$r" "$s"'
+# -d '\n': uma tarefa por linha, sem o xargs interpretar aspas/apóstrofos dos prompts
+printf '%s\n' "${jobs[@]}" | xargs -d '\n' -P $PAR -I{} bash -c 'IFS="|" read -r g n p r s <<< "$1"; gen "$g" "$n" "$p" "$r" "$s"' _ {}
