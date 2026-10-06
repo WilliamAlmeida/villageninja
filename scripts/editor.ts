@@ -2,8 +2,8 @@
 // Monta o ninja em camadas como o jogo (src/render/doll.ts), mostra a animação e deixa editar/mover pixels das camadas
 // e de qualquer PNG de src/art; "Salvar" grava o arquivo em src/art (o build do jogo se refaz sozinho).
 // Só escuta em 127.0.0.1 e fica fora do túnel da Cloudflare: ninguém de fora grava arquivo.
-// Antes de sobrescrever, guarda uma cópia em docs/arte/backup-editor/. Camadas editadas à mão ficam listadas em
-// src/art/layer-edits.json e o scripts/prepare-layers.py não as refaz (a não ser com --force).
+// Antes de sobrescrever, guarda uma cópia em docs/arte/backup-editor/. Arquivos salvos aqui ficam listados em
+// src/art/art-edits.json e o prepare-art.py / prepare-layers.py não os refazem (a não ser com --force).
 //   bun scripts/editor.ts   |   pm2 start ecosystem.local.config.cjs --only villageninja-editor
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,7 +12,7 @@ import page from '../tools/sprite-editor/index.html';
 const ROOT = join(import.meta.dir, '..');
 const ART = join(ROOT, 'src', 'art');
 const BACKUP = join(ROOT, 'docs', 'arte', 'backup-editor');
-const EDITS = join(ART, 'layer-edits.json');
+const EDITS = join(ART, 'art-edits.json');
 const NAME = /^[a-z0-9][a-z0-9-]*\.png$/;
 const port = Number(process.env.EDITOR_PORT ?? 3011);
 
@@ -46,11 +46,10 @@ Bun.serve({
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
         copyFileSync(dst, join(BACKUP, `${f.replace(/\.png$/, '')}-${stamp}.png`));
         writeFileSync(dst, body);
-        if (f.startsWith('layer-') || f === 'ninja-body.png') {
-          const list = new Set(edits());
-          list.add(f);
-          writeFileSync(EDITS, JSON.stringify([...list].sort(), null, 2) + '\n');
-        }
+        // editada à mão: prepare-art.py / prepare-layers.py não a refazem a partir da arte-fonte
+        const list = new Set(edits());
+        list.add(f);
+        writeFileSync(EDITS, JSON.stringify([...list].sort(), null, 2) + '\n');
         console.log(`salvo src/art/${f} (cópia em docs/arte/backup-editor)`);
         return Response.json({ ok: true });
       },

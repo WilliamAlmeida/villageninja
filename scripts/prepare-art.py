@@ -6,6 +6,7 @@
 #     fixa 4×3, VALIDADAS (quadro vazio, tamanho, direção, ordem do ciclo) e normalizadas
 #   - natureza (docs/arte/pixel): imagem única
 # Uso: python scripts/prepare-art.py      (sai com erro se alguma folha não passar na validação)
+import json
 import sys
 from pathlib import Path
 from PIL import Image, ImageChops, ImageOps
@@ -15,11 +16,17 @@ SPRITES = Path('docs/arte/sprites')
 PIXEL = Path('docs/arte/pixel')
 OUT = Path('src/art')
 OUT.mkdir(parents=True, exist_ok=True)
+# artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer a partir da fonte (só com --force)
+EDITED = set() if '--force' in sys.argv else set(json.loads((OUT / 'art-edits.json').read_text())) if (OUT / 'art-edits.json').exists() else set()
 
-# largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles
+# largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles, vezes SCENERY_SCALE
 BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'academy': 6, 'hospital': 5, 'tower': 2.6,
              'library': 5, 'missions': 4, 'ironmine': 4, 'forge': 4, 'pharmacy': 4, 'sealshop': 4, 'monument': 6,
              'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4, 'arena': 8}
+# prédios e cenário guardados em resolução maior: o jogo os amplia pelo zoom (até 2,5×) e pela densidade da tela, e em
+# 1× ficavam borrados. O jogo desenha pelo tamanho no mundo (a altura sai da proporção), então só a nitidez muda;
+# abaixo do tamanho guardado o drawArt reduz com suavização. Personagens e camadas do ninja seguem em 1×.
+SCENERY_SCALE = 2
 FLIP = {'lumber', 'quarry', 'market', 'academy', 'tower'}
 # níveis de upgrade (<tipo>-2, <tipo>-3): mesma largura e mesmo espelhamento do nível 1
 for _name in list(BUILDINGS):
@@ -61,8 +68,14 @@ def crisp(im):
     return im
 
 
-def save(im, name):
-    crisp(im).save(OUT / f'{name}.png', optimize=True)
+def save(im, name, palette=False):
+    if f'{name}.png' in EDITED:
+        print(f'{name}.png editada à mão: mantida (use --force para refazer)')
+        return
+    im = crisp(im)
+    if palette:  # 256 cores com transparência: segura o peso do PNG em 2× (a arte reduzida tem milhares de tons)
+        im = im.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+    im.save(OUT / f'{name}.png', optimize=True)
     print(f'{name}.png', im.size, f'{(OUT / f"{name}.png").stat().st_size / 1024:.1f} KB')
 
 
@@ -118,8 +131,8 @@ for name, tiles in BUILDINGS.items():
     im = trim(Image.open(ISO / f'{name}.png').convert('RGBA'))
     if name in FLIP:
         im = ImageOps.mirror(im)
-    w = round(48 * tiles)
-    save(im.resize((w, round(im.height * w / im.width)), Image.BOX), name)
+    w = round(48 * tiles * SCENERY_SCALE)
+    save(im.resize((w, round(im.height * w / im.width)), Image.BOX), name, palette=True)
 
 for name, (frame_h, kind) in SHEETS.items():
     src = Image.open(SPRITES / f'{name}.png').convert('RGBA')
@@ -178,8 +191,8 @@ for name, (frame_h, kind) in SHEETS.items():
 
 for name, size in SINGLE.items():
     im = trim(Image.open((PIXEL if name == 'herb' else ISO) / f'{name}.png').convert('RGBA'))
-    im.thumbnail((size, size), Image.BOX)
-    save(im, name)
+    im.thumbnail((size * SCENERY_SCALE, size * SCENERY_SCALE), Image.BOX)
+    save(im, name, palette=True)
 
 if problems:
     print('\nVALIDAÇÃO:')

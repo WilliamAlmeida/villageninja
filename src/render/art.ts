@@ -216,8 +216,19 @@ export const artFrames = (img: Pic) => (SHEETS.has(img.dataset.name ?? '') ? SHE
 const FRAME_PAD: Record<string, number> = { 'ninja-body': DOLL_FRAME_PAD };
 
 /**
+ * Suavização só quando a arte sai MENOR que o tamanho guardado na tela (zoom baixo; prédios e cenário são guardados em
+ * 2×): reduzir sem suavizar pula pixels e cintila. Ampliando, segue sem suavização (pixel art nítida).
+ */
+export function smoothIfShrunk(ctx: CanvasRenderingContext2D, drawnW: number, srcW: number) {
+  const t = ctx.getTransform();
+  const shrink = Math.abs(drawnW * Math.hypot(t.a, t.b)) < srcW * 0.98;
+  ctx.imageSmoothingEnabled = shrink;
+  if (shrink) ctx.imageSmoothingQuality = 'high';
+}
+
+/**
  * Desenha a imagem (ou o quadro `frame` da linha `row` de uma folha) com a base centrada em (x, baseY), na altura pedida.
- * `flip` espelha na horizontal. Sem suavização: pixel art amplia sem borrar.
+ * `flip` espelha na horizontal. Ampliando, sem suavização (pixel art não borra); reduzindo, com (`smoothIfShrunk`).
  */
 export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, baseY: number, height: number, flip = false, frame = 0, row = 0) {
   const sheet = artFrames(img);
@@ -227,7 +238,7 @@ export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, base
   height *= FRAME_PAD[img.dataset.name ?? ''] ?? 1;
   const w = (fw / fh) * height;
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
+  smoothIfShrunk(ctx, w, fw);
   ctx.translate(x, 0);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(img, fw * frame, fh * row, fw, fh, -w / 2, baseY - height, w, height);

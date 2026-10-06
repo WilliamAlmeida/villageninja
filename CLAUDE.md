@@ -21,7 +21,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   A câmera trabalha na cena projetada; fora do render use `camera.focus/jump/screenToWorld/worldToScreen` (mundo).
   Cliques no mapa comparam em coordenadas de tela (`ui/index.ts`).
 - Arte em pixel art: PNGs em `src/art` (registro em `render/art.ts`), preparados com `scripts/prepare-art.py`
-  (originais em `docs/arte`). **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
+  (originais em `docs/arte`). Prédios e cenário (árvores, rochas, baú, ruína, caverna) são guardados em 2×
+  (`SCENERY_SCALE`, paleta de 256 cores): o jogo desenha pelo tamanho no mundo e só ganha nitidez com zoom; abaixo do
+  tamanho guardado `smoothIfShrunk` (art.ts) reduz com suavização. Personagens e camadas do ninja seguem em 1×. **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
   usa `-m gpt-5.5` e tira o fundo localmente com `scripts/remove-bg.py`). A Runware (`scripts/runware.mjs`,
   `scripts/sprite.mjs`, paga por imagem) é só alternativa quando o Codex não estiver disponível. Sem imagem (ou com "Arte: Antiga" no menu) vale o desenho
   procedural de `sprites.ts`.
@@ -55,8 +57,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   e move só ele (arrastar dentro / setas = 1 px; Delete apaga, Ctrl+C/V copia e cola, também com a área de transferência do sistema:
   dá para colar do Photoshop) ou, sem seleção, a camada
   inteira num quadro ou na vista toda; com desfazer. Modo "Arquivo" abre qualquer PNG de src/art. Salvar grava em src/art
-  (cópia do anterior em docs/arte/backup-editor/); camada editada à mão entra em `src/art/layer-edits.json` e o
-  `prepare-layers.py` não a refaz (só com `--force`).
+  (cópia do anterior em docs/arte/backup-editor/); arquivo salvo no editor entra em `src/art/art-edits.json` e o
+  `prepare-art.py` / `prepare-layers.py` não o refazem a partir da fonte (só com `--force`).
 - Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
 - Moradores trabalhando usam folhas de ação (`villager-chop|mine|farm`, gabarito `action`: levanta · balança · impacto ·
   recupera); árvore vira toco e rocha racha conforme se esgotam; colheita deixa um canteiro (`fx 'harvest'`) que rebrota.

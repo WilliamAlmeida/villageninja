@@ -27,7 +27,7 @@ COLS, ROWS = 4, 3
 BASE = OUT / 'ninja-base.png'
 BODY = OUT / 'ninja-body.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
 PAD, PADX = 24, 18
-EDITS = OUT / 'layer-edits.json'  # camadas editadas à mão no editor de sprites (scripts/editor.ts): não refazer
+EDITS = OUT / 'art-edits.json'  # artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer
 
 # peça → (tipo, peças de baixo no molde, cor neutra da peça no molde de quem vem depois [, segunda cor])
 # As três primeiras foram geradas sobre o corpo puro (antes dos moldes em camadas).

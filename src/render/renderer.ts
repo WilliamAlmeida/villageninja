@@ -20,7 +20,7 @@ import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
 import { buildingCenter, doorPos } from '../game/world';
-import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS } from './art';
+import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
@@ -652,7 +652,7 @@ export class Renderer {
     }
     if (pic) {
       const h = (w / pic.naturalWidth) * pic.naturalHeight;
-      ctx.imageSmoothingEnabled = false;
+      smoothIfShrunk(ctx, w, pic.naturalWidth);
       ctx.drawImage(pic, x - w / 2, y + w * 0.18 - h, w, h);
       ctx.imageSmoothingEnabled = true;
     } else {
