@@ -170,6 +170,20 @@ const portraits = new Map<string, string>();
  * (cabeça e tronco) e ampliado sem borrar. Fica em cache por aparência. Sem arte carregada, null.
  */
 export function unitPortrait(u: Unit, full = false): string | null {
+  // ninja da vila: busto pintado do penteado dele, recolorido (cabelo/roupa/pele) como o sprite
+  if (!full && u.kind === 'ninja' && u.faction !== 'enemy' && !u.org && u.look && typeof document !== 'undefined') {
+    const style = NINJA_HAIRSTYLES[u.id % NINJA_HAIRSTYLES.length];
+    const bust = tintedArt(`bust-${style}`, u.look);
+    if (bust) {
+      const key = `bust|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}`;
+      let url = portraits.get(key);
+      if (!url) {
+        url = bust.toDataURL();
+        portraits.set(key, url);
+      }
+      return url;
+    }
+  }
   const pic = unitPic(u);
   return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}`) : null;
 }

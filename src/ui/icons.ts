@@ -1,7 +1,22 @@
 // Ícones SVG (traço, 24×24) — iguais em qualquer dispositivo, ao contrário de emoji.
 // Textos usam tokens `{nome}`; `rich()` troca cada token pelo SVG correspondente.
 import { TOKEN_RE } from '../core/tokens';
-import { ICONS } from './pxicons';
+import { ART, CARDS, ICONS, type Atlas } from './pxicons';
+
+// atlas pedidos já na abertura (aparecem na hora nas janelas), junto com as ilustrações
+if (typeof Image !== 'undefined') for (const url of [ICONS.url, CARDS.url, ...Object.values(ART)]) new Image().src = url;
+
+/**
+ * Uma casa de um atlas como elemento: fundo com a imagem do atlas, tamanho e posição em %, então escala com o
+ * tamanho que o CSS der ao elemento. `null` se o item não existe no atlas.
+ */
+export function atlasCell(a: Atlas, name: string, cls: string, attrs = ''): string | null {
+  const p = a.pos[name];
+  if (!p) return null;
+  const x = a.cols > 1 ? (p[0] / (a.cols - 1)) * 100 : 0;
+  const y = a.rows > 1 ? (p[1] / (a.rows - 1)) * 100 : 0;
+  return `<i class="${cls}" style="background-image:url('${a.url}');background-size:${a.cols * 100}% ${a.rows * 100}%;background-position:${x.toFixed(2)}% ${y.toFixed(2)}%" ${attrs}></i>`;
+}
 
 const I: Record<string, string> = {
   // recursos
@@ -108,8 +123,8 @@ const I: Record<string, string> = {
  * (herda a cor do texto; alguns têm cor própria via `.ic-nome`).
  */
 export function ico(name: string, cls = '') {
-  const px = ICONS[name];
-  if (px) return `<img class="ic px ic-${name}${cls ? ` ${cls}` : ''}" src="${px}" alt="" draggable="false">`;
+  const px = atlasCell(ICONS, name, `ic px ic-${name}${cls ? ` ${cls}` : ''}`, 'aria-hidden="true"');
+  if (px) return px;
   const body = I[name];
   if (!body) return '';
   return `<svg class="ic ic-${name}${cls ? ` ${cls}` : ''}" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;

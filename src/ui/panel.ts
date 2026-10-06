@@ -38,13 +38,13 @@ import {
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
 import { artPortrait, unitPortrait } from '../render/sprites';
-import { ART, SEALS } from './pxicons';
+import { ART, CARDS, ICONS } from './pxicons';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
 import { KAGE_ARTS } from '../data/kageArts';
 import { ORG, ORG_LAIR, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
-import { lairGuards } from '../game/org';
+import { lairGuards, nextPair } from '../game/org';
 import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { nameSannin, sanninBlock, sanninCandidates, sanninOf, statCapOf } from '../game/sannin';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
@@ -70,7 +70,7 @@ import { drawInterior } from '../render/interior';
 import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
-import { rich } from './icons';
+import { atlasCell, rich } from './icons';
 import { blocked, blockedClick, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
@@ -186,6 +186,8 @@ export class Panel {
   /** Quadro de missões: aba e missão com a lista de equipes aberta ("Trocar equipe"). */
   private missionTab: MissionTab = 'offered';
   private missionPick: number | null = null;
+  /** Candidato escolhido em cada caminho Sannin (o "Nomear" usa este). */
+  private sanninSel: Record<string, number> = {};
   /** Raça escolhida para a próxima adoção de ninken. */
   private dogBreed: DogBreed = 'shiba';
   /** Região: lugar aberto e equipe escolhida para as ações. */
@@ -1410,86 +1412,104 @@ export class Panel {
   /**
    * Aba Kage: o Kage atual (retrato, técnica do Kage) ou a eleição; a Ordem do Eclipse ao lado; os Três Sannin embaixo.
    */
+  /**
+   * Aba Kage (fiel ao mockup kage.png): o Kage atual à esquerda (retrato grande, etiquetas, técnica do Kage com a
+   * ilustração e as ações) e a Ordem do Eclipse à direita; os Três Sannin embaixo, de ponta a ponta.
+   */
   private kageSection() {
     const g = this.app.game;
     const k = currentKage(g);
-    let html = `<div class="kgrid"><div class="bsec kcard"><h4>{crown} Kage atual</h4>`;
+    let html = `<div class="kgrid"><section class="kpanel kcard"><div class="kp-head">{castle}<b>Kage atual</b></div>`;
     if (k) {
-      const pic = unitPortrait(k, true);
       const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
       const monument = g.state.buildings.some((b) => b.type === 'monument');
-      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</button><div class="k-main">
-        <div class="k-name">${esc(k.name)} <span class="rbadge r-kage">{crown} Kage</span></div>
-        <div class="td-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{monument} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
+      const bust = unitPortrait(k);
+      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${bust ? `<img src="${bust}" alt="" draggable="false">` : ''}</button>
+        <div class="k-main"><div class="k-name">${esc(k.name)}<span class="kpill">{crown} Kage atual</span></div>
+        <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{monument} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
       if (art)
-        html += `<div class="kart" style="--c:${art.color}">${ART['kunai-hiraishin'] ? `<img class="kart-pic" src="${ART['kunai-hiraishin']}" alt="" draggable="false">` : ''}<div><b>{crown} ${esc(art.name)}</b>
-          <div class="td-chips"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{target} Marca ${art.markLife}s</span></div><p>${esc(art.desc)}</p></div></div>`;
-      html += `<button class="btn primary" data-act="pick" data-arg="${k.id}">{eye} Ver Kage</button></div></div>`;
+        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row">${ART['kunai-hiraishin'] ? `<span class="kart-pic"><img src="${ART['kunai-hiraishin']}" alt="" draggable="false"></span>` : ''}
+          <div class="kart-info"><div class="k-chips"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{target} Marca ${art.markLife}s</span></div>
+          <p ${tipAttr(art.name, art.desc, true)}>Kunais marcadas; teleporte em clarão amarelo e retorno à Residência ao cair.</p></div></div></div>`;
+      html += `<div class="k-acts"><button class="btn primary" data-act="pick" data-arg="${k.id}">Ver Kage</button><button class="btn ghost" data-act="go-hokage">{castle} Ir à Residência</button></div></div></div>`;
     } else if (g.state.ceremony) {
       html += `<p class="hint">{party} Cerimônia em andamento…</p>`;
     } else {
       const st = electionStatus(g);
       html += `<p class="hint">Um Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage (${costLabel(KAGE_COST)}). Com Kage vivo, todos os ninjas causam +10% de dano.</p>`;
-      if (st.candidates.length && st.ready)
+      if (st.candidates.length)
         html += `<div class="kcands">${st.candidates
           .slice(0, 3)
-          .map((c) => `<button class="kcand" data-act="elect" data-arg="${c.id}">${this.face(c)}<span><b>${esc(c.name)}</b><small>Jounin · Nv ${c.ninja!.level}</small></span><span class="btn primary mini">{crown} Eleger</span></button>`)
+          .map((c) => `<button class="kcand" data-act="elect" data-arg="${c.id}" ${blocked(g, [!st.ready && st.reason])}>${this.face(c)}<span><b>${esc(c.name)}</b><small>Jounin · Nv ${c.ninja!.level}</small></span><span class="btn primary mini">{crown} Eleger</span></button>`)
           .join('')}</div>`;
       else html += `<p class="why">${esc(st.reason)}</p>`;
     }
-    if (g.state.kageHistory.length)
-      html += `<p class="hint">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
-    html += `</div>${this.orgSection()}</div>`;
+    if (g.state.kageHistory.length > 1)
+      html += `<p class="hint k-hist">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
+    html += `</section>${this.orgSection()}</div>`;
     return html + this.sanninSection();
   }
 
-  /** Ordem do Eclipse: quantos caíram, a próxima aparição e cada membro com o retrato e o estado. */
+  /** Ordem do Eclipse: emblema, progresso, a próxima aparição, os 8 bustos com o estado e a dupla atual. */
   private orgSection() {
     const g = this.app.game;
     const o = g.state.org;
-    const all = [...ORG_PAIRS.flat(), ...ORG_LAIR];
-    let html = `<div class="bsec ocard"><h4>{skull} ${ORG.name}</h4><p class="hint">8 lendários · atacam em duplas · quem cai não volta</p>`;
-    if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p></div>`;
+    const emblem = atlasCell(ICONS, 'eclipse', 'o-emb') ?? '{skull}';
+    let html = `<section class="kpanel ocard"><div class="o-head">${emblem}<div><b>${ORG.name}</b><small>8 lendários · atacam em duplas · quem cai não volta</small></div></div>`;
+    if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p></section>`;
     const known = g.state.level >= ORG.minVillage;
-    html += `<div class="o-prog"><span><b>${o.down.length}/8</b> derrotados</span><div class="nc-bar"><i style="width:${(o.down.length / 8) * 100}%;background:var(--bad)"></i></div>
-      <span class="mpill ${known ? 'danger' : 'info'}">{hourglass} ${known ? (o.nextDay ? `Próxima aparição: dia ${o.nextDay}` : 'Logo') : 'Ainda não sabem da vila'}</span></div><div class="ogrid">`;
-    const onMap = new Set(g.state.units.filter((u) => !u.dead && u.org).map((u) => u.org));
-    for (const id of all) {
+    html += `<div class="o-prog"><div class="o-count"><b>${o.down.length}/8 derrotados</b><div class="nc-bar"><i style="width:${(o.down.length / 8) * 100}%"></i></div></div>
+      <span class="o-next">{hourglass} ${known ? (o.nextDay ? `Próxima aparição: dia ${o.nextDay}` : 'Logo') : 'Não sabem da vila'}</span></div><div class="ogrid">`;
+    const live = g.state.units.filter((u) => !u.dead && u.org);
+    const onMap = new Set(live.map((u) => u.org));
+    for (const id of [...ORG_PAIRS.flat(), ...ORG_LAIR]) {
       const d = ORG_MEMBERS[id];
       const down = o.down.includes(id);
       const lair = ORG_LAIR.includes(id);
-      const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : lair ? ['{lock} Covil', 'lair'] : ['{alert} À solta', ''];
-      const pic = artPortrait(`org-${id}`);
-      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}><span class="om-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
+      const seen = down || onMap.has(id) || ORG_PAIRS.findIndex((p) => p.includes(id)) <= ORG_PAIRS.findIndex((p) => p.some((x) => !o.down.includes(x)));
+      const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : lair ? ['{lock} Covil', 'lair'] : seen ? ['{alert} À solta', ''] : ['{info} Desconhecido', 'unk'];
+      const bust = atlasCell(CARDS, `org-${id}`, 'om-bust') ?? (artPortrait(`org-${id}`) ? `<img class="om-bust" src="${artPortrait(`org-${id}`)}" alt="">` : '');
+      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}><span class="om-face">${bust}${down ? '<span class="om-check">{check}</span>' : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
     }
     html += `</div>`;
+    const pair = live.length ? live.map((u) => ORG_MEMBERS[u.org!].name) : (nextPair(g.state) ?? []).filter((id) => !o.down.includes(id)).map((id) => ORG_MEMBERS[id].name);
+    html += `<div class="o-foot"><span>{users} ${live.length ? 'Dupla atual' : 'Próxima dupla'}: <b>${pair.join(' & ') || '—'}</b></span>
+      <button class="btn ghost" data-act="win" data-arg="region">{pin} Ver região</button></div>`;
     if (o.lairKnown) html += `<p class="hint">{map} O covil foi descoberto: Mundo → Região → Covil do Eclipse.</p>`;
-    return html + `</div>`;
+    return html + `</section>`;
   }
 
-  /** Os Três Sannin: um cartão por caminho (sapo, serpente, lesma) com quem tem o título ou os candidatos. */
+  /** Os Três Sannin: um cartão por caminho com o emblema, o Sannin (ou os candidatos), o animal e o botão. */
   private sanninSection() {
     const g = this.app.game;
-    let html = `<div class="bsec"><h4>{scroll} Os Três Sannin <small>Jounins nv ${SANNIN.minLevel}+ · ${costLabel(SANNIN.cost)} cada</small></h4>
-      <p class="hint">Título lendário: atributos até ${SANNIN.statCap}, o contrato do animal (invoca mais vezes) e uma técnica lendária.</p><div class="sgrid">`;
+    let html = `<section class="kpanel ssec"><div class="kp-head">{scroll}<b>Os Três Sannin</b><small>Jounins Nv ${SANNIN.minLevel}+ · custo ${costLabel(SANNIN.cost)}</small></div><div class="sgrid">`;
     const cands = sanninCandidates(g);
-    const BEAST: Record<string, string> = { toad: 'toad', snake: 'snake', slug: 'slug' };
     for (const path of ['toad', 'snake', 'slug'] as const) {
       const d = SANNIN_PATHS[path];
       const who = sanninOf(g, path);
-      const beast = ART[`beast-${path}`] ?? artPortrait(BEAST[path]!, true);
-      html += `<div class="scard" style="--c:${d.color}"><div class="sc-head"><b>${esc(d.title)}</b>${who ? '<span class="mpill safe">{shield} Nomeado</span>' : ''}</div>
-        <div class="sc-body"><span class="sc-beast">${beast ? `<img src="${beast}" alt="" draggable="false">` : ''}<small>${esc(d.art)}</small></span><div class="sc-who">`;
-      if (who) html += `<button class="kcand" data-act="pick" data-arg="${who.id}">${this.face(who)}<span><b>${esc(who.name)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
-      else if (!cands.length) html += `<p class="why">${esc(sanninBlock(g, undefined, path) ?? '')}</p>`;
-      else
-        for (const c of cands.slice(0, 3)) {
-          const why = sanninBlock(g, c, path);
-          html += `<button class="kcand" data-act="sannin" data-arg="${c.id}:${path}" ${blocked(g, [why && !why.startsWith('Custa') && why], SANNIN.cost)}>${this.face(c)}<span><b>${esc(c.name.split(' ').pop()!)}</b><small>Nv ${c.ninja!.level}</small></span><span class="btn primary mini">Nomear</span></button>`;
-        }
-      html += `</div></div><p class="hint">${esc(d.desc)}</p></div>`;
+      const beast = ART[`beast-${path}`] ?? artPortrait(path, true);
+      const emblem = atlasCell(ICONS, `path-${path}`, 'sc-emb') ?? `<span class="sc-emb none">{scroll}</span>`;
+      html += `<div class="scard" style="--c:${d.color}"><div class="sc-head">${emblem}<b>${esc(d.title)}</b></div><div class="sc-body">`;
+      if (who) {
+        const bust = unitPortrait(who);
+        html += `<button class="sc-who" data-act="pick" data-arg="${who.id}">${bust ? `<img src="${bust}" alt="" draggable="false">` : ''}<span class="sc-tag"><b>${esc(who.name.split(' ').pop()!)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
+      } else {
+        const sel = this.sanninSel[path];
+        html += `<div class="sc-cands"><small>${cands.length ? 'Candidatos disponíveis' : esc(sanninBlock(g, undefined, path) ?? 'Sem candidatos.')}</small>`;
+        for (const c of cands.slice(0, 2))
+          html += `<button class="sc-cand ${sel === c.id ? 'on' : ''}" data-act="sannin-sel" data-arg="${path}:${c.id}">${this.face(c)}<span><b>${esc(c.name.split(' ').pop()!)}</b><small>Nv ${c.ninja!.level}</small></span></button>`;
+        html += `</div>`;
+      }
+      html += `<span class="sc-beast" ${tipAttr(d.art, d.desc, true)}>${beast ? `<img src="${beast}" alt="" draggable="false">` : ''}<b>${esc(d.art)}</b></span></div>`;
+      if (who) html += `<div class="sc-done">{shield} Nomeado</div>`;
+      else {
+        const c = cands.find((x) => x.id === this.sanninSel[path]) ?? cands[0];
+        const why = c ? sanninBlock(g, c, path) : 'Sem candidatos.';
+        html += `<button class="btn primary sc-go" data-act="sannin" data-arg="${c?.id ?? 0}:${path}" ${blocked(g, [!c && 'Nenhum Jounin de nível 20+ disponível.', why && !why.startsWith('Custa') && why], SANNIN.cost)}>{users} Nomear</button>`;
+      }
+      html += `</div>`;
     }
-    return html + `</div></div>`;
+    return html + `</div></section>`;
   }
 
   /** Vida da vila: população e felicidade (com os fatores), estação e clima, e o festival. */
@@ -1678,9 +1698,8 @@ export class Panel {
 
   /** Selo do rank: pergaminho com o lacre de cera (ou só o lacre, pequeno). */
   private seal(label: string, color: string, small = false) {
-    const px = SEALS[`seal-${label}`];
-    const wax = px ? `<img class="wax" src="${px}" alt="${label}" draggable="false">` : `<b>${label}</b>`;
-    return `<span class="mseal ${small ? 'sm' : ''} ${px ? 'px' : ''}" style="--c:${color}">${small ? '' : `<img src="${missionScrollUrl}" alt="" draggable="false">`}${wax}</span>`;
+    const px = atlasCell(CARDS, `seal-${label}`, 'wax');
+    return `<span class="mseal ${small ? 'sm' : ''} ${px ? 'px' : ''}" style="--c:${color}">${small ? '' : `<img src="${missionScrollUrl}" alt="" draggable="false">`}${px ?? `<b>${label}</b>`}</span>`;
   }
 
   /** Uma missão oferecida: contrato com recompensa, equipe recomendada (com risco) e a troca de equipe. */
@@ -2129,6 +2148,21 @@ export class Panel {
         return this.report({ ok: true });
       case 'awaken':
         return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
+      case 'sannin-sel': {
+        const [path, id] = arg.split(':');
+        this.sanninSel[path!] = Number(id);
+        this.update();
+        return;
+      }
+      case 'go-hokage': {
+        const h = g.findBuilt('hokage');
+        if (h) {
+          if (this.mode === 'window') this.show(null);
+          g.select({ kind: 'building', id: h.id });
+          this.app.camera.focus((h.tx + BUILDINGS.hokage.w / 2) * TILE, (h.ty + BUILDINGS.hokage.h / 2) * TILE);
+        }
+        return;
+      }
       case 'view-scene':
         if (this.mode === 'window') this.show(null);
         this.app.setView(true);

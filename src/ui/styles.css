@@ -1091,7 +1091,7 @@ h4::after { background: var(--line); opacity: 0.6; }
   .mtabs button { font-size: 0.92rem; padding: 0.45rem 0.8rem; }
   .bigbtn { width: 4.4rem; height: 3.7rem; }
 }
-.ic.px { image-rendering: pixelated; object-fit: contain; vertical-align: -0.2em; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45)); }
+.ic.px { display: inline-block; background-repeat: no-repeat; image-rendering: pixelated; vertical-align: -0.2em; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45)); stroke: none; }
 /* selos de rank, kunai do Kage e cenas (assets pixel art gerados) */
 .mseal.px .wax { position: absolute; width: 2.9rem; height: 2.9rem; image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5)); }
 .mseal.sm.px .wax { position: static; width: 1.7rem; height: 1.7rem; }
@@ -1102,3 +1102,97 @@ h4::after { background: var(--line); opacity: 0.6; }
 .vscene { display: block; width: 100%; height: 7.5rem; object-fit: cover; object-position: center bottom; border-radius: 0.55rem; border: 1px solid var(--line); margin-bottom: 0.45rem; image-rendering: pixelated; background: rgba(0, 0, 0, 0.25); }
 .sc-beast img { width: 5rem; height: 5rem; }
 @media (max-height: 520px) { .vscene { height: 5rem; } .kart-pic { width: 4.5rem; height: 4.5rem; } }
+
+/* ---------- aba Kage fiel ao mockup kage.png ---------- */
+#win .box { width: min(84rem, 95vw); height: min(58rem, 90vh); }
+.mseal .wax { display: block; background-repeat: no-repeat; image-rendering: pixelated; }
+.kgrid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 0.9rem; }
+.kpanel { position: relative; padding: 0.85rem 1rem 1rem; border-radius: 0.75rem; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(58, 39, 23, 0.85), rgba(36, 23, 15, 0.9)); box-shadow: var(--shadow-card); margin-bottom: 0.9rem; }
+.kp-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+.kp-head > .ic { width: 1.7rem; height: 1.7rem; }
+.kp-head > b { font-size: 1.45rem; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
+.kp-head > small { color: var(--muted); font-size: 0.95rem; margin-left: 0.4rem; }
+/* Kage atual */
+.kbody { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 0.9rem; align-items: stretch; padding: 0.7rem; border-radius: 0.65rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); }
+.k-face { position: relative; width: 13rem; height: auto; min-height: 20rem; border-radius: 0.55rem; border: 2px solid #8a5b25; background: #3b2919 center / cover no-repeat; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0.3rem 0.8rem rgba(0, 0, 0, 0.4); }
+.k-face img { width: 112%; height: auto; image-rendering: pixelated; margin-bottom: -8%; filter: drop-shadow(0 0 0.6rem rgba(0, 0, 0, 0.6)); }
+.k-main { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.k-name { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; font-size: 1.75rem; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
+.kpill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 1rem; font-weight: 800; color: var(--warn); padding: 0.3rem 0.7rem; border-radius: 0.45rem; border: 2px solid #e7a92e; background: linear-gradient(180deg, rgba(255, 187, 48, 0.18), rgba(112, 72, 18, 0.35)); text-shadow: none; }
+.k-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.k-chips .mchip { font-size: 0.92rem; }
+.kart { display: block; padding: 0.7rem 0.8rem; border-radius: 0.6rem; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(67, 45, 27, 0.9), rgba(43, 28, 18, 0.92)); }
+.kart-t { display: block; font-size: 1.15rem; font-weight: 900; margin-bottom: 0.5rem; }
+.kart-row { display: flex; gap: 0.75rem; align-items: flex-start; }
+.kart-pic { flex: 0 0 auto; width: 9rem; height: 7.4rem; border-radius: 0.5rem; border: 2px solid #8a5b25; background: radial-gradient(circle at 50% 50%, rgba(255, 210, 74, 0.35), rgba(40, 24, 12, 0.95) 75%); display: grid; place-items: center; overflow: hidden; }
+.kart-pic img { width: 92%; height: 92%; object-fit: contain; image-rendering: pixelated; }
+.kart-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.kart-info .mchip { font-size: 0.82rem; padding: 0.25rem 0.55rem; min-height: 1.9rem; }
+.kart-info p { margin: 0; font-size: 1rem; line-height: 1.4; color: #e8d6b8; }
+.k-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: auto; }
+.k-acts .btn { justify-content: center; font-size: 1.12rem; padding: 0.75rem 1rem; }
+.k-hist { margin: 0.6rem 0 0; }
+/* Ordem do Eclipse */
+.ocard { border-color: rgba(255, 87, 82, 0.45); }
+.o-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.7rem; }
+.o-emb { width: 3rem; height: 3rem; flex: 0 0 auto; display: inline-block; background-repeat: no-repeat; image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5)); }
+.o-head b { display: block; font-size: 1.45rem; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
+.o-head small { display: block; color: #ff7770; font-size: 0.98rem; }
+.o-prog { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: 0.6rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.2); margin-bottom: 0.65rem; }
+.o-count { flex: 1; min-width: 0; }
+.o-count b { display: block; font-size: 1.1rem; margin-bottom: 0.3rem; }
+.o-count .nc-bar { height: 0.55rem; }
+.o-count .nc-bar i { background: linear-gradient(180deg, #ff6a5a, #c8322a); }
+.o-next { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.75rem; border-radius: 0.45rem; border: 2px solid #ff5752; color: #ffd3cf; font-weight: 800; font-size: 0.95rem; background: linear-gradient(180deg, rgba(214, 59, 54, 0.22), rgba(91, 28, 27, 0.45)); }
+.ogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+.omem { padding: 0 0 0.4rem; gap: 0.15rem; overflow: hidden; border-radius: 0.55rem; }
+.om-face { position: relative; width: 100%; height: auto; aspect-ratio: 1 / 0.85; display: block; background: radial-gradient(circle at 50% 30%, rgba(255, 214, 150, 0.12), rgba(0, 0, 0, 0.45)); border-bottom: 1px solid var(--line); overflow: hidden; }
+.om-bust { position: absolute; inset: 0; display: block; background-repeat: no-repeat; image-rendering: pixelated; width: 100%; height: 118%; object-fit: cover; }
+.om-check { position: absolute; top: 0.3rem; right: 0.3rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; background: #2f8f33; border: 2px solid #8fff8d; }
+.om-check .ic { width: 1rem; height: 1rem; }
+.omem b { font-size: 1rem; margin-top: 0.25rem; }
+.omem small { font-size: 0.82rem; }
+.omem.down .om-face { filter: none; }
+.omem.down { opacity: 1; }
+.omem.down small { color: var(--good); }
+.omem.live { border: 2px solid #ff5752; box-shadow: 0 0 0.8rem rgba(255, 87, 82, 0.35); }
+.omem.unk .om-face, .omem.lair .om-face { filter: brightness(0.55) saturate(0.6); }
+.omem.unk small { color: var(--muted); }
+.o-foot { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.7rem; padding-top: 0.65rem; border-top: 1px solid var(--line); }
+.o-foot > span { flex: 1; min-width: 0; color: #e8d6b8; display: flex; align-items: center; gap: 0.4rem; }
+/* Três Sannin */
+.ssec .sgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+.scard { padding: 0.65rem 0.7rem 0.75rem; gap: 0.55rem; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(67, 45, 27, 0.9), rgba(43, 28, 18, 0.92)); }
+.sc-head { justify-content: flex-start; gap: 0.6rem; }
+.sc-head b { color: var(--text); font-size: 1.2rem; font-weight: 900; }
+.sc-emb { width: 2.6rem; height: 2.6rem; flex: 0 0 auto; display: inline-block; background-repeat: no-repeat; image-rendering: pixelated; }
+.sc-body { display: grid; grid-template-columns: 1fr 1.25fr; gap: 0.45rem; height: 9.5rem; }
+.sc-who, .sc-beast, .sc-cands { position: relative; border-radius: 0.5rem; border: 1px solid var(--line); overflow: hidden; background: radial-gradient(circle at 50% 30%, rgba(255, 214, 150, 0.1), rgba(0, 0, 0, 0.4)); }
+.sc-who { display: block; padding: 0; }
+.sc-who img { position: absolute; left: 50%; bottom: -10%; transform: translateX(-50%); height: 118%; image-rendering: pixelated; }
+.sc-tag { position: absolute; left: 0.35rem; bottom: 0.35rem; display: flex; flex-direction: column; padding: 0.2rem 0.45rem; border-radius: 0.35rem; background: rgba(20, 13, 8, 0.85); border: 1px solid var(--line); text-align: left; line-height: 1.15; }
+.sc-tag b { font-size: 0.9rem; } .sc-tag small { font-size: 0.78rem; color: var(--muted); }
+.sc-beast { display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 35%, transparent), rgba(10, 6, 4, 0.9) 80%); width: auto; padding: 0; }
+.sc-beast img { width: 92%; height: 92%; object-fit: contain; image-rendering: pixelated; }
+.sc-beast b { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.25rem; text-align: center; font-size: 0.95rem; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px #000; background: linear-gradient(transparent, rgba(0, 0, 0, 0.7)); }
+.sc-cands { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem; background: rgba(0, 0, 0, 0.2); }
+.sc-cands > small { color: var(--muted); font-size: 0.8rem; }
+.sc-cand { display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.35rem; border-radius: 0.45rem; border: 1px solid var(--line); background: var(--card); text-align: left; }
+.sc-cand.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sc-cand .face { width: 2rem; height: 2rem; }
+.sc-cand span { display: flex; flex-direction: column; line-height: 1.1; }
+.sc-cand small { font-size: 0.75rem; color: var(--muted); }
+.sc-done { display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.55rem; border-radius: 0.5rem; border: 2px solid #48d34e; color: #8fff8d; font-weight: 900; font-size: 1.05rem; background: linear-gradient(180deg, rgba(68, 177, 64, 0.2), rgba(29, 82, 31, 0.4)); }
+.sc-go { justify-content: center; font-size: 1.05rem; padding: 0.55rem; }
+@media (max-width: 1000px) { .kgrid, .ssec .sgrid { grid-template-columns: 1fr; } }
+@media (max-height: 520px) {
+  .kbody { grid-template-columns: 8rem minmax(0, 1fr); }
+  .k-face { width: 8rem; min-height: 12rem; }
+  .k-name { font-size: 1.3rem; }
+  .kart-pic { width: 6rem; height: 5rem; }
+  .sc-body { height: 7.5rem; }
+}
+/* retratos agora são bustos pintados (não o sprite ampliado) */
+.k-face img { width: 100%; margin: 0; filter: drop-shadow(0 0 0.8rem rgba(0, 0, 0, 0.55)); }
+.sc-who img { left: 0; bottom: 0; transform: none; width: 100%; height: auto; }
+.face { object-fit: cover; object-position: top; }
