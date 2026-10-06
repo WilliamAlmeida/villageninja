@@ -1005,61 +1005,94 @@ export class Panel {
     const b: Record<string, number> = {};
     const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja);
     const lack = (slot: ItemSlot) => ninjas.filter((u) => !u.ninja!.equip[slot]).length;
-    let html = `<div class="ph"><div class="title">{anvil} Oficinas</div></div>`;
-    html += `<p class="hint">De ${ninjas.length} ninjas: <b>${lack('weapon')}</b> sem arma · <b>${lack('armor')}</b> sem colete · <b>${lack('item')}</b> sem consumível.</p>`;
-    html += this.gearBar() + `<div class="craftgrid">`;
+    const on = !!g.state.flags.autoGear;
+    const chip = (n: number, ic: string, label: string) => `<span class="mchip ${n ? 'bad' : ''}">${ic} ${n} ${label}</span>`;
+    let html = this.winTop(
+      '{anvil} Oficinas',
+      `<span class="mchip">{users} De ${ninjas.length} ninjas:</span>${chip(lack('weapon'), '{kunai}', 'sem arma')}${chip(lack('armor'), '{vest}', 'sem colete')}${chip(lack('item'), '{pill}', 'sem consumível')}`,
+      `<button class="btn" data-act="gear-all" ${tipAttr('Equipar todos', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{users} Equipar todos</button>
+       <button class="btn tog ${on ? 'on' : ''}" data-act="gear-auto" ${tipAttr('Automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}>{gear} Automático<i class="sw"></i></button>`,
+      [],
+    );
+    html += `<div class="craftgrid">`;
     for (const type of ['forge', 'pharmacy', 'sealshop'] as const) html += this.craftCard(type, t, b);
     return { html: html + `</div>`, t, b };
   }
 
+  /**
+   * Uma oficina na janela: arte e nível, artesão, estoque, produção atual, fila em casas, receitas (com +1/+5 e
+   * "Manter" do nível 2 em diante) e o upgrade.
+   */
   private craftCard(type: 'forge' | 'pharmacy' | 'sealshop', t: Record<string, string>, b: Record<string, number>) {
     const g = this.app.game;
     const d = BUILDINGS[type];
     const bd = g.state.buildings.find((x) => x.type === type);
-    let html = `<div class="wscard"><div class="wshead"><span class="wsname">${d.icon} ${esc(d.name)}</span>${bd ? `<span class="badge">Nv ${levelOf(bd)}</span>` : ''}</div>`;
-    if (!bd) return html + `<p class="why">Ainda não construída. Abra Construir (B) para erguer: ${esc(d.name)}.</p></div>`;
-    if (!bd.built) return html + `<p class="hint">{hammer} Em obra…</p></div>`;
+    const lvl = bd ? levelOf(bd) : 1;
+    const url = (lvl > 1 && artUrl(`${type}-${lvl}`)) || artUrl(type);
+    let html = `<div class="wscard"><div class="wshead"><span class="ws-art">${url ? `<img src="${url}" alt="" draggable="false">` : d.icon}</span><div class="ws-hmain">
+      <span class="wsname">${d.icon} ${esc(d.name)}</span>`;
+    if (!bd) return html + `</div></div><p class="why">Ainda não construída. Abra Construir (B) para erguer: ${esc(d.name)}.</p></div>`;
+    html += `<span class="mchip">Nv ${lvl}</span>`;
+    if (!bd.built) return html + `</div></div><p class="hint">{hammer} Em obra…</p></div>`;
     html += bd.workers.length
-      ? `<p class="hint">{hammer} Artesão trabalhando</p>`
-      : `<p class="why">Sem artesão: nada é fabricado. <button class="btn mini" data-act="ws-worker" data-arg="${bd.id}">{plus} Chamar artesão</button></p>`;
+      ? `<span class="mpill safe">{users} Artesão trabalhando</span>`
+      : `<span class="ws-noone"><span class="mpill danger">{users} Sem artesão</span><button class="btn mini" data-act="ws-worker" data-arg="${bd.id}">{plus} Chamar</button></span>`;
+    html += `</div></div>`;
+    const recipes = recipesOf(type);
+    // estoque
+    html += `<div class="ws-sec"><h4>{luggage} Estoque</h4><div class="ws-stock">${recipes
+      .map((r) => `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${r.icon}</span><span>${esc(r.name)}</span><b>${stock(g, r.id)}</b></span>`)
+      .join('')}</div></div>`;
+    // produção e fila
     const q = bd.queue ?? [];
     const used = q.length + (bd.craft ? 1 : 0);
     const max = queueMax(bd);
+    html += `<div class="ws-sec"><h4>{hammer} Produção atual</h4>`;
     if (bd.craft) {
       const it = ITEMS[bd.craft.itemId]!;
       const k = `cr${bd.id}`;
       b[k] = bd.craft.progress / it.craftTime;
-      t[k] = `${it.name} ${Math.floor(b[k] * 100)}%`;
-      html += `<div class="bar pg"><i data-b="${k}"></i><span data-t="${k}"></span></div>`;
-    } else html += `<p class="hint">Nada em produção.</p>`;
-    html += `<div class="wsqueue"><span class="hint">Fila ${used}/${max}</span> ${q.map((id) => `<span class="qi">${ITEMS[id]!.icon}</span>`).join('')}${
-      used ? ` <button class="btn mini" data-act="ws-cancel" data-arg="${bd.id}" ${tipAttr('Cancelar o último', 'Devolve os recursos do último pedido.')}>{x}</button>` : ''
-    }</div>`;
+      t[k] = `${Math.floor(b[k] * 100)}%`;
+      html += `<div class="ws-now"><span class="ws-ic big">${it.icon}</span><div><b>${esc(it.name)}</b><div class="xc-prog"><div class="nc-bar xp"><i data-b="${k}"></i></div><span data-t="${k}"></span></div></div></div>`;
+    } else html += `<div class="ws-now idle"><span class="ws-ic big">{gear}</span><b>Nada em produção</b></div>`;
+    html += `<h4>{todo} Fila de produção <small>${used}/${max}</small></h4><div class="ws-queue">`;
+    for (let i = 0; i < max; i++) {
+      const id = i === 0 ? bd.craft?.itemId : q[bd.craft ? i - 1 : i];
+      html += id ? `<span class="ws-slot on" ${tipAttr(ITEMS[id]!.name, i === 0 && bd.craft ? 'Em produção.' : 'Na fila.', true)}>${ITEMS[id]!.icon}</span>` : `<span class="ws-slot"></span>`;
+    }
+    if (used) html += `<button class="ws-slot x" data-act="ws-cancel" data-arg="${bd.id}" ${tipAttr('Cancelar o último', 'Devolve os recursos do último pedido.')}>{x}</button>`;
+    html += `</div></div>`;
+    // receitas
     const auto = canAutoCraft(bd);
-    for (const r of recipesOf(type)) {
+    html += `<div class="ws-sec"><h4>{scroll} Receitas</h4>`;
+    for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
       const keep = bd.keep?.[r.id] ?? 0;
       const time = Math.round(r.craftTime / craftMult(bd));
-      html += `<div class="wsrow ${locked ? 'locked' : ''}"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${r.icon} ${esc(r.name)}</span><span class="badge">${stock(g, r.id)} no estoque</span></div>
+      html += `<div class="wsrow ${locked ? 'locked' : ''}"><span class="ws-ic">${r.icon}</span><div class="wsr-main"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${esc(r.name)}</span><span class="mchip">${stock(g, r.id)} no estoque</span></div>
         <div class="wsr-cost">${costLabel(r.cost)} · ${time}s</div>`;
       if (locked) html += `<div class="why">{lock} Requer ${levelDef(r.minLevel!).name}</div>`;
       else {
         const full = used >= max && `A fila está cheia (máximo ${max}).`;
-        html += `<div class="btnrow"><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [full], r.cost)}>+1</button><button class="btn mini" data-act="ws-craft" data-arg="${bd.id}:${r.id}:5" ${blocked(g, [full], r.cost)}>+5</button></div>`;
-        if (auto)
-          html += `<div class="chips wsr-keep"><span class="hint">Manter</span>${[0, 3, 5, 10, 20]
-            .map((n) => `<button data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}" class="${keep === n ? 'on' : ''}">${n || 'não'}</button>`)
-            .join('')}</div>`;
+        html += `<div class="wsr-acts"><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [full], r.cost)}>+1</button><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:5" ${blocked(g, [full], r.cost)}>+5</button>`;
+        html += auto
+          ? `<span class="chips wsr-keep"><span class="hint">Manter</span>${[0, 3, 5, 10, 20]
+              .map((n) => `<button data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}" class="${keep === n ? 'on' : ''}">${n || 'não'}</button>`)
+              .join('')}</span>`
+          : `<span class="ws-lock">{lock} Nv ${AUTO_CRAFT_LEVEL} libera Manter</span>`;
+        html += `</div>`;
       }
-      html += `</div>`;
+      html += `</div></div>`;
     }
-    const lvl = levelOf(bd);
+    html += `</div>`;
     if (bd.upgrade != null) html += `<p class="hint">{up} Upgrade em obra…</p>`;
     else if (lvl < 3) {
       const st = upgradeStatus(g, bd);
-      html += `<div class="wsauto"><p class="hint">${
-        auto ? `{up} Nível ${lvl + 1}: ${esc(UPGRADES[type]!.perks[lvl]!)}` : `{refresh} No nível ${AUTO_CRAFT_LEVEL} ela fabrica sozinha para manter o estoque.`
-      }</p><button class="btn primary big" data-act="ws-upgrade" data-arg="${bd.id}" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}><span>{up} Nível ${lvl + 1}</span><span class="cost">${costLabel(st.cost ?? {})}</span></button></div>`;
+      const cost = st.cost ?? {};
+      const chips = RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
+      html += `<div class="bup"><div class="bup-t">{up} Melhorar para Nv ${lvl + 1}</div><div class="bup-row"><div class="bup-txt">${
+        auto ? esc(UPGRADES[type]!.perks[lvl]!) : `No nível ${AUTO_CRAFT_LEVEL} ela fabrica sozinha para manter o estoque.`
+      }<div class="bup-cost">${chips}</div></div><button class="btn primary" data-act="ws-upgrade" data-arg="${bd.id}" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>{up} Nível ${lvl + 1}</button></div></div>`;
     }
     return html + `</div>`;
   }
@@ -1179,8 +1212,8 @@ export class Panel {
 
   /** Cabeçalho + abas (usado pelas janelas com grupo e pelo quadro de missões). */
   private winTop(title: string, chips: string, right: string, tabs: [string, string, boolean, string][]) {
-    return `<div class="wtop"><div class="mhead"><div class="mh-title">${title}</div>${chips}${right ? `<span class="mh-right">${right}</span>` : ''}</div>
-      <div class="mtabs">${tabs.map(([k, label, on, act]) => `<button data-act="${act}" data-arg="${k}" class="${on ? 'on' : ''}">${label}</button>`).join('')}</div></div>`;
+    return `<div class="wtop ${tabs.length ? '' : 'notabs'}"><div class="mhead"><div class="mh-title">${title}</div>${chips}${right ? `<span class="mh-right">${right}</span>` : ''}</div>
+      ${tabs.length ? `<div class="mtabs">${tabs.map(([k, label, on, act]) => `<button data-act="${act}" data-arg="${k}" class="${on ? 'on' : ''}">${label}</button>`).join('')}</div>` : ''}</div>`;
   }
 
   /** Números de cada grupo de janelas, em etiquetas no cabeçalho. */
