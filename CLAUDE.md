@@ -83,7 +83,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   de rank. Listas e grades que precisam de visual uniforme (números das Estatísticas, marcos e requisitos da Vila)
   usam só glifos, todos na mesma cor bege (o CSS força a cor; marco cumprido fica dourado). O que o Phosphor não tem é
   desenhado à mão no mesmo estilo em `scripts/custom-glyphs.mjs` (`kage` = chapéu do Kage, no lugar da coroa;
-  `shinobi` = cabeça de ninja; `grave` = lápide). O `{ninja}` em pixel art continua onde fica bem (barra de baixo).
+  `shinobi` = cabeça de ninja; `grave` = lápide; todos na cor base dos glifos). A barra de atalhos de baixo usa as
+  sprites do atlas mesmo havendo glifo (`pxIco` em icons.ts).
   Pixel art em interface: no máximo 64 px e sempre no atlas. **Cabeçalho das janelas** numa linha (`winTop`): título · abas em botões (`.wtabs`) · etiquetas e ações à
   direita (`.wright`; no celular as etiquetas somem). Abas que preenchem a janela sem sobra: `.kfill` (Kage) e `.vfill`
   (Vila, Estatísticas) — o corpo da janela vira coluna flex e os painéis esticam. Retrato do Kage: `kagePortrait`
@@ -98,7 +99,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (MIT, só devDependency): `node scripts/glyphs.mjs` grava os caminhos em `src/ui/glyphs.ts`; `ico()` usa glifo →
   atlas pixel art → SVG de traço antigo. Retratos são blob URLs com cache (`canvasUrl` em sprites.ts; nada de data URL
   no HTML) e `pimg()` (panel.ts) mostra esqueleto enquanto geram/carregam. Com janela aberta o mapa é desenhado a
-  ~12 quadros/s (main.ts). `prepare-ui.py` limpa o halo branco do contorno (`defringe`); bustos e ilustrações com filtro
+  ~12 quadros/s (main.ts). `prepare-ui.py` limpa o halo branco do contorno (`defringe`, também no tamanho final), pontinhos soltos (`despeck`) e
+  vãos fechados que ficaram com o branco do fundo (`HOLES`: cadeado, engrenagem, quadrado, silhueta do líder, Tsuchigumo;
+  arte nova com o mesmo problema entra ali) — não corrija o PNG de saída à mão, o script regrava; bustos e ilustrações com filtro
   bilinear no CSS.
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Exploração** (`game/explore.ts`, `systems/explore.ts`): névoa em bitset (`state.explored`, 1 bit por tile);

@@ -11,7 +11,7 @@ import { tileCenter, toTile } from '../game/world';
 import { BuildUI } from './build';
 import { el } from './dom';
 import { Hud } from './hud';
-import { rich } from './icons';
+import { pxIco, rich } from './icons';
 import { Menu } from './menu';
 import { Panel, type View } from './panel';
 
@@ -50,7 +50,7 @@ export function createUI(app: App, root: HTMLElement) {
     'div',
     { id: 'dock' },
     rich(
-      `<button class="bigbtn" data-act="build" title="Construir (B)">{hammer}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">{ninja}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">{castle}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">{clipboard}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">{map}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">{anvil}<span>Oficinas</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">{select}<span>Selecionar</span></button>`,
+      `<button class="bigbtn" data-act="build" title="Construir (B)">${pxIco('hammer')}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">${pxIco('ninja')}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">${pxIco('castle')}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">${pxIco('clipboard')}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">${pxIco('map')}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">${pxIco('anvil')}<span>Oficinas</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">${pxIco('select')}<span>Selecionar</span></button>`,
     ),
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;

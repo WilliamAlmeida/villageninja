@@ -1284,7 +1284,7 @@ h4::after { background: var(--line); opacity: 0.6; }
 .ic-check, .ic-leaf, .ic-tree { color: #55d957; } .ic-fail, .ic-pin, .ic-flag, .ic-medic { color: #ff5752; }
 .ic-alert { color: #ffc93a; } .ic-skull { color: #f2e6d0; } .ic-swords { color: #d8d2c8; } .ic-shield { color: #e7a92e; }
 .ic-hourglass, .ic-clock, .ic-calendar, .ic-users, .ic-castle, .ic-home, .ic-chart, .ic-clipboard, .ic-house, .ic-houses { color: #f0dcb4; }
-.ic-kage { color: #ff9a3c; } .ic-shinobi, .ic-grave { color: #f0dcb4; }
+.ic-kage { color: #f0dcb4; } .ic-shinobi, .ic-grave { color: #f0dcb4; }
 /* grade de números: lista uniforme, todos os glifos na mesma cor bege (sem um amarelo, outro laranja, outro pixel art) */
 .statcard .si .ic.gl { color: #f0dcb4; }
 .vmark .vm-ic .ic.gl, .vreqs .vr-ic .ic.gl { color: #f0dcb4; } .vmark.done .vm-ic .ic.gl, .vreqs li.ok .vr-ic .ic.gl { color: #ffc93a; }

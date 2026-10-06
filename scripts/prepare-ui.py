@@ -8,6 +8,7 @@
 import glob
 import os
 import shutil
+from collections import deque
 
 import numpy as np
 from PIL import Image
@@ -44,8 +45,73 @@ def defringe(im, passes=3):
     return Image.fromarray(a, 'RGBA')
 
 
+# vãos fechados que ficaram com o branco do fundo (o remove-bg não alcança): miolo do cadeado, centro da engrenagem,
+# entre os fios da silhueta do líder e as pernas de aranha. 'maior' = só o maior branco (os outros são brilho);
+# 'todos' = qualquer branco (desenho sem branco nenhum).
+HOLES = {'lock': 'maior', 'gear': 'maior', 'todo': 'maior', 'org-yomi-unknown': 'todos', 'org-tsuchigumo': 'todos'}
+WORK = 512  # a limpeza roda nesta resolução (a saída é bem menor)
+
+
+def components(mask):
+    """Regiões conectadas (4 vizinhos) de uma máscara booleana."""
+    h, w = mask.shape
+    seen = np.zeros_like(mask, bool)
+    out = []
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if seen[y0, x0]:
+            continue
+        q = deque([(y0, x0)])
+        seen[y0, x0] = True
+        pts = []
+        while q:
+            y, x = q.popleft()
+            pts.append((y, x))
+            for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    q.append((ny, nx))
+        ys, xs = zip(*pts)
+        out.append((np.array(ys), np.array(xs)))
+    return out
+
+
+def clear_holes(im, mode):
+    """O maior branco puro dentro do desenho vira transparente (só nos ícones de HOLES)."""
+    a = np.array(im)
+    rgb = a[..., :3].astype(int)
+    floor = 200 if mode == 'todos' else 236  # sem branco no desenho dá para pegar também o cinza claro do contorno
+    white = (a[..., 3] > 200) & (rgb.min(axis=2) >= floor) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 16)
+    # só o maior: o vão; os brilhos (também brancos) ficam
+    if mode == 'todos':
+        a[white, 3] = 0
+        return Image.fromarray(a, 'RGBA')
+    comps = [c for c in components(white) if len(c[0]) > white.size * 0.004]
+    if comps:
+        ys, xs = max(comps, key=lambda c: len(c[0]))
+        a[ys, xs, 3] = 0
+    return Image.fromarray(a, 'RGBA')
+
+
+def despeck(im, min_px=14):
+    """Pontinhos soltos (ilhas opacas minúsculas no meio do transparente) somem."""
+    a = np.array(im)
+    for ys, xs in components(a[..., 3] > 40):
+        if len(ys) < min_px:
+            a[ys, xs, 3] = 0
+    return Image.fromarray(a, 'RGBA')
+
+
 def load(path):
-    im = defringe(Image.open(path).convert('RGBA'))
+    im = Image.open(path).convert('RGBA')
+    box = im.getbbox()
+    if not box:
+        return None
+    im = im.crop(box)
+    im.thumbnail((WORK, WORK), Image.BOX)
+    mode = HOLES.get(os.path.splitext(os.path.basename(path))[0])
+    if mode:
+        im = clear_holes(im, mode)
+    im = despeck(defringe(im))
     box = im.getbbox()
     return im.crop(box) if box else None
 
@@ -80,7 +146,7 @@ for atlas, (groups, cell) in ATLASES.items():
             if im is None:
                 print('vazio:', f)
                 continue
-            items.append((os.path.splitext(os.path.basename(f))[0], fit(im, cell, True)))
+            items.append((os.path.splitext(os.path.basename(f))[0], defringe(fit(im, cell, True), 1)))
     rows = max(1, (len(items) + COLS - 1) // COLS)
     sheet = Image.new('RGBA', (COLS * cell, rows * cell), (0, 0, 0, 0))
     pos = {}
@@ -98,7 +164,7 @@ for f in sorted(glob.glob(os.path.join(SRC, 'art', '*.png'))):
     if im is None:
         continue
     name = os.path.splitext(os.path.basename(f))[0]
-    save_small(fit(im, ART_MAX, False), os.path.join(DST, 'art', f'{name}.png'))
+    save_small(defringe(fit(im, ART_MAX, False), 1), os.path.join(DST, 'art', f'{name}.png'))
     art.append(name)
 print('art:', len(art))
 

@@ -134,6 +134,9 @@ export function ico(name: string, cls = '') {
   return `<svg class="ic ic-${name}${cls ? ` ${cls}` : ''}" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
 }
 
+/** Ícone pixel art do atlas mesmo quando há glifo (barra de atalhos de baixo usa as sprites); sem célula, o `ico`. */
+export const pxIco = (name: string) => atlasCell(ICONS, name, `ic px ic-${name}`, 'aria-hidden="true"') ?? ico(name);
+
 /** Troca os tokens `{nome}` de um texto/HTML pelos SVGs. Tokens desconhecidos ficam como estão. */
 export const rich = (html: string) => html.replace(TOKEN_RE, (m, k: string) => ico(k) || m);
 
