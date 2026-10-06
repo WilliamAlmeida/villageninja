@@ -164,7 +164,20 @@ function unitPic(u: Unit) {
   return tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
 }
 
-const portraits = new Map<string, string>();
+/**
+ * Retratos viram blob URLs (curtos no HTML e decodificados uma vez). `null` no mapa = ainda gerando: quem chama mostra
+ * um esqueleto e o painel troca na próxima atualização.
+ */
+const portraits = new Map<string, string | null>();
+function canvasUrl(key: string, c: HTMLCanvasElement): string | null {
+  if (portraits.has(key)) return portraits.get(key)!;
+  portraits.set(key, null);
+  c.toBlob((b) => portraits.set(key, b ? URL.createObjectURL(b) : null));
+  return null;
+}
+/** Retrato já pronto ou em geração (para não refazer o recorte enquanto o blob não chega). */
+const known = (key: string) => portraits.has(key);
+
 /**
  * Retrato para a interface (DOM): o quadro parado de frente da folha da unidade, recortado na parte de cima
  * (cabeça e tronco) e ampliado sem borrar. Fica em cache por aparência. Sem arte carregada, null.
@@ -175,13 +188,7 @@ export function unitPortrait(u: Unit, full = false): string | null {
     const style = NINJA_HAIRSTYLES[u.id % NINJA_HAIRSTYLES.length];
     const bust = tintedArt(`bust-${style}`, u.look);
     if (bust) {
-      const key = `bust|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}`;
-      let url = portraits.get(key);
-      if (!url) {
-        url = bust.toDataURL();
-        portraits.set(key, url);
-      }
-      return url;
+      return canvasUrl(`bust|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}`, bust);
     }
   }
   const pic = unitPic(u);
@@ -203,8 +210,7 @@ function picPortrait(pic: HTMLImageElement | HTMLCanvasElement, full: boolean, t
   const fh = Math.floor(ih / sheet.rows);
   const row = sheet.rows > 1 ? SHEET_ROWS.front : 0;
   const key = `${pic instanceof HTMLImageElement ? pic.src : `${pic.dataset.name}|${tint}`}|${full}`;
-  const hit = portraits.get(key);
-  if (hit) return hit;
+  if (known(key)) return portraits.get(key)!;
   // o quadro tem sobra transparente: acha o contorno do boneco e recorta nele (inteiro ou só cabeça e ombros)
   const f = document.createElement('canvas');
   f.width = fw;
@@ -232,9 +238,7 @@ function picPortrait(pic: HTMLImageElement | HTMLCanvasElement, full: boolean, t
   const ctx = c.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(f, x0, y0, bw, sh, Math.round((side - bw) / 2), side - sh, bw, sh);
-  const url = c.toDataURL();
-  portraits.set(key, url);
-  return url;
+  return canvasUrl(key, c);
 }
 
 /** Arte em pixel art da unidade (se houver): linha da folha conforme a direção (já projetada) em que anda. */

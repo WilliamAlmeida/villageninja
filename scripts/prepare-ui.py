@@ -9,6 +9,7 @@ import glob
 import os
 import shutil
 
+import numpy as np
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,8 +20,32 @@ ART_MAX = 256
 COLS = 10
 
 
+def defringe(im, passes=3):
+    """Apaga o halo claro que a remoção do fundo branco deixa no contorno: pixel claro e sem cor encostado no
+    transparente vira transparente (algumas passadas, de fora para dentro)."""
+    a = np.array(im)
+    for _ in range(passes):
+        alpha = a[..., 3]
+        rgb = a[..., :3].astype(int)
+        light = (rgb.min(axis=2) > 185) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 40)
+        clear = alpha < 40
+        edge = np.zeros_like(clear)
+        edge[1:, :] |= clear[:-1, :]
+        edge[:-1, :] |= clear[1:, :]
+        edge[:, 1:] |= clear[:, :-1]
+        edge[:, :-1] |= clear[:, 1:]
+        kill = light & edge & ~clear
+        if not kill.any():
+            break
+        a[kill, 3] = 0
+    # semitransparentes claros no contorno (antisserrilhado contra o branco) também saem
+    rgb = a[..., :3].astype(int)
+    a[(a[..., 3] < 200) & (rgb.min(axis=2) > 170), 3] = 0
+    return Image.fromarray(a, 'RGBA')
+
+
 def load(path):
-    im = Image.open(path).convert('RGBA')
+    im = defringe(Image.open(path).convert('RGBA'))
     box = im.getbbox()
     return im.crop(box) if box else None
 

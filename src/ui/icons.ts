@@ -1,6 +1,7 @@
 // Ícones SVG (traço, 24×24) — iguais em qualquer dispositivo, ao contrário de emoji.
 // Textos usam tokens `{nome}`; `rich()` troca cada token pelo SVG correspondente.
 import { TOKEN_RE } from '../core/tokens';
+import { GLYPHS } from './glyphs';
 import { ART, CARDS, ICONS, type Atlas } from './pxicons';
 
 // atlas pedidos já na abertura (aparecem na hora nas janelas), junto com as ilustrações
@@ -123,6 +124,9 @@ const I: Record<string, string> = {
  * (herda a cor do texto; alguns têm cor própria via `.ic-nome`).
  */
 export function ico(name: string, cls = '') {
+  // glifo de interface (Phosphor, monocromático, herda a cor) → ícone-objeto pixel art do atlas → SVG de traço antigo
+  const gl = GLYPHS[name];
+  if (gl) return `<svg class="ic gl ic-${name}${cls ? ` ${cls}` : ''}" viewBox="0 0 256 256" aria-hidden="true">${gl}</svg>`;
   const px = atlasCell(ICONS, name, `ic px ic-${name}${cls ? ` ${cls}` : ''}`, 'aria-hidden="true"');
   if (px) return px;
   const body = I[name];
@@ -133,4 +137,4 @@ export function ico(name: string, cls = '') {
 /** Troca os tokens `{nome}` de um texto/HTML pelos SVGs. Tokens desconhecidos ficam como estão. */
 export const rich = (html: string) => html.replace(TOKEN_RE, (m, k: string) => ico(k) || m);
 
-export const hasIcon = (name: string) => name in I;
+export const hasIcon = (name: string) => name in I || name in GLYPHS || name in ICONS.pos;

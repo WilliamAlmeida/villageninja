@@ -46,7 +46,7 @@ import { KAGE_ARTS } from '../data/kageArts';
 import { ORG, ORG_LAIR, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
 import { lairGuards, nextPair } from '../game/org';
 import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
-import { nameSannin, sanninBlock, sanninCandidates, sanninOf, statCapOf } from '../game/sannin';
+import { nameSannin, sanninBlock, sanninCandidates, sanninOf, sannins, statCapOf } from '../game/sannin';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
 import { CARE, catchingUp, isRookie } from '../game/care';
 import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
@@ -107,7 +107,7 @@ interface Built {
 /** Abas da janela central: cada grupo de telas de gestão. */
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
-  village: [['village', '{castle} Vila'], ['kage', '{crown} Kage'], ['stats', '{trophy} Estatísticas']],
+  village: [['village', '{home} Vila'], ['kage', '{crown} Kage'], ['stats', '{chart} Estatísticas']],
   world: [['region', '{map} Região'], ['expeditions', '{pickaxe} Expedições']],
 };
 const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: '{map} Mundo' };
@@ -134,6 +134,14 @@ const ACTION_TIP: Record<RegionAction, string> = {
 type MissionTab = 'active' | 'offered' | 'recent';
 /** Janela larga o bastante para os contratos ativos numa coluna ao lado das missões. */
 const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
+/**
+ * Imagem com esqueleto: sem URL ainda (retrato sendo gerado) ou enquanto o arquivo carrega, mostra um bloco animado
+ * no lugar; decodifica fora da thread principal e só carrega quando aparece na tela.
+ */
+const pimg = (url: string | null | undefined, cls = '') =>
+  url
+    ? `<img class="${cls} pim" src="${url}" alt="" draggable="false" decoding="async" loading="lazy" onload="this.classList.add('ok')">`
+    : `<span class="${cls} skel"></span>`;
 const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{crown}' };
 const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
@@ -344,7 +352,7 @@ export class Panel {
       const pic = unitPortrait(u, true);
       const clan = clanOf(this.app.game, u);
       // cabeçalho: retrato grande, nome, graduação/natureza/linhagem e o que está fazendo; abaixo, números rápidos
-      html += `<div class="fhead"><span class="fh-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</span><div class="fh-main">
+      html += `<div class="fhead"><span class="fh-face">${pimg(pic)}</span><div class="fh-main">
         <div class="fh-name">${title}</div><div class="badges">
         ${u.faction === 'enemy' ? `<span class="badge enemy">${u.role ? ROGUE_ROLES[u.role].name : 'Renegado'} · ${RANKS[n.rank].name}</span>` : `<span class="rbadge r-${rank}">${RANK_BADGE_ICON[rank] ?? ''} ${n.sannin ? 'Sannin' : RANKS[n.rank].name}</span>`}
         <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div>
@@ -1032,7 +1040,7 @@ export class Panel {
     const bd = g.state.buildings.find((x) => x.type === type);
     const lvl = bd ? levelOf(bd) : 1;
     const url = (lvl > 1 && artUrl(`${type}-${lvl}`)) || artUrl(type);
-    let html = `<div class="wscard"><div class="wshead"><span class="ws-art">${url ? `<img src="${url}" alt="" draggable="false">` : d.icon}</span><div class="ws-hmain">
+    let html = `<div class="wscard"><div class="wshead"><span class="ws-art">${url ? pimg(url) : d.icon}</span><div class="ws-hmain">
       <span class="wsname">${d.icon} ${esc(d.name)}</span>`;
     if (!bd) return html + `</div></div><p class="why">Ainda não construída. Abra Construir (B) para erguer: ${esc(d.name)}.</p></div>`;
     html += `<span class="mchip">Nv ${lvl}</span>`;
@@ -1270,7 +1278,7 @@ export class Panel {
     const max = bd.type === 'hokage' ? 4 : UPGRADES[bd.type] ? MAX_BUILDING_LEVEL : 0;
     const stars = max ? `<span class="bstars">${Array.from({ length: max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}">{star}</i>`).join('')}</span>` : '';
     const [st, cls] = !bd.built ? ['Em obra', 'good'] : bd.upgrade != null ? ['Melhorando', 'good'] : ['Funcionando', 'safe'];
-    return `<div class="bhead"><span class="bh-art">${url ? `<img src="${url}" alt="" draggable="false">` : d.icon}</span><div class="bh-main">
+    return `<div class="bhead"><span class="bh-art">${url ? pimg(url) : d.icon}</span><div class="bh-main">
       <div class="bh-name">${d.name}</div><div class="bh-row">${max ? `<b>Nível ${lvl}</b>${stars}` : ''}<span class="mpill ${cls}">${st}</span></div></div></div>
       <p class="bh-desc">${d.desc}</p>`;
   }
@@ -1310,33 +1318,52 @@ export class Panel {
     return { html: this.missionsSection(t, b), t, b };
   }
 
-  /** Números da vila. */
+  /**
+   * Estatísticas: números da vila numa grade compacta à esquerda e, ao lado, os destaques (quem mais abateu, os de
+   * nível mais alto); embaixo, ninjas por patente e por natureza do chakra em barras.
+   */
   private statsView(): Built {
     const g = this.app.game;
     const s = g.state;
     const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
-    const RANK_ICON: Record<string, string> = { genin: 'leaf', chunin: 'medal', jounin: 'star', kage: 'crown' };
-    const byRank = Object.entries(RANKS)
-      .map(([k, r]) => [r.name, ninjas.filter((u) => u.ninja!.rank === k).length, RANK_ICON[k] ?? 'ninja'] as const)
-      .filter(([, n]) => n > 0);
     const cell = (icon: string, label: string, v: string | number, tip: string) =>
       `<div class="statcard" ${tipAttr(label, tip, true)}><span class="si ic-wrap">{${icon}}</span><span>${label}</span><b>${v}</b></div>`;
-    let html = this.tabs('stats') + `<div class="statgrid">`;
-    html += cell('sun', 'Dia', s.day, 'Dias desde a fundação da vila.');
-    html += cell('users', 'População', `${g.population()} / ${g.popCap()}`, 'Moradores e ninjas / vagas nas casas. Construa ou melhore casas para crescer.');
-    html += cell('ninja', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
-    html += cell('star', 'Reputação', s.reputation, 'Sobe com missões, exames, chefes vencidos e o Monte dos Kages; cai quando uma missão fracassa.');
-    html += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');
-    html += cell('shield', 'Invasões repelidas', s.stats.raidsRepelled, 'Ataques de renegados que a vila venceu.');
-    html += cell('skull', 'Chefes derrotados', s.stats.bossesDefeated, 'Ameaças-chefe vencidas.');
-    html += cell('clipboard', 'Missões cumpridas', s.stats.missionsDone, 'Missões da Mesa de Missões concluídas com sucesso.');
-    html += cell('baby', 'Nascimentos', s.stats.born, 'Crianças nascidas na vila.');
-    html += cell('candle', 'Perdas', s.stats.lost, 'Moradores e ninjas que morreram.');
-    html += cell('castle', 'Clãs', s.clans.length, 'Clãs fundados por ninjas da vila.');
-    html += cell('flag', 'Equipes', s.teams.length, 'Equipes de ninjas montadas.');
-    html += `</div>`;
-    if (byRank.length) html += `<h4>Ninjas por patente</h4><div class="statgrid">${byRank.map(([n, c, i]) => cell(i, n, c, `Ninjas com a patente ${n}.`)).join('')}</div>`;
-    return { html, t: {}, b: {} };
+    let left = `<div class="bsec"><h4>{chart} Números da vila</h4><div class="statgrid">`;
+    left += cell('calendar', 'Dia', s.day, 'Dias desde a fundação da vila.');
+    left += cell('users', 'População', `${g.population()} / ${g.popCap()}`, 'Moradores e ninjas / vagas nas casas. Construa ou melhore casas para crescer.');
+    left += cell('ninja', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
+    left += cell('star', 'Reputação', s.reputation, 'Sobe com missões, exames, chefes vencidos e o Monte dos Kages; cai quando uma missão fracassa.');
+    left += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');
+    left += cell('shield', 'Invasões repelidas', s.stats.raidsRepelled, 'Ataques de renegados que a vila venceu.');
+    left += cell('skull', 'Chefes derrotados', s.stats.bossesDefeated, 'Ameaças-chefe vencidas.');
+    left += cell('clipboard', 'Missões cumpridas', s.stats.missionsDone, 'Missões da Mesa de Missões concluídas com sucesso.');
+    left += cell('baby', 'Nascimentos', s.stats.born, 'Crianças nascidas na vila.');
+    left += cell('candle', 'Perdas', s.stats.lost, 'Moradores e ninjas que morreram.');
+    left += cell('castle', 'Clãs', s.clans.length, 'Clãs fundados por ninjas da vila.');
+    left += cell('flag', 'Equipes', s.teams.length, 'Equipes de ninjas montadas.');
+    left += `</div></div>`;
+    // distribuições em barras (patente e natureza)
+    const bars = (title: string, rows: [string, string, number, string][]) => {
+      const max = Math.max(1, ...rows.map((r) => r[2]));
+      return `<div class="bsec"><h4>${title}</h4><div class="sbars">${rows
+        .map(([ic, label, n, color]) => `<div class="sbar"><span class="sb-l">${ic} ${label}</span><div class="nc-bar"><i style="width:${(n / max) * 100}%;background:${color}"></i></div><b>${n}</b></div>`)
+        .join('')}</div></div>`;
+    };
+    const RANK_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', kage: '{crown}' };
+    const RANK_COLOR: Record<string, string> = { genin: '#9fe08a', chunin: '#c9a6ff', jounin: '#ffd24a', kage: '#ff962e' };
+    const ranks = Object.entries(RANKS).map(([k, r]) => [RANK_ICON[k] ?? '{ninja}', r.name, ninjas.filter((u) => u.ninja!.rank === k).length, RANK_COLOR[k] ?? '#ccc'] as [string, string, number, string]);
+    ranks.splice(3, 0, ['{scroll}', 'Sannin', ninjas.filter((u) => u.ninja!.sannin).length, '#ff7a7a']);
+    const natures = (Object.keys(NATURES) as (keyof typeof NATURES)[]).map((k) => [`<span class="kj" style="color:${NATURES[k].color}">${NATURES[k].kanji}</span>`, NATURES[k].name, ninjas.filter((u) => u.ninja!.nature === k).length, NATURES[k].color] as [string, string, number, string]);
+    left += `<div class="scols">${bars('{medal} Ninjas por patente', ranks)}${bars('{drop} Natureza do chakra', natures)}</div>`;
+    // destaques: retrato, nome, número
+    const top = (title: string, list: Unit[], val: (u: Unit) => string) =>
+      `<div class="bsec"><h4>${title}</h4><div class="tops">${list
+        .map((u, i) => `<button class="topr" data-act="pick" data-arg="${u.id}"><span class="tp-n">${i + 1}</span>${this.face(u)}<span class="tp-name"><b>${esc(u.name)}</b><small>${u.ninja!.sannin ? 'Sannin' : RANKS[u.ninja!.rank].name}</small></span><b class="tp-v">${val(u)}</b></button>`)
+        .join('') || '<p class="hint">Nenhum ninja ainda.</p>'}</div></div>`;
+    const right =
+      top('{swords} Mais abates', [...ninjas].sort((a, z) => z.ninja!.kills - a.ninja!.kills).slice(0, 5), (u) => `${u.ninja!.kills}`) +
+      top('{star} Nível mais alto', [...ninjas].sort((a, z) => z.ninja!.level - a.ninja!.level || z.ninja!.xp - a.ninja!.xp).slice(0, 5), (u) => `Nv ${u.ninja!.level}`);
+    return { html: this.tabs('stats') + `<div class="vgrid sgridw"><div>${left}</div><div>${right}</div></div>`, t: {}, b: {} };
   }
 
   /** Insígnias de clã e kekkei genkai. */
@@ -1424,11 +1451,11 @@ export class Panel {
       const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
       const monument = g.state.buildings.some((b) => b.type === 'monument');
       const bust = unitPortrait(k);
-      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${bust ? `<img src="${bust}" alt="" draggable="false">` : ''}</button>
+      html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${pimg(bust)}</button>
         <div class="k-main"><div class="k-name">${esc(k.name)}<span class="kpill">{crown} Kage atual</span></div>
         <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{monument} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
       if (art)
-        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row">${ART['kunai-hiraishin'] ? `<span class="kart-pic"><img src="${ART['kunai-hiraishin']}" alt="" draggable="false"></span>` : ''}
+        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row">${ART['kunai-hiraishin'] ? `<span class="kart-pic">${pimg(ART['kunai-hiraishin'])}</span>` : ''}
           <div class="kart-info"><div class="k-chips"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{target} Marca ${art.markLife}s</span></div>
           <p ${tipAttr(art.name, art.desc, true)}>Kunais marcadas; teleporte em clarão amarelo e retorno à Residência ao cair.</p></div></div></div>`;
       html += `<div class="k-acts"><button class="btn primary" data-act="pick" data-arg="${k.id}">Ver Kage</button><button class="btn ghost" data-act="go-hokage">{castle} Ir à Residência</button></div></div></div>`;
@@ -1468,14 +1495,13 @@ export class Panel {
       const lair = ORG_LAIR.includes(id);
       const seen = down || onMap.has(id) || ORG_PAIRS.findIndex((p) => p.includes(id)) <= ORG_PAIRS.findIndex((p) => p.some((x) => !o.down.includes(x)));
       const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : lair ? ['{lock} Covil', 'lair'] : seen ? ['{alert} À solta', ''] : ['{info} Desconhecido', 'unk'];
-      const bust = atlasCell(CARDS, `org-${id}`, 'om-bust') ?? (artPortrait(`org-${id}`) ? `<img class="om-bust" src="${artPortrait(`org-${id}`)}" alt="">` : '');
+      const bust = atlasCell(CARDS, `org-${id}`, 'om-bust') ?? pimg(artPortrait(`org-${id}`), 'om-bust');
       html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}><span class="om-face">${bust}${down ? '<span class="om-check">{check}</span>' : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
     }
     html += `</div>`;
     const pair = live.length ? live.map((u) => ORG_MEMBERS[u.org!].name) : (nextPair(g.state) ?? []).filter((id) => !o.down.includes(id)).map((id) => ORG_MEMBERS[id].name);
     html += `<div class="o-foot"><span>{users} ${live.length ? 'Dupla atual' : 'Próxima dupla'}: <b>${pair.join(' & ') || '—'}</b></span>
-      <button class="btn ghost" data-act="win" data-arg="region">{pin} Ver região</button></div>`;
-    if (o.lairKnown) html += `<p class="hint">{map} O covil foi descoberto: Mundo → Região → Covil do Eclipse.</p>`;
+      <button class="btn ghost" data-act="win" data-arg="region" ${o.lairKnown ? tipAttr('Covil descoberto', 'Mundo → Região → Covil do Eclipse: a invasão final.') : ''}>{pin} ${o.lairKnown ? 'Ver o covil' : 'Ver região'}</button></div>`;
     return html + `</section>`;
   }
 
@@ -1492,7 +1518,7 @@ export class Panel {
       html += `<div class="scard" style="--c:${d.color}"><div class="sc-head">${emblem}<b>${esc(d.title)}</b></div><div class="sc-body">`;
       if (who) {
         const bust = unitPortrait(who);
-        html += `<button class="sc-who" data-act="pick" data-arg="${who.id}">${bust ? `<img src="${bust}" alt="" draggable="false">` : ''}<span class="sc-tag"><b>${esc(who.name.split(' ').pop()!)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
+        html += `<button class="sc-who" data-act="pick" data-arg="${who.id}">${pimg(bust)}<span class="sc-tag"><b>${esc(who.name.split(' ').pop()!)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
       } else {
         const sel = this.sanninSel[path];
         html += `<div class="sc-cands"><small>${cands.length ? 'Candidatos disponíveis' : esc(sanninBlock(g, undefined, path) ?? 'Sem candidatos.')}</small>`;
@@ -1500,7 +1526,7 @@ export class Panel {
           html += `<button class="sc-cand ${sel === c.id ? 'on' : ''}" data-act="sannin-sel" data-arg="${path}:${c.id}">${this.face(c)}<span><b>${esc(c.name.split(' ').pop()!)}</b><small>Nv ${c.ninja!.level}</small></span></button>`;
         html += `</div>`;
       }
-      html += `<span class="sc-beast" ${tipAttr(d.art, d.desc, true)}>${beast ? `<img src="${beast}" alt="" draggable="false">` : ''}<b>${esc(d.art)}</b></span></div>`;
+      html += `<span class="sc-beast" ${tipAttr(d.art, d.desc, true)}>${pimg(beast)}<b>${esc(d.art)}</b></span></div>`;
       if (who) html += `<div class="sc-done">{shield} Nomeado</div>`;
       else {
         const c = cands.find((x) => x.id === this.sanninSel[path]) ?? cands[0];
@@ -1512,6 +1538,43 @@ export class Panel {
     return html + `</div></section>`;
   }
 
+  /** Os níveis da vila em sequência: arte da Residência, nome, território e impostos, e o que cada um trouxe. */
+  private villagePath() {
+    const s = this.app.game.state;
+    let html = `<div class="bsec"><h4>{map} Caminho da vila</h4><div class="vpath">`;
+    for (let i = 0; i <= MAX_VILLAGE_LEVEL; i++) {
+      const d = levelDef(i);
+      const url = artUrl(i > 0 ? `hokage-${i + 1}` : 'hokage') ?? artUrl('hokage');
+      const done = s.level >= i;
+      html += `<div class="vstep ${done ? 'done' : ''} ${s.level === i ? 'now' : ''}"><span class="vs-art">${url ? `<img src="${url}" alt="" draggable="false">` : d.icon}</span>
+        <b>${d.icon} ${d.name}</b><small>território ${d.territory} · ${d.tax}{ryo}/morador</small><span class="vs-perk">${esc(d.perks[0] ?? '')}</span>
+        <span class="mpill ${done ? 'safe' : 'info'}">${done ? '{check} Alcançado' : 'A seguir'}</span></div>`;
+    }
+    return html + `</div></div>`;
+  }
+
+  /** Marcos da vila com o progresso: metas grandes de longo prazo (seguem fazendo sentido no nível máximo). */
+  private villageMarks() {
+    const g = this.app.game;
+    const s = g.state;
+    const marks: [string, string, number, number][] = [
+      ['{crown}', 'Kage eleito', s.kageHistory.length ? 1 : 0, 1],
+      ['{scroll}', 'Os Três Sannin', sannins(g).length, 3],
+      ['{skull}', 'Ordem do Eclipse destruída', s.org.done ? 8 : s.org.down.length, 8],
+      ['{shield}', 'Invasões repelidas', s.stats.raidsRepelled, 100],
+      ['{clipboard}', 'Missões cumpridas', s.stats.missionsDone, 100],
+      ['{swords}', 'Abates', s.stats.kills, 2000],
+      ['{beast}', 'Chefes derrotados', s.stats.bossesDefeated, 50],
+      ['{castle}', 'Clãs fundados', s.clans.length, 5],
+    ];
+    let html = `<div class="bsec"><h4>{trophy} Marcos da vila</h4><div class="vmarks">`;
+    for (const [ic, label, have, need] of marks) {
+      const done = have >= need;
+      html += `<div class="vmark ${done ? 'done' : ''}"><span class="vm-ic">${ic}</span><div><b>${label}</b><div class="nc-bar ${done ? 'hp' : 'xp'}"><i style="width:${Math.min(100, (have / need) * 100)}%"></i></div></div><small>${Math.min(have, need)}/${need}</small></div>`;
+    }
+    return html + `</div></div>`;
+  }
+
   /** Vida da vila: população e felicidade (com os fatores), estação e clima, e o festival. */
   private lifeSection() {
     const g = this.app.game;
@@ -1520,7 +1583,7 @@ export class Panel {
     const w = WEATHERS[s.weather];
     const pop = g.population();
     const cap = g.popCap();
-    const scene = (k: string) => (ART[k] ? `<img class="vscene" src="${ART[k]}" alt="" draggable="false">` : '');
+    const scene = (k: string) => (ART[k] ? pimg(ART[k], 'vscene') : '');
     let html = `<div class="bsec"><h4>{users} Vida da vila</h4>${scene('scene-village')}
       <div class="vstat"><span>{users} População</span><b>${pop}/${cap}</b></div><div class="nc-bar hp"><i style="width:${Math.min(100, (pop / Math.max(1, cap)) * 100)}%"></i></div>
       <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.min(100, s.happiness)}%"></i></div>
@@ -1548,7 +1611,7 @@ export class Panel {
     const st = nextLevelStatus(g);
     const url = artUrl(s.level > 0 ? `hokage-${s.level + 1}` : 'hokage') ?? artUrl('hokage');
     const done = st ? st.checks.filter((c) => c.ok).length : 0;
-    let left = `<div class="vhero"><span class="vh-art">${url ? `<img src="${url}" alt="" draggable="false">` : cur.icon}</span><div class="vh-main">
+    let left = `<div class="vhero"><span class="vh-art">${url ? pimg(url) : cur.icon}</span><div class="vh-main">
       <div class="vh-name">${cur.icon} ${cur.name}</div>
       <div class="hint">Nível ${s.level + 1} de ${MAX_VILLAGE_LEVEL + 1} · território ${cur.territory} · impostos ${cur.tax}{ryo}/morador</div>`;
     if (st) {
@@ -1566,6 +1629,8 @@ export class Panel {
       if (st.ready && !st.afford) left += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
       else if (!st.ready) left += `<p class="hint">{info} Falta: ${st.checks.filter((c) => !c.ok).map((c) => esc(c.label.toLowerCase())).join(', ')}.</p>`;
     }
+    // nível máximo: a coluna mostra o caminho percorrido e os marcos da vila (antes ficava vazia)
+    if (!st) left += this.villagePath() + this.villageMarks();
     return `<div class="vgrid"><div>${left}</div><div>${this.lifeSection()}</div></div>`;
   }
 
@@ -1744,8 +1809,7 @@ export class Panel {
 
   /** Retratinho do ninja (arte de frente), ou uma bolinha com a cor da roupa sem arte. */
   private face(u: Unit) {
-    const url = unitPortrait(u);
-    return url ? `<img class="face" src="${url}" alt="" draggable="false">` : `<span class="face none" style="--c:${u.look?.cloth ?? '#888'}"></span>`;
+    return pimg(unitPortrait(u), 'face');
   }
 
   /** Contratos em andamento: equipe, fase, barra, tempo, Ver no mapa e Recuar. */
@@ -1870,7 +1934,7 @@ export class Panel {
     const [stLabel, stIc, stCls] = this.ninjaStatus(u, team && onMission.has(team.id));
     const pic = unitPortrait(u, true);
     return `<button class="ncard" data-act="pick" data-arg="${u.id}" ${team ? `style="--c:${team.color}"` : ''}>
-      <span class="nc-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : `<span class="face none" style="--c:${u.look?.cloth ?? '#888'}"></span>`}</span>
+      <span class="nc-face">${pimg(pic)}</span>
       <span class="nc-main"><span class="nc-name">${esc(u.name)}</span>
         <span class="nc-badges"><span class="rbadge r-${rank}">${RANK_BADGE_ICON[rank] ?? ''} ${rankLabel}</span><span class="lvbadge">Nv ${n.level}</span><span class="badge nat" style="--c:${nat.color}">${nat.kanji}</span></span>
         <span class="nc-bar hp"><i data-b="hp${u.id}"></i></span><span class="nc-num" data-t="hpt${u.id}"></span>
@@ -1984,7 +2048,7 @@ export class Panel {
       const pic = unitPortrait(u, true);
       b[`thp${u.id}`] = u.hp / u.maxHp;
       return `<div class="ttile"><button class="tt-x" data-act="team-remove" data-arg="${u.id}" ${tipAttr('Tirar da equipe', `${u.name} sai da equipe.`)}>{x}</button>
-        <button class="tt-pick" data-act="pick" data-arg="${u.id}"><span class="tt-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</span>
+        <button class="tt-pick" data-act="pick" data-arg="${u.id}"><span class="tt-face">${pimg(pic)}</span>
         <span class="tt-name">${esc(u.name.split(' ')[0]!)}</span><span class="tt-role ${role === 'Sensei' ? 'sensei' : ''}">${role} · Nv ${u.ninja!.level}</span>
         <span class="nc-bar hp"><i data-b="thp${u.id}"></i></span></button></div>`;
     };

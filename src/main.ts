@@ -116,6 +116,8 @@ window.addEventListener('pagehide', () => saveGame(home));
 let last = performance.now();
 let acc = 0;
 let clock = 0;
+let winEl: HTMLElement | null = null;
+let drawWait = 0;
 function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -141,7 +143,14 @@ function frame(now: number) {
   // a invasão acabou enquanto o jogador olhava: volta para a vila
   if (app.viewScene && !home.state.scene) app.setView(false);
   camera.update(dt);
-  renderer.render(app.game, camera, app.ghost, clock, app);
+  // janela de gestão aberta cobre quase todo o mapa: desenha o fundo a ~12 quadros/s (a simulação segue igual).
+  // Poupa a GPU/CPU para a janela (num save grande, mapa a 60 quadros + janela por cima travava as abas).
+  winEl ??= document.getElementById('win');
+  drawWait -= dt;
+  if (!winEl || winEl.hidden || drawWait <= 0) {
+    drawWait = 1 / 12;
+    renderer.render(app.game, camera, app.ghost, clock, app);
+  }
   ui.update(dt, clock);
   requestAnimationFrame(frame);
 }
