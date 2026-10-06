@@ -38,6 +38,7 @@ import {
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
 import { artPortrait, unitPortrait } from '../render/sprites';
+import { ART, SEALS } from './pxicons';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
@@ -1421,7 +1422,8 @@ export class Panel {
         <div class="k-name">${esc(k.name)} <span class="rbadge r-kage">{crown} Kage</span></div>
         <div class="td-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{monument} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
       if (art)
-        html += `<div class="kart" style="--c:${art.color}"><b>{crown} ${esc(art.name)}</b><p>${esc(art.desc)}</p></div>`;
+        html += `<div class="kart" style="--c:${art.color}">${ART['kunai-hiraishin'] ? `<img class="kart-pic" src="${ART['kunai-hiraishin']}" alt="" draggable="false">` : ''}<div><b>{crown} ${esc(art.name)}</b>
+          <div class="td-chips"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{target} Marca ${art.markLife}s</span></div><p>${esc(art.desc)}</p></div></div>`;
       html += `<button class="btn primary" data-act="pick" data-arg="${k.id}">{eye} Ver Kage</button></div></div>`;
     } else if (g.state.ceremony) {
       html += `<p class="hint">{party} Cerimônia em andamento…</p>`;
@@ -1475,7 +1477,7 @@ export class Panel {
     for (const path of ['toad', 'snake', 'slug'] as const) {
       const d = SANNIN_PATHS[path];
       const who = sanninOf(g, path);
-      const beast = artPortrait(BEAST[path]!, true);
+      const beast = ART[`beast-${path}`] ?? artPortrait(BEAST[path]!, true);
       html += `<div class="scard" style="--c:${d.color}"><div class="sc-head"><b>${esc(d.title)}</b>${who ? '<span class="mpill safe">{shield} Nomeado</span>' : ''}</div>
         <div class="sc-body"><span class="sc-beast">${beast ? `<img src="${beast}" alt="" draggable="false">` : ''}<small>${esc(d.art)}</small></span><div class="sc-who">`;
       if (who) html += `<button class="kcand" data-act="pick" data-arg="${who.id}">${this.face(who)}<span><b>${esc(who.name)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
@@ -1498,17 +1500,18 @@ export class Panel {
     const w = WEATHERS[s.weather];
     const pop = g.population();
     const cap = g.popCap();
-    let html = `<div class="bsec"><h4>{users} Vida da vila</h4>
+    const scene = (k: string) => (ART[k] ? `<img class="vscene" src="${ART[k]}" alt="" draggable="false">` : '');
+    let html = `<div class="bsec"><h4>{users} Vida da vila</h4>${scene('scene-village')}
       <div class="vstat"><span>{users} População</span><b>${pop}/${cap}</b></div><div class="nc-bar hp"><i style="width:${Math.min(100, (pop / Math.max(1, cap)) * 100)}%"></i></div>
       <div class="vstat"><span>{smile} Felicidade</span><b>${Math.round(s.happiness)}/100</b></div><div class="nc-bar xp"><i style="width:${Math.min(100, s.happiness)}%"></i></div>
       <div class="vfactors">`;
     for (const [l, v] of moodFactors(g)) html += `<span class="${v >= 0 ? 'ok' : 'bad'}">${esc(l)} <b>${v > 0 && l !== 'Base' ? '+' : ''}${v}</b></span>`;
     html += `</div><p class="hint">Felizes, os moradores trabalham até 25% mais rápido e têm mais filhos. Abaixo de ${MOOD.leave}, um vai embora por dia.</p></div>`;
-    html += `<div class="bsec"><h4>{sun} Estação e clima</h4><div class="vseason"><span class="vs-ic">${season.icon}</span><div><b>${season.name} · ${w.icon} ${w.name}</b>
+    html += `<div class="bsec"><h4>{sun} Estação e clima</h4>${scene(`scene-${seasonOf(s)}`)}<div class="vseason"><span class="vs-ic">${season.icon}</span><div><b>${season.name} · ${w.icon} ${w.name}</b>
       <p class="hint">${esc(season.desc)} Hoje: ${esc(w.desc)}</p><p class="hint">{hourglass} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação.</p></div></div></div>`;
     const why = festivalBlock(g);
     const on = festivalOn(s);
-    html += `<div class="bsec vfest"><h4>{party} ${season.festival}</h4>${on ? '<span class="mpill safe">{party} Acontecendo agora</span>' : ''}
+    html += `<div class="bsec vfest"><h4>{party} ${season.festival}</h4>${scene('scene-festival')}${on ? '<span class="mpill safe">{party} Acontecendo agora</span>' : ''}
       <p class="hint">+${FESTIVAL.mood} de felicidade até o fim do dia seguinte.</p>
       <button class="btn primary" data-act="festival" ${blocked(g, [why], FESTIVAL.cost)}>{party} Realizar festival <small>${costLabel(FESTIVAL.cost)}</small></button></div>`;
     return html;
@@ -1675,7 +1678,9 @@ export class Panel {
 
   /** Selo do rank: pergaminho com o lacre de cera (ou só o lacre, pequeno). */
   private seal(label: string, color: string, small = false) {
-    return `<span class="mseal ${small ? 'sm' : ''}" style="--c:${color}">${small ? '' : `<img src="${missionScrollUrl}" alt="" draggable="false">`}<b>${label}</b></span>`;
+    const px = SEALS[`seal-${label}`];
+    const wax = px ? `<img class="wax" src="${px}" alt="${label}" draggable="false">` : `<b>${label}</b>`;
+    return `<span class="mseal ${small ? 'sm' : ''} ${px ? 'px' : ''}" style="--c:${color}">${small ? '' : `<img src="${missionScrollUrl}" alt="" draggable="false">`}${wax}</span>`;
   }
 
   /** Uma missão oferecida: contrato com recompensa, equipe recomendada (com risco) e a troca de equipe. */

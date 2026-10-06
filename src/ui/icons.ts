@@ -1,6 +1,7 @@
 // Ícones SVG (traço, 24×24) — iguais em qualquer dispositivo, ao contrário de emoji.
 // Textos usam tokens `{nome}`; `rich()` troca cada token pelo SVG correspondente.
 import { TOKEN_RE } from '../core/tokens';
+import { ICONS } from './pxicons';
 
 const I: Record<string, string> = {
   // recursos
@@ -102,8 +103,13 @@ const I: Record<string, string> = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500h.010"/>',
 };
 
-/** `<svg>` do ícone (herda a cor do texto; alguns têm cor própria via `.ic-nome`). */
+/**
+ * Ícone: o PNG em pixel art (src/art/ui/icons, gerado pelo Codex) quando existe; senão o `<svg>` de traço
+ * (herda a cor do texto; alguns têm cor própria via `.ic-nome`).
+ */
 export function ico(name: string, cls = '') {
+  const px = ICONS[name];
+  if (px) return `<img class="ic px ic-${name}${cls ? ` ${cls}` : ''}" src="${px}" alt="" draggable="false">`;
   const body = I[name];
   if (!body) return '';
   return `<svg class="ic ic-${name}${cls ? ` ${cls}` : ''}" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
