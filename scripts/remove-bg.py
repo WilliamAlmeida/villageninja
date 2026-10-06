@@ -1,10 +1,16 @@
-# Remove o fundo branco de uma arte (local, sem API): apaga o branco/quase branco LIGADO ÀS BORDAS
-# da imagem. Brancos dentro do desenho ficam, porque o contorno escuro do pixel art os separa do fundo.
+# Remove o fundo branco de uma arte (local, sem API): apaga o fundo LIGADO ÀS BORDAS da imagem.
+#
+# Fundo = quase branco E sem cor (o Codex entrega o fundo em ~254,254,254). A regra antiga (qualquer canal > 221)
+# vazava para dentro do desenho onde uma parede creme ou um gramado claro encosta no fundo sem contorno escuro
+# (Hospital: a parede da frente e a grama da base sumiam). Parede creme e grama clara têm um pouco de cor e ficam.
+# Depois tira a franja clara do anti-alias na borda (1–2 px de pixels claros e sem cor encostados no fundo).
 #   --vaos  também apaga bolsões brancos GRANDES fechados (vãos entre vigas, como na torre).
 #           Não use em prédios com parede branca (ex.: hospital).
 # Uso: python scripts/remove-bg.py <entrada.png> [saida.png] [--vaos]
 import sys
 from collections import deque
+
+import numpy as np
 from PIL import Image
 
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -12,45 +18,63 @@ holes = '--vaos' in sys.argv
 src = args[0]
 dst = args[1] if len(args) > 1 else src
 im = Image.open(src).convert('RGBA')
-w, h = im.size
-px = im.load()
+a = np.array(im)
+h, w = a.shape[:2]
+rgb = a[..., :3].astype(int)
+mn, mx = rgb.min(2), rgb.max(2)
+clear = a[..., 3] < 20
+# fundo: quase branco e sem saturação
+bg_like = clear | ((mn >= 240) & (mx - mn <= 12))
 
+# flood a partir das bordas só pelo que parece fundo
+bg = np.zeros((h, w), bool)
+q = deque()
+for x in range(w):
+    q.extend(((x, 0), (x, h - 1)))
+for y in range(h):
+    q.extend(((0, y), (w - 1, y)))
+while q:
+    x, y = q.popleft()
+    if x < 0 or y < 0 or x >= w or y >= h or bg[y, x] or not bg_like[y, x]:
+        continue
+    bg[y, x] = True
+    q.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
 
-def is_bg(p, tol=34):
-    r, g, b, a = p
-    return a < 20 or (r > 255 - tol and g > 255 - tol and b > 255 - tol)
+# franja: pixel claro e quase sem cor grudado no fundo (anti-alias do contorno contra o branco), 2 passadas
+fringe_like = (mn >= 215) & (mx - mn <= 18)
+for _ in range(2):
+    near = np.zeros_like(bg)
+    near[1:, :] |= bg[:-1, :]
+    near[:-1, :] |= bg[1:, :]
+    near[:, 1:] |= bg[:, :-1]
+    near[:, :-1] |= bg[:, 1:]
+    add = near & fringe_like & ~bg
+    if not add.any():
+        break
+    bg |= add
 
-
-def flood(starts, test, limit=None):
-    """Pinta de transparente a região ligada aos pontos iniciais que passa no teste; devolve os pixels."""
-    seen_local, q, region = set(), deque(starts), []
-    while q:
-        x, y = q.popleft()
-        if (x, y) in seen_local or not (0 <= x < w and 0 <= y < h) or not test(px[x, y]):
-            continue
-        seen_local.add((x, y))
-        region.append((x, y))
-        q.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
-    return region
-
-
-border = [(x, 0) for x in range(w)] + [(x, h - 1) for x in range(w)] + [(0, y) for y in range(h)] + [(w - 1, y) for y in range(h)]
-for x, y in flood(border, is_bg):
-    px[x, y] = (255, 255, 255, 0)
+a[bg] = (255, 255, 255, 0)
 
 if holes:
     # bolsões de branco puro que sobraram; só os grandes (brilhos e detalhes brancos são pequenos)
-    pure = lambda p: p[3] > 0 and p[0] > 245 and p[1] > 245 and p[2] > 245
+    pure = (a[..., 3] > 0) & (mn > 245) & (mx - mn <= 12)
+    seen = np.zeros((h, w), bool)
     min_size = (w * h) // 20000
-    done = set()
-    for y in range(h):
-        for x in range(w):
-            if (x, y) in done or not pure(px[x, y]):
-                continue
-            region = flood([(x, y)], pure)
-            done.update(region)
-            if len(region) >= min_size:
-                for rx, ry in region:
-                    px[rx, ry] = (255, 255, 255, 0)
-im.save(dst)
+    for y0, x0 in zip(*np.nonzero(pure)):
+        if seen[y0, x0]:
+            continue
+        region, q = [], deque([(x0, y0)])
+        seen[y0, x0] = True
+        while q:
+            x, y = q.popleft()
+            region.append((y, x))
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                if 0 <= nx < w and 0 <= ny < h and pure[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    q.append((nx, ny))
+        if len(region) >= min_size:
+            ys, xs = zip(*region)
+            a[list(ys), list(xs)] = (255, 255, 255, 0)
+
+Image.fromarray(a, 'RGBA').save(dst)
 print(f'ok {dst}')

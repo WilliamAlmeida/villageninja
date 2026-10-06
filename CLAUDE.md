@@ -69,7 +69,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
 - Torre: guarda (`tower-guard`, folha de ação) aparece na plataforma arremessando e fica uns segundos de vigia.
-  `remove-bg.py --vaos` limpa vãos brancos fechados (torres, escadas, cercas).
+  `remove-bg.py --vaos` limpa vãos brancos fechados (torres, porto, ruína). O `remove-bg.py` só considera fundo o quase
+  branco SEM cor (parede creme e grama clara encostadas no fundo ficam) e tira a franja clara do contorno.
+  `python scripts/rebg.py [nome]` refaz o fundo das artes de docs/arte/iso a partir da crua do Codex (achada no
+  `.codex.txt`; anteriores em `docs/arte/iso/_antes-rebg/`).
 - Inimigos especiais: animais ladrões (`thief` em `data/animals.ts`: corvo bica a fazenda, macaco rouba ryo/ervas e foge;
   o saque fica em `Unit.loot` e volta ao abater) e renegados com função (`Unit.role`, `data/enemies.ts`: bombardeiro
   derruba prédios pela metade, médico cura os aliados), que entram nas invasões por `raidRoles` (spawner.ts). Animais com golpe (`ability`): aranha (teia que prende,
