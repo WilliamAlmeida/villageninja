@@ -726,3 +726,41 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .cand .face { width: 1.9rem; height: 1.9rem; }
 .tcands .cand { grid-template-columns: auto minmax(0, 1fr) auto; } .tcands .cand .btnrow { grid-column: 2 / -1; }
 .seg.troutine { display: grid; grid-template-columns: 1fr 1fr; } .tcmds .btn { white-space: nowrap; font-size: 0.88rem; padding: 0.45rem 0.5rem; }
+
+/* ---------- ficha do ninja (painel lateral) ---------- */
+.fhead { display: flex; gap: 0.65rem; align-items: stretch; padding-right: 2.4rem; }
+.fh-face { flex: 0 0 auto; width: 5.4rem; height: 5.4rem; border-radius: 0.7rem; background: radial-gradient(circle at 50% 35%, rgba(255, 214, 150, 0.12), rgba(0, 0, 0, 0.3)); border: 1px solid var(--line); display: grid; place-items: end center; overflow: hidden; }
+.fh-face img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.fh-main { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; justify-content: center; }
+.fh-name { font-size: 1.2rem; font-weight: 900; line-height: 1.15; }
+.fh-state { font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+.fquick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem; margin: 0.55rem 0 0.4rem; }
+.fquick > span { display: flex; flex-direction: column; padding: 0.3rem 0.45rem; border-radius: 0.55rem; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+.fquick small { font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 0.2rem; white-space: nowrap; }
+.fquick b { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vit .vbox { padding: 0.3rem 0.45rem 0.25rem; border-radius: 0.55rem; background: var(--card); border: 1px solid var(--line); }
+.vit .vbox small { display: flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; }
+.vit .vbox.hp small { color: var(--good); } .vit .vbox.ck small { color: #7cc4ff; } .vit .vbox.xp small { color: var(--warn); }
+.vit .vbox .nc-bar { height: 0.45rem; margin: 0.2rem 0 0.1rem; }
+.nc-bar.xp i { background: var(--warn); }
+.vit .vnum { display: block; text-align: right; font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mtabs.subtabs { margin: 0.6rem 0 0.2rem; }
+.mtabs.subtabs button { flex: 1; justify-content: center; padding: 0.45rem 0.3rem; }
+.slot { display: flex; align-items: center; gap: 0.55rem; border-left-width: 0.2rem; }
+.slot .sl-ic { flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: 0.45rem; display: grid; place-items: center; font-weight: 900; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); }
+.slot .sl-txt { flex: 1; min-width: 0; }
+.slot .sl-cd { font-size: 0.78rem; color: var(--muted); white-space: nowrap; display: flex; align-items: center; gap: 0.2rem; }
+.ftechs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; }
+.ftechs .badge { border-radius: 0.55rem; padding: 0.4rem 0.55rem; background: var(--card); border: 1px solid var(--line); justify-content: flex-start; font-weight: 600; }
+.ftechs .badge b { margin-left: auto; color: var(--good); }
+.ftiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-top: 0.6rem; }
+.ftile { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.45rem 0.55rem; border-radius: 0.6rem; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+.ftile small { color: var(--muted); font-size: 0.74rem; display: flex; align-items: center; gap: 0.25rem; }
+.ftile b { font-size: 0.92rem; display: flex; align-items: center; }
+.ftile > span { font-size: 0.76rem; color: var(--muted); line-height: 1.25; }
+.ftile .btn.mini { align-self: flex-start; margin-top: 0.15rem; }
+.ftile .btnrow { gap: 0.25rem; }
+.factions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
+.factions .btn { flex: 1 1 auto; justify-content: center; }
+.factions .hint { flex-basis: 100%; margin: 0; }
+.ftechs .badge { min-width: 0; overflow: hidden; white-space: nowrap; font-size: 0.8rem; } .ftechs .badge b { flex: 0 0 auto; } #panel .body { overflow-x: hidden; } .ftile .btn.mini { white-space: nowrap; }

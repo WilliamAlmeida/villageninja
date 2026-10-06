@@ -334,16 +334,25 @@ export class Panel {
       const nat = NATURES[n.nature];
       const isOwn = u.faction === 'village' && u.kind === 'ninja';
       const title = u.kind === 'clone' ? `Clone de ${esc(u.name)}` : esc(u.name);
-      html += `<div class="ph"><div class="title">${title}</div><div class="badges">
-        <span class="badge ${u.faction === 'enemy' ? 'enemy' : 'rank'}">${u.faction === 'enemy' ? `${u.role ? ROGUE_ROLES[u.role].name : 'Renegado'} · ` : ''}${RANKS[n.rank].name}</span>
-        <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div></div>`;
-      html += `<div class="sub">Nível ${n.level} · <span data-t="state"></span></div>`;
+      const rank = n.sannin ? 'sannin' : n.rank;
+      const pic = unitPortrait(u, true);
+      const clan = clanOf(this.app.game, u);
+      // cabeçalho: retrato grande, nome, graduação/natureza/linhagem e o que está fazendo; abaixo, números rápidos
+      html += `<div class="fhead"><span class="fh-face">${pic ? `<img src="${pic}" alt="" draggable="false">` : ''}</span><div class="fh-main">
+        <div class="fh-name">${title}</div><div class="badges">
+        ${u.faction === 'enemy' ? `<span class="badge enemy">${u.role ? ROGUE_ROLES[u.role].name : 'Renegado'} · ${RANKS[n.rank].name}</span>` : `<span class="rbadge r-${rank}">${RANK_BADGE_ICON[rank] ?? ''} ${n.sannin ? 'Sannin' : RANKS[n.rank].name}</span>`}
+        <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div>
+        <div class="fh-state">{eye} <span data-t="state"></span></div></div></div>
+        <div class="fquick"><span ${tipAttr('Nível', 'Sobe enchendo a barra de XP; cada nível dá atributos.', true)}><small>Nível</small><b>${n.level}</b></span>
+        <span ${tipAttr('Abates', 'Inimigos derrubados por este ninja.', true)}><small>{swords} Abates</small><b>${n.kills}</b></span>
+        <span ${tipAttr('Poder', 'Soma dos atributos (o que conta na força da equipe).', true)}><small>{star} Poder</small><b>${Math.round(statSum(u))}</b></span>
+        <span ${tipAttr('Clã', clan ? `Clã ${clan.name}.` : 'Sem clã. Chunin+ pode fundar um.', true)}><small>{castle} Clã</small><b>${clan ? esc(clan.name) : '—'}</b></span></div>`;
       // vida, chakra e XP lado a lado (economiza altura no painel)
-      const vit = (k: string, label: string, tip: string) =>
-        `<div ${tipAttr(label, tip, true)}><small>${label}</small><div class="bar ${k}"><i data-b="${k}"></i><span data-t="${k}"></span></div></div>`;
-      html += `<div class="vit">${vit('hp', 'Vida', 'Chega a zero e o ninja cai. Recupera descansando em casa ou no hospital.')}${vit(
-        'ck', 'Chakra', 'Gasto pelos jutsus. Recupera sozinho com o tempo (Stamina e Inteligência aceleram).',
-      )}${isOwn ? vit('xp', 'XP', 'Experiência de lutas, treinos e missões. Ao encher, sobe de nível e ganha atributos.') : ''}</div>`;
+      const vit = (k: string, ic: string, label: string, tip: string) =>
+        `<div class="vbox ${k}" ${tipAttr(label, tip, true)}><small>${ic} ${label}</small><div class="nc-bar ${k}"><i data-b="${k}"></i></div><span class="vnum" data-t="${k}"></span></div>`;
+      html += `<div class="vit">${vit('hp', '{plus}', 'Vida', 'Chega a zero e o ninja cai. Recupera descansando em casa ou no hospital.')}${vit(
+        'ck', '{drop}', 'Chakra', 'Gasto pelos jutsus. Recupera sozinho com o tempo (Stamina e Inteligência aceleram).',
+      )}${isOwn ? vit('xp', '{star}', 'XP', 'Experiência de lutas, treinos e missões. Ao encher, sobe de nível e ganha atributos.') : ''}</div>`;
       t.hp = `${Math.ceil(u.hp)}/${u.maxHp}`;
       t.ck = `${Math.floor(u.chakra)}/${u.maxChakra}`;
       b.ck = u.chakra / Math.max(1, u.maxChakra);
@@ -353,8 +362,8 @@ export class Panel {
         t.xp = `${Math.floor(n.xp)}/${xpToNext(n.level)}`;
         b.xp = n.xp / xpToNext(n.level);
         // abas: o painel do ninja mostra um assunto por vez em vez de uma lista comprida
-        html += `<div class="seg subtabs">`;
-        for (const [k, label] of [['info', '{scroll} Ficha'], ['cmd', '{pin} Ordens'], ['gear', '{shield} Equipar']] as [UnitTab, string][])
+        html += `<div class="mtabs subtabs">`;
+        for (const [k, label] of [['info', '{ninja} Ficha'], ['cmd', '{flag} Ordens'], ['gear', '{shield} Equipar']] as [UnitTab, string][])
           html += `<button data-act="unit-tab" data-arg="${k}" class="${this.unitTab === k ? 'on' : ''}">${label}</button>`;
         html += `</div>`;
         if (this.unitTab === 'cmd') {
@@ -381,8 +390,8 @@ export class Panel {
         }
         const d = JUTSUS[id]!;
         const cd = jutsuCooldown(d, n.stats);
-        html += `<div class="slot" style="--c:${d.color}"><i class="cd" data-b="cd${i}"></i><div class="jn">${esc(d.name)}</div>
-          <div class="jm">Rank ${JUTSU_RANK_LABEL[d.rank]} · ${JUTSU_TYPE_LABEL[d.type]} · ${jutsuChakra(d, n.stats)} chakra · ${cd.toFixed(1)}s</div></div>`;
+        html += `<div class="slot" style="--c:${d.color}"><i class="cd" data-b="cd${i}"></i><span class="sl-ic">${NATURES[d.nature as keyof typeof NATURES]?.kanji ?? '術'}</span><div class="sl-txt"><div class="jn">${esc(d.name)}</div>
+          <div class="jm">Rank ${JUTSU_RANK_LABEL[d.rank]} · ${JUTSU_TYPE_LABEL[d.type]} · ${jutsuChakra(d, n.stats)} chakra</div></div><span class="sl-cd">{hourglass} ${cd.toFixed(1)}s</span></div>`;
         b[`cd${i}`] = n.cd[i]! / cd;
       }
       html += `</div>` + this.basicTechniques(u, t);
@@ -709,41 +718,49 @@ export class Panel {
   private ninjaCareer(u: Unit) {
     const n = u.ninja!;
     const g = this.app.game;
-    let html = `<div class="actions"><button class="btn primary" data-act="teach-open">{scroll} Ensinar jutsu</button>`;
+    let html = '';
     if (catchingUp(g, u)) html += `<p class="hint">{up} Bem abaixo da média da vila: treina com <b>XP em dobro</b> até alcançar os outros.</p>`;
     if (isRookie(u) && g.state.flags.shelterRookies) html += `<p class="hint">{ninja} Novato: se abriga de inimigos fortes demais (Proteger novatos, na lista de Ninjas).</p>`;
-    const next = nextRank(u);
-    if (next === 'kage') {
-      html += `<p class="hint">{crown} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</p>`;
-    } else if (next) {
-      const r = RANKS[next];
-      const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
-      const why = n.level < r.minLevel ? `· nível ${r.minLevel}` : !villageOk ? `· requer ${levelDef(r.minVillageLevel!).name}` : '';
-      html += `<button class="btn" data-act="promote" ${blocked(g, [n.level < r.minLevel && `Precisa chegar ao nível ${r.minLevel} (está no ${n.level}).`, !villageOk && `A vila precisa ser ${levelDef(r.minVillageLevel!).name}.`], r.promoteCost)}>{medal} Promover a ${r.name} (${costLabel(r.promoteCost)}) ${why}</button>`;
-    }
-    if (n.rank !== 'genin' && !clanOf(g, u)) {
-      const fc = canFoundClan(g, u);
-      html += `<button class="btn" data-act="found-clan" ${blocked(g, [!fc.ok && fc.error !== 'Recursos insuficientes.' && fc.error], FOUND_COST)}>{castle} Fundar clã ${esc(surname(u))} (${costLabel(FOUND_COST)})${fc.ok ? '' : ` · ${esc(fc.error)}`}</button>`;
-    }
-    html += `</div>`;
-    // profissão (prédio próprio, Chunin+) e contrato de invocação (lugares sagrados da região)
-    html += `<h4>{medal} Profissão</h4>`;
-    if (n.spec) html += `<p class="hint"><b>${SPECS[n.spec].name}:</b> ${esc(SPECS[n.spec].desc)}</p>`;
+    // blocos: profissão, contrato, ninken e equipe
+    html += `<div class="ftiles">`;
+    html += `<div class="ftile"><small>{medal} Profissão</small>`;
+    if (n.spec) html += `<b>${SPECS[n.spec].name}</b><span>${esc(SPECS[n.spec].desc)}</span>`;
     else {
-      html += `<div class="btnrow">`;
+      html += `<span>Chunin+ aprende uma:</span><div class="btnrow">`;
       for (const k of Object.keys(SPECS) as SpecKind[])
         html += `<button class="btn mini" data-act="spec" data-arg="${k}" ${blocked(g, [specBlock(g, u, k)], SPECS[k].cost)} ${tipAttr(SPECS[k].name, `${SPECS[k].desc} Custo: ${plainTokens(costLabel(SPECS[k].cost))}.`)}>${SPECS[k].icon} ${SPECS[k].name}</button>`;
       html += `</div>`;
     }
+    html += `</div><div class="ftile"><small>{scroll} Contrato</small>`;
     html += n.contract
-      ? `<p class="hint">{scroll} <b>Contrato: ${CONTRACTS[n.contract].name}.</b> ${esc(CONTRACTS[n.contract].desc)} (${CONTRACTS[n.contract].chakra} chakra, a cada ${CONTRACTS[n.contract].cd}s)</p>`
-      : `<p class="hint">{scroll} Sem contrato de invocação. Os lugares sagrados (janela Mundo → Região) dão contratos.</p>`;
-    // ninken (cão ninja do Canil)
+      ? `<b>${CONTRACTS[n.contract].name}</b><span>${CONTRACTS[n.contract].chakra} chakra · a cada ${CONTRACTS[n.contract].cd}s</span>`
+      : `<b>Nenhum</b><span>Os lugares sagrados (Mundo → Região) dão contratos.</span>`;
     const dog = dogOf(g, u);
+    html += `</div><div class="ftile"><small>{paw} Ninken</small>`;
     html += dog
-      ? `<p class="hint">{paw} <b>${esc(dog.name)}</b> acompanha ${esc(u.name.split(' ').pop()!)} · vida ${Math.ceil(dog.hp)}/${dog.maxHp}</p>`
-      : `<div class="btnrow"><button class="btn mini" data-act="dog" ${blocked(g, [dogBlock(g, u)], DOG_COST)} ${tipAttr('Ninken', 'Cão ninja que acompanha o ninja, luta junto, fareja espiões invisíveis e, fora da vila, acha ervas. A raça se escolhe no Canil.')}>{paw} Adotar ninken: ${esc(BREEDS[this.dogBreed].name)} (${costLabel(DOG_COST)})</button></div>`;
-    html += `<p class="hint">Abates: ${n.kills}</p>`;
+      ? `<b>${esc(dog.name)}</b><span>${esc(BREEDS[dog.breed ?? 'shiba'].name)} · vida ${Math.ceil(dog.hp)}/${dog.maxHp}</span>`
+      : `<button class="btn mini" data-act="dog" ${blocked(g, [dogBlock(g, u)], DOG_COST)} ${tipAttr('Ninken', `Cão ninja que acompanha o ninja, luta junto, fareja espiões invisíveis e, fora da vila, acha ervas. Raça: ${BREEDS[this.dogBreed].name} (escolha no Canil). Custo: ${plainTokens(costLabel(DOG_COST))}.`)}>{paw} Adotar ${esc(BREEDS[this.dogBreed].name)}</button>`;
+    const team = teamOf(g, u);
+    html += `</div><div class="ftile"><small>{users} Equipe</small>`;
+    html += team
+      ? `<b><span class="dot" style="--c:${team.color}"></span>${esc(team.name)}</b><span>${team.senseiId === u.id ? 'Sensei' : 'Membro'}</span><button class="btn mini" data-act="open-team" data-arg="${team.id}">{users} Ver equipe</button>`
+      : `<b>Sem equipe</b><span>Monte equipes em Ninjas → Equipes.</span>`;
+    html += `</div></div>`;
+    // ações: ensinar, promover, fundar clã, ver no mapa
+    html += `<div class="factions"><button class="btn primary" data-act="teach-open">{books} Ensinar jutsu</button>`;
+    const next = nextRank(u);
+    if (next === 'kage') {
+      html += `<span class="hint">{crown} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</span>`;
+    } else if (next) {
+      const r = RANKS[next];
+      const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
+      html += `<button class="btn" data-act="promote" ${blocked(g, [n.level < r.minLevel && `Precisa chegar ao nível ${r.minLevel} (está no ${n.level}).`, !villageOk && `A vila precisa ser ${levelDef(r.minVillageLevel!).name}.`], r.promoteCost)} ${tipAttr(`Promover a ${r.name}`, `Custo: ${plainTokens(costLabel(r.promoteCost))}. Nível mínimo ${r.minLevel}.`)}>{medal} Promover a ${r.name}</button>`;
+    }
+    if (n.rank !== 'genin' && !clanOf(g, u)) {
+      const fc = canFoundClan(g, u);
+      html += `<button class="btn" data-act="found-clan" ${blocked(g, [!fc.ok && fc.error !== 'Recursos insuficientes.' && fc.error], FOUND_COST)} ${tipAttr(`Fundar clã ${surname(u)}`, `Custo: ${plainTokens(costLabel(FOUND_COST))}.`)}>{castle} Fundar clã</button>`;
+    }
+    html += `<button class="btn ghost" data-act="pick" data-arg="${u.id}">{pin} Ver no mapa</button></div>`;
     return html;
   }
 
@@ -1303,7 +1320,7 @@ export class Panel {
     const style = { leaf: 'folhas', mist: 'névoa', water: 'água', sand: 'areia', smoke: 'fumaça', flash: 'clarão' }[flickerStyle(u)];
     t.flick = ready(u.flickerCd);
     t.kawa = ready(u.kawaCd);
-    let html = `<h4>Técnicas básicas <small>(automáticas)</small></h4><div class="btnrow">
+    let html = `<h4>Técnicas básicas <small>(automáticas)</small></h4><div class="ftechs">
       <span class="badge" ${tipAttr('Shunshin no Jutsu', `Corpo cintilante: some num redemoinho de ${style} e aparece até ${SHUNSHIN.maxDist / 32 | 0} tiles adiante. Usa para chegar na luta, recuar quando luta de longe e fugir ferido. Recarga ${flickerCooldown(n.stats).toFixed(1)}s (menor com Velocidade).`, true)}>{run} Shunshin · <b data-t="flick"></b></span>
       <span class="badge" ${tipAttr('Kawarimi no Jutsu', `Substituição: num golpe forte ou fatal, ${Math.round(kawarimiChance(n.stats) * 100)}% de chance de trocar de lugar com um tronco (Velocidade e Inteligência aumentam). ${KAWARIMI.chakra} de chakra, recarga ${KAWARIMI.cooldown}s.`, true)}>{leaf} Kawarimi · <b data-t="kawa"></b></span>`;
     if (n.sannin) {
