@@ -831,12 +831,12 @@ export class Panel {
         t,
         b,
       };
-    let html = `<div class="ph"><div class="title">${d.icon} ${d.name}</div></div><p class="hint">${d.desc}</p>`;
+    let html = this.buildingHead(bd);
     // aba "Lá dentro" para prédios com interior (moradia ou alguém dentro agora)
     const inside = d.walkable ? [] : occupantsOf(g, bd);
     const hasInside = bd.built && !d.walkable && (inside.length > 0 || !!d.housing);
     if (hasInside) {
-      html += `<div class="seg subtabs"><button data-act="btab" data-arg="main" class="${this.buildingTab === 'main' ? 'on' : ''}">{scroll} Geral</button>
+      html += `<div class="mtabs subtabs"><button data-act="btab" data-arg="main" class="${this.buildingTab === 'main' ? 'on' : ''}">{scroll} Geral</button>
         <button data-act="btab" data-arg="inside" class="${this.buildingTab === 'inside' ? 'on' : ''}">{eye} Lá dentro (${inside.length})</button></div>`;
       if (this.buildingTab === 'inside') {
         if (d.housing) {
@@ -848,8 +848,8 @@ export class Panel {
       }
     }
     if (!bd.built) {
-      html += `<h4>Em construção</h4><div class="bar pg"><i data-b="prog"></i><span data-t="prog"></span></div>`;
-      html += `<p class="hint">Moradores sem emprego vão até a obra para construir.</p>`;
+      html += `<div class="bsec"><h4>{hammer} Em construção</h4><div class="bar pg"><i data-b="prog"></i><span data-t="prog"></span></div>`;
+      html += `<p class="hint">Moradores sem emprego vão até a obra para construir.</p></div>`;
       b.prog = Math.min(1, bd.progress / d.buildTime);
       t.prog = `${Math.floor(b.prog * 100)}%`;
     } else {
@@ -860,16 +860,16 @@ export class Panel {
       if (bd.type === 'arena') html += this.arenaSection(b);
       if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).</p>`;
       if (d.workers) {
-        html += `<h4>Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
-          <span class="wnum"><b data-t="workers"></b><small>trabalhando agora · você pediu <b data-t="wdesired"></b> (máx. ${workersOf(bd)})</small></span>
-          <button class="btn" data-act="workers" data-arg="1">{plus}</button></div>`;
+        html += `<div class="bsec"><h4>{users} Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
+          <span class="wnum"><b><span data-t="workers"></span> / <span data-t="wdesired"></span></b><small>trabalhando agora · você pediu (máx. ${workersOf(bd)})</small></span>
+          <button class="btn primary" data-act="workers" data-arg="1">{plus}</button></div>`;
         t.workers = String(bd.workers.length);
         t.wdesired = String(bd.desired);
         if (bd.workers.length < bd.desired) {
           const idle = g.villagers().filter((u) => u.jobId == null).length;
-          html += `<p class="why">${idle ? 'Os moradores livres estão a caminho.' : 'Faltam moradores livres: todos já trabalham. Construa casas para a vila crescer ou tire gente de outro prédio.'}</p>`;
+          html += `<p class="${idle ? 'bnote' : 'why'}">{alert} ${idle ? 'Os moradores livres estão a caminho.' : 'Faltam moradores livres: todos já trabalham. Construa casas para a vila crescer ou tire gente de outro prédio.'}</p>`;
         }
-        html += this.gatherInfo(bd);
+        html += this.gatherInfo(bd) + `</div>`;
       }
       if (d.housing) {
         const residents = g.villagers().filter((u) => u.homeId === bd.id).length;
@@ -897,9 +897,9 @@ export class Panel {
       if (bd.type === 'training') html += this.fieldSection(bd, t);
       if (d.healRate) html += `<p class="hint">Cura ${d.healRate} HP/s de quem descansa aqui.</p>`;
     }
-    html += `<div class="actions"><button class="btn" data-act="move">{refresh} Mover de lugar (grátis)</button>`;
+    html += `<div class="bfoot"><button class="btn ghost" data-act="move">{refresh} Mover <small>grátis</small></button>`;
     if (bd.type !== 'hokage')
-      html += `<button class="btn danger" data-act="demolish">${this.armedDemolish ? 'Toque de novo para confirmar' : `{trash} Demolir (devolve ${bd.built ? '50%' : '100%'})`}</button>`;
+      html += `<button class="btn danger" data-act="demolish">${this.armedDemolish ? 'Toque de novo para confirmar' : `{trash} Demolir <small>devolve ${bd.built ? '50%' : '100%'}</small>`}</button>`;
     html += `</div>`;
     return { html, t, b };
   }
@@ -908,9 +908,11 @@ export class Panel {
   private fieldSection(bd: Building, t: Record<string, string>) {
     const g = this.app.game;
     t.slots = `${trainees(g, bd)} / ${trainSlots(bd)}`;
-    let html = `<p class="hint">Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP. Cada ninja vai ao campo com vaga mais perto, preferindo o do seu foco.</p>`;
-    html += `<p class="hint">{users} Vagas: <b data-t="slots"></b> treinando agora${levelOf(bd) < 3 ? ' (o upgrade abre mais vagas)' : ''}.</p>`;
-    html += `<h4>Foco do campo</h4><div class="chips">`;
+    const used = trainees(g, bd);
+    const total = trainSlots(bd);
+    let html = `<div class="bsec"><h4>{users} Vagas <small>${levelOf(bd) < 3 ? '(o upgrade abre mais)' : ''}</small></h4><div class="bslots"><b data-t="slots"></b><span>treinando agora</span><span class="pips">${Array.from({ length: total }, (_, i) => `<i class="${i < used ? 'on' : ''}"></i>`).join('')}</span></div>
+      <p class="hint">Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP; cada um vai ao campo com vaga mais perto, preferindo o do seu foco.</p></div>`;
+    html += `<div class="bsec"><h4>{target} Foco do campo</h4><div class="chips">`;
     html += `<button data-act="field-focus" data-arg="" class="${bd.focus ? '' : 'on'}" ${tipAttr('Livre', 'Sem especialidade: cada ninja treina o próprio foco (ou o que o sensei/acaso escolher).')}>Livre</button>`;
     for (const k of STAT_KEYS)
       html += `<button data-act="field-focus" data-arg="${k}" class="${bd.focus === k ? 'on' : ''}" ${tipAttr(STAT_INFO[k].label, `Treino de ${STAT_INFO[k].label} rende +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% aqui. Ninjas sem foco próprio treinam isto; quem tem esse foco prefere este campo.`)}>${STAT_INFO[k].label}</button>`;
@@ -918,7 +920,7 @@ export class Panel {
       bd.focus
         ? `<b>${STAT_INFO[bd.focus].label}:</b> +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% neste atributo. Ninjas sem foco próprio treinam ${STAT_INFO[bd.focus].label} aqui.`
         : 'Dica: com vários campos, dê um foco diferente a cada um (ex.: um de Taijutsu, outro de Ninjutsu).'
-    }</p>`;
+    }</p></div>`;
     return html;
   }
 
@@ -1111,9 +1113,9 @@ export class Panel {
     if (!inside.length && !d.housing) return '';
     let html = `<canvas class="interior"></canvas>`;
     if (!inside.length) return html + `<p class="hint">Ninguém aqui agora. À noite os moradores voltam para dormir.</p>`;
-    html += `<div class="roster">`;
+    html += `<div class="roster binside">`;
     for (const u of inside) {
-      if (u.ninja) html += this.ninjaRow(u, t, b);
+      if (u.ninja) html += this.ninjaRow(u, t, b, this.face(u));
       else {
         t[`st${u.id}`] = STATE_LABEL[u.state] ?? u.state;
         b[`hp${u.id}`] = u.hp / u.maxHp;
@@ -1187,19 +1189,35 @@ export class Panel {
     if (!def) return '';
     const g = this.app.game;
     const lvl = levelOf(bd);
-    let html = `<div class="lvlcard upg"><div class="lvlname">{star} Nível ${lvl} de ${MAX_BUILDING_LEVEL}</div><div class="hint">${esc(def.perks[lvl - 1]!)}</div>`;
+    let html = `<div class="bup"><div class="bup-t">{up} Melhoria <small>agora: ${esc(def.perks[lvl - 1]!)}</small></div>`;
     if (bd.upgrade != null) {
       html += `<div class="bar pg"><i data-b="upg"></i><span data-t="upg"></span></div><div class="hint">Moradores sem emprego estão fazendo a obra; o prédio continua funcionando.</div></div>`;
       b.upg = Math.min(1, bd.upgrade / upgradeTime(bd));
       t.upg = `Obra do nível ${lvl + 1}: ${Math.floor(b.upg * 100)}%`;
       return html;
     }
-    if (lvl >= MAX_BUILDING_LEVEL) return html + `</div>`;
+    if (lvl >= MAX_BUILDING_LEVEL) return html + `<div class="hint">{check} Nível máximo.</div></div>`;
     const st = upgradeStatus(g, bd);
-    html += `<div class="actions"><button class="btn primary big" data-act="upgrade-building" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>
-      <span>{up} Nível ${lvl + 1}: ${esc(def.perks[lvl]!)}</span><span class="cost">${costLabel(st.cost ?? {})}</span></button></div>`;
+    const cost = st.cost ?? {};
+    const chips = RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
+    html += `<div class="bup-row"><div class="bup-txt"><b>Nível ${lvl + 1}:</b> ${esc(def.perks[lvl]!)}<div class="bup-cost">${chips}</div></div>
+      <button class="btn primary" data-act="upgrade-building" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>{up} Nível ${lvl + 1}</button></div>`;
     if (st.reason && st.reason !== 'Recursos insuficientes.') html += `<p class="why">${esc(st.reason)}</p>`;
     return html + `</div>`;
+  }
+
+  /** Topo do painel de prédio: a arte do nível, nome, estrelas, status e a descrição. */
+  private buildingHead(bd: Building) {
+    const g = this.app.game;
+    const d = BUILDINGS[bd.type];
+    const lvl = bd.type === 'hokage' ? g.state.level + 1 : levelOf(bd);
+    const url = (lvl > 1 && artUrl(`${bd.type}-${lvl}`)) || artUrl(bd.type);
+    const max = bd.type === 'hokage' ? 4 : UPGRADES[bd.type] ? MAX_BUILDING_LEVEL : 0;
+    const stars = max ? `<span class="bstars">${Array.from({ length: max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}">{star}</i>`).join('')}</span>` : '';
+    const [st, cls] = !bd.built ? ['Em obra', 'good'] : bd.upgrade != null ? ['Melhorando', 'good'] : ['Funcionando', 'safe'];
+    return `<div class="bhead"><span class="bh-art">${url ? `<img src="${url}" alt="" draggable="false">` : d.icon}</span><div class="bh-main">
+      <div class="bh-name">${d.name}</div><div class="bh-row">${max ? `<b>Nível ${lvl}</b>${stars}` : ''}<span class="mpill ${cls}">${st}</span></div></div></div>
+      <p class="bh-desc">${d.desc}</p>`;
   }
 
   /** Resumo da vila no painel da Residência do Hokage; o detalhe abre na janela. */

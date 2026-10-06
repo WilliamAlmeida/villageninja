@@ -764,3 +764,41 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .factions .btn { flex: 1 1 auto; justify-content: center; }
 .factions .hint { flex-basis: 100%; margin: 0; }
 .ftechs .badge { min-width: 0; overflow: hidden; white-space: nowrap; font-size: 0.8rem; } .ftechs .badge b { flex: 0 0 auto; } #panel .body { overflow-x: hidden; } .ftile .btn.mini { white-space: nowrap; }
+
+/* ---------- painel de prédio ---------- */
+.bhead { display: flex; gap: 0.7rem; align-items: center; padding-right: 2.4rem; }
+.bh-art { flex: 0 0 auto; width: 6.2rem; height: 5.2rem; display: grid; place-items: center; border-radius: 0.7rem; background: radial-gradient(circle at 50% 60%, rgba(255, 214, 150, 0.1), transparent 70%); }
+.bh-art img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.bh-art > .ic { width: 2.6rem; height: 2.6rem; color: var(--accent); }
+.bh-main { min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.bh-name { font-size: 1.25rem; font-weight: 900; line-height: 1.15; }
+.bh-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; font-size: 0.9rem; }
+.bstars { display: inline-flex; gap: 0.05rem; }
+.bstars i { display: inline-flex; color: rgba(255, 255, 255, 0.18); }
+.bstars i.on { color: var(--warn); }
+.bstars .ic { width: 1rem; height: 1rem; }
+.bh-desc { font-size: 0.86rem; color: var(--muted); margin: 0.45rem 0 0.2rem; }
+.bup { margin-top: 0.5rem; padding: 0.55rem 0.65rem; border-radius: var(--r); background: linear-gradient(135deg, rgba(255, 138, 43, 0.16), rgba(255, 211, 77, 0.05)); border: 1px solid rgba(255, 211, 77, 0.28); }
+.bup-t { font-weight: 800; display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; }
+.bup-t .ic { color: var(--warn); }
+.bup-t small { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.bup-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; }
+.bup-txt { flex: 1; min-width: 0; font-size: 0.85rem; }
+.bup-cost { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.3rem; }
+.bup-cost .mchip { padding: 0.15rem 0.45rem; font-size: 0.8rem; }
+.bup-row .btn { white-space: nowrap; padding: 0.6rem 0.9rem; }
+.bsec { margin-top: 0.55rem; padding: 0.5rem 0.65rem 0.55rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); }
+.bsec h4 { margin-top: 0; }
+.bsec .hint:last-child, .bsec .why:last-child { margin-bottom: 0; }
+.workers .wnum b { font-size: 1.35rem; }
+.bnote { color: var(--warn); font-size: 0.85rem; padding: 0.3rem 0.5rem; border-radius: 0.5rem; background: rgba(255, 211, 77, 0.07); border: 1px solid rgba(255, 211, 77, 0.25); display: flex; gap: 0.3rem; align-items: center; margin: 0.4rem 0 0; }
+.bslots { display: flex; align-items: center; gap: 0.5rem; }
+.bslots b { font-size: 1.15rem; }
+.bslots > span { color: var(--muted); font-size: 0.85rem; }
+.pips { margin-left: auto; display: flex; gap: 0.2rem; }
+.pips i { width: 1.2rem; height: 0.55rem; border-radius: 0.2rem; background: rgba(255, 255, 255, 0.1); }
+.pips i.on { background: var(--good); }
+.bfoot { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
+.bfoot .btn { justify-content: center; flex-direction: column; gap: 0; padding: 0.5rem; }
+.bfoot .btn small { font-weight: 400; font-size: 0.75rem; opacity: 0.8; }
+.binside .rrow .face { width: 1.5rem; height: 1.5rem; vertical-align: middle; }
