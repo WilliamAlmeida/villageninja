@@ -487,6 +487,62 @@ function nudge(dx: number, dy: number) {
   moveSnap = null;
 }
 
+// ------------------------------------------------------------------ área de transferência (também a do sistema)
+/** Ctrl+C: além da cópia interna, põe o pedaço como PNG na área de transferência (cola no Photoshop etc.). */
+async function copyToSystem(data: ImageData) {
+  const t = document.createElement('canvas');
+  t.width = data.width;
+  t.height = data.height;
+  t.getContext('2d')!.putImageData(data, 0, 0);
+  try {
+    const blob = await new Promise<Blob | null>((ok) => t.toBlob(ok, 'image/png'));
+    if (blob) await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    setStatus('Seleção copiada (também para outros programas)');
+  } catch {
+    setStatus('Seleção copiada (Ctrl+V cola no quadro atual)');
+  }
+}
+
+/**
+ * Cola no quadro atual, onde está a seleção (ou no canto do quadro), recortado no quadro, e deixa o colado
+ * selecionado para mover. A imagem vem da área de transferência do sistema (Photoshop, print…) ou da cópia interna.
+ */
+function pasteImage(src: CanvasImageSource & { width: number; height: number }) {
+  const l = activeLayer();
+  if (!l) return;
+  const { fw, fh } = grid();
+  pushUndo(l);
+  const at = sel ?? { x: 0, y: 0 };
+  l.ctx.save();
+  l.ctx.beginPath();
+  l.ctx.rect(col * fw, row * fh, fw, fh);
+  l.ctx.clip();
+  l.ctx.drawImage(src, col * fw + at.x, row * fh + at.y);
+  l.ctx.restore();
+  sel = { x: at.x, y: at.y, w: Math.max(1, Math.min(src.width, fw - at.x)), h: Math.max(1, Math.min(src.height, fh - at.y)) };
+  setTool('select');
+  touched(l);
+  if (src.width > fw || src.height > fh) setStatus(`Colado ${src.width}×${src.height}; o quadro tem ${fw}×${fh}, o que passou ficou de fora`);
+}
+
+window.addEventListener('paste', async (e) => {
+  if ((e.target as HTMLElement).tagName === 'INPUT' && (e.target as HTMLInputElement).type !== 'checkbox') return;
+  e.preventDefault();
+  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'));
+  const file = item?.getAsFile();
+  if (file) {
+    pasteImage(await createImageBitmap(file));
+    return;
+  }
+  if (clip) {
+    const t = document.createElement('canvas');
+    t.width = clip.width;
+    t.height = clip.height;
+    t.getContext('2d')!.putImageData(clip, 0, 0);
+    pasteImage(t);
+  } else setStatus('Nada para colar (copie uma imagem ou uma seleção)');
+});
+
 // ------------------------------------------------------------------ desfazer, salvar
 function undo(from: typeof undoStack, to: typeof undoStack) {
   const step = from.pop();
@@ -807,28 +863,9 @@ window.addEventListener('keydown', (e) => {
   } else if (e.ctrlKey && k === 'c' && sel) {
     const l = activeLayer();
     const { fw, fh } = grid();
-    if (l) clip = l.ctx.getImageData(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
-    setStatus('Seleção copiada (Ctrl+V cola no quadro atual)');
-  } else if (e.ctrlKey && k === 'v' && clip) {
-    // cola no mesmo lugar do quadro atual (ou onde está a seleção) e já deixa selecionado para mover
-    const l = activeLayer();
-    const { fw, fh } = grid();
     if (!l) return;
-    pushUndo(l);
-    const at = sel ?? { x: 0, y: 0 };
-    const t = document.createElement('canvas');
-    t.width = clip.width;
-    t.height = clip.height;
-    t.getContext('2d')!.putImageData(clip, 0, 0);
-    l.ctx.save();
-    l.ctx.beginPath();
-    l.ctx.rect(col * fw, row * fh, fw, fh);
-    l.ctx.clip();
-    l.ctx.drawImage(t, col * fw + at.x, row * fh + at.y);
-    l.ctx.restore();
-    sel = { x: at.x, y: at.y, w: clip.width, h: clip.height };
-    setTool('select');
-    touched(l);
+    clip = l.ctx.getImageData(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
+    void copyToSystem(clip);
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
     const l = activeLayer();
     const { fw, fh } = grid();
