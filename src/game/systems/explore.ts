@@ -1,5 +1,5 @@
 import { SIGHT } from '../../data/sites';
-import { bumpFog, discover, isExplored, revealCircle } from '../explore';
+import { bumpFog, discover, isExplored, revealCircle, siteTick } from '../explore';
 import type { Game } from '../game';
 import { toTile } from '../world';
 
@@ -8,6 +8,7 @@ const acc = new WeakMap<object, number>();
 
 /** Névoa: moradores, ninjas e torres da vila revelam os arredores; locais que saem da névoa são descobertos. */
 export function exploreSystem(g: Game, dt: number) {
+  siteTick(g, dt); // ruínas, baús e minas feitos reaparecem noutro lugar
   const t = (acc.get(g.state) ?? 0) + dt;
   acc.set(g.state, t >= EVERY ? 0 : t);
   if (t < EVERY) return;

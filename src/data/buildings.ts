@@ -105,8 +105,8 @@ const LIST: BuildingDef[] = [
     roof: '#8e3b2a', wall: '#6b4a2b',
   },
   {
-    type: 'library', name: 'Biblioteca de Jutsus', icon: '{books}', desc: 'Pergaminhos antigos: ninjas aprendem jutsus 50% mais rápido.',
-    w: 3, h: 2, cost: { wood: 80, stone: 60, ryo: 150 }, buildTime: 24, unique: true, buildable: true, lights: true, minLevel: 2,
+    type: 'library', name: 'Biblioteca de Jutsus', icon: '{books}', desc: 'Guarda os pergaminhos: abra um aqui para os ninjas poderem estudar aquele jutsu (rank C em diante). Estudo mais rápido.',
+    w: 3, h: 2, cost: { wood: 80, stone: 60, ryo: 150 }, buildTime: 24, unique: true, buildable: true, lights: true, minLevel: 1,
     roof: '#6c3483', wall: '#efe3c8',
   },
   {

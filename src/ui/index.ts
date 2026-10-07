@@ -212,7 +212,7 @@ export function createUI(app: App, root: HTMLElement) {
     let best: Site | undefined;
     let bd = 26 * Math.max(1, zoom);
     for (const site of app.game.state.sites) {
-      if (!site.found || (site.done && site.kind !== 'cave')) continue;
+      if (!site.found || site.done) continue;
       const p = app.camera.worldToScreen(tileCenter(site.tx), tileCenter(site.ty));
       const d = Math.hypot(p.x - sx, p.y - 12 * zoom - sy);
       if (d < bd) {

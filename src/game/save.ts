@@ -1,6 +1,8 @@
 import { SAVE_KEY, SAVE_VERSION } from '../config';
 import { Game, type System } from './game';
 import type { GameState } from './types';
+import { JUTSUS } from '../data/jutsus';
+import { needsScroll } from './library';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
 import { newRegion } from './region';
 import { generateMap } from './world';
@@ -148,6 +150,18 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.sound = { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 };
     if (s.scene) s.scene.sound = { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 };
     s.region.som = { rel: 0, status: 'neutral' };
+  },
+  22: (s) => {
+    // Biblioteca: jutsus rank C+ pedem pergaminho aberto. Os que a vila já usa (sabidos ou em estudo) ficam abertos.
+    const open = new Set<string>();
+    for (const st of [s, s.scene].filter(Boolean))
+      for (const u of st.units ?? [])
+        if (u.faction === 'village' && u.ninja) {
+          for (const id of u.ninja.jutsu ?? []) if (id) open.add(id);
+          if (u.ninja.learning) open.add(u.ninja.learning.jutsuId);
+        }
+    s.jutsuOpen = [...open].filter((id) => JUTSUS[id] && needsScroll(JUTSUS[id]));
+    if (s.scene) s.scene.jutsuOpen = [...s.jutsuOpen];
   },
 };
 

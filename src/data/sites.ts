@@ -23,9 +23,17 @@ export const SITES: Record<SiteKind, SiteDef> = {
   },
   cave: {
     name: 'Entrada de mina', icon: '{pickaxe}', count: 2, work: 0,
-    desc: 'Túneis profundos com minérios raros. Mande uma equipe em expedição (janela Mundo → Expedições).',
+    desc: 'Túneis profundos com minérios raros. Aguenta poucas expedições e depois desaba.',
   },
 };
+
+/**
+ * Locais que voltam (senão o mapa "morre"): investigado/saqueado (ruína, baú) ou esgotado (mina) some e, passado este
+ * tempo em dias, reaparece noutro lugar do mapa (de preferência ainda na névoa).
+ */
+export const SITE_RESPAWN_DAYS: Record<SiteKind, number> = { ruin: 4, chest: 2, cave: 3 };
+/** Expedições que uma entrada de mina aguenta antes de desabar. */
+export const MINE_USES = 3;
 
 /** Raio (tiles) que cada morador/ninja revela ao andar, o das torres e o revelado no começo do jogo. */
 export const SIGHT = { unit: 4, tower: 7, intel: 14, start: 13 };

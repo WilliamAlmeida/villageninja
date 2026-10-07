@@ -235,7 +235,7 @@ export class Renderer {
       if (seen(p)) list.push({ x: p.x, y: p.y, n });
     }
     for (const site of s.sites) {
-      if (!site.found || (site.done && site.kind !== 'cave')) continue;
+      if (!site.found || site.done) continue;
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
       if (seen(p)) list.push({ x: p.x, y: p.y, site });
     }

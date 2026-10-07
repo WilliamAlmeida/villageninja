@@ -60,7 +60,7 @@ describe('níveis da vila', () => {
     expect(g.state.level).toBe(1);
     expect(g.state.res.ryo).toBe(before - (levelDef(1).cost.ryo ?? 0));
     expect(canBuild(g, 'hospital').ok).toBe(true);
-    expect(canBuild(g, 'library').ok).toBe(false);
+    expect(canBuild(g, 'sealshop').ok).toBe(false);
   });
 
   test('Kage só pode ser eleito em Vila Oculta (e não por promoção comum)', () => {

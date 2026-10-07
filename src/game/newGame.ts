@@ -43,6 +43,7 @@ export function baseState(seed: number): GameState {
     explored: emptyExplored(),
     sites: [],
     scrolls: [],
+    jutsuOpen: [],
     expeditions: [],
     region: newRegion(),
     regionDay: 1,

@@ -18,6 +18,7 @@ import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
 import { trainTick } from '../progression';
 import { academyLearnMult } from '../upgrade';
+import { libraryLearnMult } from '../library';
 import { refillItem } from '../gear';
 import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits } from '../teams';
 import { isNight } from '../time';
@@ -234,7 +235,7 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         u.state = 'idle';
         break;
       }
-      L.progress += dt * derive(n.stats).learnMult * (g.findBuilt('library') ? 1.5 : 1) * academyLearnMult(g);
+      L.progress += dt * derive(n.stats).learnMult * libraryLearnMult(g) * academyLearnMult(g);
       if (L.progress >= L.total) {
         n.jutsu[L.slot] = L.jutsuId;
         n.cd[L.slot] = 0;

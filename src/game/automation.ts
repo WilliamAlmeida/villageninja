@@ -13,6 +13,7 @@ import { jutsuOptions, teachJutsu } from './commands';
 import { joinAsSensei, teamFit, teamOf } from './teams';
 import type { Building, Cost, Unit } from './types';
 import { levelOf } from './upgrade';
+import { studyable } from './library';
 import { doorPos } from './world';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -71,7 +72,7 @@ function jutsuScore(u: Unit, def: JutsuDef) {
 
 /** Melhor jutsu que o ninja pode aprender agora (sem proibidos: têm risco de sequela). */
 export function bestJutsuFor(g: Game, u: Unit): JutsuDef | null {
-  const opts = jutsuOptions(u, g.state.scrolls).filter((o) => o.ok && !o.def.forbidden && g.canAfford(o.def.cost));
+  const opts = jutsuOptions(u, studyable(g.state)).filter((o) => o.ok && !o.def.forbidden && g.canAfford(o.def.cost));
   if (!opts.length) return null;
   return opts.sort((a, b) => jutsuScore(u, b.def) - jutsuScore(u, a.def))[0]!.def;
 }

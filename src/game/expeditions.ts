@@ -7,7 +7,7 @@ import { ACTION_TIME, REGION } from '../data/region';
 import { resolveRegion } from './region';
 import { costLabel, RES_KEYS } from '../data/resources';
 import { SITES } from '../data/sites';
-import { sitePos } from './explore';
+import { sitePos, spendMine } from './explore';
 import { fx } from './fx';
 import type { Game } from './game';
 import { missionOfTeam } from './missions';
@@ -44,7 +44,7 @@ export function teamBusy(g: Game, teamId: number): string | null {
 
 /** Manda a equipe para a mina do local. */
 export function startMine(g: Game, teamId: number, siteId: number): Result {
-  const site = g.state.sites.find((s) => s.id === siteId && s.kind === 'cave' && s.found);
+  const site = g.state.sites.find((s) => s.id === siteId && s.kind === 'cave' && s.found && !s.done);
   if (!site) return fail('Mina não encontrada.');
   const why = teamBusy(g, teamId);
   if (why) return fail(why);
@@ -264,6 +264,7 @@ export function unitPower(u: Unit) {
 
 function finish(g: Game, e: Expedition) {
   e.status = 'done';
+  if (e.kind === 'mine') spendMine(g, e.siteId);
   const hk = g.hokage();
   const p = hk ? doorPos(hk) : { x: 0, y: 0 };
   const us = expeditionUnits(g, e);
@@ -285,6 +286,7 @@ function finish(g: Game, e: Expedition) {
 
 function lost(g: Game, e: Expedition) {
   e.status = 'lost';
+  if (e.kind === 'mine') spendMine(g, e.siteId);
   const where = e.kind === 'mine' ? 'da mina' : `de ${REGION[e.node!]?.name ?? 'lá'}`;
   note(e, `Ninguém voltou ${where}.`);
   g.toast(`{skull} Ninguém voltou ${where}.`, 'danger');

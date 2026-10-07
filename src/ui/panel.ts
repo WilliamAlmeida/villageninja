@@ -4,7 +4,7 @@ import type { App } from '../app';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
-import { SITES } from '../data/sites';
+import { MINE_USES, SITES } from '../data/sites';
 import { GOLD_PRICE, MINE } from '../data/expeditions';
 import { ACTION_LABEL, ACTION_TIME, HOME_POS, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef } from '../data/region';
 import { CONTRACTS } from '../data/contracts';
@@ -23,9 +23,10 @@ import { actionBlock, actionCost, COVERT, covertBlock, nodeActions, nodePower, r
 import regionMap from '../art/region.jpg';
 import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
-import { guardiansOf, missingScrolls, sitePos } from '../game/explore';
+import { guardiansOf, mineUses, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
 import { NATURES } from '../data/natures';
+import { isOpen, LIBRARY, LIBRARY_JUTSUS, libraryLevel, openBlock, openScroll, scrollCost, studyable } from '../game/library';
 import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
 import {
   costLabel, demolish, jutsuOptions, promote, recruitNinja, RECRUIT_COST, setDesiredWorkers, setFocus, setOrder, teachJutsu,
@@ -244,6 +245,8 @@ export class Panel {
   private craftTab: 'forge' | 'pharmacy' | 'sealshop' = 'forge';
   /** Lista mostrada no Canil (uma por vez). */
   private kennelTab: 'without' | 'with' = 'without';
+  /** Biblioteca: pergaminhos fechados ou abertos. */
+  private libTab: 'closed' | 'open' = 'closed';
   /** Máscara escolhida para o próximo nomeado da ANBU (null = a primeira livre). */
   private anbuMaskSel: string | null = null;
   /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
@@ -622,9 +625,19 @@ export class Panel {
   /** Entrada de mina: andares, força recomendada e as equipes que podem partir. */
   private caveSection(site: Site) {
     const g = this.app.game;
-    let html = `<div class="lvlcard"><div class="lvlname">{pickaxe} ${MINE.floors} andares</div><div class="hint">Força recomendada: andar 1 {swords}${floorPower(1)} · andar 3 {swords}${floorPower(3)} · andar 5 {swords}${floorPower(5)}.
-      Os andares fundos têm ${RES_INFO.crystal.icon} cristal, ${RES_INFO.gold.icon} ouro e ${RES_INFO.darksteel.icon} aço negro.</div></div>`;
-    html += `<p class="hint">Cada andar é uma <b>caverna jogável</b>: a equipe entra (aparece "Ver invasão" no alto), luta com os bichos, abre os baús e procura a descida. Vencendo um andar, você decide: descer mais (mais risco e minérios melhores) ou voltar. No fundo há um guardião. O saque só chega se voltarem.</p>`;
+    const uses = mineUses(site);
+    const how = infoTip(
+      'Como funciona',
+      'Cada andar é uma caverna jogável: a equipe entra (aparece "Ver invasão" no alto), luta com os bichos, abre os baús e procura a descida. Vencendo um andar, você decide: descer mais (mais risco e minérios melhores) ou voltar. No fundo há um guardião. O saque só chega se voltarem.',
+    );
+    let html = `<div class="scards2">
+      <div class="sc2"><small>Andares ${how}</small><b>{pickaxe} ${MINE.floors}</b></div>
+      <div class="sc2"><small>Aguenta ${infoTip('Expedições', `Cada expedição (voltando ou não) gasta um uso. No último os túneis desabam e outra entrada aparece noutro lugar do mapa em alguns dias.`)}</small><b>${uses} <span>exp.</span></b><span class="wpips">${Array.from({ length: MINE_USES }, (_, i) => `<i class="${i < uses ? 'on' : ''}"></i>`).join('')}</span></div>
+      <div class="sc2"><small>No fundo</small><b>${RES_INFO.crystal.icon}${RES_INFO.gold.icon}${RES_INFO.darksteel.icon}</b></div>
+    </div>`;
+    html += `<h4>{swords} Força recomendada ${infoTip('Força recomendada', 'Força somada da equipe para o andar sem sustos. Abaixo disso a equipe sofre mais e pode ter de voltar.')}</h4><div class="scards2">${[1, 3, 5]
+      .map((f) => `<div class="sc2"><small>Andar ${f}</small><b>{swords} ${floorPower(f)}</b></div>`)
+      .join('')}</div>`;
     const here = activeExpeditions(g).filter((e) => e.siteId === site.id);
     if (here.length)
       html += `<p class="hint">{run} Na mina agora: ${here.map((e) => esc(g.team(e.teamId)?.name ?? '?')).join(', ')} <button class="btn mini" data-act="win" data-arg="expeditions">Acompanhar</button></p>`;
@@ -927,8 +940,12 @@ export class Panel {
     if (!academy) html += `<div class="warnbox">Construa a <b>Academia Ninja</b> para ensinar jutsus.</div>`;
     if (n.learning) html += `<div class="warnbox">Já está estudando ${esc(JUTSUS[n.learning.jutsuId]!.name)}.</div>`;
     const free = n.jutsu[0] === null ? 0 : n.jutsu[1] === null ? 1 : -1;
+    // jutsus da natureza dele que ainda esperam o pergaminho ser aberto na Biblioteca
+    const waiting = LIBRARY_JUTSUS.filter((j) => !isOpen(g.state, j.id) && (j.nature === null || j.nature === n.nature)).length;
+    if (waiting)
+      html += `<p class="hint">{books} Mais ${waiting} jutsu(s) para ${esc(u.name.split(' ')[0]!)}: abra o pergaminho na <b>Biblioteca</b>${libraryLevel(g) ? '' : ' (construa-a primeiro)'}.</p>`;
     html += `<div class="scrollist jscroll">`; // os cartões rolam por dentro; o "Voltar" e os avisos ficam à vista
-    for (const o of jutsuOptions(u, g.state.scrolls)) {
+    for (const o of jutsuOptions(u, studyable(g.state))) {
       const d = o.def;
       const afford = g.canAfford(d.cost);
       const learnBlock = blocked(g, [!academy && 'Construa a Academia Ninja para ensinar jutsus.', !!n.learning && 'Já está estudando outro jutsu.'], d.cost);
@@ -992,11 +1009,13 @@ export class Panel {
       if (bd.type === 'arena') html += this.arenaSection(b);
       if (bd.type === 'sealshop') html += `<p class="hint">{paper} Artesão faz papel sozinho ${infoTip('Artesão', 'Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).')}</p>`;
       if (d.workers) {
-        html += `<div class="bsec"><h4>{users} Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
-          <span class="wnum"><b><span data-t="workers"></span> / <span data-t="wdesired"></span></b><small>trabalhando agora · você pediu (máx. ${workersOf(bd)})</small></span>
+        // uma marca por vaga: cheia = trabalhando, contorno = pedido (a caminho), apagada = vaga livre
+        const max = workersOf(bd);
+        const pips = Array.from({ length: max }, (_, i) => `<i class="${i < bd.workers.length ? 'on' : i < bd.desired ? 'want' : ''}"></i>`).join('');
+        html += `<div class="bsec"><h4>{users} Trabalhadores ${infoTip('Trabalhadores', `Toque + e − para pedir moradores para este prédio (até ${max}). Cada marca é uma vaga: cheia = trabalhando, contorno = pedido e a caminho, apagada = livre.`)}</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
+          <span class="wnum"><b><span data-t="workers"></span><small>/${max}</small></b><span class="wpips">${pips}</span></span>
           <button class="btn primary" data-act="workers" data-arg="1">{plus}</button></div>`;
         t.workers = String(bd.workers.length);
-        t.wdesired = String(bd.desired);
         if (bd.workers.length < bd.desired) {
           const idle = g.villagers().filter((u) => u.jobId == null).length;
           html += `<p class="${idle ? 'bnote' : 'why'}">{alert} ${idle ? 'Os moradores livres estão a caminho.' : 'Faltam moradores livres: todos já trabalham. Construa casas para a vila crescer ou tire gente de outro prédio.'}</p>`;
@@ -1009,6 +1028,7 @@ export class Panel {
         t.res = `${residents} / ${housingOf(bd)}`;
       }
       if (bd.type === 'kennel') html += this.kennelSection();
+      if (bd.type === 'library') html += this.librarySection();
       if (bd.type === 'hospital' && bd.built) {
         const base = Math.round(Math.min(CARE.rescueMax, CARE.rescue + (levelOf(bd) - 1) * CARE.rescuePerLevel) * 100);
         html += `<p class="hint">{medic} <b>Resgate:</b> ${base}% · +${Math.round(CARE.rescueMedic * 100)}% com médico ${infoTip('Resgate', `Ninja da vila que cair tem ${base}% de chance de ser trazido para cá gravemente ferido, em vez de morrer (+${Math.round(CARE.rescueMedic * 100)}% com um ninja médico por perto, até ${Math.round(CARE.rescueMax * 100)}%). Cada nível do Hospital aumenta a chance.`)}</p>`;
@@ -1291,6 +1311,34 @@ export class Panel {
     return html;
   }
 
+  /** Biblioteca: pergaminhos para abrir (liberam o jutsu para os ninjas estudarem) e os já abertos. */
+  private librarySection() {
+    const g = this.app.game;
+    const lv = libraryLevel(g);
+    const ninjas = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja);
+    const opened = LIBRARY_JUTSUS.filter((j) => isOpen(g.state, j.id));
+    const closed = LIBRARY_JUTSUS.filter((j) => !isOpen(g.state, j.id));
+    let html = `<h4>{scroll} Pergaminhos <small>${opened.length}/${LIBRARY_JUTSUS.length} abertos · até rank ${JUTSU_RANK_LABEL[LIBRARY.maxRank[Math.max(0, lv - 1)]!]}</small> ${infoTip(
+      'Pergaminhos',
+      `A Academia ensina sozinha só os jutsus básicos (rank E e D). Do rank C em diante, abra o pergaminho aqui: o jutsu passa a aparecer em "Ensinar jutsu" de quem pode aprendê-lo. O nível da Biblioteca diz até que rank dá para abrir (C, depois B, depois A e S).`,
+    )}</h4>`;
+    html += `<div class="seg ktabs"><button data-act="lib-tab" data-arg="closed" class="${this.libTab === 'closed' ? 'on' : ''}">{lock} Fechados ${closed.length}</button><button data-act="lib-tab" data-arg="open" class="${this.libTab === 'open' ? 'on' : ''}">{books} Abertos ${opened.length}</button></div>`;
+    const list = this.libTab === 'closed' ? closed : opened;
+    if (!list.length) return html + `<p class="hint">${this.libTab === 'closed' ? 'Todos os pergaminhos já foram abertos.' : 'Nenhum pergaminho aberto ainda.'}</p>`;
+    html += `<div class="scrollist lscroll">`;
+    for (const j of list) {
+      // quantos ninjas da vila poderiam estudar (natureza e rank), sem contar quem já sabe
+      const fit = ninjas.filter((u) => (j.nature === null || j.nature === u.ninja!.nature) && j.rank <= RANKS[u.ninja!.rank].maxJutsuRank && !u.ninja!.jutsu.includes(j.id)).length;
+      const nat = j.nature ? `${NATURES[j.nature].kanji} ${NATURES[j.nature].name}` : 'Neutro';
+      const why = openBlock(g, j.id);
+      const btn = isOpen(g.state, j.id)
+        ? `<span class="mpill good">{check} Aberto</span>`
+        : `<button class="btn mini primary" data-act="lib-open" data-arg="${j.id}" ${blocked(g, [why && !why.startsWith('Custa') && why], scrollCost(j))}>{scroll} Abrir ${costTag(scrollCost(j))}</button>`;
+      html += `<div class="lrow" style="--c:${j.color}" ${tipAttr(j.name, `${j.desc} ${JUTSU_TYPE_LABEL[j.type]} · ${nat}. ${fit} ninja(s) da vila podem aprender.`)}><span class="lrank">${JUTSU_RANK_LABEL[j.rank]}</span><b class="ln">${esc(j.name)}</b><small class="lsub">${esc(nat)} · {users} ${fit}</small>${btn}</div>`;
+    }
+    return html + `</div>`;
+  }
+
   /** Lenhador, pedreira e mina: o que há ao alcance (o círculo tracejado no mapa) e o que está crescendo de volta. */
   private gatherInfo(bd: Building) {
     const kind = GATHER_NODE[bd.type];
@@ -1302,9 +1350,10 @@ export class Panel {
     const ready = near.filter((n) => n.amount > 0).length;
     const growing = near.length - ready;
     const word = { tree: 'árvores', rock: 'rochas', ore: 'veios de ferro' }[kind];
-    let html = `<p class="hint">{eye} Alcance: ${r} tiles ao redor (círculo tracejado no mapa)${levelOf(bd) < 3 && UPGRADES[bd.type] ? ', maior a cada nível' : ''}. <b>${ready}</b> ${word} prontas${
-      growing ? ` · ${growing} crescendo de volta` : ''
-    }.</p>`;
+    const tip = infoTip('Alcance', `Os trabalhadores buscam ${word} até ${r} tiles daqui (o círculo tracejado no mapa)${levelOf(bd) < 3 && UPGRADES[bd.type] ? '; cada nível do prédio aumenta o alcance' : ''}. O que se esgota cresce de volta sozinho.`);
+    let html = `<div class="gchips"><span class="mchip">{eye} ${r} tiles</span><span class="mchip ${ready ? 'good' : 'bad'}">${ready} ${word} prontas</span>${
+      growing ? `<span class="mchip">{refresh} ${growing} crescendo</span>` : ''
+    }${tip}</div>`;
     if (!ready) html += `<p class="why">Nada pronto ao alcance agora. ${growing ? 'Elas voltam a crescer sozinhas em alguns dias.' : 'Mova o prédio para perto de mais recursos.'}</p>`;
     return html;
   }
@@ -2518,6 +2567,11 @@ export class Panel {
       case 'dog-pick':
         this.dogPick = Number(arg);
         return this.report({ ok: true });
+      case 'lib-tab':
+        this.libTab = arg === 'open' ? 'open' : 'closed';
+        return this.report({ ok: true });
+      case 'lib-open':
+        return this.report(openScroll(g, String(arg)));
       case 'kennel-tab':
         this.kennelTab = arg === 'with' ? 'with' : 'without';
         return this.report({ ok: true });

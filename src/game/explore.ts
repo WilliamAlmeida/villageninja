@@ -1,8 +1,8 @@
 // Exploração: névoa (tiles explorados num bitset), locais especiais escondidos e o que acontece ao investigá-los.
-import { MAP_H, MAP_W, TILE } from '../config';
+import { DAY_LENGTH, MAP_H, MAP_W, TILE } from '../config';
 import { chance, mulberry32, pick } from '../core/rng';
 import { JUTSU_LIST } from '../data/jutsus';
-import { SIGHT, SITE_MIN_DIST, SITES, type SiteKind } from '../data/sites';
+import { MINE_USES, SIGHT, SITE_MIN_DIST, SITE_RESPAWN_DAYS, SITES, type SiteKind } from '../data/sites';
 import { costLabel } from '../data/resources';
 import { createRogue } from './entities';
 import { fx, fxText } from './fx';
@@ -53,23 +53,71 @@ export function exploredPercent(s: GameState) {
 export function generateSites(s: GameState, nextId: () => number, kinds: SiteKind[] = ['ruin', 'chest', 'cave']): Site[] {
   const rng = mulberry32(s.seed ^ 0x517e5);
   const out: Site[] = [];
-  const taken = (tx: number, ty: number) =>
-    [...s.sites, ...out].some((o) => Math.abs(o.tx - tx) < 6 && Math.abs(o.ty - ty) < 6) ||
-    s.nodes.some((n) => n.tx === tx && n.ty === ty);
   for (const kind of kinds)
-    for (let k = 0; k < SITES[kind].count; k++)
-      for (let tries = 0; tries < 200; tries++) {
-        const tx = 2 + Math.floor(rng() * (MAP_W - 4));
-        const ty = 2 + Math.floor(rng() * (MAP_H - 5));
-        if (Math.hypot(tx - CENTER_TX, (ty - CENTER_TY) * 1.2) < SITE_MIN_DIST) continue;
-        // o local e os vizinhos precisam ser terra (dá para chegar e investigar)
-        let land = true;
-        for (let y = ty - 1; y <= ty + 1 && land; y++) for (let x = tx - 1; x <= tx + 1 && land; x++) land = s.tiles[idx(x, y)] !== T.WATER;
-        if (!land || taken(tx, ty)) continue;
-        out.push({ id: nextId(), kind, tx, ty, found: false, done: false });
-        break;
-      }
+    for (let k = 0; k < SITES[kind].count; k++) {
+      const p = siteSpot(s, rng, out);
+      if (p) out.push({ id: nextId(), kind, ...p, found: false, done: false });
+    }
   return out;
+}
+
+/** Lugar para um local especial: longe da vila, em terra firme, sem prédio e sem se amontoar com os outros. */
+function siteSpot(s: GameState, rng: () => number, extra: Site[] = [], skip?: Site, wantFog = false) {
+  const taken = (tx: number, ty: number) =>
+    [...s.sites, ...extra].some((o) => o !== skip && Math.abs(o.tx - tx) < 6 && Math.abs(o.ty - ty) < 6) ||
+    s.nodes.some((n) => n.tx === tx && n.ty === ty) ||
+    s.buildings.some((b) => tx >= b.tx - 1 && tx <= b.tx + BUILD_PAD + 2 && ty >= b.ty - 1 && ty <= b.ty + BUILD_PAD + 2);
+  for (let tries = 0; tries < 300; tries++) {
+    const tx = 2 + Math.floor(rng() * (MAP_W - 4));
+    const ty = 2 + Math.floor(rng() * (MAP_H - 5));
+    if (Math.hypot(tx - CENTER_TX, (ty - CENTER_TY) * 1.2) < SITE_MIN_DIST) continue;
+    if (wantFog && tries < 200 && isExplored(s, tx, ty)) continue; // de preferência ainda na névoa (dá o que explorar)
+    // o local e os vizinhos precisam ser terra (dá para chegar e investigar)
+    let land = true;
+    for (let y = ty - 1; y <= ty + 1 && land; y++) for (let x = tx - 1; x <= tx + 1 && land; x++) land = s.tiles[idx(x, y)] !== T.WATER;
+    if (!land || taken(tx, ty)) continue;
+    return { tx, ty };
+  }
+  return null;
+}
+const BUILD_PAD = 3;
+
+/** Expedições que a entrada de mina ainda aguenta. */
+export const mineUses = (site: Site) => site.uses ?? MINE_USES;
+
+/** Uma expedição terminou nesta mina: gasta um uso; o último desaba a entrada (outra aparece noutro lugar). */
+export function spendMine(g: Game, siteId: number | undefined) {
+  const site = g.state.sites.find((x) => x.id === siteId && x.kind === 'cave');
+  if (!site || site.done) return;
+  site.uses = mineUses(site) - 1;
+  if (site.uses > 0) return;
+  site.done = true;
+  const p = { x: tileCenter(site.tx), y: tileCenter(site.ty) };
+  fx(g, 'burst', p.x, p.y, { r: 30, color: '#9a8c7a', life: 0.8 });
+  g.toast(`{pickaxe} A mina se esgotou e os túneis desabaram. Outra entrada deve aparecer pelo mapa em uns ${SITE_RESPAWN_DAYS.cave} dias.`, 'info', p);
+}
+
+/** Locais feitos/esgotados contam o tempo e reaparecem noutro lugar (fora dos mapas de missão). */
+export function siteTick(g: Game, dt: number) {
+  const s = g.state;
+  if (s.sceneInfo) return;
+  for (const site of s.sites) {
+    if (!site.done) continue;
+    site.respawn = (site.respawn ?? SITE_RESPAWN_DAYS[site.kind] * DAY_LENGTH) - dt;
+    if (site.respawn > 0) continue;
+    const p = siteSpot(s, Math.random, [], site, true);
+    if (!p) {
+      site.respawn = 60; // sem lugar agora: tenta de novo daqui a pouco
+      continue;
+    }
+    site.tx = p.tx;
+    site.ty = p.ty;
+    site.found = false;
+    site.done = false;
+    site.uses = undefined;
+    site.respawn = undefined;
+    if (isExplored(s, site.tx, site.ty)) discover(g, site);
+  }
 }
 
 /** Começo do jogo (ou save antigo): revela os arredores da vila. */

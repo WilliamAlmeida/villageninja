@@ -362,8 +362,12 @@ export interface Site {
   ty: number;
   /** Já foi visto (saiu da névoa). */
   found: boolean;
-  /** Já foi saqueado/investigado (ruína e baú somem do jogo depois disso; a mina fica). */
+  /** Já foi saqueado/investigado (ruína, baú) ou esgotado (mina): some do mapa e reaparece noutro lugar (`siteTick`). */
   done: boolean;
+  /** Mina: expedições que ainda aguenta (sem = `MINE_USES`). */
+  uses?: number;
+  /** Segundos até reaparecer noutro lugar (contando desde que ficou `done`). */
+  respawn?: number;
 }
 
 export interface ResourceNode {
@@ -500,6 +504,8 @@ export interface GameState {
   sites: Site[];
   /** Pergaminhos proibidos encontrados (ids de jutsu liberados para ensinar). */
   scrolls: string[];
+  /** Pergaminhos abertos na Biblioteca: jutsus rank C+ liberados para estudo (game/library.ts). */
+  jutsuOpen: string[];
   /** Expedições (em andamento e as últimas terminadas). */
   expeditions: Expedition[];
   /** Mapa da região: situação de cada vilarejo/ilha/lugar sagrado, e o último dia processado. */
