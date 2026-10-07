@@ -40,6 +40,7 @@ describe('Biblioteca de Jutsus', () => {
 
   test('save antigo: jutsus que a vila já sabe ou estuda ficam abertos', () => {
     const g = createNewGame(SYSTEMS, 502);
+    for (const o of g.state.units) if (o.ninja) o.ninja.jutsu = [null, null]; // ninjas iniciais nascem com jutsu sorteado
     const u = createNinja(g, 600, 600, 'jounin', 0);
     u.ninja!.jutsu = ['chidori', null];
     u.ninja!.learning = { jutsuId: 'kagebunshin', slot: 1, progress: 0, total: 10 };
