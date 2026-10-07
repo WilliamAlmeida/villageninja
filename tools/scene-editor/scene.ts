@@ -210,8 +210,12 @@ function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   over.width = Math.round(r.width * dpr);
   over.height = Math.round(r.height * dpr);
+  over.style.width = `${r.width}px`;
+  over.style.height = `${r.height}px`;
 }
-window.addEventListener('resize', resize);
+// o campo muda de tamanho sem a janela mudar (título que quebra linha, painéis): sem isso o desenho do jogo ficava no
+// tamanho antigo e a máscara esticava para o novo, desalinhando conforme o zoom
+new ResizeObserver(resize).observe(view.parentElement!);
 resize();
 camera.maxZoom = 16; // bem mais perto que o jogo, para pintar pixel a pixel
 camera.zoom = 2.2;

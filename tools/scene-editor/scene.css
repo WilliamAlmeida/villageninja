@@ -16,7 +16,7 @@ aside { overflow-y: auto; background: #24180f; padding: 10px; }
 #list button .dot { color: #7dff9a; }
 main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
 #top { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid #6b4a25; background: #24180f; }
-#title { font-weight: 700; color: #ffd34d; }
+#title { font-weight: 700; color: #ffd34d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .grow { flex: 1; }
 #status { color: #a89070; font-size: 12px; }
 button { background: #3a2817; color: #f0e2c8; border: 1px solid #6b4a25; border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
