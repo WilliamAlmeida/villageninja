@@ -143,6 +143,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
       s.scene.swordsmen = { nextDay: 0, taken: false, done: false };
     }
   },
+  21: (s) => {
+    // o Quinteto do Som e o Esconderijo do Som na Região
+    s.sound = { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 };
+    if (s.scene) s.scene.sound = { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 };
+    s.region.som = { rel: 0, status: 'neutral' };
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

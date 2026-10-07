@@ -142,10 +142,19 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Espadachins da Névoa** (`data/swordsmen.ts`, `game/swordsmen.ts`, `state.swordsmen`): da Vila Oculta em diante invadem
   em dupla com escolta (`swordsmenTick`), caçam ninjas em vez de roubar (`swordsmanPrey`). Só UMA espada por invasão: o
   primeiro derrubado cai e deixa a lâmina (`swordsmanFall` em `killUnit`); os outros somem na névoa (cloak + fuga) e voltam.
-  Tomadas as sete, acabam. Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse e Espadachins
-  ficam na aba **Bingo Book** da janela Vila (`View 'bingo'`); a aba Kage tem o Kage, a ANBU e os Sannin
+  Tomadas as sete, acabam. Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
+  Quinteto do Som ficam na aba **Bingo Book** da janela Vila (`View 'bingo'`); a aba Kage tem o Kage, a ANBU e os Sannin
   No Bingo Book todos aparecem pelo sprite (`artPortrait(org-<id>, true)` / `swordsmanPortrait`), num padrão só (os bustos
   pintados da Ordem saíram do atlas `cards.png`, que ficou só com os selos de rank).
+- **Quinteto do Som** (`data/sound.ts`, `game/sound.ts`, `state.sound`, arte `sound-<membro>` via `scripts/sound-sprites.sh`):
+  da Vila Oculta em diante, 4 membros invadem para RAPTAR o ninja mais talentoso (`soundTarget`: kekkei genkai, nível,
+  atributos; nunca Kage nem Sannin). `soundBrain` (hostiles): vão atrás dele (até dentro de casa), um carrega
+  (`Unit.carrying`/`captiveOf`; o raptado não é alvo, `canHit`) e foge devagar levando o dobro de dano, os outros cobrem e
+  os ninjas da vila por perto recebem ordem de atacar quem carrega. Golpe deles NOCAUTEIA (`soundKnockout`, nada de morte
+  na vila). Impedido: recompensa e honra. Levado: fica `away = WITH_SOUND`, o nó `som` (Esconderijo do Som) aparece na
+  Região com prazo (`SOUND.rescueDays`); ação `rescue` abre `createSoundScene` (líder Hakkotsu + 2). Passou o prazo: selo
+  amaldiçoado (`cursed`, vira inimigo mais forte e vem nas invasões; derrotado, volta para a vila, `cursedDefeated`).
+  Voltam sempre (não acabam). Seção no Bingo Book com o placar.
 - **ANBU** (`game/anbu.ts`, seção na aba Kage): o Kage nomeia Chunins/Jounins (Torre de Inteligência; 3 vagas); saem das
   equipes, máscara pelo melhor atributo (+1 nele). Invisíveis (`cloak`) até atacar — emboscada (`anbuAmbush`) —, ficam na
   rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
@@ -253,7 +262,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v21.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v22.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

@@ -130,6 +130,11 @@ import port from '../art/port.png';
 import kennel from '../art/kennel.png';
 import arena from '../art/arena.png';
 import orgGoen from '../art/org-goen.png';
+import soundIwao from '../art/sound-iwao.png';
+import soundKumomaru from '../art/sound-kumomaru.png';
+import soundKanade from '../art/sound-kanade.png';
+import soundSokon from '../art/sound-sokon.png';
+import soundHakkotsu from '../art/sound-hakkotsu.png';
 import orgTetsuo from '../art/org-tetsuo.png';
 import orgMizuchi from '../art/org-mizuchi.png';
 import orgRaiga from '../art/org-raiga.png';
@@ -159,7 +164,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
   'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, 'ninja-body': ninjaBody, 'layer-outfit-genin': layerOutfitGenin, 'layer-headband': layerHeadband, 'layer-vest-jounin': layerVestJounin, 'layer-coat-sannin': layerCoatSannin, 'layer-cloak-kage': layerCloakKage, 'layer-hat-kage': layerHatKage, 'layer-sword-zabuza': layerSwordZabuza, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'layer-hair-ponytail': layerHairPonytail, 'layer-hair-short': layerHairShort, 'layer-hair-long': layerHairLong, 'layer-hair-buns': layerHairBuns, 'layer-outfit-anbu': layerOutfitAnbu, 'layer-sword-samehada': layerSwordSamehada, 'layer-sword-kiba': layerSwordKiba, 'layer-sword-hiramekarei': layerSwordHiramekarei, 'layer-sword-nuibari': layerSwordNuibari, 'layer-sword-kabutowari': layerSwordKabutowari, 'layer-sword-shibuki': layerSwordShibuki, 'layer-sword-kusanagi': layerSwordKusanagi, 'layer-sword-sakumo': layerSwordSakumo, 'layer-sword-asuma': layerSwordAsuma, 'layer-sword-raijin': layerSwordRaijin, 'layer-sword-bee': layerSwordBee, 'layer-sword-tanto': layerSwordTanto, 'layer-mask-fox': layerMaskFox, 'layer-mask-tiger': layerMaskTiger, 'layer-mask-crow': layerMaskCrow, 'layer-mask-owl': layerMaskOwl, 'layer-mask-boar': layerMaskBoar, 'layer-mask-hawk': layerMaskHawk, 'layer-mask-bear': layerMaskBear, 'layer-mask-monkey': layerMaskMonkey, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
   // Ordem do Eclipse
-  'org-goen': orgGoen, 'org-tetsuo': orgTetsuo, 'org-mizuchi': orgMizuchi, 'org-raiga': orgRaiga, 'org-kagero': orgKagero, 'org-shiryo': orgShiryo, 'org-tsuchigumo': orgTsuchigumo, 'org-yomi': orgYomi };
+  'org-goen': orgGoen, 'org-tetsuo': orgTetsuo, 'org-mizuchi': orgMizuchi, 'org-raiga': orgRaiga, 'org-kagero': orgKagero, 'org-shiryo': orgShiryo, 'org-tsuchigumo': orgTsuchigumo, 'org-yomi': orgYomi, 'sound-iwao': soundIwao, 'sound-kumomaru': soundKumomaru, 'sound-kanade': soundKanade, 'sound-sokon': soundSokon, 'sound-hakkotsu': soundHakkotsu };
 
 /**
  * Folhas de sprite no padrão de scripts/sprite-template.py: 4 quadros (ciclo de caminhada) × 3 linhas
@@ -169,7 +174,7 @@ export const SHEET_ROWS = { side: 0, front: 1, back: 2 } as const;
 const SHEET = { frames: 4, rows: 3, idle: 1 };
 /** Bases de ninja (uma por penteado) desenhadas em cores-chave: cabelo verde e roupa azul, recoloridas por ninja. */
 export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns', 'bald'] as const;
-const SHEETS = new Set(['ninja', 'ninja-body', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', 'org-goen', 'org-tetsuo', 'org-mizuchi', 'org-raiga', 'org-kagero', 'org-shiryo', 'org-tsuchigumo', 'org-yomi', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
+const SHEETS = new Set(['ninja', 'ninja-body', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', 'org-goen', 'org-tetsuo', 'org-mizuchi', 'org-raiga', 'org-kagero', 'org-shiryo', 'org-tsuchigumo', 'org-yomi', 'sound-iwao', 'sound-kumomaru', 'sound-kanade', 'sound-sokon', 'sound-hakkotsu', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
 
 const images = new Map<string, HTMLImageElement>();
 let enabled = true;

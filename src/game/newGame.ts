@@ -60,6 +60,7 @@ export function baseState(seed: number): GameState {
     org: newOrg(),
     blades: [],
     swordsmen: { nextDay: 0, taken: false, done: false },
+    sound: { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 },
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

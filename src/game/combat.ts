@@ -24,6 +24,8 @@ import { gearBonus } from './gearBonus';
 import { bladeDefense, bladeHit, bladeMult, bladeReach, bladeSpeed } from './blades';
 import { anbuAmbush } from './anbu';
 import { swordsmanFall } from './swordsmen';
+import { cursedDefeated, dropCaptive, soundKnockout, soundMemberDown } from './sound';
+import { SOUND } from '../data/sound';
 import { ITEMS } from '../data/items';
 import { hasTeammateNear } from './teams';
 import { KAGE_DAMAGE_BONUS } from './kage';
@@ -406,6 +408,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense) * (blade ? bladeDefense(src) : 1);
   if (t.shield > 0) dmg *= 0.4;
   if (t.org === 'tetsuo') dmg *= 0.5; // Corpo de Ferro
+  if (t.carrying != null) dmg *= SOUND.carryHurt; // carregando o raptado: mãos ocupadas
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
   // Kawarimi: golpe forte ou fatal vira um tronco
   if (tryKawarimi(g, t, src, dmg)) {
@@ -453,9 +456,15 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   }
   // Espadachim da Névoa: só o primeiro da invasão cai (e deixa a espada); os outros somem na névoa
   if (t.swordsman && swordsmanFall(g, t)) return;
+  // selo amaldiçoado: derrotado, o ninja volta para a vila em vez de morrer
+  if (t.cursed && cursedDefeated(g, t)) return;
+  // o Som veio raptar, não matar: quem eles derrubam fica nocauteado
+  if (soundKnockout(g, t, src)) return;
   t.dead = true;
   t.hp = 0;
   if (t.org) orgMemberDown(g, t);
+  if (t.sound) soundMemberDown(g, t);
+  else if (t.carrying != null) dropCaptive(g, t);
   if (t.kind === 'clone' || (t.faction === 'village' && t.ownerId != null)) {
     fx(g, 'smoke', t.x, t.y, { r: 16, life: 0.6, color: '#e8e8e8' });
     return;

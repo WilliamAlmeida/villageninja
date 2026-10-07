@@ -17,6 +17,8 @@ PIXEL = Path('docs/arte/pixel')
 OUT = Path('src/art')
 OUT.mkdir(parents=True, exist_ok=True)
 # artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer a partir da fonte (só com --force)
+# --only a,b: refaz só essas artes (as outras ficam como estão)
+ONLY = next((set(a.split('=', 1)[1].split(',')) for a in sys.argv if a.startswith('--only=')), None)
 EDITED = set() if '--force' in sys.argv else set(json.loads((OUT / 'art-edits.json').read_text())) if (OUT / 'art-edits.json').exists() else set()
 
 # largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles, vezes SCENERY_SCALE
@@ -44,7 +46,8 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
           'dog': (44, 'quadruped'), 'dog-white': (44, 'quadruped'), 'dog-pug': (44, 'quadruped'), 'dog-bull': (44, 'quadruped'),
           'toad': (64, 'quadruped'), 'slug': (52, 'quadruped'),
-          **{f'org-{m}': (56, 'biped') for m in ('goen', 'tetsuo', 'mizuchi', 'raiga', 'kagero', 'shiryo', 'tsuchigumo', 'yomi')}}
+          **{f'org-{m}': (56, 'biped') for m in ('goen', 'tetsuo', 'mizuchi', 'raiga', 'kagero', 'shiryo', 'tsuchigumo', 'yomi')},
+          **{f'sound-{m}': (56, 'biped') for m in ('iwao', 'kumomaru', 'kanade', 'sokon', 'hakkotsu')}}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
 TRUST_FACING = {'spider', 'slug', 'dog-white'}
@@ -69,6 +72,8 @@ def crisp(im):
 
 
 def save(im, name, palette=False):
+    if ONLY is not None and name not in ONLY:
+        return
     if f'{name}.png' in EDITED:
         print(f'{name}.png editada à mão: mantida (use --force para refazer)')
         return

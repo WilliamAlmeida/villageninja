@@ -4,6 +4,7 @@ import type { SanninPath } from '../data/sannin';
 import type { DogBreed } from '../data/breeds';
 import type { OrgMemberId } from '../data/org';
 import type { BladeId, MistBlade } from '../data/blades';
+import type { SoundId } from '../data/sound';
 import type { OrgState } from './org';
 import type { MarketGood } from '../data/specialize';
 // Sistemas mutam o estado; render e UI apenas leem.
@@ -213,6 +214,13 @@ export interface Unit {
   /** ANBU: segundos até voltar a ficar invisível depois de atacar; recarga da guarda do Kage. */
   seenT?: number;
   guardCd?: number;
+  /** Membro do Quinteto do Som; quem ele carrega (raptado); por quem está sendo carregado; gêmeos já separados. */
+  sound?: SoundId;
+  carrying?: number;
+  captiveOf?: number;
+  split?: boolean;
+  /** Selo amaldiçoado: ninja da vila que não foi resgatado a tempo (luta pelo Som até ser derrotado e trazido de volta). */
+  cursed?: boolean;
 }
 
 export type Command =
@@ -310,6 +318,17 @@ export interface Expedition {
   /** O que já foi achado (só entra no estoque quando a equipe volta). */
   loot: Cost;
   day: number;
+}
+
+export interface SoundState {
+  nextDay: number;
+  /** Invasão em andamento: alvo, segundos desde a chegada, se já levaram alguém. */
+  raid: { targetId: number; t: number; taken: boolean } | null;
+  /** Raptado esperando resgate no esconderijo (até o fim do dia `until`). */
+  captive: { id: number; until: number } | null;
+  /** Raptos impedidos e ninjas levados. */
+  stopped: number;
+  lost: number;
 }
 
 export interface SwordsmenState {
@@ -508,6 +527,8 @@ export interface GameState {
   blades: BladeId[];
   /** Os Espadachins da Névoa: próxima invasão, espada já tomada nesta invasão, fim. */
   swordsmen: SwordsmenState;
+  /** O Quinteto do Som: próxima invasão, a invasão em andamento, o raptado à espera de resgate e o placar. */
+  sound: SoundState;
   /** Mapa de missão jogável em andamento (a equipe está lá; a vila continua andando). */
   scene?: GameState | null;
   /** Só nos mapas de missão: o que é e como termina. */

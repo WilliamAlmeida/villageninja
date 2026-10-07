@@ -16,5 +16,6 @@ export function canHit(faction: Faction, side: number | undefined, t: Unit): boo
   if (side) return !!t.arenaSide && t.arenaSide !== side;
   if (t.arenaSide != null) return false;
   if (t.cloak) return false; // espião invisível: ninguém mira nele até ser descoberto
+  if (t.captiveOf != null) return false; // raptado sendo carregado
   return isHostile(faction, t.faction);
 }

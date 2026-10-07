@@ -31,7 +31,7 @@ export function spawnerSystem(g: Game, dt: number) {
   let alert = false;
   let rogues = 0;
   for (const u of s.units) {
-    if (u.dead || u.faction === 'village' || u.faction === 'guest') continue;
+    if (u.dead || u.faction === 'village' || u.faction === 'guest' || u.away != null) continue; // away: com o Som, fora do mapa
     if (u.kind === 'rogue' && u.missionId == null && u.guard == null) rogues++;
     if (!alert && !u.cloak && g.world.inVillage(u.x, u.y)) alert = true;
   }

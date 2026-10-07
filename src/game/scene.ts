@@ -13,6 +13,8 @@ import { ANIMALS, type AnimalType } from '../data/animals';
 import { CONTRACTS } from '../data/contracts';
 import { ORG } from '../data/org';
 import { createOrgMember, lairGuards } from './org';
+import { createSoundMember } from './sound';
+import { SOUND, SOUND_MEMBERS, SOUND_RAIDERS } from '../data/sound';
 import { fxText } from './fx';
 import { Game } from './game';
 import { baseState } from './newGame';
@@ -44,7 +46,7 @@ export function opensScene(home: Game, e: Expedition) {
   if (home.state.scene) return false;
   if (e.kind === 'mine') return true;
   if (e.kind !== 'region') return false;
-  if (e.action === 'raid' || e.action === 'explore' || e.action === 'contract' || e.action === 'assault') return true;
+  if (e.action === 'raid' || e.action === 'explore' || e.action === 'contract' || e.action === 'assault' || e.action === 'rescue') return true;
   return e.action === 'annex' && regionOf(home.state, e.node!).rel < REL.annexPeace;
 }
 
@@ -184,8 +186,8 @@ export function sceneTick(g: Game, dt: number) {
   if (info.kind === 'mine') return mineTick(g, info, foes, end);
   if (info.kind === 'island') return islandTick(g, end);
   if (info.kind === 'hideout') {
-    const left = g.state.units.filter((u) => !u.dead && u.org);
-    if (!left.length) return end('win', `{crown} O líder da ${ORG.name} caiu! O covil é seu.`);
+    const left = g.state.units.filter((u) => !u.dead && (u.org || u.sound));
+    if (!left.length) return end('win', info.node === 'som' ? `{crown} O ${SOUND.name} caiu! O raptado está livre.` : `{crown} O líder da ${ORG.name} caiu! O covil é seu.`);
     return;
   }
   if (info.kind === 'trial') {
@@ -230,7 +232,7 @@ export function advanceTarget(g: Game) {
   }
   if (info.kind === 'hideout') {
     const lead = sceneTeam(g)[0];
-    const org = g.state.units.filter((u) => !u.dead && u.org);
+    const org = g.state.units.filter((u) => !u.dead && (u.org || u.sound));
     const o = lead ? org.sort((a, b) => Math.hypot(a.x - lead.x, a.y - lead.y) - Math.hypot(b.x - lead.x, b.y - lead.y))[0] : org[0];
     return o ? { x: o.x, y: o.y } : null;
   }
@@ -559,6 +561,41 @@ export function createHideoutScene(home: Game, e: Expedition): GameState {
   s.sceneInfo = {
     kind: 'hideout', expId: e.id, node: 'covil', action: e.action, title: `Covil da ${ORG.name}`, bossId,
     goal: 'Atravesse a caverna e derrote os guardiões e o líder da Ordem.', result: null, loot: 0, lootNeed: 0, defenders: 5 + lairGuards(home.state).length, entry,
+  };
+  return s;
+}
+
+/** Esconderijo do Som: caverna com o líder e dois membros guardando o raptado. */
+export function createSoundScene(home: Game, e: Expedition): GameState {
+  const seed = (home.state.seed ^ (e.id * 86243) ^ 0x50d) >>> 0;
+  const s = baseState(seed);
+  const rnd = mulberry32(seed);
+  const cave = carveCave(s, rnd);
+  s.time = home.state.time;
+  s.day = home.state.day;
+  s.towersFaction = 'enemy';
+  s.res = { ...s.res, wood: 0, stone: 0, food: 0, ryo: 0 };
+  s.flags = { ...s.flags, shelterRookies: false };
+  s.timers = { ...s.timers, animal: 1e9, raid: 1e9 };
+  const g = new Game(s, SCENE_SYSTEMS);
+  g.isScene = true;
+  const at = (i: number) => ({ x: tileCenter(i % MAP_W), y: tileCenter(Math.floor(i / MAP_W)) });
+  const spots = cave.cells.filter((i) => cave.dist[i]! > 14 && cave.dist[i]! < cave.dist[cave.far]! * 0.8).sort(() => rnd() - 0.5);
+  // dois membros no caminho, o líder no fundo
+  const raiders = [...SOUND_RAIDERS].sort(() => rnd() - 0.5).slice(0, 2);
+  for (const id of raiders) {
+    const p = at(spots.pop() ?? cave.far);
+    guard(createSoundMember(g, id, p.x, p.y));
+  }
+  const lair = at(cave.far);
+  const boss = createSoundMember(g, 'hakkotsu', lair.x, lair.y);
+  guard(boss);
+  const entry = at(cave.start);
+  bringTeam(home, g, e, entry);
+  revealCircle(s, Math.floor(entry.x / 32), Math.floor(entry.y / 32), 6);
+  s.sceneInfo = {
+    kind: 'hideout', expId: e.id, node: 'som', action: e.action, title: 'Esconderijo do Som', bossId: boss.id,
+    goal: `Derrote os guardiões e ${SOUND_MEMBERS.hakkotsu.name}, o líder, para libertar o raptado.`, result: null, loot: 0, lootNeed: 0, defenders: 3, entry,
   };
   return s;
 }

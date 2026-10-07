@@ -869,6 +869,12 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .omem.down { opacity: 0.6; } .omem.down small { color: var(--good); } .omem.down .om-face { filter: grayscale(1); }
 .omem.live { border-color: var(--bad); box-shadow: 0 0 8px rgba(255, 90, 90, 0.3); } .omem.live small { color: var(--bad); }
 .omem.lair small { color: var(--warn); }
+.mchip.good { color: var(--good); border-color: rgba(125, 255, 154, 0.35); background: rgba(125, 255, 154, 0.07); }
+.snd-prog { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
+.snd-prog .o-next { margin-left: auto; }
+.ogrid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.snd-alert { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; margin-bottom: 0.5rem; border-radius: 0.6rem; border: 1px solid var(--bad); background: rgba(255, 90, 90, 0.12); }
+.snd-alert > span { flex: 1; }
 .om-shadow { filter: brightness(0) drop-shadow(0 0 3px rgba(200, 40, 40, 0.8)); }
 .sgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
 @media (max-width: 900px) { .sgrid { grid-template-columns: 1fr; } }
@@ -1608,3 +1614,8 @@ h4::after { background: var(--line); opacity: 0.6; }
 /* Sannin: busto inteiro reduzido (não cortado), bilinear (sem os pontinhos brancos do contorno) */
 .kfill .sc-who .pim, .kfill .sc-who .skel { object-fit: contain; object-position: bottom center; inset: auto 0 0 0; height: 92%; image-rendering: auto; }
 .sc-who .pim, .face, .k-face .pim, .sc-beast .pim, .om-bust { image-rendering: auto; }
+
+/* Bingo Book: os cartões mostram o sprite inteiro (corpo de pé, nítido), em qualquer largura de cartão */
+.kfill .ogrid .om-bust { top: 0; bottom: 0; height: 100%; aspect-ratio: auto; object-fit: contain; object-position: center bottom; transform: none; image-rendering: pixelated; }
+.kfill .ogrid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.kfill .ogrid.five .om-face { min-height: 6.5rem; }

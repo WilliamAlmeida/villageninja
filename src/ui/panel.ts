@@ -62,6 +62,8 @@ import { bladeOf, canWield } from '../game/blades';
 import { ANBU, anbuBlock, anbuCandidates, anbus, anbuSlots, appointAnbu, dismissAnbu, maskOf } from '../game/anbu';
 import { BLADE_IDS, BLADES, MIST_BLADES } from '../data/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
+import { SOUND, SOUND_MEMBERS } from '../data/sound';
+import { WITH_SOUND } from '../game/sound';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
@@ -127,6 +129,7 @@ const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = 
 
 /** O que cada ação da região faz (dica dos botões). */
 const ACTION_TIP: Record<RegionAction, string> = {
+  rescue: 'Vira um mapa jogável: a equipe entra no esconderijo, derrota os guardiões e o líder e traz o raptado de volta. Corra: passado o prazo ele recebe o selo amaldiçoado.',
   covert: 'Os ANBU livres se infiltram e trazem metade do que um saque traria, sem infâmia e sem estragar a relação — se não forem descobertos.',
   trade: 'Caravana de troca: paga na hora e volta com a mercadoria (honra dá bônus). Melhora a relação.',
   protect: 'A equipe defende o vilarejo de bandidos. Relação +20 e honra; com relação 60+ ele vira protegido e paga tributo todo dia.',
@@ -347,7 +350,7 @@ export class Panel {
     else if (this.view.kind === 'group') built = this.groupView();
     else if (this.view.kind === 'village') built = this.villageView();
     else if (this.view.kind === 'kage') built = { html: this.tabs('kage') + this.kageSection(), t: {}, b: {} };
-    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill"><div class="kgrid bgrid">${this.orgSection()}${this.swordsmenSection()}</div></div>`, t: {}, b: {} };
+    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill"><div class="kgrid bgrid">${this.orgSection()}${this.swordsmenSection()}</div>${this.soundSection()}</div>`, t: {}, b: {} };
     else if (this.view.kind === 'stats') built = this.statsView();
     else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
@@ -633,7 +636,7 @@ export class Panel {
     html += `<div class="regionwrap"><div class="rmap"><img src="${regionMap}" alt="" draggable="false">
       <span class="rnode home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">{castle}<span>Sua vila</span></span>`;
     for (const def of REGION_NODES) {
-      if (def.kind === 'hideout' && !s.org.lairKnown) continue; // o covil só aparece quando descoberto
+      if (def.kind === 'hideout' && (def.id === 'som' ? !s.sound.captive : !s.org.lairKnown)) continue; // covil: só descoberto; Som: só com raptado
       const st = regionOf(s, def.id);
       const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : def.kind === 'hideout' ? '{skull}' : '{scroll}';
       const flags = st.outpost ? ' {flag}' : '';
@@ -678,6 +681,9 @@ export class Panel {
         <div class="rrel-lbl"><span>Hostil</span><span>Neutra</span><span>Aliada</span></div>`;
     } else if (def.kind === 'island') {
       html += `<p class="hint">${st.explored ? '{check} Explorada' : '{todo} Ainda não explorada'} · ${st.outpost ? `{flag} Posto avançado: ${costLabel(def.outpost ?? {})}/dia` : `Posto avançado renderia ${costLabel(def.outpost ?? {})} por dia`}</p>`;
+    } else if (def.id === 'som') {
+      const c = s.sound.captive ? g.unit(s.sound.captive.id) : null;
+      html += `<p class="hint">${c ? `{alert} Preso lá: <b>${esc(c.name)}</b>. Prazo: fim do dia ${s.sound.captive!.until}; depois ele recebe o selo amaldiçoado.` : 'Ninguém da vila está preso lá.'} Guardam o lugar: <b>${SOUND_MEMBERS.hakkotsu.name}</b>, ${esc(SOUND_MEMBERS.hakkotsu.title)}, e dois membros.</p>`;
     } else if (def.kind === 'hideout') {
       html += `<p class="hint">${s.org.done ? '{check} A Ordem foi destruída.' : `Guardam o covil: ${lairGuards(s).map((id) => `<b>${ORG_MEMBERS[id].name}</b>, ${esc(ORG_MEMBERS[id].title)}`).join(' e ')}.`}</p>`;
     } else if (def.contract) {
@@ -1674,6 +1680,32 @@ export class Panel {
     return html + `</div></section>`;
   }
 
+  /** Quinteto do Som: os cinco pelo sprite, o placar de raptos, o raptado à espera de resgate e quem tem o selo. */
+  private soundSection() {
+    const g = this.app.game;
+    const s = g.state;
+    const st = s.sound;
+    const onMap = new Set(s.units.filter((u) => !u.dead && u.sound && !u.hidden).map((u) => u.sound));
+    const known = s.level >= SOUND.minVillage;
+    const target = st.raid ? g.unit(st.raid.targetId) : null;
+    let html = `<section class="kpanel ocard"><div class="kp-head">{skull}<b ${tipAttr(SOUND.name, 'Vêm raptar o ninja mais talentoso da vila (nunca o Kage nem um Sannin). Derrube quem carrega para soltá-lo. Se fugirem, há alguns dias para resgatar no esconderijo (Região); depois disso ele volta com o selo amaldiçoado, do lado deles. Eles voltam sempre.', true)}>${SOUND.name}</b><small>raptam o mais talentoso · voltam sempre</small></div>`;
+    html += `<div class="snd-prog"><span class="mchip good">{shield} ${st.stopped} rapto(s) impedido(s)</span><span class="mchip ${st.lost ? 'bad' : ''}">{skull} ${st.lost} levado(s)</span><span class="o-next">{clock} ${target ? `Atrás de: ${esc(target.name)}` : known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div>`;
+    if (st.captive) {
+      const c = g.unit(st.captive.id);
+      html += `<div class="snd-alert">{alert} <span><b>${esc(c?.name ?? '?')}</b> está preso(a) no Esconderijo do Som. Resgate até o fim do dia ${st.captive.until}.</span><button class="btn primary mini" data-act="win" data-arg="region">{pin} Resgatar</button></div>`;
+    }
+    html += `<div class="ogrid five">`;
+    for (const id of ['iwao', 'kumomaru', 'kanade', 'sokon', 'hakkotsu'] as const) {
+      const d = SOUND_MEMBERS[id];
+      const [label, cls] = onMap.has(id) ? ['{swords} Atacando', 'live'] : id === 'hakkotsu' ? ['{lock} Esconderijo', 'lair'] : ['{alert} À solta', ''];
+      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${d.art}: ${d.desc}`, true)}><span class="om-face">${pimg(artPortrait(`sound-${id}`, true), 'om-bust')}</span><b>${d.name}</b><small>${label}</small></div>`;
+    }
+    html += `</div>`;
+    const cursed = s.units.filter((u) => !u.dead && u.cursed && u.faction === 'enemy');
+    if (cursed.length) html += `<p class="hint">{skull} Com o selo amaldiçoado, do lado deles: ${cursed.map((u) => `<b>${esc(u.name)}</b>`).join(', ')}. Derrote-o(s) numa invasão para trazê-lo(s) de volta.</p>`;
+    return html + `</section>`;
+  }
+
   /** Os níveis da vila em sequência: arte da Residência, nome, território e impostos, e o que cada um trouxe. */
   private villagePath() {
     const s = this.app.game.state;
@@ -2089,6 +2121,8 @@ export class Panel {
 
   /** O que o ninja está fazendo, com ícone e cor (para o selo do cartão). */
   private ninjaStatus(u: Unit, mission: boolean | undefined): [string, string, string] {
+    if (u.away === WITH_SOUND) return ['Raptado', '{skull}', 'danger'];
+    if (u.captiveOf != null) return ['Sendo levado', '{alert}', 'danger'];
     if (u.away != null) return ['Fora da vila', '{map}', 'good'];
     if (mission) return ['Em missão', '{clipboard}', 'good'];
     if (u.hp < u.maxHp * 0.6) return ['Ferido', '{medic}', 'danger'];

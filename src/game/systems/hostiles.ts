@@ -1,3 +1,4 @@
+import { canHit } from '../factions';
 import { MAP_H, MAP_W, TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
 import { ANIMALS, type AnimalDef } from '../../data/animals';
@@ -8,6 +9,7 @@ import { spyNinjaNear } from '../specs';
 import { dogSniff, sniffRange } from '../ninken';
 import { orgBrain } from '../org';
 import { swordsmanPrey } from '../swordsmen';
+import { soundBrain } from '../sound';
 import { createAnimal, createRogue } from '../entities';
 import { costLabel } from '../../data/resources';
 import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
@@ -22,7 +24,7 @@ import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, tileCenter, toTile } fro
 /** Animais selvagens, ninjas renegados e clones das sombras. */
 export function hostileSystem(g: Game, dt: number) {
   for (const u of g.state.units) {
-    if (u.dead) continue;
+    if (u.dead || u.away != null) continue; // fora do mapa (do lado do Som, entre invasões)
     if (u.kind === 'animal') animal(g, u, dt);
     else if (u.kind === 'rogue') rogue(g, u, dt);
     else if (u.kind === 'clone') clone(g, u, dt);
@@ -31,7 +33,8 @@ export function hostileSystem(g: Game, dt: number) {
 
 function validTarget(g: Game, u: Unit, maxDist: number) {
   const t = g.unit(u.targetId);
-  if (!t || t.dead || t.hidden || Math.hypot(t.x - u.x, t.y - u.y) > maxDist) {
+  // o alvo pode ter deixado de valer (raptado sendo carregado, espião sumido): a regra única de alvo decide
+  if (!t || t.dead || t.hidden || !canHit(u.faction, u.arenaSide, t) || Math.hypot(t.x - u.x, t.y - u.y) > maxDist) {
     u.targetId = null;
     return null;
   }
@@ -96,6 +99,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   }
   if (u.role === 'puppet') return puppet(g, u, dt);
   if (u.org && orgBrain(g, u, dt)) return; // Ordem do Eclipse: caça o mais forte e usa a técnica própria
+  if (u.sound && soundBrain(g, u, dt)) return; // Quinteto do Som: rapto, cobertura e técnicas
   if (u.cloak && !u.swordsman) revealSpy(g, u); // espadachim sumindo na névoa não é espião
   if (!u.cloak) trySupport(g, u);
   if (u.missionId != null) return guardHome(g, u, dt, 220);

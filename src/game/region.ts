@@ -18,6 +18,7 @@ import { teamUnits } from './teams';
 import type { Cost, Expedition, GameState, RegionState, Unit } from './types';
 import { refreshDerived } from './entities';
 import { grantBlade } from './blades';
+import { rescueCaptive } from './sound';
 import { edgePoint } from './systems/spawner';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -42,7 +43,7 @@ export const nodePower = (s: GameState, def: RegionNodeDef) => Math.round(def.po
 export function nodeActions(def: RegionNodeDef): RegionAction[] {
   if (def.kind === 'village') return ['trade', 'protect', 'raid', 'annex'];
   if (def.kind === 'island') return def.id === 'templos' ? ['explore', 'outpost', 'train'] : ['explore', 'outpost'];
-  if (def.kind === 'hideout') return ['assault'];
+  if (def.kind === 'hideout') return def.id === 'som' ? ['rescue'] : ['assault'];
   return ['contract'];
 }
 
@@ -59,6 +60,11 @@ export function actionBlock(g: Game, nodeId: string, action: RegionAction): stri
   const def = REGION[nodeId];
   if (!def) return 'Lugar desconhecido.';
   const st = regionOf(g.state, nodeId);
+  if (def.kind === 'hideout' && def.id === 'som') {
+    if (!g.state.sound.captive) return 'Ninguém da vila está preso lá.';
+    if (g.state.scene) return 'Já há um mapa de missão em andamento.';
+    return null;
+  }
   if (def.kind === 'hideout') {
     if (!g.state.org.lairKnown) return 'Ninguém sabe onde fica.';
     if (g.state.org.done) return 'A Ordem do Eclipse já foi destruída.';
@@ -222,6 +228,10 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         s.infamy += 2;
         text = outcome === 'retreat' ? `A equipe recuou de ${def.name} sem o saque.` : `O saque a ${def.name} fracassou: as defesas eram fortes demais.`;
       }
+      break;
+    case 'rescue':
+      text = outcome === 'win' ? rescueCaptive(g) : outcome === 'retreat' ? 'A equipe recuou do esconderijo.' : 'O esconderijo resistiu. O raptado continua lá.';
+      if (outcome === 'win') g.toast(`{crown} ${text}`, 'good');
       break;
     case 'covert':
       // furtividade da ANBU: conta 1,6× a força contra as defesas

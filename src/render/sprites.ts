@@ -160,6 +160,7 @@ function unitPic(u: Unit) {
   if (u.animal === 'dog') return art(breedArt(u.breed)) ?? art('dog');
   if (u.animal) return art(u.animal);
   if (u.org) return art(`org-${u.org}`) ?? art('rogue'); // Ordem do Eclipse: arte própria de cada membro
+  if (u.sound) return art(`sound-${u.sound}`) ?? art('rogue'); // Quinteto do Som
   if (u.role === 'puppet') return art('puppet') ?? art('rogue');
   if (u.kind === 'villager') return art('villager');
   if (u.swordsman && u.look) {
@@ -168,7 +169,7 @@ function unitPic(u: Unit) {
     const doll = dollParts({ style: d.style, rank: 'chunin', sword: u.swordsman, look: u.look });
     return (doll && dollArt(doll, u.look.skin)) ?? art('rogue');
   }
-  if (u.faction === 'enemy') return art('rogue');
+  if (u.faction === 'enemy' && !u.cursed) return art('rogue'); // o ninja com o selo amaldiçoado segue com a cara dele
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
   const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, stats: u.ninja?.stats, sword: bladeOf(u), look: u.look }) : null;

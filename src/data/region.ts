@@ -5,7 +5,7 @@ import type { Cost } from '../game/types';
 /** `hideout`: o covil da Ordem do Eclipse (só aparece quando descoberto). */
 export type RegionKind = 'village' | 'island' | 'sacred' | 'hideout';
 export type ContractKind = 'toad' | 'snake' | 'slug';
-export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract' | 'assault' | 'covert';
+export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract' | 'assault' | 'covert' | 'rescue';
 
 export interface RegionNodeDef {
   id: string;
@@ -32,6 +32,10 @@ export const REGION_NODES: RegionNodeDef[] = [
   {
     id: 'covil', name: 'Covil do Eclipse', kind: 'hideout', x: 52, y: 8, power: 140,
     desc: 'Cavernas escondidas nas montanhas do norte: o esconderijo da Ordem do Eclipse, onde o líder espera.',
+  },
+  {
+    id: 'som', name: 'Esconderijo do Som', kind: 'hideout', x: 24, y: 34, power: 120,
+    desc: 'Galerias sob a floresta do oeste: o Quinteto do Som guarda ali quem levou. Só aparece enquanto houver alguém para resgatar.',
   },
   // ---- vilarejos (continente)
   {
@@ -101,12 +105,14 @@ export const ACTION_TIME: Record<RegionAction, { travel: number; work: number }>
   contract: { travel: 14, work: 20 },
   assault: { travel: 18, work: 30 },
   covert: { travel: 10, work: 14 },
+  rescue: { travel: 14, work: 30 },
 };
 
 export const ACTION_LABEL: Record<RegionAction, string> = {
   trade: 'Comerciar', protect: 'Proteger', raid: 'Saquear', annex: 'Anexar', explore: 'Explorar',
   outpost: 'Montar posto avançado', train: 'Treinar no templo', contract: 'Buscar contrato', assault: 'Invadir o covil',
   covert: 'Missão secreta da ANBU',
+  rescue: 'Resgatar o raptado',
 };
 
 /** Custo para montar um posto avançado numa ilha e para anexar um vilarejo em paz. */
