@@ -1717,7 +1717,7 @@ export class Panel {
     const onMap = new Set(s.units.filter((u) => !u.dead && u.swordsman).map((u) => u.swordsman));
     const known = s.level >= SWORDSMEN_ORG.minVillage;
     let html = `<section class="kpanel ocard"><div class="kp-head">{swords}<b ${tipAttr(SWORDSMEN_ORG.name, 'Invadem a vila em dupla com escolta. Cada invasão rende no máximo UMA espada: o primeiro espadachim derrubado cai e deixa a espada; os outros somem na névoa e voltam.', true)}>${SWORDSMEN_ORG.name}</b><small>${taken}/7 espadas</small></div>`;
-    html += `<div class="o-prog"><div class="o-count"><div class="nc-bar"><i style="width:${(taken / 7) * 100}%"></i></div></div><span class="o-next">{clock} ${st.done ? 'Acabaram' : known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div><div class="ogrid">`;
+    html += `<div class="o-prog"><div class="o-count"><b>${taken}/7 derrotados</b><div class="nc-bar"><i style="width:${(taken / 7) * 100}%"></i></div></div><span class="o-next">{clock} ${st.done ? 'Acabaram' : known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div><div class="ogrid">`;
     for (const id of MIST_BLADES) {
       const d = SWORDSMEN[id];
       const got = s.blades.includes(id);
