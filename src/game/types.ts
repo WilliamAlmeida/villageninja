@@ -414,7 +414,9 @@ export type EffectKind =
   /** Shunshin: redemoinho na saída e na chegada (`variant`); `afterimage`: vulto do ninja (`uid`) que se apaga. */
   | 'flicker' | 'afterimage'
   /** Kawarimi: o tronco que fica no lugar. `seal`: chakra juntando nas mãos durante os selos. */
-  | 'log' | 'seal';
+  | 'log' | 'seal'
+  /** Baú aberto: clarão dourado subindo, moedas pulando e confete (render/particles.ts). */
+  | 'treasure';
 
 export interface Effect {
   kind: EffectKind;

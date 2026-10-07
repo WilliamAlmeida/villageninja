@@ -62,16 +62,17 @@ export function generateSites(s: GameState, nextId: () => number, kinds: SiteKin
 }
 
 /** Lugar para um local especial: longe da vila, em terra firme, sem prédio e sem se amontoar com os outros. */
-function siteSpot(s: GameState, rng: () => number, extra: Site[] = [], skip?: Site, wantFog = false) {
+function siteSpot(s: GameState, rng: () => number, extra: Site[] = [], wantFog = false) {
   const taken = (tx: number, ty: number) =>
-    [...s.sites, ...extra].some((o) => o !== skip && Math.abs(o.tx - tx) < 6 && Math.abs(o.ty - ty) < 6) ||
+    // o próprio local que vai mudar também conta: o lugar novo fica longe do antigo
+    [...s.sites, ...extra].some((o) => Math.abs(o.tx - tx) < 6 && Math.abs(o.ty - ty) < 6) ||
     s.nodes.some((n) => n.tx === tx && n.ty === ty) ||
     s.buildings.some((b) => tx >= b.tx - 1 && tx <= b.tx + BUILD_PAD + 2 && ty >= b.ty - 1 && ty <= b.ty + BUILD_PAD + 2);
-  for (let tries = 0; tries < 300; tries++) {
+  for (let tries = 0; tries < 800; tries++) {
     const tx = 2 + Math.floor(rng() * (MAP_W - 4));
     const ty = 2 + Math.floor(rng() * (MAP_H - 5));
     if (Math.hypot(tx - CENTER_TX, (ty - CENTER_TY) * 1.2) < SITE_MIN_DIST) continue;
-    if (wantFog && tries < 200 && isExplored(s, tx, ty)) continue; // de preferência ainda na névoa (dá o que explorar)
+    if (wantFog && tries < 400 && isExplored(s, tx, ty)) continue; // de preferência ainda na névoa (dá o que explorar)
     // o local e os vizinhos precisam ser terra (dá para chegar e investigar)
     let land = true;
     for (let y = ty - 1; y <= ty + 1 && land; y++) for (let x = tx - 1; x <= tx + 1 && land; x++) land = s.tiles[idx(x, y)] !== T.WATER;
@@ -105,7 +106,7 @@ export function siteTick(g: Game, dt: number) {
     if (!site.done) continue;
     site.respawn = (site.respawn ?? SITE_RESPAWN_DAYS[site.kind] * DAY_LENGTH) - dt;
     if (site.respawn > 0) continue;
-    const p = siteSpot(s, Math.random, [], site, true);
+    const p = siteSpot(s, Math.random, [], true);
     if (!p) {
       site.respawn = 60; // sem lugar agora: tenta de novo daqui a pouco
       continue;
@@ -180,6 +181,7 @@ export function resolveSite(g: Game, site: Site, u: Unit): string {
       { iron: Math.round(10 * far), herbs: Math.round(10 * far) },
     ]);
     g.give(loot);
+    fx(g, 'treasure', p.x, p.y - 6, { r: 26, color: '#ffd34d', life: 1.1 });
     text = `{luggage} ${u.name} abriu o baú: ${costLabel(loot)}.`;
     if (chance(0.25)) {
       const dmg = Math.round(u.maxHp * 0.3);
@@ -188,7 +190,7 @@ export function resolveSite(g: Game, site: Site, u: Unit): string {
       text += ' Era uma armadilha: ele se feriu.';
     }
   }
-  fxText(g, p.x, p.y - 26, 'Investigado!', '#ffd34d', true);
+  fxText(g, p.x, p.y - 26, site.kind === 'chest' ? 'Aberto!' : 'Investigado!', '#ffd34d', true);
   g.toast(text, 'good', p);
   return text;
 }

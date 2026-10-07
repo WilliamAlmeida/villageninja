@@ -235,7 +235,7 @@ export class Renderer {
       if (seen(p)) list.push({ x: p.x, y: p.y, n });
     }
     for (const site of s.sites) {
-      if (!site.found || site.done) continue;
+      if (!site.found || (site.done && site.kind !== 'chest')) continue; // baú aberto fica no chão (aberto) até reaparecer noutro lugar
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
       if (seen(p)) list.push({ x: p.x, y: p.y, site });
     }
@@ -634,7 +634,7 @@ export class Renderer {
   /** Local especial (ruínas, baú, mina): arte isométrica com um brilho que chama atenção enquanto não foi investigado. */
   private drawSite(site: Site, x: number, y: number, time: number, selected: boolean) {
     const ctx = this.ctx;
-    const pic = art(site.kind);
+    const pic = (site.kind === 'chest' && site.done && art('chest-open')) || art(site.kind);
     const w = site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90;
     if (!site.done) {
       const a = 0.25 + 0.2 * Math.sin(time * 3 + site.id);
@@ -650,7 +650,18 @@ export class Renderer {
       ctx.ellipse(x, y + 4, w * 0.5, w * 0.21, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    if (pic) {
+    if (pic && site.kind === 'chest') {
+      // baú sem chão na arte: sombra própria (encaixa em qualquer piso) e a mesma escala aberto ou fechado
+      ctx.fillStyle = 'rgba(0,0,0,0.32)';
+      ctx.beginPath();
+      ctx.ellipse(x, y + 2, w * 0.46, w * 0.17, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const pw = (w * pic.naturalWidth) / 96;
+      const ph = (pw / pic.naturalWidth) * pic.naturalHeight;
+      smoothIfShrunk(ctx, pw, pic.naturalWidth);
+      ctx.drawImage(pic, x - pw / 2 + (site.done ? -w * 0.06 : 0), y + w * 0.12 - ph, pw, ph);
+      ctx.imageSmoothingEnabled = true;
+    } else if (pic) {
       const h = (w / pic.naturalWidth) * pic.naturalHeight;
       smoothIfShrunk(ctx, w, pic.naturalWidth);
       ctx.drawImage(pic, x - w / 2, y + w * 0.18 - h, w, h);

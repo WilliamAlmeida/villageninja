@@ -51,7 +51,8 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
 TRUST_FACING = {'spider', 'slug', 'dog-white'}
-SINGLE = {'ruin': 128, 'chest': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}
+SAME_SCALE = {'chest-open': 'chest'}
+SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}
 COLS, ROWS = 4, 3
 problems: list[str] = []
 
@@ -195,8 +196,16 @@ for name, (frame_h, kind) in SHEETS.items():
     save(sheet, name)
 
 for name, size in SINGLE.items():
-    im = trim(Image.open((PIXEL if name == 'herb' else ISO) / f'{name}.png').convert('RGBA'))
-    im.thumbnail((size * SCENERY_SCALE, size * SCENERY_SCALE), Image.BOX)
+    src = (PIXEL if name == 'herb' else ISO) / f'{name}.png'
+    if (ISO / f'{name}-nograss.png').exists():  # sem o chão (scripts/strip-ground.py): o jogo desenha a sombra
+        src = ISO / f'{name}-nograss.png'
+    im = trim(Image.open(src).convert('RGBA'))
+    if name in SAME_SCALE:  # mesma escala da arte base (baú aberto = baú fechado, a tampa deixa mais alto)
+        base = trim(Image.open(ISO / f'{SAME_SCALE[name]}-nograss.png').convert('RGBA'))
+        f = size * SCENERY_SCALE / max(base.size)
+        im = im.resize((round(im.width * f), round(im.height * f)), Image.BOX)
+    else:
+        im.thumbnail((size * SCENERY_SCALE, size * SCENERY_SCALE), Image.BOX)
     save(im, name, palette=True)
 
 if problems:

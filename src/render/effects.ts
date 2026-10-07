@@ -133,6 +133,24 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       ctx.fill();
       break;
     }
+    case 'treasure': {
+      // coluna de luz dourada subindo do baú
+      ctx.globalAlpha = (1 - k) * 0.55;
+      const h = r * (1.2 + 1.6 * k);
+      const g = ctx.createLinearGradient(e.x, e.y, e.x, e.y - h);
+      g.addColorStop(0, '#fff3b0');
+      g.addColorStop(0.5, e.color + '88');
+      g.addColorStop(1, e.color + '00');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(e.x - r * 0.35, e.y);
+      ctx.lineTo(e.x + r * 0.35, e.y);
+      ctx.lineTo(e.x + r * 0.6, e.y - h);
+      ctx.lineTo(e.x - r * 0.6, e.y - h);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
     case 'ring':
       ctx.globalAlpha = 1 - k;
       ctx.strokeStyle = e.color;

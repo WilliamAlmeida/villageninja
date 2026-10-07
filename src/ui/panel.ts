@@ -1223,7 +1223,9 @@ export class Panel {
     else if (lvl < 3) {
       const st = upgradeStatus(g, bd);
       const cost = st.cost ?? {};
-      const chips = RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
+      const minV = UPGRADES[type]!.minVillage[lvl - 1] ?? 0;
+      const req = minV > 0 ? `<span class="mchip ${g.state.level < minV ? 'bad' : 'good'}" ${tipAttr('Requisito', `A vila precisa ser ${levelDef(minV).name}.`, true)}>${levelDef(minV).icon} ${levelDef(minV).name}</span>` : '';
+      const chips = req + RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
       html += `<div class="bup ws-u"><div class="bup-t">{up} Melhorar para Nv ${lvl + 1}</div><div class="bup-row"><div class="bup-txt">${
         auto ? esc(UPGRADES[type]!.perks[lvl]!) : `No nível ${AUTO_CRAFT_LEVEL} ela fabrica sozinha para manter o estoque.`
       }<div class="bup-cost">${chips}</div></div><button class="btn primary" data-act="ws-upgrade" data-arg="${bd.id}" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>{up} Nível ${lvl + 1}</button></div></div>`;
@@ -1454,10 +1456,13 @@ export class Panel {
     if (lvl >= MAX_BUILDING_LEVEL) return html + `<div class="hint">{check} Nível máximo.</div></div>`;
     const st = upgradeStatus(g, bd);
     const cost = st.cost ?? {};
-    const chips = RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
+    // requisito de nível da vila também como etiqueta (ex.: Biblioteca nível 3 pede a Vila Oculta)
+    const minV = def.minVillage[lvl - 1] ?? 0;
+    const req = minV > 0 ? `<span class="mchip ${g.state.level < minV ? 'bad' : 'good'}" ${tipAttr('Requisito', `A vila precisa ser ${levelDef(minV).name}.`, true)}>${levelDef(minV).icon} ${levelDef(minV).name}</span>` : '';
+    const chips = req + RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
     html += `<div class="bup-row"><div class="bup-txt"><b>Nível ${lvl + 1}:</b> ${esc(def.perks[lvl]!)}<div class="bup-cost">${chips}</div></div>
       <button class="btn primary" data-act="upgrade-building" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>{up} Nível ${lvl + 1}</button></div>`;
-    if (st.reason && st.reason !== 'Recursos insuficientes.') html += `<p class="why">${esc(st.reason)}</p>`;
+    if (st.reason && st.reason !== 'Recursos insuficientes.' && !st.reason.startsWith('Requer ')) html += `<p class="why">${esc(st.reason)}</p>`;
     return html + `</div>`;
   }
 

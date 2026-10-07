@@ -179,6 +179,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Locais que voltam** (`siteTick` em explore.ts, sistema explore): ruína/baú feitos e mina esgotada somem e reaparecem
   noutro lugar depois de `SITE_RESPAWN_DAYS` (de preferência na névoa). A mina aguenta `MINE_USES` expedições
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).
+  Baús sem chão na arte (`scripts/strip-ground.py` → `<nome>-nograss.png`, usado pelo prepare-art; `SAME_SCALE`) e com
+  sombra desenhada pelo jogo, para encaixar em qualquer piso. Baú aberto fica no chão com a arte `chest-open` até reaparecer, e abrir dispara o efeito `treasure` (luz dourada,
+  moedas, confete). Barra das cenas (`ui/scene.ts`): título com uma marca por andar, etiquetas (inimigos, equipe, saque),
+  ações à direita e o objetivo numa linha embaixo; recolhida na vila. Cartão de melhoria mostra o nível de vila exigido
+  como etiqueta (ex.: Biblioteca nível 3 = Vila Oculta).
 - **Expedições às minas** (`game/expeditions.ts`, `data/expeditions.ts`, `systems/expeditions.ts`): a equipe sai do mapa
   (`Unit.away`, ignorada pelos sistemas), desce andares com eventos sorteados e o jogador decide descer ou voltar; o saque
   (recursos raros `crystal`, `gold`, `darksteel`) só entra na volta. Itens lendários na forja/farmácia; ouro vende no mercado.

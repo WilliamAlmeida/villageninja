@@ -193,15 +193,22 @@ describe('ANBU', () => {
     const t1 = createSwordsman(g, 'shibuki', 610, 600);
     const t2 = createSwordsman(g, 'shibuki', 610, 640);
     t1.kawaCd = t2.kawaCd = 999;
-    a.cloak = false;
-    let h = t1.hp;
-    applyDamage(g, a, t1, 40, null, {});
-    const normal = h - t1.hp;
-    a.cloak = true;
-    h = t2.hp;
-    applyDamage(g, a, t2, 40, null, {});
-    expect(h - t2.hp).toBeGreaterThan(normal * 1.3);
-    expect(a.cloak).toBe(false);
+    // sorteio fixo (crítico, esquiva, lâmina): compara só o efeito da emboscada
+    const random = Math.random;
+    Math.random = () => 0.5;
+    try {
+      a.cloak = false;
+      let h = t1.hp;
+      applyDamage(g, a, t1, 40, null, {});
+      const normal = h - t1.hp;
+      a.cloak = true;
+      h = t2.hp;
+      applyDamage(g, a, t2, 40, null, {});
+      expect(h - t2.hp).toBeGreaterThan(normal * 1.3);
+      expect(a.cloak).toBe(false);
+    } finally {
+      Math.random = random;
+    }
   });
 });
 

@@ -551,9 +551,23 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 #scenebar { position: fixed; top: 3.4rem; left: 50%; transform: translateX(-50%); z-index: 9; max-width: min(46rem, calc(100vw - 1rem));
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; padding: 0.4rem 0.6rem; border-radius: var(--r);
   background: var(--bg); border: 1px solid rgba(255, 90, 90, 0.45); box-shadow: var(--shadow); font-size: 0.85rem; }
-#scenebar .sb-title { font-weight: 700; color: #ffb0a0; }
-#scenebar .sb-goal { color: var(--muted); flex: 1 1 12rem; }
+#scenebar { flex-direction: column; align-items: stretch; gap: 0.3rem; min-width: min(30rem, calc(100vw - 1rem)); }
+#scenebar.mini { flex-direction: row; align-items: center; min-width: 0; }
+#scenebar .sb-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+#scenebar .sb-title { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 800; color: #ffb0a0; white-space: nowrap; }
+#scenebar .sb-title small { color: var(--muted); font-weight: 700; }
+#scenebar .sb-floors { display: inline-flex; gap: 0.18rem; }
+#scenebar .sb-floors i { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
+#scenebar .sb-floors i.done { background: #8a6a3a; }
+#scenebar .sb-floors i.on { background: #ffb347; box-shadow: 0 0 0.35rem rgba(255, 179, 71, 0.8); }
+#scenebar .sb-chips { display: inline-flex; gap: 0.3rem; flex: 1 1 auto; }
+#scenebar .sb-chip { display: inline-flex; align-items: center; gap: 0.15rem; padding: 0.12rem 0.45rem; border-radius: 99px; background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(255, 210, 140, 0.18); font-weight: 700; white-space: nowrap; }
+#scenebar .sb-chip.bad { color: #ff9a8a; } #scenebar .sb-chip.good { color: var(--good); }
+#scenebar .sb-acts { display: inline-flex; gap: 0.35rem; margin-left: auto; }
+#scenebar .sb-goal { color: var(--muted); font-size: 0.8rem; padding-top: 0.25rem; border-top: 1px solid rgba(255, 210, 140, 0.12); }
+#scenebar .sb-goal.good { color: var(--good); font-weight: 700; }
 #scenebar .btn { padding: 0.3rem 0.6rem; }
+#scenebar .btn.icon { padding: 0.3rem 0.45rem; }
 
 /* Região: guia de como funciona */
 .howto { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 0.5rem 0.65rem; font-size: 0.85rem; }

@@ -32,6 +32,8 @@ const BOLT = ['#ffffff', '#fff6a8', '#ffe14d'];
 const EARTH = ['#d9b77a', '#c39257', '#8a6238'];
 const LEAVES = ['#d8f27a', '#a8e05f', '#7cc444', '#f0d860']; // claras: aparecem sobre a grama
 const SAND = ['#f0d9a0', '#d9b77a', '#c39257'];
+const GOLD = ['#fff3b0', '#ffd34d', '#f0b429', '#c98a1a'];
+const CONFETTI = ['#ff5a5a', '#ffd34d', '#4da6ff', '#7ddc6b', '#e05ad1', '#ffffff'];
 
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]!;
 
@@ -87,6 +89,17 @@ export class Particles {
     const r = e.r ?? 16;
     const nat = natureOf(e.color);
     switch (e.kind) {
+      case 'treasure': {
+        // baú aberto: clarão, moedas que pulam e quicam, confete subindo e caindo, estrelinhas
+        this.add({ kind: 'flash', x: e.x, y: e.y - 4, life: 0.25, size: 26, color: '#fff3b0' });
+        for (let i = 0; i < 14; i++)
+          this.add({ kind: 'chip', x: e.x + rnd(-4, 4), y: e.y, vx: rnd(-40, 40), vy: rnd(-10, 14), z: 4, vz: rnd(70, 130), life: rnd(0.8, 1.2), size: rnd(2, 3), color: pick(GOLD) });
+        for (let i = 0; i < 26; i++)
+          this.add({ kind: 'leaf', x: e.x + rnd(-6, 6), y: e.y, vx: rnd(-45, 45), vy: rnd(-12, 12), z: 6, vz: rnd(70, 120), life: rnd(1.2, 1.8), size: rnd(1.6, 2.6), color: pick(CONFETTI) });
+        for (let i = 0; i < 8; i++)
+          this.add({ kind: 'spark', x: e.x + rnd(-14, 14), y: e.y - rnd(6, 26), vx: 0, vy: rnd(-12, -4), life: rnd(0.25, 0.5), size: rnd(3, 5), color: '#fff6a8' });
+        break;
+      }
       case 'flicker': {
         // Shunshin: cada vila / natureza some de um jeito
         const swirl = (i: number, n: number, sp: number) => {
@@ -176,6 +189,12 @@ export class Particles {
           p.vx *= 0.6;
           p.vy *= 0.6;
         }
+      } else if (p.kind === 'leaf' && p.z > 0) {
+        // confete: sobe, flutua e cai devagar até o chão
+        p.vz -= 110 * dt;
+        p.z = Math.max(0, p.z + p.vz * dt);
+        p.vx *= 1 - dt * 1.5;
+        p.vy *= 1 - dt * 1.5;
       } else {
         p.vx *= 1 - dt * 2.5;
         p.vy *= 1 - dt * 2.5;
