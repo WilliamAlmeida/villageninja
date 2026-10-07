@@ -10,6 +10,8 @@ export class Camera {
   x = project(WORLD_W / 2, WORLD_H / 2).x;
   y = project(WORLD_W / 2, WORLD_H / 2).y;
   zoom = 1.1;
+  /** Zoom máximo (o Editor de cenário aproxima bem mais que o jogo). */
+  maxZoom = MAX_ZOOM;
   viewW = 800;
   viewH = 400;
   private follow: { x: number; y: number } | null = null;
@@ -62,7 +64,7 @@ export class Camera {
 
   zoomAt(factor: number, sx: number, sy: number) {
     const before = this.screenToScene(sx, sy);
-    this.zoom = clamp(this.zoom * factor, MIN_ZOOM, MAX_ZOOM);
+    this.zoom = clamp(this.zoom * factor, MIN_ZOOM, this.maxZoom);
     const after = this.screenToScene(sx, sy);
     this.x += before.x - after.x;
     this.y += before.y - after.y;
@@ -102,7 +104,7 @@ export class Camera {
 
   /** O mapa vira um losango: o centro da tela fica sempre dentro da caixa dele. */
   private clamp() {
-    this.zoom = clamp(this.zoom, MIN_ZOOM, MAX_ZOOM);
+    this.zoom = clamp(this.zoom, MIN_ZOOM, this.maxZoom);
     this.x = clamp(this.x, SCENE.minX, SCENE.maxX);
     this.y = clamp(this.y, SCENE.minY, SCENE.maxY);
   }

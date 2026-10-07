@@ -17,7 +17,7 @@ import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { plainTokens } from '../core/tokens';
 import { artLayout } from '../data/layout';
-import { pieceSet } from './pieces';
+import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
@@ -469,17 +469,33 @@ export class Renderer {
       if (d.u && !d.u.dead) bodies.push({ x: d.x, y: d.y - 12, i });
     });
     if (!bodies.length) return out;
+    // peça pintada: a área de transparência do Editor de cenário, se houver; senão os pixels da própria peça (o
+    // retângulo em volta de uma peça curva, como o muro de trás da arena, pegava quem estava só perto dela)
+    const pieceHit = (
+      d: Drawable,
+      i: number,
+      box: { left: number; top: number; w: number; h: number },
+      set: PieceSet,
+      fade: [number, number, number, number] | undefined,
+    ) => {
+      const p = d.piece!;
+      if (fade) {
+        const r = { x0: box.left + fade[0] * box.w, x1: box.left + fade[2] * box.w, y0: box.top + fade[1] * box.h, y1: box.top + fade[3] * box.h };
+        return bodies.some((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1);
+      }
+      const at = (x: number, y: number) => pieceCovers(set, p, (x - box.left) / box.w, (y - box.top) / box.h);
+      return bodies.some((u) => u.i < i && (at(u.x, u.y) || at(u.x - 4, u.y - 6) || at(u.x + 4, u.y - 6) || at(u.x, u.y + 8)));
+    };
     list.forEach((d, i) => {
       let r: { x0: number; x1: number; y0: number; y1: number } | null = null;
       if (d.b && d.piece != null) {
-        // peça: a área de transparência do Editor de cenário, senão o contorno dela
         const box = this.artBox(d.b, this.level);
         const set = box && pieceSet(box.artName, box.pic);
         if (box && set) {
           const L = artLayout(box.artName)!;
-          const f = (d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade) ?? set.bbox[d.piece];
-          if (f) r = { x0: box.left + f[0] * box.w, x1: box.left + f[2] * box.w, y0: box.top + f[1] * box.h, y1: box.top + f[3] * box.h };
+          if (pieceHit(d, i, box, set, d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade)) out.add(d);
         }
+        return;
       } else if (d.b) {
         const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty);
         const pic = art(d.b.type);
@@ -491,9 +507,9 @@ export class Renderer {
         const set = box && pieceSet(box.name, box.pic);
         if (box && set) {
           const L = artLayout(box.name)!;
-          const f = (d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade) ?? set.bbox[d.piece];
-          if (f) r = { x0: box.left + f[0] * box.w, x1: box.left + f[2] * box.w, y0: box.top + f[1] * box.h, y1: box.top + f[3] * box.h };
+          if (pieceHit(d, i, box, set, d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade)) out.add(d);
         }
+        return;
       } else if (d.n && d.n.type === 'tree') r = { x0: d.x - 16, x1: d.x + 16, y0: d.y - 50, y1: d.y - 6 };
       if (!r) return;
       // só conta quem está atrás (desenhado antes) e com o corpo dentro do sprite

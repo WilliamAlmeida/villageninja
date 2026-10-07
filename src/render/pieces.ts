@@ -7,6 +7,20 @@ export interface PieceSet {
   canvases: (HTMLCanvasElement | null)[];
   /** Contorno 0–1 de cada canvas (null se vazio). */
   bbox: (Rect01 | null)[];
+  /** Cobertura grossa de cada canvas (célula de COVER px com algum pixel da peça), para a transparência. */
+  cover: (Uint8Array | null)[];
+  coverW: number;
+  coverH: number;
+}
+
+/** Tamanho da célula de cobertura, em px da imagem. */
+const COVER = 8;
+
+/** A peça `p` tem pixel em (fx, fy), coordenadas 0–1 da imagem? */
+export function pieceCovers(set: PieceSet, p: number, fx: number, fy: number): boolean {
+  const c = set.cover[p];
+  if (!c || fx < 0 || fy < 0 || fx >= 1 || fy >= 1) return false;
+  return c[Math.floor(fy * set.coverH) * set.coverW + Math.floor(fx * set.coverW)] === 1;
 }
 
 const cache = new Map<string, { v: number; pic: CanvasImageSource; set: PieceSet | null }>();
@@ -49,7 +63,11 @@ function build(name: string, pic: HTMLImageElement | HTMLCanvasElement): PieceSe
   const data = sctx.getImageData(0, 0, w, h).data;
   const canvases: (HTMLCanvasElement | null)[] = [];
   const bbox: (Rect01 | null)[] = [];
+  const cover: (Uint8Array | null)[] = [];
+  const coverW = Math.ceil(w / COVER);
+  const coverH = Math.ceil(h / COVER);
   for (let p = 0; p <= n; p++) {
+    const cv0 = new Uint8Array(coverW * coverH);
     const img = new ImageData(w, h);
     let x0 = w;
     let y0 = h;
@@ -63,6 +81,7 @@ function build(name: string, pic: HTMLImageElement | HTMLCanvasElement): PieceSe
       img.data[i * 4 + 3] = data[i * 4 + 3]!;
       const x = i % w;
       const y = (i / w) | 0;
+      if (data[i * 4 + 3]! > 40) cv0[((y / COVER) | 0) * coverW + ((x / COVER) | 0)] = 1;
       if (x < x0) x0 = x;
       if (x > x1) x1 = x;
       if (y < y0) y0 = y;
@@ -71,6 +90,7 @@ function build(name: string, pic: HTMLImageElement | HTMLCanvasElement): PieceSe
     if (x1 < 0) {
       canvases.push(null);
       bbox.push(null);
+      cover.push(null);
       continue;
     }
     const cv = document.createElement('canvas');
@@ -79,6 +99,7 @@ function build(name: string, pic: HTMLImageElement | HTMLCanvasElement): PieceSe
     cv.getContext('2d')!.putImageData(img, 0, 0);
     canvases.push(cv);
     bbox.push([x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h]);
+    cover.push(cv0);
   }
-  return { canvases, bbox };
+  return { canvases, bbox, cover, coverW, coverH };
 }

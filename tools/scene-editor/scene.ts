@@ -213,6 +213,7 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 resize();
+camera.maxZoom = 16; // bem mais perto que o jogo, para pintar pixel a pixel
 camera.zoom = 2.2;
 const cx0 = CENTER_TX * TILE + TILE / 2;
 const cy0 = CENTER_TY * TILE + TILE / 2;
