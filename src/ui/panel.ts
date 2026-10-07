@@ -1117,7 +1117,7 @@ export class Panel {
     const chip = (n: number, ic: string, label: string) => `<span class="mchip ${n ? 'bad' : ''}">${ic} ${n} ${label}</span>`;
     let html = this.winTop(
       '{anvil} Oficinas',
-      `<span class="mchip">{users} De ${ninjas.length} ninjas:</span>${chip(lack('weapon'), '{kunai}', 'sem arma')}${chip(lack('armor'), '{vest}', 'sem colete')}${chip(lack('item'), '{pill}', 'sem consumível')}`,
+      `<span class="mchip">{ninja} ${ninjas.length}</span>${chip(lack('weapon'), '{kunai}', '')}${chip(lack('armor'), '{vest}', '')}${chip(lack('item'), '{pill}', '')}`,
       `<button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
        ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}`,
       (['forge', 'pharmacy', 'sealshop'] as const).map((k): [string, string, boolean, string] => [k, `${BUILDINGS[k].icon} ${k === 'sealshop' ? 'Selos' : BUILDINGS[k].name}`, this.craftTab === k, 'craft-tab']),
