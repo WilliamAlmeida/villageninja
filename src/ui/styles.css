@@ -295,6 +295,13 @@ h4 small { text-transform: none; letter-spacing: 0; }
 /* ---------- equipes ---------- */
 .btnrow { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .btnrow .btn { padding: 0.45rem 0.7rem; font-size: 0.92rem; }
+.mine-teams {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.mine-teams .btn {
+  width: 100%;
+}
 .dot { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--c, #888); flex: 0 0 auto; margin-right: 0.3rem; vertical-align: middle; }
 .teamtag { display: flex; align-items: center; gap: 0.15rem; color: var(--c, inherit); }
 .teamtag b { color: var(--c, inherit); }

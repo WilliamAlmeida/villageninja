@@ -643,7 +643,7 @@ export class Panel {
       html += `<p class="hint">{run} Na mina agora: ${here.map((e) => esc(g.team(e.teamId)?.name ?? '?')).join(', ')} <button class="btn mini" data-act="win" data-arg="expeditions">Acompanhar</button></p>`;
     html += `<h4>Mandar equipe</h4>`;
     if (!g.state.teams.length) return html + `<p class="why">Forme uma equipe em {ninja} Ninjas → Equipes.</p>`;
-    html += `<div class="btnrow">`;
+    html += `<div class="btnrow mine-teams">`;
     for (const tm of g.state.teams) {
       const why = mineBlock(g, tm.id);
       html += `<button class="btn" data-act="mine-go" data-arg="${site.id}" data-team="${tm.id}" style="--c:${tm.color}" ${blocked(g, [why], undefined, 'Não dá para partir')}><span class="dot"></span>${esc(tm.name)} {swords}${teamMinePower(g, tm.id)}</button>`;
