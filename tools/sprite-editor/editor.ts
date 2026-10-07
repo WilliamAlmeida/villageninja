@@ -39,7 +39,7 @@ const KEY_SWATCHES = [
 let mode: 'doll' | 'file' = 'doll';
 let rankSel = 'genin';
 let style = 'spiky';
-let swordSel = 'auto';
+let swordSel = 'none';
 let maskSel = 'fox';
 const look = { cloth: '#2d4a9a', hair: '#f2c94c', skin: '#f1c79a' };
 const hiddenParts = new Set<string>();
@@ -90,10 +90,10 @@ async function refreshList() {
 function who() {
   const [rank, sannin] = rankSel.split(':');
   const anbu = rank === 'anbu';
-  const stat = Object.keys(ANBU_MASKS).find((k) => ANBU_MASKS[k] === maskSel)!;
+  const stat = Object.entries(ANBU_MASKS).find(([, a]) => a === maskSel)![0];
   return {
-    style, rank: rank === 'sannin' || anbu ? 'jounin' : rank, sannin, spec: anbu ? 'spy' : undefined, stats: { [stat]: 1 },
-    sword: swordSel === 'auto' ? undefined : swordSel === 'none' ? null : swordSel, look: { ...look },
+    style, rank: rank === 'sannin' || anbu ? 'jounin' : rank, sannin, anbu, stats: { [stat]: 1 },
+    sword: swordSel === 'none' ? null : swordSel, look: { ...look },
   };
 }
 
@@ -649,7 +649,7 @@ function renderLayerList() {
     ul.appendChild(li);
   }
   const w = who();
-  $('call').textContent = `dollParts(${JSON.stringify({ style: w.style, rank: w.rank, sannin: w.sannin, spec: w.spec, sword: w.sword })})\n${parts()
+  $('call').textContent = `dollParts(${JSON.stringify({ style: w.style, rank: w.rank, sannin: w.sannin, anbu: w.anbu, sword: w.sword })})\n${parts()
     .map((p, i) => `${i + 1}. ${p.name}${p.color ? `  ${p.color}` : ''}${p.color2 ? ` / ${p.color2}` : ''}`)
     .join('\n')}`;
 }
@@ -772,7 +772,7 @@ function renderLeft() {
     style = v;
     afterDollChange();
   });
-  chips($('sword'), [['auto', 'Pela patente'], ['none', 'Nenhuma'], ...Object.keys(SWORDS).map((s): [string, string] => [s, SWORD_NAMES[s] ?? s])], swordSel, (v) => {
+  chips($('sword'), [['none', 'Nenhuma'], ...Object.keys(SWORDS).map((s): [string, string] => [s, SWORD_NAMES[s] ?? s])], swordSel, (v) => {
     swordSel = v;
     afterDollChange();
   });

@@ -134,6 +134,15 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.org = newOrg(); // a Ordem do Eclipse
     s.region.covil = { rel: 0, status: 'neutral' };
   },
+  20: (s) => {
+    // lâminas lendárias e os Espadachins da Névoa (a ANBU é um campo opcional do ninja)
+    s.blades = [];
+    s.swordsmen = { nextDay: 0, taken: false, done: false };
+    if (s.scene) {
+      s.scene.blades = [];
+      s.scene.swordsmen = { nextDay: 0, taken: false, done: false };
+    }
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

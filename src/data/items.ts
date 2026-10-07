@@ -1,5 +1,6 @@
 import type { Cost } from '../game/types';
 import type { BuildingType } from './buildings';
+import { BLADE_ITEMS, type BladeId } from './blades';
 
 export type ItemSlot = 'weapon' | 'armor' | 'item';
 
@@ -12,8 +13,15 @@ export interface ItemDef {
   cost: Cost;
   /** Segundos de trabalho na oficina. */
   craftTime: number;
-  building: BuildingType;
+  /** Oficina que fabrica (sem = não se fabrica: vem de saque ou recompensa). */
+  building?: BuildingType;
   minLevel?: number;
+  /** Nível mínimo da oficina (upgrade) para fabricar. */
+  minBuildingLevel?: number;
+  /** Lâmina lendária (data/blades.ts): única no mundo, aparece no sprite de quem carrega. */
+  blade?: BladeId;
+  /** Só o Kage pode usar. */
+  kageOnly?: boolean;
   /** Bônus passivos de armas e coletes. */
   bonus?: { melee?: number; kunai?: number; defense?: number; hp?: number };
   /** Efeito de consumível (usado sozinho em combate). */
@@ -63,6 +71,8 @@ const LIST: ItemDef[] = [
     cost: { crystal: 2, herbs: 3 }, use: { kind: 'chakra', amount: 1 }, desc: 'Recupera todo o chakra quando ele acaba.',
   },
 ];
+
+LIST.push(...BLADE_ITEMS);
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(LIST.map((i) => [i.id, i]));
 export const ITEM_LIST: readonly ItemDef[] = LIST;

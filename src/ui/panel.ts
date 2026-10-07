@@ -19,7 +19,7 @@ import { searchTiles } from '../game/systems/villagers';
 import { TILE } from '../config';
 import { doorPos, tileCenter } from '../game/world';
 import { plainTokens } from '../core/tokens';
-import { actionBlock, actionCost, nodeActions, nodePower, regionOf, startRegion } from '../game/region';
+import { actionBlock, actionCost, COVERT, covertBlock, nodeActions, nodePower, regionOf, startCovert, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
 import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
@@ -37,7 +37,7 @@ import {
   abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
-import { artPortrait, kagePortrait, unitPortrait } from '../render/sprites';
+import { artPortrait, kagePortrait, swordsmanPortrait, unitPortrait } from '../render/sprites';
 import { ART, CARDS, ICONS } from './pxicons';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
@@ -57,7 +57,11 @@ import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemSlot } from '../data/items';
-import { autoEquip, cancelCraft, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
+import { autoEquip, cancelCraft, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
+import { bladeOf, canWield } from '../game/blades';
+import { ANBU, anbuBlock, anbuCandidates, anbus, anbuSlots, appointAnbu, dismissAnbu, maskOf } from '../game/anbu';
+import { BLADE_IDS, BLADES, MIST_BLADES } from '../data/blades';
+import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
@@ -122,6 +126,7 @@ const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = 
 
 /** O que cada ação da região faz (dica dos botões). */
 const ACTION_TIP: Record<RegionAction, string> = {
+  covert: 'Os ANBU livres se infiltram e trazem metade do que um saque traria, sem infâmia e sem estragar a relação — se não forem descobertos.',
   trade: 'Caravana de troca: paga na hora e volta com a mercadoria (honra dá bônus). Melhora a relação.',
   protect: 'A equipe defende o vilarejo de bandidos. Relação +20 e honra; com relação 60+ ele vira protegido e paga tributo todo dia.',
   raid: 'Vira uma invasão jogável: sua equipe entra no mapa do vilarejo e você comanda a luta (aparece "Ver invasão" no alto). Saqueie o armazém ou derrote os guardas. Relação despenca e eles mandam uma vingança.',
@@ -785,7 +790,7 @@ export class Panel {
       html += `<div class="eqrow"><span class="eqlabel">${SLOT_LABEL[slot]}</span><span class="eqcur">${cur ? `${cur.icon} ${esc(cur.name)}${status}` : '—'}</span>`;
       if (cur) html += `<button class="btn mini" data-act="unequip" data-arg="${slot}">{x}</button>`;
       html += `</div>`;
-      const opts = ITEM_LIST.filter((d) => d.slot === slot && d.id !== e[slot] && stock(g, d.id) > 0);
+      const opts = ITEM_LIST.filter((d) => d.slot === slot && d.id !== e[slot] && stock(g, d.id) > 0 && !canWield(u, d.id));
       if (opts.length)
         html += `<div class="btnrow eqopts">${opts.map((d) => `<button class="btn mini" data-act="equip" data-arg="${d.id}">${d.icon} ${esc(d.name)} ×${stock(g, d.id)}</button>`).join('')}</div>`;
     }
@@ -1131,7 +1136,12 @@ export class Panel {
       html += `<div class="wsrow ${locked ? 'locked' : ''}"><span class="ws-ic">${r.icon}</span><div class="wsr-main"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${esc(r.name)}</span><span class="mchip">${stock(g, r.id)} no estoque</span></div>
         <div class="wsr-cost">${costLabel(r.cost)} · ${time}s</div>`;
       if (locked) html += `<div class="why">{lock} Requer ${levelDef(r.minLevel!).name}</div>`;
-      else {
+      else if (r.blade) {
+        // lâmina lendária: única, forjada uma vez (sem lote e sem "Manter")
+        const why = craftBlock(g, bd, r.id);
+        const done = g.state.blades.includes(r.blade);
+        html += `<div class="wsr-acts">${done ? `<span class="mpill safe">{check} Forjada</span>` : `<button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [used >= max && `A fila está cheia (máximo ${max}).`, why], r.cost)}>{anvil} Forjar</button>`}<span class="hint">Lendária, única${r.kageOnly ? ' · só o Kage usa' : ''}</span></div>`;
+      } else {
         const full = used >= max && `A fila está cheia (máximo ${max}).`;
         html += `<div class="wsr-acts"><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [full], r.cost)}>+1</button><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:5" ${blocked(g, [full], r.cost)}>+5</button>`;
         html += auto
@@ -1522,7 +1532,7 @@ export class Panel {
     if (g.state.kageHistory.length > 1)
       html += `<p class="hint k-hist">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
     html += `</section>${this.orgSection()}</div>`;
-    return html + this.sanninSection() + `</div>`;
+    return html + this.sanninSection() + `<div class="kgrid">${this.anbuSection()}${this.swordsmenSection()}</div></div>`;
   }
 
   /** Ordem do Eclipse: emblema, progresso e próxima aparição, os 8 bustos com o estado, a dupla e as ações. */
@@ -1589,6 +1599,73 @@ export class Panel {
         html += `<button class="btn primary sc-go" data-act="sannin" data-arg="${c?.id ?? 0}:${path}" ${blocked(g, [!c && 'Nenhum Jounin de nível 20+ disponível.', why && !why.startsWith('Custa') && why], SANNIN.cost)}>{userplus} Nomear</button>`;
       }
       html += `</div>`;
+    }
+    return html + `</div></section>`;
+  }
+
+  /**
+   * ANBU: os nomeados (sprite com a máscara, o animal e o atributo que ele representa), os candidatos e a missão
+   * secreta na Região.
+   */
+  private anbuSection() {
+    const g = this.app.game;
+    const slots = anbuSlots(g);
+    const list = anbus(g);
+    const tip = tipAttr('ANBU', `Nomeados pelo Kage (precisa da Torre de Inteligência). Saem das equipes e usam máscara: o animal é o melhor atributo e dá +1 nele. Invisíveis até atacar (emboscada: +${Math.round((ANBU.ambush - 1) * 100)}% no golpe), patrulham à noite, revelam espiões e aparecem ao lado do Kage quando ele luta.`, true);
+    let html = `<section class="kpanel acard"><div class="kp-head">{shield}<b ${tip}>ANBU</b><small>${list.length}/${slots || '—'} vagas · ${costLabel(ANBU.cost)}</small></div>`;
+    const block = anbuBlock(g);
+    if (!list.length && block && !block.startsWith('Escolha')) html += `<p class="hint">${esc(block)}</p>`;
+    if (list.length) {
+      html += `<div class="alist">`;
+      for (const u of list) {
+        const m = maskOf(u);
+        const away = u.away != null;
+        html += `<div class="arow"><button class="a-face" data-act="pick" data-arg="${u.id}">${pimg(unitPortrait(u))}</button><span class="a-main"><b>${esc(m.name)}</b><small>${esc(u.name)} · Nv ${u.ninja!.level} · ${esc(m.stat)}${away ? ' · fora' : ''}</small></span>
+          <button class="btn mini ghost" data-act="anbu-out" data-arg="${u.id}" ${tipAttr('Dispensar', 'Volta a ser ninja comum (o atributo ganho fica).')}>{x}</button></div>`;
+      }
+      html += `</div>`;
+    }
+    const cands = anbuCandidates(g).slice(0, 3);
+    if (list.length < slots && cands.length) {
+      html += `<div class="kcands">`;
+      for (const c of cands)
+        html += `<button class="kcand" data-act="anbu-in" data-arg="${c.id}" ${blocked(g, [anbuBlock(g, c)?.startsWith('Custa') ? null : anbuBlock(g, c)], ANBU.cost)}>${this.face(c)}<span><b>${esc(c.name)}</b><small>${RANKS[c.ninja!.rank].name} · Nv ${c.ninja!.level} · máscara de ${esc(maskOf(c).name)}</small></span><span class="btn primary mini">{userplus} Nomear</span></button>`;
+      html += `</div>`;
+    }
+    if (list.length) {
+      const nodes = REGION_NODES.filter((n) => n.kind === 'village' && regionOf(g.state, n.id).status !== 'vassal');
+      html += `<div class="a-cov"><small ${tipAttr('Missão secreta', `${ACTION_TIP.covert} Furtividade: a força deles conta ${COVERT.stealth}×.`, true)}>{eye} Missão secreta</small><span class="chips">${nodes
+        .map((n) => `<button data-act="covert" data-arg="${n.id}" ${blocked(g, [covertBlock(g, n.id)])}>${esc(n.name)}</button>`)
+        .join('')}</span></div>`;
+    }
+    return html + `</section>`;
+  }
+
+  /** Espadachins da Névoa: os sete (sprite com a lâmina, estado) e as lâminas lendárias da vila com quem as carrega. */
+  private swordsmenSection() {
+    const g = this.app.game;
+    const s = g.state;
+    const st = s.swordsmen;
+    const taken = MIST_BLADES.filter((b) => s.blades.includes(b)).length;
+    const onMap = new Set(s.units.filter((u) => !u.dead && u.swordsman).map((u) => u.swordsman));
+    const known = s.level >= SWORDSMEN_ORG.minVillage;
+    let html = `<section class="kpanel ocard"><div class="kp-head">{swords}<b ${tipAttr(SWORDSMEN_ORG.name, 'Invadem a vila em dupla com escolta. Cada invasão rende no máximo UMA espada: o primeiro espadachim derrubado cai e deixa a espada; os outros somem na névoa e voltam.', true)}>${SWORDSMEN_ORG.name}</b><small>${taken}/7 espadas</small></div>`;
+    html += `<div class="o-prog"><div class="o-count"><div class="nc-bar"><i style="width:${(taken / 7) * 100}%"></i></div></div><span class="o-next">{clock} ${st.done ? 'Acabaram' : known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div><div class="ogrid">`;
+    for (const id of MIST_BLADES) {
+      const d = SWORDSMEN[id];
+      const got = s.blades.includes(id);
+      const [label, cls] = got ? ['{check} Espada da vila', 'down'] : onMap.has(id) ? ['{swords} Atacando', 'live'] : ['{alert} À solta', ''];
+      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${BLADES[id].name}: ${BLADES[id].effect}`, true)}><span class="om-face">${pimg(swordsmanPortrait(id), 'om-bust')}</span><b>${esc(BLADES[id].name)}</b><small>${label}</small></div>`;
+    }
+    html += `</div><div class="blist"><small>{swords} Lâminas lendárias</small>`;
+    const holder = new Map<string, Unit>();
+    for (const u of s.units) if (!u.dead && u.faction === 'village' && bladeOf(u)) holder.set(bladeOf(u)!, u);
+    for (const id of BLADE_IDS) {
+      const d = BLADES[id];
+      const got = s.blades.includes(id);
+      const who = holder.get(id);
+      const where = !got ? d.source : who ? who.name.split(' ').pop()! : 'no estoque';
+      html += `<span class="bl ${got ? 'on' : ''}" ${tipAttr(d.name, `${d.effect} De onde vem: ${d.source}.`, true)}><b>${esc(d.name)}</b><small>${esc(where)}</small></span>`;
     }
     return html + `</div></section>`;
   }
@@ -1759,7 +1836,7 @@ export class Panel {
       const locked = (r.minLevel ?? 0) > g.state.level;
       html += `<div class="jcard ${locked ? 'locked' : ''}"><div class="jn">${r.icon} ${esc(r.name)} <small>· ${SLOT_LABEL[r.slot]}</small></div>
         <div class="jm">${costLabel(r.cost)} · ${r.craftTime}s</div><div class="jd">${esc(r.desc)}</div>
-        <div class="jb">${locked ? `<span class="why">{lock} Requer ${levelDef(r.minLevel!).name}</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${blocked(g, [queue.length + (bd.craft ? 1 : 0) >= MAX_QUEUE && `A fila está cheia (máximo ${MAX_QUEUE}).`], r.cost)}>Fabricar</button>`}</div></div>`;
+        <div class="jb">${locked ? `<span class="why">{lock} Requer ${levelDef(r.minLevel!).name}</span>` : r.blade && g.state.blades.includes(r.blade) ? `<span class="mpill safe">{check} Forjada</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${blocked(g, [queue.length + (bd.craft ? 1 : 0) >= MAX_QUEUE && `A fila está cheia (máximo ${MAX_QUEUE}).`, r.blade && craftBlock(g, bd, r.id)], r.cost)}>${r.blade ? 'Forjar' : 'Fabricar'}</button>`}</div></div>`;
     }
     return html;
   }
@@ -2276,6 +2353,12 @@ export class Panel {
         return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
       case 'org-defend':
         return this.report(prepareDefense(g));
+      case 'anbu-in':
+        return this.report(appointAnbu(g, Number(arg)));
+      case 'anbu-out':
+        return this.report(dismissAnbu(g, Number(arg)));
+      case 'covert':
+        return this.report(startCovert(g, String(arg)));
       case 'sannin-sel': {
         const [path, id] = arg.split(':');
         this.sanninSel[path!] = Number(id);

@@ -17,10 +17,14 @@ import { spawnRaid } from './systems/spawner';
 import { teamUnits } from './teams';
 import type { Cost, Expedition, GameState, RegionState, Unit } from './types';
 import { refreshDerived } from './entities';
+import { grantBlade } from './blades';
 import { edgePoint } from './systems/spawner';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
+
+/** Missão secreta da ANBU: bônus de furtividade e fração do saque que trazem. */
+export const COVERT = { stealth: 1.6, loot: 0.5 };
 
 export const newRegion = (): Record<string, RegionState> =>
   Object.fromEntries(REGION_NODES.map((n) => [n.id, { rel: 0, status: 'neutral' as const }]));
@@ -90,6 +94,48 @@ export function actionBlock(g: Game, nodeId: string, action: RegionAction): stri
       break;
   }
   return null;
+}
+
+/** ANBU livres para uma missão secreta (na vila, sem lutar, com vida). */
+export const covertAgents = (g: Game) =>
+  g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.ninja?.anbu && u.away == null && !u.origin && u.combatTimer <= 0 && u.hp >= u.maxHp * 0.5);
+
+/** Por que a missão secreta não dá agora (null = pode). */
+export function covertBlock(g: Game, nodeId: string): string | null {
+  const def = REGION[nodeId];
+  if (!def || def.kind !== 'village') return 'Missão secreta só em vilarejos.';
+  if (regionOf(g.state, nodeId).status === 'vassal') return 'É vassalo da vila.';
+  if (g.state.expeditions.some((e) => e.action === 'covert' && e.status !== 'done' && e.status !== 'lost')) return 'A ANBU já está numa missão secreta.';
+  if (!covertAgents(g).length) return 'Nenhum ANBU livre (fora de luta e com mais de meia vida).';
+  return null;
+}
+
+/**
+ * Missão secreta: os ANBU livres (até 4) se infiltram no vilarejo e trazem parte do que um saque traria, sem infâmia
+ * e sem estragar a relação — se não forem descobertos (força contra as defesas, com bônus de furtividade).
+ */
+export function startCovert(g: Game, nodeId: string): Result {
+  const why = covertBlock(g, nodeId);
+  if (why) return fail(why);
+  const def = REGION[nodeId]!;
+  const us = covertAgents(g).slice(0, 4);
+  const e: Expedition = {
+    id: g.newId(), kind: 'region', node: nodeId, action: 'covert', teamId: -1, unitIds: us.map((u) => u.id), floor: 0,
+    timer: ACTION_TIME.covert.travel, status: 'going', log: [`A ANBU partiu em segredo para ${def.name}.`], loot: {}, day: g.state.day,
+  };
+  g.state.expeditions.push(e);
+  for (const u of us) {
+    u.away = e.id;
+    u.hidden = true;
+    u.cloak = false;
+    u.command = null;
+    u.targetId = null;
+    u.moving = false;
+    u.hasGoal = false;
+    u.state = 'away';
+  }
+  g.toast(`{eye} A ANBU (${us.length}) partiu em missão secreta para ${def.name}.`, 'info');
+  return { ok: true };
 }
 
 /** Manda a equipe fazer a ação (paga o custo na hora). */
@@ -177,6 +223,20 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         text = outcome === 'retreat' ? `A equipe recuou de ${def.name} sem o saque.` : `O saque a ${def.name} fracassou: as defesas eram fortes demais.`;
       }
       break;
+    case 'covert':
+      // furtividade da ANBU: conta 1,6× a força contra as defesas
+      if (ratio * COVERT.stealth >= 1) {
+        add(e.loot, def.loot, COVERT.loot);
+        hurt(us, 0.08);
+        for (const u of us) gainXp(g, u, 30);
+        text = `Missão secreta em ${def.name}: ninguém viu nada. Trouxeram ${costLabel(e.loot)}.`;
+      } else {
+        hurt(us, 0.3);
+        st.rel -= 25;
+        s.infamy += 3;
+        text = `A ANBU foi descoberta em ${def.name} e fugiu ferida. Eles desconfiam da vila agora.`;
+      }
+      break;
     case 'annex':
       if (st.rel >= REL.annexPeace) {
         st.status = 'vassal';
@@ -201,6 +261,8 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         add(e.loot, def.outpost, 3);
         hurt(us, 0.12);
         text = `Exploraram ${def.name} e trouxeram amostras: ${costLabel(e.loot)}. Já dá para montar um posto avançado.`;
+        // nas crateras da Ilha Vulcânica: as sete espadas de um ferreiro eremita
+        if (def.id === 'vulcao' && grantBlade(g, 'bee', `Nas crateras de ${def.name}`)) text += ' Nas crateras acharam as Sete espadas de um ferreiro eremita!';
       } else {
         hurt(us, 0.35);
         text = `${def.name} é perigosa demais para esta equipe.`;

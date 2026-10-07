@@ -58,6 +58,8 @@ export function baseState(seed: number): GameState {
     snow: 0,
     clouds: [],
     org: newOrg(),
+    blades: [],
+    swordsmen: { nextDay: 0, taken: false, done: false },
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

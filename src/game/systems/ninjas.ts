@@ -313,7 +313,7 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
       }
       break;
     case 'sleep':
-      if (!night || u.ninja!.order === 'patrol') {
+      if (!night || u.ninja!.order === 'patrol' || u.ninja!.anbu) {
         u.hidden = false;
         u.state = 'idle';
       }
@@ -351,7 +351,8 @@ function decide(g: Game, u: Unit, night: boolean) {
     goRest(g, u);
     return;
   }
-  if (night && n.order !== 'patrol') {
+  // à noite vão para casa (a ANBU fica patrulhando a vila)
+  if (night && n.order !== 'patrol' && !n.anbu) {
     const home = g.building(u.homeId) ?? g.hokage();
     if (home) {
       const p = doorPos(home);

@@ -8,6 +8,7 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { Unit } from './types';
 export { gearBonus } from './gearBonus';
+import { canWield, grantBlade } from './blades';
 
 type Result = { ok: true } | { ok: false; error: string };
 const ok: Result = { ok: true };
@@ -31,6 +32,8 @@ export function equip(g: Game, unitId: number, itemId: string): Result {
   const u = ownNinja(g, unitId);
   const def = ITEMS[itemId];
   if (!u || !def) return fail('Inválido.');
+  const why = canWield(u, itemId);
+  if (why) return fail(why);
   if (!take(g, itemId)) return fail('Sem esse item no estoque.');
   unequip(g, unitId, def.slot);
   const e = u.ninja!.equip;
@@ -69,7 +72,7 @@ export function autoEquip(g: Game, unitIds: number[]): Result {
     const e = u.ninja!.equip;
     for (const slot of ['weapon', 'armor'] as const) {
       const cur = e[slot] ? score(ITEMS[e[slot]!]!) : -1;
-      const best = ITEM_LIST.filter((d) => d.slot === slot && stock(g, d.id) > 0).sort((a, b) => score(b) - score(a))[0];
+      const best = ITEM_LIST.filter((d) => d.slot === slot && stock(g, d.id) > 0 && !canWield(u, d.id)).sort((a, b) => score(b) - score(a))[0];
       if (best && score(best) > cur && equip(g, id, best.id).ok) changed++;
     }
     if (!e.item) {
@@ -123,6 +126,20 @@ export function consumeItem(g: Game, u: Unit): ItemDef | null {
 }
 
 // ------------------------------------------------------------------ oficinas
+/** Restrições de receitas especiais (null = pode): nível da oficina e lâmina lendária única (e a do Kage). */
+export function craftBlock(g: Game, b: { level?: number; queue?: string[]; craft?: { itemId: string } | null }, itemId: string): string | null {
+  const def = ITEMS[itemId];
+  if (!def) return 'Inválido.';
+  if ((def.minBuildingLevel ?? 0) > (b.level ?? 1)) return `Requer a oficina no nível ${def.minBuildingLevel}.`;
+  if (def.blade) {
+    if (g.state.blades.includes(def.blade)) return 'Lâmina única: a vila já tem esta.';
+    const queued = g.state.buildings.some((o) => o.craft?.itemId === itemId || o.queue?.includes(itemId));
+    if (queued) return 'Já está sendo forjada.';
+    if (def.kageOnly && (g.state.kageId == null || g.unit(g.state.kageId)?.dead)) return 'Só o Kage usa esta espada: eleja um Kage antes.';
+  }
+  return null;
+}
+
 export const recipesOf = (type: BuildingType) => ITEM_LIST.filter((d) => d.building === type);
 export const isWorkshop = (type: BuildingType) => ITEM_LIST.some((d) => d.building === type);
 
@@ -132,6 +149,8 @@ export function enqueueCraft(g: Game, buildingId: number, itemId: string): Resul
   if (!b || !def || def.building !== b.type) return fail('Inválido.');
   if (!b.built) return fail('A oficina ainda está em construção.');
   if ((def.minLevel ?? 0) > g.state.level) return fail(`Requer nível ${levelDef(def.minLevel!).name}.`);
+  const why = craftBlock(g, b, itemId);
+  if (why) return fail(why);
   const q = (b.queue ??= []);
   if (q.length + (b.craft ? 1 : 0) >= queueMax(b)) return fail(`Fila cheia (máx. ${queueMax(b)}).`);
   if (!g.pay(def.cost)) return fail('Recursos insuficientes.');
@@ -163,6 +182,12 @@ export function advanceCraft(g: Game, buildingId: number, dt: number): boolean {
   const def = ITEMS[b.craft.itemId]!;
   b.craft.progress += dt * craftMult(b); // upgrade da oficina fabrica mais rápido
   if (b.craft.progress >= def.craftTime) {
+    if (def.blade) {
+      // lâmina lendária: entra na lista da vila (única, nunca some)
+      b.craft = null;
+      grantBlade(g, def.blade, 'A Forja terminou', { x: (b.tx + BUILDINGS[b.type].w / 2) * 32, y: b.ty * 32 });
+      return true;
+    }
     put(g, def.id);
     b.craft = null;
     const d = BUILDINGS[b.type];

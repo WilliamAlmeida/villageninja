@@ -7,6 +7,7 @@ import { SPEC } from '../../data/specs';
 import { spyNinjaNear } from '../specs';
 import { dogSniff, sniffRange } from '../ninken';
 import { orgBrain } from '../org';
+import { swordsmanPrey } from '../swordsmen';
 import { createAnimal, createRogue } from '../entities';
 import { costLabel } from '../../data/resources';
 import { applyDamage, areaDamage, engage, spawnProjectile, trySupport } from '../combat';
@@ -95,7 +96,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   }
   if (u.role === 'puppet') return puppet(g, u, dt);
   if (u.org && orgBrain(g, u, dt)) return; // Ordem do Eclipse: caça o mais forte e usa a técnica própria
-  if (u.cloak) revealSpy(g, u);
+  if (u.cloak && !u.swordsman) revealSpy(g, u); // espadachim sumindo na névoa não é espião
   if (!u.cloak) trySupport(g, u);
   if (u.missionId != null) return guardHome(g, u, dt, 220);
   if (u.guard != null) return guardHome(g, u, dt, 110, 60); // guardião não se afasta do altar
@@ -105,7 +106,8 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (u.state !== 'escape' && u.role === 'medic' && medic(g, u, dt)) return;
   if (u.state !== 'escape' && u.role === 'bomber' && bomber(g, u, dt)) return;
   if (u.state !== 'escape') {
-    const t = validTarget(g, u, 320) ?? g.nearestHostile(u, 220);
+    // espadachim da Névoa não rouba: caça o ninja da vila mais perto, onde estiver
+    const t = validTarget(g, u, 320) ?? g.nearestHostile(u, 220) ?? (u.swordsman ? swordsmanPrey(g, u) : null);
     if (t) {
       engage(g, u, t, dt);
       return;

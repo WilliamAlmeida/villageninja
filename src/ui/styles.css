@@ -880,6 +880,20 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .sc-beast small { font-size: 0.7rem; text-align: center; color: var(--c); font-weight: 700; }
 .sc-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .scard > .hint { margin: 0; font-size: 0.78rem; }
+/* ANBU e Espadachins da Névoa */
+.alist { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.35rem; margin-bottom: 0.5rem; }
+.arow { display: flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.4rem; border-radius: 0.6rem; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(216, 212, 200, 0.3); }
+.a-face { flex: 0 0 auto; width: 3.4rem; height: 3.4rem; display: grid; place-items: end center; border-radius: 0.5rem; background: rgba(216, 212, 200, 0.08); }
+.a-face img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.a-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.a-main small { color: var(--muted); font-size: 0.74rem; }
+.a-cov { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.a-cov > small { color: var(--muted); display: flex; gap: 0.2rem; align-items: center; }
+.blist { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.55rem; align-items: center; }
+.blist > small { width: 100%; color: var(--muted); display: flex; gap: 0.2rem; align-items: center; }
+.bl { display: flex; flex-direction: column; padding: 0.2rem 0.45rem; border-radius: 0.45rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); opacity: 0.6; }
+.bl.on { opacity: 1; border-color: rgba(255, 211, 77, 0.5); }
+.bl b { font-size: 0.78rem; } .bl small { font-size: 0.68rem; color: var(--muted); }
 
 /* ---------- janela Mundo ---------- */
 .rnode { gap: 0.15rem; }

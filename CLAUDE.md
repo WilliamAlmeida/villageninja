@@ -47,9 +47,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   no quadro, `FRAME_PAD` em art.ts). Peças: roupa de Genin, cabelo espetado, bandana, coletes de Chunin e Jounin,
   sobretudo de Sannin (cor por caminho), manto e chapéu de Kage (Kage = base careca com chapéu), espadas do anime
   (`SWORDS`/`dollSword` em doll.ts: os Sete Espadachins da Névoa, Kusanagi, Sabre de Chakra, lâminas do Asuma, Raijin,
-  sete espadas do Bee, tantō; por enquanto Jounin/Sannin pela natureza, Kage = Raijin — provisório até virar arma lendária)
-  e ANBU (`outfit-anbu` + máscara `mask-<animal>` pelo melhor atributo, `ANBU_MASKS`; por enquanto veste quem tem a profissão
-  Espião). Máscaras só geram a folha inteira (sem a vista de lado). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
+  sete espadas do Bee, tantō: o sprite mostra a lâmina lendária EQUIPADA, `bladeOf`) e ANBU (`outfit-anbu` + máscara
+  `mask-<animal>` pelo melhor atributo, `data/anbu.ts`; veste quem foi nomeado, `NinjaInfo.anbu`). Máscaras só geram a
+  folha inteira (sem a vista de lado). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
   Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo sem camada segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
 - **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011 (`bun run editor` ou PM2
@@ -133,6 +133,20 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   vãos fechados que ficaram com o branco do fundo (`HOLES`: cadeado, engrenagem, quadrado, silhueta do líder, Tsuchigumo;
   arte nova com o mesmo problema entra ali) — não corrija o PNG de saída à mão, o script regrava; bustos e ilustrações com filtro
   bilinear no CSS.
+- **Lâminas lendárias** (`data/blades.ts`, `game/blades.ts`): itens de arma únicos (`blade-<id>`, `ItemDef.blade`), cada um
+  com o efeito do anime em combate (`bladeHit`/`bladeMult`/`bladeDefense` em `applyDamage`, alcance/ritmo em `meleeStats`,
+  Raijin em `bladeTick`). `state.blades` = as que a vila já conseguiu (`grantBlade`); quem cai com uma, ela volta ao
+  estoque (`recoverBlades`, sistema `legends`). Origem: as 7 da Névoa (Espadachins), Kusanagi (Sannin das Serpentes), Sete
+  espadas (explorar a Ilha Vulcânica), Sabre de Chakra/Lâminas do Asuma/Raijin (Forja nível 3, `minBuildingLevel`,
+  `craftBlock`; Raijin `kageOnly`). Sem "Manter" nem lote.
+- **Espadachins da Névoa** (`data/swordsmen.ts`, `game/swordsmen.ts`, `state.swordsmen`): da Vila Oculta em diante invadem
+  em dupla com escolta (`swordsmenTick`), caçam ninjas em vez de roubar (`swordsmanPrey`). Só UMA espada por invasão: o
+  primeiro derrubado cai e deixa a lâmina (`swordsmanFall` em `killUnit`); os outros somem na névoa (cloak + fuga) e voltam.
+  Tomadas as sete, acabam. Sprite montado como ninja com a lâmina (`swordsmanPortrait` para a aba Kage).
+- **ANBU** (`game/anbu.ts`, seção na aba Kage): o Kage nomeia Chunins/Jounins (Torre de Inteligência; 3 vagas); saem das
+  equipes, máscara pelo melhor atributo (+1 nele). Invisíveis (`cloak`) até atacar — emboscada (`anbuAmbush`) —, ficam na
+  rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
+  na Região: ação `covert` (`startCovert`, expedição com `teamId -1`): metade do saque sem infâmia se não forem descobertos.
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Exploração** (`game/explore.ts`, `systems/explore.ts`): névoa em bitset (`state.explored`, 1 bit por tile);
   unidades/torres da vila revelam ao redor. Na névoa nada em pé é desenhado nem clicável (inimigos, recursos, locais).
@@ -236,7 +250,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v20.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v21.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

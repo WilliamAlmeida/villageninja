@@ -38,6 +38,7 @@ export function setKeep(g: Game, buildingId: number, itemId: string, n: number):
   const b = g.building(buildingId);
   const def = ITEMS[itemId];
   if (!b || !def || def.building !== b.type) return fail('Inválido.');
+  if (def.blade) return fail('Lâmina lendária: forja-se uma vez só, à mão.');
   if (!canAutoCraft(b)) return fail(`Faça o upgrade da oficina para o nível ${AUTO_CRAFT_LEVEL} para fabricar sozinha.`);
   b.keep ??= {};
   if (n > 0) b.keep[itemId] = Math.min(30, Math.round(n));
@@ -50,7 +51,7 @@ export function autoCraftTick(g: Game) {
   for (const b of g.state.buildings) {
     if (!b.keep || !canAutoCraft(b)) continue;
     for (const r of recipesOf(b.type)) {
-      const want = b.keep[r.id] ?? 0;
+      const want = r.blade ? 0 : (b.keep[r.id] ?? 0);
       let have = pipeline(g, r.id);
       while (have < want && g.canAfford(r.cost) && enqueueCraft(g, b.id, r.id).ok) have++;
     }

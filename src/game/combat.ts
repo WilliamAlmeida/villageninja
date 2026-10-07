@@ -21,6 +21,9 @@ import { sageDamage, sanninSurvive } from './sannin';
 import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
 import { gearBonus } from './gearBonus';
+import { bladeDefense, bladeHit, bladeMult, bladeReach, bladeSpeed } from './blades';
+import { anbuAmbush } from './anbu';
+import { swordsmanFall } from './swordsmen';
 import { ITEMS } from '../data/items';
 import { hasTeammateNear } from './teams';
 import { KAGE_DAMAGE_BONUS } from './kage';
@@ -38,7 +41,7 @@ function meleeStats(u: Unit) {
   }
   if (u.ninja) {
     const d = derive(u.ninja.stats);
-    return { dmg: (d.meleeDmg + gearBonus(u).melee) * (u.kind === 'clone' ? 0.5 : 1), cd: d.meleeCd, range: MELEE_RANGE };
+    return { dmg: (d.meleeDmg + gearBonus(u).melee) * (u.kind === 'clone' ? 0.5 : 1), cd: d.meleeCd * bladeSpeed(u), range: MELEE_RANGE + bladeReach(u) };
   }
   return { dmg: 2, cd: 1.5, range: MELEE_RANGE };
 }
@@ -395,7 +398,12 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   dmg *= natureWeather(g.state, nature, t.x, t.y);
   // espião da vila por perto marca o alvo
   if (src?.faction === 'village' && t.faction !== 'village' && spyNinjaNear(g, t.x, t.y, SPEC.markRange)) dmg *= SPEC.markBonus;
-  if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense);
+  // lâmina lendária (corpo a corpo): carga da Hiramekarei, Kabutowari contra chefes, lâminas do Asuma com Fuuton
+  const blade = opts.melee && src && src.kind !== 'clone';
+  if (blade) dmg *= bladeMult(g, src, t);
+  // ANBU invisível: o primeiro golpe é uma emboscada
+  dmg *= anbuAmbush(src);
+  if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense) * (blade ? bladeDefense(src) : 1);
   if (t.shield > 0) dmg *= 0.4;
   if (t.org === 'tetsuo') dmg *= 0.5; // Corpo de Ferro
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
@@ -413,6 +421,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (t.arenaSide) recordDuelDamage(g.state, src?.id, dmg);
   t.combatTimer = 5;
   fxText(g, t.x + rand(-6, 6), t.y - 18, mult > 1 ? `${dmg}!` : `${dmg}`, mult > 1 ? '#ffb347' : mult < 1 ? '#9aa4b0' : '#ffffff');
+  if (blade) bladeHit(g, src, t, dmg);
   if (opts.stun) t.stun = Math.max(t.stun, opts.stun);
   if (opts.knock) {
     const from = opts.from ?? src ?? t;
@@ -442,6 +451,8 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
     g.toast(`{beast} ${t.name} perdeu uma cabeça! Restam ${t.heads}.`, 'good', t);
     return;
   }
+  // Espadachim da Névoa: só o primeiro da invasão cai (e deixa a espada); os outros somem na névoa
+  if (t.swordsman && swordsmanFall(g, t)) return;
   t.dead = true;
   t.hp = 0;
   if (t.org) orgMemberDown(g, t);

@@ -3,6 +3,9 @@
 import { TILE } from '../config';
 import { art, artFrames, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
 import { anbuMask, dollParts } from './doll';
+import { bladeOf } from '../game/blades';
+import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
+import type { MistBlade } from '../data/blades';
 import { ANIMALS } from '../data/animals';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
@@ -159,10 +162,16 @@ function unitPic(u: Unit) {
   if (u.org) return art(`org-${u.org}`) ?? art('rogue'); // Ordem do Eclipse: arte própria de cada membro
   if (u.role === 'puppet') return art('puppet') ?? art('rogue');
   if (u.kind === 'villager') return art('villager');
+  if (u.swordsman && u.look) {
+    // Espadachim da Névoa: montado como os ninjas, com o colete e a lâmina dele
+    const d = SWORDSMEN[u.swordsman];
+    const doll = dollParts({ style: d.style, rank: 'chunin', sword: u.swordsman, look: u.look });
+    return (doll && dollArt(doll, u.look.skin)) ?? art('rogue');
+  }
   if (u.faction === 'enemy') return art('rogue');
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
-  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, nature: u.ninja?.nature, spec: u.ninja?.spec, stats: u.ninja?.stats, id, look: u.look }) : null;
+  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, stats: u.ninja?.stats, sword: bladeOf(u), look: u.look }) : null;
   return (doll && dollArt(doll, u.look.skin)) ?? tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
 }
 
@@ -186,8 +195,8 @@ const known = (key: string) => portraits.has(key);
  * (cabeça e tronco) e ampliado sem borrar. Fica em cache por aparência. Sem arte carregada, null.
  */
 export function unitPortrait(u: Unit, full = false): string | null {
-  // ninja da vila: busto pintado do penteado dele, recolorido (cabelo/roupa/pele) como o sprite
-  if (!full && u.kind === 'ninja' && u.faction !== 'enemy' && !u.org && u.look && typeof document !== 'undefined') {
+  // ninja da vila: busto pintado do penteado dele, recolorido (cabelo/roupa/pele) como o sprite (a ANBU usa o sprite: máscara)
+  if (!full && u.kind === 'ninja' && u.faction !== 'enemy' && !u.org && !u.ninja?.anbu && u.look && typeof document !== 'undefined') {
     const style = NINJA_HAIRSTYLES[u.id % NINJA_HAIRSTYLES.length];
     const bust = tintedArt(`bust-${style}`, u.look);
     if (bust) {
@@ -195,7 +204,16 @@ export function unitPortrait(u: Unit, full = false): string | null {
     }
   }
   const pic = unitPic(u);
-  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}|${u.ninja?.rank ?? ''}|${u.ninja?.sannin ?? ''}|${u.ninja?.spec ?? ''}|${u.ninja?.spec ? anbuMask(u.ninja.stats) : ''}|${u.ninja?.nature ?? ''}|${u.id}`) : null;
+  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}|${u.ninja?.rank ?? ''}|${u.ninja?.sannin ?? ''}|${u.ninja?.anbu ? anbuMask(u.ninja.stats) : ''}|${bladeOf(u) ?? ''}`) : null;
+}
+
+/** Retrato de corpo inteiro de um Espadachim da Névoa (o sprite montado com a lâmina dele), para a aba Kage. */
+export function swordsmanPortrait(id: MistBlade): string | null {
+  const d = SWORDSMEN[id];
+  const look = { hair: d.hair, cloth: SWORDSMEN_ORG.cloth, skin: '#e0b088' };
+  const doll = dollParts({ style: d.style, rank: 'chunin', sword: id, look });
+  const pic = doll && dollArt(doll, look.skin);
+  return pic ? picPortrait(pic, true, `sw|${id}`) : null;
 }
 
 /** Retrato do Kage: o busto do penteado dele com o chapéu e o manto de Kage, recolorido; sem a arte, o busto comum. */
@@ -274,7 +292,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // tigre das sombras: quase some no escuro até entrar em combate
   if (u.animal && ANIMALS[u.animal].night && u.combatTimer <= 0) ctx.globalAlpha = 0.45;
   // espião invisível: só um vulto tremulando
-  if (u.cloak) ctx.globalAlpha = 0.14 + Math.sin(t * 6 + u.id) * 0.05;
+  if (u.cloak) ctx.globalAlpha = u.faction === 'village' ? 0.45 : 0.14 + Math.sin(t * 6 + u.id) * 0.05; // ANBU da vila: meio transparente
   if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
   const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
@@ -334,7 +352,7 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
     ctx.stroke();
   }
   const hostile = u.faction !== 'village';
-  if (u.cloak) return; // invisível: sem barra nem marca
+  if (u.cloak && u.faction !== 'village') return; // invisível: sem barra nem marca
   if (selected || u.hp < u.maxHp || (hostile && u.kind !== 'animal')) drawBars(ctx, u, selected);
   if (u.role || u.loot) drawMark(ctx, u, t);
 }

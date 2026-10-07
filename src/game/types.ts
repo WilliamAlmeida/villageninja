@@ -3,6 +3,7 @@ import type { KageArtId } from '../data/kageArts';
 import type { SanninPath } from '../data/sannin';
 import type { DogBreed } from '../data/breeds';
 import type { OrgMemberId } from '../data/org';
+import type { BladeId, MistBlade } from '../data/blades';
 import type { OrgState } from './org';
 import type { MarketGood } from '../data/specialize';
 // Sistemas mutam o estado; render e UI apenas leem.
@@ -69,6 +70,8 @@ export interface NinjaInfo {
   kageArt?: KageArtId;
   /** Um dos Três Sannin (caminho do sapo, da serpente ou da lesma). */
   sannin?: SanninPath;
+  /** Nomeado para a ANBU pelo Kage (game/anbu.ts): uniforme, máscara e furtividade. */
+  anbu?: boolean;
 }
 
 /** Herança de família: o que um morador traz de berço (usado ao virar ninja). */
@@ -203,6 +206,13 @@ export interface Unit {
   breed?: DogBreed;
   /** Marcado pela fórmula do Hiraishin (id do Kage) por `t` segundos. */
   mark?: { by: number; t: number };
+  /** Espadachim da Névoa (carrega essa lâmina). */
+  swordsman?: MistBlade;
+  /** Lâmina lendária: `state.time` em que o efeito com recarga fica pronto de novo. */
+  bladeAt?: number;
+  /** ANBU: segundos até voltar a ficar invisível depois de atacar; recarga da guarda do Kage. */
+  seenT?: number;
+  guardCd?: number;
 }
 
 export type Command =
@@ -300,6 +310,15 @@ export interface Expedition {
   /** O que já foi achado (só entra no estoque quando a equipe volta). */
   loot: Cost;
   day: number;
+}
+
+export interface SwordsmenState {
+  /** Dia da próxima invasão (0 = ainda não agendada). */
+  nextDay: number;
+  /** Na invasão em andamento já caiu um espadachim (a espada dele ficou com a vila): os outros fogem na névoa. */
+  taken: boolean;
+  /** As sete espadas foram tomadas. */
+  done: boolean;
 }
 
 /** Situação de um lugar do mapa da região (ver data/region.ts). */
@@ -485,6 +504,10 @@ export interface GameState {
   clouds: Cloud[];
   /** A Ordem do Eclipse: quem já caiu, próxima aparição, covil descoberto, destruída. */
   org: OrgState;
+  /** Lâminas lendárias que a vila já conseguiu (nunca somem: quem cai com uma, ela volta ao estoque). */
+  blades: BladeId[];
+  /** Os Espadachins da Névoa: próxima invasão, espada já tomada nesta invasão, fim. */
+  swordsmen: SwordsmenState;
   /** Mapa de missão jogável em andamento (a equipe está lá; a vila continua andando). */
   scene?: GameState | null;
   /** Só nos mapas de missão: o que é e como termina. */

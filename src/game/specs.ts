@@ -1,6 +1,8 @@
 // Profissões e invocações dos ninjas da vila em combate: médico cura, espião marca e revela, marionetista monta um
 import { SANNIN } from '../data/sannin';
 import { sanninTick } from './sannin';
+import { anbuTick } from './anbu';
+import { bladeTick } from './blades';
 // boneco, e quem tem contrato invoca sapo / serpente / lesma. Chamado pelo sistema dos ninjas a cada tick.
 import { ANIMALS } from '../data/animals';
 import { CONTRACTS } from '../data/contracts';
@@ -43,6 +45,8 @@ export function learnSpec(g: Game, unitId: number, kind: SpecKind): Result {
 export function specTick(g: Game, u: Unit, dt: number) {
   const n = u.ninja!;
   sanninTick(g, u); // técnica lendária dos Sannin
+  anbuTick(g, u, dt); // ANBU: invisibilidade e guarda do Kage
+  bladeTick(g, u); // Raijin no Ken: raio de longe
   if (n.spec || n.contract) u.abilityCd = (u.abilityCd ?? 0) - dt;
   u.summonCd = (u.summonCd ?? 0) - dt;
   const inCombat = u.combatTimer > 0 && !u.hidden;
@@ -89,4 +93,4 @@ export function specTick(g: Game, u: Unit, dt: number) {
 
 /** Espiões da vila revelam espiões inimigos de longe. */
 export const spyNinjaNear = (g: Game, x: number, y: number, r: number) =>
-  g.state.units.some((o) => !o.dead && !o.hidden && o.faction === 'village' && o.ninja?.spec === 'spy' && Math.hypot(o.x - x, o.y - y) < r);
+  g.state.units.some((o) => !o.dead && !o.hidden && o.faction === 'village' && (o.ninja?.spec === 'spy' || o.ninja?.anbu) && Math.hypot(o.x - x, o.y - y) < r);

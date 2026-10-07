@@ -12,6 +12,7 @@ import { gearSystem } from './gear';
 import { automationSystem } from './automation';
 import { sceneRunSystem, sceneSystem } from './scene';
 import { orgSystem } from './org';
+import { legendsSystem } from './legends';
 import { kageSystem } from './kage';
 import { missionSystem } from './missions';
 import { ninjaSystem } from './ninjas';
@@ -56,6 +57,7 @@ export const SYSTEMS: System[] = [
   gearSystem,
   automationSystem,
   orgSystem,
+  legendsSystem,
   sceneRunSystem,
 ];
 

@@ -4,6 +4,7 @@ import { costLabel } from '../data/resources';
 import { HUNDRED, SAGE, SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { levelDef } from '../data/villageLevels';
 import { fx, fxText } from './fx';
+import { grantBlade } from './blades';
 import type { Game } from './game';
 import type { NinjaInfo, Unit } from './types';
 
@@ -47,6 +48,7 @@ export function nameSannin(g: Game, unitId: number, path: SanninPath): Result {
   fx(g, 'ring', u!.x, u!.y, { r: 46, color: d.color, life: 1.2 });
   fxText(g, u!.x, u!.y - 36, d.title, d.color, true);
   g.toast(`{crown} ${u!.name} agora é o ${d.title}! Técnica lendária: ${d.art}.`, 'good', u);
+  if (path === 'snake') grantBlade(g, 'kusanagi', 'O caminho das serpentes', u); // a Kusanagi vem com o título
   return { ok: true };
 }
 

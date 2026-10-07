@@ -5,7 +5,7 @@ import type { Cost } from '../game/types';
 /** `hideout`: o covil da Ordem do Eclipse (só aparece quando descoberto). */
 export type RegionKind = 'village' | 'island' | 'sacred' | 'hideout';
 export type ContractKind = 'toad' | 'snake' | 'slug';
-export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract' | 'assault';
+export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract' | 'assault' | 'covert';
 
 export interface RegionNodeDef {
   id: string;
@@ -100,11 +100,13 @@ export const ACTION_TIME: Record<RegionAction, { travel: number; work: number }>
   train: { travel: 14, work: 40 },
   contract: { travel: 14, work: 20 },
   assault: { travel: 18, work: 30 },
+  covert: { travel: 10, work: 14 },
 };
 
 export const ACTION_LABEL: Record<RegionAction, string> = {
   trade: 'Comerciar', protect: 'Proteger', raid: 'Saquear', annex: 'Anexar', explore: 'Explorar',
   outpost: 'Montar posto avançado', train: 'Treinar no templo', contract: 'Buscar contrato', assault: 'Invadir o covil',
+  covert: 'Missão secreta da ANBU',
 };
 
 /** Custo para montar um posto avançado numa ilha e para anexar um vilarejo em paz. */
