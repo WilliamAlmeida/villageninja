@@ -1361,7 +1361,7 @@ export class Panel {
       return chip('{ninja}', `${ninjas.length} ninjas`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
     }
     if (group === 'village')
-      return chip('{star}', `Reputação ${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`) + chip('{pin}', levelDef(s.level).name);
+      return chip('{star}', `Reputação ${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`);
     if (group === 'world') {
       const exps = s.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost').length;
       return chip('{star}', `Honra ${s.honor}`, 'gold') + chip('{skull}', `Infâmia ${s.infamy}`, s.infamy ? 'bad' : '') + chip('{flag}', `Expedições ${exps}`);
@@ -1842,7 +1842,7 @@ export class Panel {
     const done = st ? st.checks.filter((c) => c.ok).length : 0;
     let left = `<div class="vhero"><span class="vh-art">${url ? pimg(url) : cur.icon}</span><div class="vh-main">
       <div class="vh-name">${cur.icon} ${cur.name}</div>
-      <div class="hint">Nível ${s.level + 1} de ${MAX_VILLAGE_LEVEL + 1} · território ${cur.territory} · impostos ${cur.tax}{ryo}/morador</div>`;
+      <div class="hint">Nível ${s.level + 1} de ${MAX_VILLAGE_LEVEL + 1} · território ${cur.territory} · impostos ${cur.tax} {ryo}/morador</div>`;
     if (st) {
       left += `<div class="vh-next"><span>Próximo marco: <b>${st.def.icon} ${st.def.name}</b></span><span class="mchip ${st.ready ? '' : 'gold'}">${done}/${st.checks.length} requisitos</span></div>
         <div class="nc-bar xp vh-bar"><i style="width:${(done / Math.max(1, st.checks.length)) * 100}%"></i></div>`;
