@@ -47,7 +47,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   no quadro, `FRAME_PAD` em art.ts). Peças: roupa de Genin, cabelo espetado, bandana, coletes de Chunin e Jounin,
   sobretudo de Sannin (cor por caminho), manto e chapéu de Kage (Kage = base careca com chapéu), espada do Zabuza
   (Jounin/Sannin de Suiton). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
-  Penteado sem camada ainda (`DOLL_HAIR`) segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
+  Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo sem camada segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
 - **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011 (`bun run editor` ou PM2
   `villageninja-editor`; `scripts/editor.ts` + `tools/sprite-editor/`). Só escuta em 127.0.0.1, fora do túnel. Monta o

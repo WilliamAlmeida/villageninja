@@ -41,6 +41,11 @@ PIECES = {
     'cloak-kage': ('cloth', ['outfit-genin'], '#f0ece0', '#c8352a'),
     'hat-kage': ('band', ['outfit-genin', 'cloak-kage'], '#f0ece0', '#c8352a'),
     'sword-zabuza': ('cloth', ['outfit-genin'], '#3a2a20'),
+    # os outros penteados, sobre a roupa (cabelo comprido cai por cima dela)
+    'hair-ponytail': ('hair', ['outfit-genin'], '#4a3020'),
+    'hair-short': ('hair', ['outfit-genin'], '#4a3020'),
+    'hair-long': ('hair', ['outfit-genin'], '#4a3020'),
+    'hair-buns': ('hair', ['outfit-genin'], '#4a3020'),
 }
 HEAD = 0.42  # fração de cima da figura que é a cabeça (chibi)
 HAIR_FILL = (30, 138, 43, 255)  # tom escuro da chave verde: cobre o topo careca que a peça deixou à mostra

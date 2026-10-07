@@ -19,7 +19,8 @@ const RANK_OPTS: [string, string][] = [
 ];
 const HAIR_NAMES: Record<string, string> = { spiky: 'Espetado', bald: 'Careca', ponytail: 'Rabo de cavalo', short: 'Curto', long: 'Longo', buns: 'Coques' };
 const PART_NAMES: Record<string, string> = {
-  'ninja-body': 'Corpo-base', 'layer-outfit-genin': 'Roupa de Genin', 'layer-hair-spiky': 'Cabelo espetado', 'layer-headband': 'Bandana',
+  'ninja-body': 'Corpo-base', 'layer-outfit-genin': 'Roupa de Genin', 'layer-hair-spiky': 'Cabelo espetado', 'layer-hair-ponytail': 'Rabo de cavalo', 'layer-hair-short': 'Cabelo curto',
+  'layer-hair-long': 'Cabelo longo', 'layer-hair-buns': 'Coques', 'layer-headband': 'Bandana',
   'layer-vest-chunin': 'Colete de Chunin', 'layer-vest-jounin': 'Colete de Jounin', 'layer-coat-sannin': 'Sobretudo de Sannin',
   'layer-cloak-kage': 'Manto de Kage', 'layer-hat-kage': 'Chapéu de Kage', 'layer-sword-zabuza': 'Espada do Zabuza',
 };

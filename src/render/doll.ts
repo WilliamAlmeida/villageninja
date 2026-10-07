@@ -18,7 +18,9 @@ export interface DollWho {
 }
 
 /** Penteados que já existem como camada (os outros seguem na folha antiga até ganharem a sua; o Kage, de chapéu, não). */
-export const DOLL_HAIR: Partial<Record<string, string>> = { spiky: 'layer-hair-spiky', bald: '' };
+export const DOLL_HAIR: Partial<Record<string, string>> = {
+  spiky: 'layer-hair-spiky', ponytail: 'layer-hair-ponytail', short: 'layer-hair-short', long: 'layer-hair-long', buns: 'layer-hair-buns', bald: '',
+};
 /** Colete por patente: arte e cor. */
 export const VESTS: Partial<Record<string, [string, string]>> = { chunin: ['layer-vest-chunin', '#5f6b3a'], jounin: ['layer-vest-jounin', '#4e5a3a'] };
 /** Sobretudo de cada caminho dos Sannin (cor do casaco, cor do debrum e do emblema). */
