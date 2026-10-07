@@ -1587,23 +1587,6 @@ h4::after { background: var(--line); opacity: 0.6; }
 /* ajuste de altura: cabe em ~1180×830 (a janela do jogador) sem rolagem; sobra vai para retrato e bustos */
 .whead { flex-wrap: nowrap; }
 .wright { flex-wrap: nowrap; }
-/* cabeçalho numa linha só: nada quebra palavra (título, abas, etiquetas, botões); faltando espaço, as etiquetas
-   (só informação) rolam de lado em vez de empurrar o título para duas linhas */
-.whead .mh-title, .wtabs button, .wright .mchip, .wright .btn { white-space: nowrap; }
-.whead .mh-title, .wtabs { flex-shrink: 0; }
-.wright { min-width: 0; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
-.wright::-webkit-scrollbar { display: none; }
-.wright > * { flex-shrink: 0; }
-@media (max-width: 1440px) {
-  .whead { gap: 0.6rem 0.75rem; }
-  .whead .mh-title { font-size: 1.55rem; margin-right: 0.2rem; }
-  .whead .mh-title .ic { width: 1.7rem; height: 1.7rem; }
-  .wtabs button { padding: 0.5rem 0.9rem; font-size: 1rem; }
-  .wright .mchip { font-size: 0.92rem; padding: 0.3rem 0.65rem; }
-  .wright .btn { padding: 0.45rem 0.8rem; }
-  /* etiqueta fica só com ícone e número (o nome está na dica) */
-  .wright .mchip .ml { display: none; }
-}
 .kfill .k-chips.one { flex-wrap: wrap; }
 .kfill .k-acts .btn { white-space: nowrap; font-size: 1.1rem; padding: 0.75rem 0.8rem; }
 .kfill .om-face { min-height: 4.6rem; }
