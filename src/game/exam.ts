@@ -2,6 +2,7 @@
 import { promoteToSensei } from './teams';
 // A execução das lutas na arena fica em systems/exam.ts.
 import { TILE } from '../config';
+import { layoutPoint } from '../data/layout';
 import { rand } from '../core/rng';
 import { randomName } from '../data/names';
 import { RANKS, STAT_KEYS } from '../data/ninja';
@@ -63,10 +64,16 @@ export function arenaSpots(a: Building) {
   const y0 = a.ty * TILE;
   const w = BUILDINGS.arena.w * TILE;
   const ring = arenaRing(a);
+  // lugares ajustáveis no Editor de cenário: "left", "right" (os dois do duelo) e "stands" (começo da arquibancada)
+  const pt = (n: string, def: { x: number; y: number }) => {
+    const p = layoutPoint('arena', n);
+    return p ? { x: x0 + p[0], y: y0 + p[1] } : def;
+  };
+  const st = pt('stands', { x: x0 + 10, y: y0 + w + 14 });
   return {
-    left: { x: ring.cx - ring.r * 0.5, y: ring.cy },
-    right: { x: ring.cx + ring.r * 0.5, y: ring.cy },
-    stand: (i: number) => ({ x: x0 + 10 + (i % 8) * ((w - 20) / 7), y: y0 + w + 14 + Math.floor(i / 8) * 14 }),
+    left: pt('left', { x: ring.cx - ring.r * 0.5, y: ring.cy }),
+    right: pt('right', { x: ring.cx + ring.r * 0.5, y: ring.cy }),
+    stand: (i: number) => ({ x: st.x + (i % 8) * ((w - 20) / 7), y: st.y + Math.floor(i / 8) * 14 }),
     center: { x: x0 + w / 2, y: y0 + w / 2 },
   };
 }

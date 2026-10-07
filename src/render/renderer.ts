@@ -16,6 +16,8 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { plainTokens } from '../core/tokens';
+import { artLayout } from '../data/layout';
+import { pieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
@@ -50,8 +52,8 @@ const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 const FOG_PAD = 3;
 
 type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco;
-  /** Cercado (arena) desenhado em duas peças: fundo atrás de quem está dentro, muro da frente na frente. */
-  part?: 'back' | 'front' };
+  /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
+  piece?: number };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -113,6 +115,7 @@ export class Renderer {
 
   render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
+    this.level = s.level;
     let cache = this.maps.get(s);
     if (!cache) {
       cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal() };
@@ -223,8 +226,15 @@ export class Renderer {
     this.drawObjectives(g, time);
     ctx.restore();
 
-    // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo
-    for (const b of s.buildings) if (BUILDINGS[b.type].walkable && !BUILDINGS[b.type].enclosure && art(b.type)) this.building(b, time, night, s.level);
+    // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
+    // (Editor de cenário), só o "resto" vai no chão e as peças entram em pé
+    for (const b of s.buildings) {
+      const box = this.artBox(b, s.level);
+      const set = box && pieceSet(box.artName, box.pic);
+      if (set) {
+        if (artLayout(box!.artName)!.ground ?? !!BUILDINGS[b.type].walkable) this.drawPiece(b, 0, s.level);
+      } else if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
+    }
     this.drawHarvest(g);
 
     // ================= passada 2: em pé, do fundo para a frente =================
@@ -239,15 +249,19 @@ export class Renderer {
     list.length = 0;
     for (const b of s.buildings) {
       const def = BUILDINGS[b.type];
-      if (def.enclosure && art(b.type)) {
-        // arena: o fundo entra na profundidade do muro de trás; o muro da frente, na do muro da frente
+      const box = this.artBox(b, s.level);
+      const set = box && pieceSet(box.artName, box.pic);
+      if (set) {
+        // peças pintadas: cada uma na profundidade da âncora (onde toca o chão); o resto em pé no meio do prédio
         const c = buildingCenter(b);
-        const r = (def.w * TILE) / 2 / Math.SQRT2;
-        const back = project(c.x - r, c.y - r);
-        const front = project(c.x + r, c.y + r);
-        if (seen(project(c.x, c.y))) {
-          list.push({ x: back.x, y: back.y, b, part: 'back' });
-          list.push({ x: front.x, y: front.y, b, part: 'front' });
+        if (!seen(project(c.x, c.y))) continue;
+        const L = artLayout(box!.artName)!;
+        L.pieces!.forEach((p, i) => {
+          if (set.canvases[i + 1]) list.push({ x: box!.left + p.ax * box!.w, y: box!.top + p.ay * box!.h, b, piece: i + 1 });
+        });
+        if (!(L.ground ?? !!def.walkable) && set.canvases[0]) {
+          const pc = project(c.x, c.y);
+          list.push({ x: pc.x, y: pc.y, b, piece: 0 });
         }
         continue;
       }
@@ -265,7 +279,16 @@ export class Renderer {
     for (const site of s.sites) {
       if (!site.found || (site.done && site.kind !== 'chest')) continue; // baú aberto fica no chão (aberto) até reaparecer noutro lugar
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
-      if (seen(p)) list.push({ x: p.x, y: p.y, site });
+      if (!seen(p)) continue;
+      // peças pintadas (ruína, mina): cada uma na profundidade da âncora; o resto em pé no ponto do local
+      const box = this.siteBox(site, p.x, p.y);
+      const set = box && site.kind !== 'chest' ? pieceSet(box.name, box.pic) : null;
+      if (set) {
+        artLayout(box!.name)!.pieces!.forEach((pc, i) => {
+          if (set.canvases[i + 1]) list.push({ x: box!.left + pc.ax * box!.w, y: box!.top + pc.ay * box!.h, site, piece: i + 1 });
+        });
+        if (set.canvases[0]) list.push({ x: p.x, y: p.y, site, piece: 0 });
+      } else list.push({ x: p.x, y: p.y, site });
     }
     // enfeites (boneco de neve, lanternas) só em chão livre: nada dentro de campo, horta ou arena
     this.decos = this.seasonal.decorations(s, (x, y) => g.world.walkablePx(x, y) && !g.world.buildingIdAt(Math.floor(x / TILE), Math.floor(y / TILE)));
@@ -282,7 +305,7 @@ export class Renderer {
     // diante de uma face frontal do prédio (x além da direita ou y além do fundo do retângulo) vem depois dele;
     // as outras próximas vêm antes.
     for (const d of list) d.k = d.y;
-    const blocks = list.filter((d) => d.b && !d.part);
+    const blocks = list.filter((d) => d.b && d.piece == null);
     for (const d of list) {
       if (d.b) continue;
       const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
@@ -294,23 +317,6 @@ export class Renderer {
         const front = wx >= b.tx + def.w || wy >= b.ty + def.h;
         if (front && d.k! <= o.y) d.k = o.y + 0.01;
         else if (!front && d.k! >= o.y) d.k = o.y - 0.01;
-      }
-    }
-    // cercado (arena): quem está fora do círculo fica atrás de tudo dele (se está atrás do centro) ou na frente de tudo
-    // (se está na frente) — senão uma rocha ou um ninja colado do lado de fora aparece em cima do muro
-    for (const back of list) {
-      if (back.part !== 'back') continue;
-      const b = back.b!;
-      const front = list.find((o) => o.part === 'front' && o.b === b)!;
-      const c = buildingCenter(b);
-      const r = (BUILDINGS[b.type].w * TILE) / 2;
-      for (const d of list) {
-        if (d.b) continue;
-        const wx = d.u ? d.u.x : d.deco ? d.deco.x : d.n ? (d.n.tx + 0.5) * TILE : (d.site!.tx + 0.5) * TILE;
-        const wy = d.u ? d.u.y : d.deco ? d.deco.y : d.n ? (d.n.ty + 0.5) * TILE : (d.site!.ty + 0.5) * TILE;
-        const dist = Math.hypot(wx - c.x, wy - c.y);
-        if (dist < r - 4 || dist > r + 3 * TILE) continue;
-        d.k = wx + wy < c.x + c.y ? Math.min(d.k!, back.k! - 0.01) : Math.max(d.k!, front.k! + 0.01);
       }
     }
     list.sort((a, b) => a.k! - b.k!);
@@ -325,9 +331,9 @@ export class Renderer {
       }
     const occluded = this.occluders(list);
     for (const d of list) {
-      if (d.b || d.n) {
+      if (d.b || d.n || (d.site && d.piece != null)) {
         // quem tapa uma unidade fica semitransparente (some e volta suavemente)
-        const key = d.b ? `b${d.b.id}${d.part ?? ""}` : `n${d.n!.id}`;
+        const key = d.b ? `b${d.b.id}:${d.piece ?? ''}` : d.n ? `n${d.n.id}` : `s${d.site!.id}:${d.piece}`;
         const target = occluded.has(d) ? 0.38 : 1;
         const cur = this.fade.get(key) ?? 1;
         const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
@@ -335,8 +341,9 @@ export class Renderer {
         else this.fade.set(key, a);
         ctx.globalAlpha = a;
       }
-      if (d.b && d.part) this.enclosurePart(d.b, d.part);
+      if (d.b && d.piece != null) this.drawPiece(d.b, d.piece, s.level);
       else if (d.b) this.building(d.b, time, night, s.level);
+      else if (d.site && d.piece != null) this.drawSitePiece(d.site, d.piece, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
       else if (d.n) {
@@ -464,15 +471,29 @@ export class Renderer {
     if (!bodies.length) return out;
     list.forEach((d, i) => {
       let r: { x0: number; x1: number; y0: number; y1: number } | null = null;
-      if (d.b && d.part) {
-        // peça do cercado: o fundo tapa quem está atrás do muro de trás; a frente, quem está colado no muro da frente
-        const e = this.enclosureGeom(d.b);
-        if (e) r = d.part === 'back' ? { x0: e.left, x1: e.left + e.w, y0: e.top, y1: e.ey - e.ery * 0.6 } : { x0: e.ex - e.erx, x1: e.ex + e.erx, y0: e.ey + e.ery * 0.55, y1: e.top + e.h };
+      if (d.b && d.piece != null) {
+        // peça: a área de transparência do Editor de cenário, senão o contorno dela
+        const box = this.artBox(d.b, this.level);
+        const set = box && pieceSet(box.artName, box.pic);
+        if (box && set) {
+          const L = artLayout(box.artName)!;
+          const f = (d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade) ?? set.bbox[d.piece];
+          if (f) r = { x0: box.left + f[0] * box.w, x1: box.left + f[2] * box.w, y0: box.top + f[1] * box.h, y1: box.top + f[3] * box.h };
+        }
       } else if (d.b) {
         const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty);
         const pic = art(d.b.type);
         const h = pic ? (width / pic.naturalWidth) * pic.naturalHeight : width * 0.8;
         r = { x0: front.x - width / 2, x1: front.x + width / 2, y0: front.y - h, y1: front.y };
+      } else if (d.site && d.piece != null) {
+        const p = project(d.site.tx * TILE + TILE / 2, d.site.ty * TILE + TILE / 2);
+        const box = this.siteBox(d.site, p.x, p.y);
+        const set = box && pieceSet(box.name, box.pic);
+        if (box && set) {
+          const L = artLayout(box.name)!;
+          const f = (d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade) ?? set.bbox[d.piece];
+          if (f) r = { x0: box.left + f[0] * box.w, x1: box.left + f[2] * box.w, y0: box.top + f[1] * box.h, y1: box.top + f[3] * box.h };
+        }
       } else if (d.n && d.n.type === 'tree') r = { x0: d.x - 16, x1: d.x + 16, y0: d.y - 50, y1: d.y - 6 };
       if (!r) return;
       // só conta quem está atrás (desenhado antes) e com o corpo dentro do sprite
@@ -481,64 +502,50 @@ export class Renderer {
     return out;
   }
 
-  /** Onde a arte do cercado fica na cena e a elipse do chão nela (para cortar fundo / muro da frente). */
-  private enclosureGeom(b: Building) {
-    const d = BUILDINGS[b.type];
-    const pic = art(b.type);
-    if (!pic || !d.enclosure) return null;
+  /**
+   * Arte do prédio (com o nível) e onde ela fica na cena, com escala e deslocamento do Editor de cenário.
+   * `x`/`baseY`: meio da base (onde apoia); `left`/`top`/`w`/`h`: o retângulo desenhado.
+   */
+  artBox(b: Building, level: number) {
+    const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
+    const artName = lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type;
+    const pic = art(artName);
+    if (!pic || !pic.naturalWidth) return null;
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
-    const h = ((width * (ART_SCALE[b.type] ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
+    const L = artLayout(artName);
+    const h = ((width * (ART_SCALE[artName] ?? 1) * (L?.scale ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
     const w = (h / pic.naturalHeight) * pic.naturalWidth;
-    const left = front.x - w / 2;
-    const top = front.y + 4 - h;
-    const f = d.enclosure.floor;
-    return { pic, front, left, top, w, h, ex: left + f.cx * w, ey: top + f.cy * h, erx: f.rx * w, ery: f.ry * h };
+    const x = front.x + (L?.dx ?? 0);
+    const baseY = front.y + 4 + (L?.dy ?? 0);
+    return { artName, pic, lvl, front, width, h, w, x, baseY, left: x - w / 2, top: baseY - h };
   }
 
-  /**
-   * Uma peça do cercado (arena): `back` = tudo menos o muro da frente (chão, arquibancada, muro de trás), desenhado
-   * atrás de quem está dentro; `front` = o muro da frente (abaixo da borda de baixo do chão), na frente de quem está
-   * dentro e atrás de quem está do lado de fora.
-   */
-  private enclosurePart(b: Building, part: 'back' | 'front') {
-    const e = this.enclosureGeom(b);
-    if (!e) return;
+  /** Uma peça pintada do prédio (0 = o resto). */
+  private drawPiece(b: Building, i: number, level: number) {
+    const box = this.artBox(b, level);
+    const set = box && pieceSet(box.artName, box.pic);
+    const cv = set?.canvases[i];
+    if (!box || !cv) return;
     const ctx = this.ctx;
     const d = BUILDINGS[b.type];
-    const fade = ctx.globalAlpha; // transparência de quem tapa alguém (só muros e arquibancada; o chão fica firme)
     ctx.save();
-    const built = b.built ? 1 : 0.35 + 0.45 * Math.min(1, b.progress / Math.max(1, d.buildTime));
-    if (part === 'back' && fade < 1) {
-      ctx.save();
-      ctx.globalAlpha = built;
-      ctx.beginPath();
-      ctx.ellipse(e.ex, e.ey, e.erx, e.ery, 0, 0, Math.PI * 2);
-      ctx.clip();
-      drawArt(ctx, e.pic, e.front.x, e.front.y + 4, e.h);
-      ctx.restore();
-      ctx.beginPath();
-      ctx.ellipse(e.ex, e.ey, e.erx, e.ery, 0, 0, Math.PI * 2); // o chão sai do recorte (já foi desenhado)
-    } else ctx.beginPath();
-    ctx.globalAlpha = fade * built;
-    if (part === 'back') ctx.rect(e.left - 2, e.top - 20, e.w + 4, e.h + 40);
-    // região do muro da frente: abaixo da metade de baixo da elipse do chão (e das laterais dela) + o telhado do
-    // portão; um polígono só (amostrado em x) para o "fundo" ser o resto (evenodd)
-    const arch = d.enclosure!.arch;
-    const N = 64;
-    for (let i = 0; i <= N; i++) {
-      const x = e.left - 2 + ((e.w + 4) * i) / N;
-      const u = (x - e.ex) / e.erx;
-      let y = Math.abs(u) <= 1 ? e.ey + e.ery * Math.sqrt(1 - u * u) : e.ey;
-      if (arch && x >= e.left + arch.x0 * e.w && x <= e.left + arch.x1 * e.w) y = Math.min(y, e.top + arch.y0 * e.h);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.lineTo(e.left + e.w + 2, e.top + e.h + 20);
-    ctx.lineTo(e.left - 2, e.top + e.h + 20);
-    ctx.closePath();
-    ctx.clip(part === 'back' ? 'evenodd' : 'nonzero');
-    drawArt(ctx, e.pic, e.front.x, e.front.y + 4, e.h);
+    if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * Math.min(1, b.progress / Math.max(1, d.buildTime));
+    smoothIfShrunk(ctx, box.w, box.pic.naturalWidth);
+    ctx.drawImage(cv, box.left, box.top, box.w, box.h);
     ctx.restore();
+    if (i === 0 || i === set!.canvases.length - 1) this.buildBars(b, box.front);
+  }
+
+  /** Barra da obra (construção ou upgrade) na base do prédio. */
+  private buildBars(b: Building, front: { x: number; y: number }) {
+    const ctx = this.ctx;
+    const d = BUILDINGS[b.type];
+    const k = b.built ? (b.upgrade != null ? Math.min(1, b.upgrade / upgradeTime(b)) : -1) : b.progress / Math.max(1, d.buildTime);
+    if (k < 0) return;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(front.x - 20, front.y + 6, 40, 4);
+    ctx.fillStyle = b.built ? '#5ee05e' : '#ffd34d';
+    ctx.fillRect(front.x - 19, front.y + 7, 38 * k, 2);
   }
 
   /** Ponta da frente do losango da base (onde o sprite do prédio apoia) e largura do losango, na cena. */
@@ -599,6 +606,8 @@ export class Renderer {
     } else drawNode(ctx, n);
   }
   private treeDust = new Set<number>();
+  /** Nível da vila no quadro atual (arte da Residência por nível). */
+  private level = 0;
 
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
@@ -619,18 +628,22 @@ export class Renderer {
     const k = b.built ? 1 : b.progress / Math.max(1, d.buildTime);
     ctx.save();
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
-    const h = ((width * (ART_SCALE[artName] ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
-    drawArt(ctx, pic, front.x, front.y + 4, h);
+    const box = this.artBox(b, level)!;
+    const h = box.h;
+    drawArt(ctx, pic, box.x, box.baseY, h);
     if (SEASON_VIEW.snow > 0.03 && (!d.walkable || b.type === 'farm' || b.type === 'herbgarden')) {
       ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
       // canteiros: neve pintada no próprio desenho (terra branca, plantas e cerca aparecendo); prédios: no telhado
-      drawArt(ctx, d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), front.x, front.y + 4, h);
+      drawArt(ctx, d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), box.x, box.baseY, h);
     }
     ctx.restore();
     // inverno: fumaça saindo das chaminés das casas
+    // marcas do Editor de cenário (px a partir do meio da base, tamanho 1×) ou as posições de sempre
+    const mk = artLayout(artName)?.marks;
     if (b.type === 'house' && b.built && SEASON_VIEW.season === 'winter' && !lightWeatherFx() && Math.random() < this.frameDt * 1.6)
-      this.particles.chimney(front.x + width * 0.16, front.y + 4 - h * 0.86);
-    if (b.type === 'tower' && b.built && (b.shot ?? 0) > 0) this.towerGuard(b, front.x, front.y + 4 - h * (GUARD_PLATFORM[lvl] ?? 0.58), time);
+      this.particles.chimney(mk?.chimney ? box.x + mk.chimney[0] : front.x + width * 0.16, mk?.chimney ? box.baseY + mk.chimney[1] : front.y + 4 - h * 0.86);
+    if (b.type === 'tower' && b.built && (b.shot ?? 0) > 0)
+      this.towerGuard(b, mk?.guard ? box.x + mk.guard[0] : front.x, mk?.guard ? box.baseY + mk.guard[1] : front.y + 4 - h * (GUARD_PLATFORM[lvl] ?? 0.58), time);
     // obra de upgrade: barra amarela na base
     if (b.built && b.upgrade != null) {
       const k2 = Math.min(1, b.upgrade / upgradeTime(b));
@@ -842,10 +855,54 @@ export class Renderer {
   }
 
   /** Local especial (ruínas, baú, mina): arte isométrica com um brilho que chama atenção enquanto não foi investigado. */
+  /** Arte do local e onde fica na cena (x, y = ponto do local já projetado), com escala/deslocamento do layout. */
+  siteBox(site: Site, x: number, y: number) {
+    const name = site.kind === 'chest' && site.done && art('chest-open') ? 'chest-open' : site.kind;
+    const pic = art(name);
+    if (!pic || !pic.naturalWidth) return null;
+    const L = artLayout(name);
+    const w = (site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90) * (L?.scale ?? 1);
+    const h = (w / pic.naturalWidth) * pic.naturalHeight;
+    const cx = x + (L?.dx ?? 0);
+    const top = y + (L?.dy ?? 0) + w * 0.18 - h;
+    return { name, pic, w, h, left: cx - w / 2, top, x: cx, y: y + (L?.dy ?? 0) };
+  }
+
+  /** Peça pintada de um local (0 = resto, com o brilho de "ainda não investigado" e a seleção). */
+  private drawSitePiece(site: Site, i: number, time: number, selected: boolean) {
+    const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
+    const box = this.siteBox(site, p.x, p.y);
+    const cv = box && pieceSet(box.name, box.pic)?.canvases[i];
+    if (!box || !cv) return;
+    const ctx = this.ctx;
+    if (i === 0) {
+      if (!site.done) {
+        ctx.fillStyle = `rgba(255,211,77,${0.25 + 0.2 * Math.sin(time * 3 + site.id)})`;
+        ctx.beginPath();
+        ctx.ellipse(box.x, box.y + 4, box.w * 0.45, box.w * 0.18, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (selected) {
+        ctx.strokeStyle = '#ffd34d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(box.x, box.y + 4, box.w * 0.5, box.w * 0.21, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    smoothIfShrunk(ctx, box.w, box.pic.naturalWidth);
+    ctx.drawImage(cv, box.left, box.top, box.w, box.h);
+    ctx.imageSmoothingEnabled = true;
+  }
+
   private drawSite(site: Site, x: number, y: number, time: number, selected: boolean) {
     const ctx = this.ctx;
-    const pic = (site.kind === 'chest' && site.done && art('chest-open')) || art(site.kind);
-    const w = site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90;
+    const name = site.kind === 'chest' && site.done && art('chest-open') ? 'chest-open' : site.kind;
+    const pic = art(name);
+    const L = artLayout(name); // escala e deslocamento do Editor de cenário
+    const w = (site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90) * (L?.scale ?? 1);
+    x += L?.dx ?? 0;
+    y += L?.dy ?? 0;
     if (!site.done) {
       const a = 0.25 + 0.2 * Math.sin(time * 3 + site.id);
       ctx.fillStyle = `rgba(255,211,77,${a})`;

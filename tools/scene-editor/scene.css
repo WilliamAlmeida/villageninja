@@ -1,0 +1,44 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #1a120c; color: #f0e2c8; font: 13px/1.35 system-ui, sans-serif; }
+body { display: grid; grid-template-columns: 220px 1fr 290px; }
+aside { overflow-y: auto; background: #24180f; padding: 10px; }
+#items { border-right: 1px solid #6b4a25; }
+#props { border-left: 1px solid #6b4a25; }
+#items header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+#items header b { color: #ffb347; font-size: 15px; }
+#items header a { color: #c9a66b; font-size: 12px; }
+#filter { width: 100%; padding: 5px 8px; border-radius: 6px; border: 1px solid #6b4a25; background: #1a120c; color: inherit; margin-bottom: 8px; }
+#list h4 { margin: 10px 0 4px; font-size: 11px; color: #a89070; text-transform: uppercase; letter-spacing: 0.05em; }
+#list button { display: flex; justify-content: space-between; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 4px 6px; border-radius: 5px; cursor: pointer; font: inherit; }
+#list button:hover { background: #3a2817; }
+#list button.on { background: #ff8a2b; color: #2a1a0c; font-weight: 700; }
+#list button small { opacity: 0.7; }
+#list button .dot { color: #7dff9a; }
+main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+#top { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid #6b4a25; background: #24180f; }
+#title { font-weight: 700; color: #ffd34d; }
+.grow { flex: 1; }
+#status { color: #a89070; font-size: 12px; }
+button { background: #3a2817; color: #f0e2c8; border: 1px solid #6b4a25; border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
+button:hover { background: #4a3420; }
+button.primary { background: #ff8a2b; color: #2a1a0c; border-color: #ffb347; font-weight: 700; }
+button.on { outline: 2px solid #ffb347; }
+.seg { display: flex; gap: 2px; }
+.seg button.on { background: #ff8a2b; color: #2a1a0c; font-weight: 700; outline: none; }
+#stage { position: relative; overflow: hidden; }
+#stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#over { cursor: crosshair; }
+#help { padding: 5px 10px; color: #a89070; font-size: 12px; border-top: 1px solid #6b4a25; background: #24180f; }
+#props h3 { margin: 4px 0 6px; font-size: 12px; color: #ffb347; text-transform: uppercase; letter-spacing: 0.05em; }
+#props .row { display: flex; gap: 6px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+#props label { color: #c9b08a; }
+#props input[type=text], #props input[type=number] { background: #1a120c; color: inherit; border: 1px solid #6b4a25; border-radius: 5px; padding: 3px 6px; font: inherit; }
+#props input[type=number] { width: 70px; }
+#props input[type=range] { flex: 1; }
+.piece { border: 1px solid #6b4a25; border-radius: 8px; padding: 6px; margin: 6px 0; border-left: 6px solid var(--c); }
+.piece.on { background: #3a2817; outline: 2px solid #ffb347; }
+.piece .row input[type=text] { flex: 1; min-width: 0; }
+.hint { color: #a89070; font-size: 12px; margin: 4px 0; }
+.warn { color: #ffb067; font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 4px; margin-right: 10px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }

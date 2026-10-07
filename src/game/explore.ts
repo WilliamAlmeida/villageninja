@@ -93,6 +93,7 @@ export function spendMine(g: Game, siteId: number | undefined) {
   site.uses = mineUses(site) - 1;
   if (site.uses > 0) return;
   site.done = true;
+  g.world.rebuild();
   const p = { x: tileCenter(site.tx), y: tileCenter(site.ty) };
   fx(g, 'burst', p.x, p.y, { r: 30, color: '#9a8c7a', life: 0.8 });
   g.toast(`{pickaxe} A mina se esgotou e os túneis desabaram. Outra entrada deve aparecer pelo mapa em uns ${SITE_RESPAWN_DAYS.cave} dias.`, 'info', p);
@@ -130,6 +131,7 @@ export function revealStart(s: GameState) {
 /** Local que acabou de sair da névoa: marca como achado e avisa (ruínas ganham guardiões). */
 export function discover(g: Game, site: Site) {
   site.found = true;
+  g.world.rebuild(); // muros do local (layout) passam a bloquear
   const def = SITES[site.kind];
   const p = { x: tileCenter(site.tx), y: tileCenter(site.ty) };
   fx(g, 'ring', p.x, p.y, { r: 26, color: '#ffd34d', life: 1 });
@@ -160,6 +162,7 @@ export function resolveSite(g: Game, site: Site, u: Unit): string {
   const s = g.state;
   const p = { x: tileCenter(site.tx), y: tileCenter(site.ty) };
   site.done = true;
+  g.world.rebuild();
   let text: string;
   if (site.kind === 'ruin') {
     const left = missingScrolls(s);

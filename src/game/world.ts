@@ -2,7 +2,8 @@ import { MAP_H, MAP_W, TILE, VILLAGE_MARGIN } from '../config';
 import { lerp } from '../core/math';
 import { mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
-import type { Building, GameState, ResourceNode } from './types';
+import { layoutPoint, tileOf, typeLayout } from '../data/layout';
+import type { Building, GameState, ResourceNode, Site } from './types';
 import { inTerritory } from './village';
 
 /** ROCK: parede de caverna (bloqueia como a água; só nos mapas de mina). */
@@ -17,13 +18,26 @@ export const toTile = (v: number) => Math.floor(v / TILE);
 export const tileCenter = (t: number) => t * TILE + TILE / 2;
 
 export function doorTile(b: Building) {
+  const p = layoutPoint(b.type, 'door'); // ajustado no Editor de cenário
+  if (p) return { tx: b.tx + Math.floor(p[0] / TILE), ty: b.ty + Math.floor(p[1] / TILE) };
   const d = BUILDINGS[b.type];
   return { tx: b.tx + Math.floor(d.w / 2), ty: b.ty + d.h };
 }
 /** Ponto (px) logo em frente à porta. */
 export function doorPos(b: Building) {
+  const p = layoutPoint(b.type, 'door');
+  if (p) return { x: b.tx * TILE + p[0], y: b.ty * TILE + p[1] };
   const t = doorTile(b);
   return { x: tileCenter(t.tx), y: t.ty * TILE + 10 };
+}
+/** Tiles que um local (ruína, mina…) ocupa pelo layout: canto e grade. */
+export function siteTiles(site: Site) {
+  const L = typeLayout(site.kind);
+  if (!L?.tiles) return null;
+  const h = L.tiles.length;
+  const w = Math.max(...L.tiles.map((r) => r.length));
+  const [ox, oy] = L.origin ?? [Math.floor(w / 2), Math.floor(h / 2)];
+  return { x0: site.tx - ox, y0: site.ty - oy, w, h };
 }
 export function buildingCenter(b: Building) {
   const d = BUILDINGS[b.type];
@@ -52,13 +66,25 @@ export class World {
         for (let x = b.tx; x < b.tx + d.w; x++) {
           const i = idx(x, y);
           this.occupied[i] = b.id;
-          if (!d.walkable) this.blocked[i] = 1;
-          // cercado (arena): a borda é muro, menos o portão; só se entra e sai por ele
-          else if (d.enclosure && b.built && (x === b.tx || y === b.ty || x === b.tx + d.w - 1 || y === b.ty + d.h - 1))
-            if (!d.enclosure.gate.some(([gx, gy]) => b.tx + gx === x && b.ty + gy === y)) this.blocked[i] = 1;
+          // tiles ajustados no Editor de cenário (muro/portão) valem com o prédio pronto; senão a regra do prédio
+          const t = b.built ? tileOf(b.type, x - b.tx, y - b.ty) : undefined;
+          if (t !== undefined) this.blocked[i] = t === '#' ? 1 : this.blocked[i]!;
+          else if (!d.walkable) this.blocked[i] = 1;
         }
       const m = VILLAGE_MARGIN * TILE;
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
+    }    this.blockSites();
+  }
+
+  /** Locais à vista (ruína, entrada de mina…) com muro no layout bloqueiam esses tiles. */
+  private blockSites() {
+    for (const site of this.state.sites) {
+      if (!site.found || site.done) continue;
+      const r = siteTiles(site);
+      if (!r) continue;
+      const rows = typeLayout(site.kind)!.tiles!;
+      for (let y = 0; y < r.h; y++)
+        for (let x = 0; x < r.w; x++) if (rows[y]?.[x] === '#' && inBounds(r.x0 + x, r.y0 + y)) this.blocked[idx(r.x0 + x, r.y0 + y)] = 1;
     }
   }
 

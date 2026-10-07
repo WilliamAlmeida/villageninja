@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Editor de cenário — Vila Ninja</title>
+    <link rel="stylesheet" href="./scene.css" />
+  </head>
+  <body>
+    <aside id="items">
+      <header><b>Editor de cenário</b><nav><a href="/">Sprites</a> · <a href="/lab">Jutsus</a></nav></header>
+      <input id="filter" placeholder="Filtrar…" />
+      <div id="list"></div>
+    </aside>
+    <main>
+      <div id="top">
+        <span id="title">—</span>
+        <nav class="seg" id="modes">
+          <button data-mode="pieces" class="on">Peças</button>
+          <button data-mode="tiles">Terreno</button>
+          <button data-mode="art">Arte</button>
+          <button data-mode="points">Pontos</button>
+          <button data-mode="dummies">Bonecos</button>
+        </nav>
+        <span class="grow"></span>
+        <span id="status"></span>
+        <button id="undo" title="Desfazer (Ctrl+Z)">Desfazer</button>
+        <button id="save" class="primary" title="Salvar em src/data/layout.json (Ctrl+S)">Salvar</button>
+      </div>
+      <div id="stage"><canvas id="view"></canvas><canvas id="over"></canvas></div>
+      <div id="help"></div>
+    </main>
+    <aside id="props"></aside>
+    <script type="module" src="./scene.ts"></script>
+  </body>
+</html>

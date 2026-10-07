@@ -171,12 +171,16 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   a máscara é escolhida ao nomear (`NinjaInfo.mask`, qualquer animal) e dá +1 no atributo que ela representa (`maskKey`). Invisíveis (`cloak`) só com inimigo à vista (`ANBU.alert`) e até atacar — emboscada (`anbuAmbush`) —, ficam na
   rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
   na Região: ação `covert` (`startCovert`, expedição com `teamId -1`): metade do saque sem infâmia se não forem descobertos.
-- **Cercados** (`BuildingDef.enclosure`, hoje a arena): andável por dentro, mas o anel de tiles da borda é muro
-  (`World.rebuild`) menos o portão (`gate`); ninguém atravessa. Desenho em duas peças (`enclosurePart` no renderer, corte
-  pela elipse do chão `floor` + telhado do portão `arch`): o fundo (chão, arquibancada, muro de trás) atrás de quem está
-  dentro, o muro da frente na frente; quem está fora do círculo vai para trás ou para a frente da arena inteira; com
-  alguém tapado, muros/arquibancada ficam semitransparentes e o chão continua firme. Arte nova = medir a elipse do chão.
-- **Arena do Exame redonda** (6×6, arte de coliseu com portão na frente-esquerda com arquibancada atrás e muro baixo na frente; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
+- **Editor de cenário** (http://localhost:3011/cenario, `tools/scene-editor/`; dados em `src/data/layout.json`, lidos por
+  `data/layout.ts`): ajuste fino de cada construção (e nível), local (ruína, mina, baú) e objeto (árvore, rocha). **Peças**:
+  máscara pintada com pincel separa a arte em pedaços (`render/pieces.ts`); cada peça é desenhada na profundidade da sua
+  âncora (onde toca o chão), o "resto" vai no chão (`ground`) ou em pé; transparência por peça (área própria ou o
+  contorno). **Terreno**: tamanho em tiles (sobrepõe `w`/`h` do prédio) e tiles muro `#` / portão `g` / livre `.`
+  (`World.rebuild` e `blockSites`). **Arte**: escala e deslocamento (`Renderer.artBox`/`siteBox`, `drawNode`). **Pontos**:
+  porta (`doorPos`), Exame (`center`, `edge`, `left`, `right`, `stands`), marcas na arte (`guard`, `chimney`). Bonecos de
+  teste (vários; arrastar ou mandar andar pelo caminho de verdade). Salvar grava o JSON (cópia em docs/arte/backup-editor) e
+  o jogo se refaz. A arena começou de `scripts/layout-arena.py` (rodar de novo sobrescreve a arena).
+- **Arena do Exame redonda** (6×6, coliseu com portão na frente-esquerda; muro, portão e peças no layout.json; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
   só pousam dentro (`keepInRing`), a distância de luta cabe nele (`ringDesired`) e andar não tira ninguém; empurrado para
   fora por um golpe (`Unit.knockT`, setado em `push`) perde (ring-out, `systems/exam.ts`). Migração 23 desloca a arena que
   cresceu e encostou noutro prédio.

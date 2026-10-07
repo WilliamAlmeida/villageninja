@@ -9,11 +9,13 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import { join } from 'node:path';
 import page from '../tools/sprite-editor/index.html';
 import lab from '../tools/jutsu-lab/index.html';
+import cenario from '../tools/scene-editor/index.html';
 
 const ROOT = join(import.meta.dir, '..');
 const ART = join(ROOT, 'src', 'art');
 const BACKUP = join(ROOT, 'docs', 'arte', 'backup-editor');
 const EDITS = join(ART, 'art-edits.json');
+const LAYOUT = join(ROOT, 'src', 'data', 'layout.json');
 const NAME = /^[a-z0-9][a-z0-9-]*\.png$/;
 const port = Number(process.env.EDITOR_PORT ?? 3011);
 
@@ -28,6 +30,26 @@ Bun.serve({
     '/': page,
     // laboratório de jutsus: testa jutsus, golpes, técnicas e artes num boneco de treino (código real do jogo)
     '/lab': lab,
+    // editor de cenário: peças (camadas), terreno (muro/portão), escala, pontos; grava src/data/layout.json
+    '/cenario': cenario,
+    '/api/layout': {
+      GET: () => new Response(Bun.file(LAYOUT), { headers: { ...noStore, 'Content-Type': 'application/json' } }),
+      PUT: async (req) => {
+        const text = await req.text();
+        let data: { arts?: unknown; types?: unknown };
+        try {
+          data = JSON.parse(text);
+        } catch {
+          return new Response('JSON inválido', { status: 400 });
+        }
+        if (!data || typeof data.arts !== 'object' || typeof data.types !== 'object') return new Response('Formato inválido', { status: 400 });
+        mkdirSync(BACKUP, { recursive: true });
+        if (existsSync(LAYOUT)) copyFileSync(LAYOUT, join(BACKUP, `layout-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
+        writeFileSync(LAYOUT, JSON.stringify(data, null, 1) + '\n');
+        console.log('salvo src/data/layout.json (cópia em docs/arte/backup-editor)');
+        return Response.json({ ok: true });
+      },
+    },
     '/api/art': () =>
       Response.json(
         { files: readdirSync(ART).filter((f) => NAME.test(f)).sort(), edited: edits() },

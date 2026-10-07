@@ -1,4 +1,5 @@
 import type { Cost } from '../game/types';
+import LAYOUT_RAW from './layout.json';
 
 export type BuildingType =
   | 'hokage'
@@ -43,12 +44,6 @@ export interface BuildingDef {
   buildable: boolean;
   /** Pode ser atravessado (campos, áreas abertas). */
   walkable?: boolean;
-  /**
-   * Cercado andável por dentro (arena): o anel de tiles da borda é muro (bloqueia todo mundo) menos o portão
-   * (`gate`: tiles relativos ao canto). `floor`: elipse do chão na arte (0–1 da imagem), onde o renderer corta o
-   * desenho em fundo (atrás de quem está dentro) e muro da frente (na frente de quem está dentro).
-   */
-  enclosure?: { gate: [number, number][]; floor: { cx: number; cy: number; rx: number; ry: number }; /** telhado do portão (0–1): também vai na frente */ arch?: { x0: number; x1: number; y0: number } };
   /** Cura por segundo para quem descansa na porta. */
   healRate?: number;
   /** Desenha janelas acesas à noite. */
@@ -168,7 +163,6 @@ const LIST: BuildingDef[] = [
   {
     type: 'arena', name: 'Arena do Exame', icon: '{arena}', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',
     w: 6, h: 6, cost: { wood: 80, stone: 60, ryo: 50 }, buildTime: 22, unique: true, buildable: true, walkable: true, minLevel: 1,
-    enclosure: { gate: [[2, 5], [3, 5]], floor: { cx: 0.5, cy: 0.615, rx: 0.395, ry: 0.197 }, arch: { x0: 0.13, x1: 0.43, y0: 0.585 } },
     roof: '#8a6a3a', wall: '#c9a66b',
   },
   {
@@ -178,5 +172,11 @@ const LIST: BuildingDef[] = [
   },
 ];
 
+// tamanho do terreno ajustado no Editor de cenário (layout.json)
+for (const b of LIST) {
+  const t = (LAYOUT_RAW as { types: Record<string, { w?: number; h?: number }> }).types[b.type];
+  if (t?.w) b.w = t.w;
+  if (t?.h) b.h = t.h;
+}
 export const BUILDINGS = Object.fromEntries(LIST.map((b) => [b.type, b])) as Record<BuildingType, BuildingDef>;
 export const BUILDING_LIST: readonly BuildingDef[] = LIST;

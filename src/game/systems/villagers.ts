@@ -287,7 +287,7 @@ export function completeBuilding(g: Game, b: Building) {
   const def = BUILDINGS[b.type];
   b.built = true;
   b.progress = def.buildTime;
-  if (def.enclosure) g.world.rebuild(); // cercado pronto: os muros passam a bloquear
+  g.world.rebuild(); // pronto: muros/portão do layout passam a valer
   g.toast(`${def.icon} ${def.name} concluída!`, 'good', doorPos(b));
 }
 

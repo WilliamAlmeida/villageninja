@@ -3,6 +3,7 @@
 // alguém para fora — e quem sai assim perde (ring-out, `systems/exam.ts`).
 import { TILE } from '../config';
 import { BUILDINGS } from '../data/buildings';
+import { layoutPoint } from '../data/layout';
 import type { Game } from './game';
 import type { Building, Unit } from './types';
 
@@ -12,7 +13,13 @@ export const ARENA_RING = { radius: 0.5, margin: 12, /** além do raio: fora da 
 /** Círculo de luta da arena (mundo, px). */
 export function arenaRing(b: Building) {
   const w = BUILDINGS.arena.w * TILE;
-  return { cx: b.tx * TILE + w / 2 - ARENA_RING.lift, cy: b.ty * TILE + w / 2 - ARENA_RING.lift, r: w * ARENA_RING.radius };
+  // centro e borda do chão de luta: pontos "center" e "edge" do Editor de cenário (senão o meio do terreno)
+  const c = layoutPoint('arena', 'center');
+  const cx = b.tx * TILE + (c ? c[0] : w / 2 - ARENA_RING.lift);
+  const cy = b.ty * TILE + (c ? c[1] : w / 2 - ARENA_RING.lift);
+  const e = layoutPoint('arena', 'edge');
+  const r = e ? Math.hypot(b.tx * TILE + e[0] - cx, b.ty * TILE + e[1] - cy) : w * ARENA_RING.radius;
+  return { cx, cy, r };
 }
 
 /** Círculo que prende esta unidade (só os dois do duelo do Exame); null = livre. */

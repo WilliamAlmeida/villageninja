@@ -7,6 +7,7 @@ import { bladeOf } from '../game/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import type { MistBlade } from '../data/blades';
 import { ANIMALS } from '../data/animals';
+import { artLayout } from '../data/layout';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -128,12 +129,13 @@ export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
   const name = stage ?? (n.type === 'tree' ? `tree${n.variant % 2}` : n.type);
   const base = art(name);
   if (base) {
-    const h = stage === 'stump' ? 20 : stage ? NODE_ART_H.rock : NODE_ART_H[n.type] * (n.type === 'tree' ? 1 : s);
+    const L = artLayout(name); // escala e deslocamento do Editor de cenário
+    const h = (stage === 'stump' ? 20 : stage ? NODE_ART_H.rock : NODE_ART_H[n.type] * (n.type === 'tree' ? 1 : s)) * (L?.scale ?? 1);
     // árvore folhosa (tree0) muda com a estação; o pinheiro (tree1) fica verde
     const leafy = name === 'tree0';
     const pic = leafy ? seasonalTree(base, name, SEASON_VIEW.season) : base;
-    const x = n.tx * TILE + TILE / 2;
-    const y = n.ty * TILE + TILE * 0.7;
+    const x = n.tx * TILE + TILE / 2 + (L?.dx ?? 0);
+    const y = n.ty * TILE + TILE * 0.7 + (L?.dy ?? 0);
     drawArt(ctx, pic, x, y, h, n.variant >= 2);
     if (SEASON_VIEW.snow > 0.03 && n.type !== 'herb') {
       ctx.save();
