@@ -2040,9 +2040,9 @@ export class Panel {
       const tm = recommendTeam(g, m);
       return !!tm && teamPower(g, tm) >= missionPower(m);
     });
-    const chips = `<span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star} Reputação ${g.state.reputation}</span>
-      <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{todo} ${g.state.stats.missionsDone} cumpridas</span>
-      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh} Em andamento ${active.length}/${max}</span>`;
+    const chips = `<span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star}<span class="ml">Reputação&nbsp;</span>${g.state.reputation}</span>
+      <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{todo}${g.state.stats.missionsDone}<span class="ml">&nbsp;cumpridas</span></span>
+      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh}<span class="ml">Em andamento&nbsp;</span>${active.length}/${max}</span>`;
     const auto = `<button class="btn primary" data-act="m-auto" ${blocked(g, [full && 'Limite de missões simultâneas atingido.', !full && !canAuto && 'Nenhuma equipe livre dá conta das missões do quadro.'])} ${tipAttr('Auto designar', 'Das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que ainda dá conta (poupa as fortes). Só envia com risco Seguro ou Favorável.')}>{users} Auto designar</button>`;
     const tabs: [MissionTab, string, string, number][] = [
       ['active', '{swords}', 'Ativas', active.length],
