@@ -188,6 +188,8 @@ function perkArt(perk: string): string {
 const togBtn = (act: string, on: boolean, label: string, title: string, tip: string, arg = '') =>
   `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${arg ? `data-arg="${arg}"` : ''} ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
 const costTag = (cost: Partial<Record<ResKey, number>>) => `<small class="bcost">${costLabel(cost)}</small>`;
+/** "i" ao lado do título de uma seção: a explicação fica na dica (um toque ou o mouse em cima), não escrita no drawer. */
+const infoTip = (title: string, text: string) => `<span class="itip" ${tipAttr(title, text, true)}>{info}</span>`;
 const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{kage}' };
 const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
@@ -979,8 +981,7 @@ export class Panel {
       }
     }
     if (!bd.built) {
-      html += `<div class="bsec"><h4>{hammer} Em construção</h4><div class="bar pg"><i data-b="prog"></i><span data-t="prog"></span></div>`;
-      html += `<p class="hint">Moradores sem emprego vão até a obra para construir.</p></div>`;
+      html += `<div class="bsec"><h4>{hammer} Em construção ${infoTip('Em construção', 'Moradores sem emprego vão até a obra para construir.')}</h4><div class="bar pg"><i data-b="prog"></i><span data-t="prog"></span></div></div>`;
       b.prog = Math.min(1, bd.progress / d.buildTime);
       t.prog = `${Math.floor(b.prog * 100)}%`;
     } else {
@@ -989,7 +990,7 @@ export class Panel {
       if (bd.type === 'missions') html += this.missionsSummary() + this.hireSection();
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
       if (bd.type === 'arena') html += this.arenaSection(b);
-      if (bd.type === 'sealshop') html += `<p class="hint">Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).</p>`;
+      if (bd.type === 'sealshop') html += `<p class="hint">{paper} Artesão faz papel sozinho ${infoTip('Artesão', 'Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).')}</p>`;
       if (d.workers) {
         html += `<div class="bsec"><h4>{users} Trabalhadores</h4><div class="workers"><button class="btn" data-act="workers" data-arg="-1">{minus}</button>
           <span class="wnum"><b><span data-t="workers"></span> / <span data-t="wdesired"></span></b><small>trabalhando agora · você pediu (máx. ${workersOf(bd)})</small></span>
@@ -1010,20 +1011,19 @@ export class Panel {
       if (bd.type === 'kennel') html += this.kennelSection();
       if (bd.type === 'hospital' && bd.built) {
         const base = Math.round(Math.min(CARE.rescueMax, CARE.rescue + (levelOf(bd) - 1) * CARE.rescuePerLevel) * 100);
-        html += `<p class="hint">{medic} <b>Resgate:</b> ninja da vila que cair tem ${base}% de chance de ser trazido para cá gravemente ferido, em vez de morrer (+${Math.round(CARE.rescueMedic * 100)}% com um ninja médico por perto, até ${Math.round(CARE.rescueMax * 100)}%). Cada nível do Hospital aumenta a chance.</p>`;
+        html += `<p class="hint">{medic} <b>Resgate:</b> ${base}% · +${Math.round(CARE.rescueMedic * 100)}% com médico ${infoTip('Resgate', `Ninja da vila que cair tem ${base}% de chance de ser trazido para cá gravemente ferido, em vez de morrer (+${Math.round(CARE.rescueMedic * 100)}% com um ninja médico por perto, até ${Math.round(CARE.rescueMax * 100)}%). Cada nível do Hospital aumenta a chance.`)}</p>`;
       }
       if (bd.type === 'market') {
         html += this.marketSection(bd) + this.rareSection();
-        html += `<h4>{gold} Ouro</h4><p class="hint">O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada. Você tem ${Math.floor(g.state.res.gold)}{gold}.</p>`;
+        html += `<h4>{gold} Ouro ${infoTip('Ouro', `O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada.`)}</h4>`;
         html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>{gold} Vender 1 <small class="bcost">+${GOLD_PRICE}{ryo}</small></button>
           <button class="btn" data-act="sell-gold" data-arg="all" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender tudo</button></div>`;
       }
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
-        html += `<div class="bsec"><h4>{userplus} Recrutamento</h4><p class="hint">Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.</p>
+        html += `<div class="bsec"><h4>{userplus} Recrutamento ${infoTip('Recrutamento', 'Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.')}</h4>
           <div class="wtools"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ${costTag(RECRUIT_COST)}</button></div></div>`;
-        html += `<div class="bsec"><h4>{books} Ensino</h4><div class="wtools">${this.teachBar()}</div>
-          <p class="hint">Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".</p></div>`;
+        html += `<div class="bsec"><h4>{books} Ensino ${infoTip('Ensino', 'Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".')}</h4><div class="wtools">${this.teachBar()}</div></div>`;
       }
       if (bd.type === 'training') html += this.fieldSection(bd, t);
       if (d.healRate) html += `<p class="hint">Cura ${d.healRate} HP/s de quem descansa aqui.</p>`;
@@ -1041,34 +1041,35 @@ export class Panel {
     t.slots = `${trainees(g, bd)} / ${trainSlots(bd)}`;
     const used = trainees(g, bd);
     const total = trainSlots(bd);
-    let html = `<div class="bsec"><h4>{users} Vagas <small>${levelOf(bd) < 3 ? '(o upgrade abre mais)' : ''}</small></h4><div class="bslots"><b data-t="slots"></b><span>treinando agora</span><span class="pips">${Array.from({ length: total }, (_, i) => `<i class="${i < used ? 'on' : ''}"></i>`).join('')}</span></div>
-      <p class="hint">Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP; cada um vai ao campo com vaga mais perto, preferindo o do seu foco.</p></div>`;
-    html += `<div class="bsec"><h4>{target} Foco do campo</h4><div class="chips">`;
+    let html = `<div class="bsec"><h4>{users} Vagas ${infoTip('Vagas', `Ninjas no modo Auto/Treinar vêm aqui de dia e ganham atributos e XP; cada um vai ao campo com vaga mais perto, preferindo o do seu foco.${levelOf(bd) < 3 ? ' O upgrade abre mais vagas.' : ''}`)}</h4><div class="bslots"><b data-t="slots"></b><span>treinando agora</span><span class="pips">${Array.from({ length: total }, (_, i) => `<i class="${i < used ? 'on' : ''}"></i>`).join('')}</span></div></div>`;
+    html += `<div class="bsec"><h4>{target} Foco do campo ${infoTip(
+      'Foco do campo',
+      bd.focus
+        ? `${STAT_INFO[bd.focus].label}: +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% neste atributo. Ninjas sem foco próprio treinam ${STAT_INFO[bd.focus].label} aqui.`
+        : 'Com vários campos, dê um foco diferente a cada um (ex.: um de Taijutsu, outro de Ninjutsu).',
+    )}</h4><div class="chips">`;
     html += `<button data-act="field-focus" data-arg="" class="${bd.focus ? '' : 'on'}" ${tipAttr('Livre', 'Sem especialidade: cada ninja treina o próprio foco (ou o que o sensei/acaso escolher).')}>Livre</button>`;
     for (const k of STAT_KEYS)
       html += `<button data-act="field-focus" data-arg="${k}" class="${bd.focus === k ? 'on' : ''}" ${tipAttr(STAT_INFO[k].label, `Treino de ${STAT_INFO[k].label} rende +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% aqui. Ninjas sem foco próprio treinam isto; quem tem esse foco prefere este campo.`)}>${STAT_INFO[k].label}</button>`;
-    html += `</div><p class="hint">${
-      bd.focus
-        ? `<b>${STAT_INFO[bd.focus].label}:</b> +${Math.round((FIELD_FOCUS_BONUS - 1) * 100)}% neste atributo. Ninjas sem foco próprio treinam ${STAT_INFO[bd.focus].label} aqui.`
-        : 'Dica: com vários campos, dê um foco diferente a cada um (ex.: um de Taijutsu, outro de Ninjutsu).'
-    }</p></div>`;
+    html += `</div></div>`;
     return html;
   }
 
   /** Mercado: o que vende do excedente. */
   private marketSection(bd: Building) {
-    let html = `<h4>{ryo} Vende o excedente</h4><div class="chips">`;
+    const m = marketLot(bd);
+    let html = `<h4>{ryo} Vende o excedente ${infoTip(
+      'Vende o excedente',
+      m
+        ? `A cada venda (8 s) leva até ${m.lot} ${RES_INFO[bd.sells!].icon} por +${m.ryo}{ryo}, sempre deixando ${m.keep} no estoque. Dois mercados podem escoar coisas diferentes.`
+        : 'Escolha uma mercadoria para o comerciante vender o que sobrar no estoque (madeira, pedra, comida ou ervas).',
+    )}</h4><div class="chips">`;
     html += `<button data-act="market-good" data-arg="" class="${bd.sells ? '' : 'on'}" ${tipAttr('Nada', 'Só o ryo de sempre do comerciante.')}>Nada</button>`;
     for (const k of MARKET_GOOD_LIST) {
       const d = MARKET_GOODS[k];
       html += `<button data-act="market-good" data-arg="${k}" class="${bd.sells === k ? 'on' : ''}" ${tipAttr(d.name, `Vende ${d.name.toLowerCase()} acima de ${d.keep} no estoque, a ${d.price} ryo cada.`)}>${RES_INFO[k].icon} ${d.name}</button>`;
     }
-    html += `</div>`;
-    const m = marketLot(bd);
-    html += m
-      ? `<p class="hint">A cada venda (8 s) leva até ${m.lot} ${RES_INFO[bd.sells!].icon} por +${m.ryo}{ryo}, sempre deixando ${m.keep} no estoque. Dois mercados podem escoar coisas diferentes.</p>`
-      : `<p class="hint">Escolha uma mercadoria para o comerciante vender o que sobrar no estoque (madeira, pedra, comida ou ervas).</p>`;
-    return html;
+    return html + `</div>`;
   }
 
   /** Ensino de jutsus: ensinar agora quem tem espaço livre e o modo automático. */
@@ -1085,7 +1086,7 @@ export class Panel {
   /** Mesa de Missões: contratar ninjas mercenários (destino para o ryo). */
   private hireSection() {
     const g = this.app.game;
-    let html = `<h4>{ninja} Contratar mercenário</h4><p class="hint">Ninjas errantes servem a vila por ryo. Chegam prontos, mas ocupam uma vaga de casa.</p><div class="btnrow">`;
+    let html = `<h4>{ninja} Contratar mercenário ${infoTip('Mercenários', 'Ninjas errantes servem a vila por ryo. Chegam prontos, mas ocupam uma vaga de casa.')}</h4><div class="btnrow">`;
     for (const r of ['chunin', 'jounin'] as const) {
       const m = MERCS[r];
       const why = hireBlock(g, r);
@@ -1097,7 +1098,7 @@ export class Panel {
   /** Mercado: materiais raros (antes só das minas) para os itens lendários. */
   private rareSection() {
     const g = this.app.game;
-    let html = `<h4>{crystal} Materiais raros</h4><p class="hint">Mercadores de longe trazem cristal de chakra e aço negro, usados nos itens lendários da Forja e da Farmácia.</p><div class="btnrow">`;
+    let html = `<h4>{crystal} Materiais raros ${infoTip('Materiais raros', 'Mercadores de longe trazem cristal de chakra e aço negro, usados nos itens lendários da Forja e da Farmácia.')}</h4><div class="btnrow">`;
     for (const res of ['crystal', 'darksteel'] as const) {
       const price = RARE_PRICE[res]!;
       for (const n of [1, 5])

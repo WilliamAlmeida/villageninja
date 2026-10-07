@@ -752,8 +752,11 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .kfree button { display: grid; grid-template-columns: auto 1fr; column-gap: 0.3rem; align-items: center; text-align: left; padding: 0.3rem 0.5rem; border-radius: 0.55rem; border: 1px solid transparent; background: var(--card); color: inherit; font: inherit; cursor: pointer; }
 .kfree button small { grid-column: 2; color: var(--muted); font-size: 0.72rem; }
 .kfree button.on { border-color: var(--accent, #f0a64a); background: rgba(240, 166, 74, 0.16); }
+.itip { display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem; margin-left: 0.25rem; border-radius: 50%; color: var(--muted); cursor: help; vertical-align: middle; opacity: 0.8; }
+.itip:hover { opacity: 1; color: var(--text, #f3e6cc); }
+.itip svg { width: 0.95rem; height: 0.95rem; }
 .khead { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
-.khead .bup-cost { margin: 0; align-items: center; }
+.khead .bup-cost { margin: 4px 0 0 0; align-items: center; }
 .khead .bup-cost > small { color: var(--muted); }
 .khead small.bad { color: var(--bad, #e05a4a); }
 .tcands .cand { grid-template-columns: auto minmax(0, 1fr) auto; } .tcands .cand .btnrow { grid-column: 2 / -1; }
