@@ -323,7 +323,7 @@ export interface Expedition {
 export interface SoundState {
   nextDay: number;
   /** Invasão em andamento: alvo, segundos desde a chegada, se já levaram alguém. */
-  raid: { targetId: number; t: number; taken: boolean } | null;
+  raid: { targetId: number; t: number; taken: boolean; /** Ninjas da vila mortos nesta invasão (até `SOUND.maxKills`). */ kills?: number } | null;
   /** Raptado esperando resgate no esconderijo (até o fim do dia `until`). */
   captive: { id: number; until: number } | null;
   /** Raptos impedidos e ninjas levados. */

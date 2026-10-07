@@ -280,11 +280,19 @@ export function cursedDefeated(g: Game, u: Unit): boolean {
   return true;
 }
 
-/** Ninja da vila derrubado pelo Som (ou pelos ogros e o gêmeo deles): nocaute em vez de morte. */
+/**
+ * Ninja da vila derrubado pelo Som (ou pelos ogros e o gêmeo deles): os primeiros `SOUND.maxKills` da invasão morrem;
+ * dali em diante ficam nocauteados (eles vieram raptar, não arrasar a vila).
+ */
 export function soundKnockout(g: Game, t: Unit, src: Unit | null): boolean {
   if (t.faction !== 'village' || t.kind !== 'ninja' || !src || g.state.sceneInfo) return false;
   const boss = src.sound ? src : src.ownerId != null ? g.unit(src.ownerId) : null;
   if (!boss?.sound) return false;
+  const raid = g.state.sound.raid;
+  if (raid && (raid.kills ?? 0) < SOUND.maxKills) {
+    raid.kills = (raid.kills ?? 0) + 1;
+    return false;
+  }
   t.hp = 1;
   t.stun = Math.max(t.stun, SOUND.knockout);
   t.targetId = null;

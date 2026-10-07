@@ -145,13 +145,13 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Tomadas as sete, acabam. Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
   Quinteto do Som ficam na aba **Bingo Book** da janela Vila (`View 'bingo'`); a aba Kage tem o Kage, a ANBU e os Sannin
   No Bingo Book todos aparecem pelo sprite (`artPortrait(org-<id>, true)` / `swordsmanPortrait`), num padrão só (os bustos
-  pintados da Ordem saíram do atlas `cards.png`, que ficou só com os selos de rank).
+  pintados da Ordem saíram do atlas `cards.png`, que ficou só com os selos de rank); `.bingo` deixa todos os cartões com a mesma altura).
 - **Quinteto do Som** (`data/sound.ts`, `game/sound.ts`, `state.sound`, arte `sound-<membro>` via `scripts/sound-sprites.sh`):
   da Vila Oculta em diante, 4 membros invadem para RAPTAR o ninja mais talentoso (`soundTarget`: kekkei genkai, nível,
   atributos; nunca Kage nem Sannin). `soundBrain` (hostiles): vão atrás dele (até dentro de casa), um carrega
   (`Unit.carrying`/`captiveOf`; o raptado não é alvo, `canHit`) e foge devagar levando o dobro de dano, os outros cobrem e
-  os ninjas da vila por perto recebem ordem de atacar quem carrega. Golpe deles NOCAUTEIA (`soundKnockout`, nada de morte
-  na vila). Impedido: recompensa e honra. Levado: fica `away = WITH_SOUND`, o nó `som` (Esconderijo do Som) aparece na
+  os ninjas da vila por perto recebem ordem de atacar quem carrega. Matam no máximo `SOUND.maxKills` (4) por invasão; dali em
+  diante o golpe deles NOCAUTEIA (`soundKnockout`, `raid.kills`). Impedido: recompensa e honra. Levado: fica `away = WITH_SOUND`, o nó `som` (Esconderijo do Som) aparece na
   Região com prazo (`SOUND.rescueDays`); ação `rescue` abre `createSoundScene` (líder Hakkotsu + 2). Passou o prazo: selo
   amaldiçoado (`cursed`, vira inimigo mais forte e vem nas invasões; derrotado, volta para a vila, `cursedDefeated`).
   Voltam sempre (não acabam). Seção no Bingo Book com o placar.

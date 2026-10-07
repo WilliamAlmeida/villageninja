@@ -350,7 +350,7 @@ export class Panel {
     else if (this.view.kind === 'group') built = this.groupView();
     else if (this.view.kind === 'village') built = this.villageView();
     else if (this.view.kind === 'kage') built = { html: this.tabs('kage') + this.kageSection(), t: {}, b: {} };
-    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill"><div class="kgrid bgrid">${this.orgSection()}${this.swordsmenSection()}</div>${this.soundSection()}</div>`, t: {}, b: {} };
+    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill bingo"><div class="kgrid bgrid">${this.orgSection()}${this.swordsmenSection()}</div>${this.soundSection()}</div>`, t: {}, b: {} };
     else if (this.view.kind === 'stats') built = this.statsView();
     else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
@@ -1665,7 +1665,7 @@ export class Panel {
       const d = SWORDSMEN[id];
       const got = s.blades.includes(id);
       const [label, cls] = got ? ['{check} Espada da vila', 'down'] : onMap.has(id) ? ['{swords} Atacando', 'live'] : ['{alert} À solta', ''];
-      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${BLADES[id].name}: ${BLADES[id].effect}`, true)}><span class="om-face">${pimg(swordsmanPortrait(id), 'om-bust')}</span><b>${esc(BLADES[id].name)}</b><small>${label}</small></div>`;
+      html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${BLADES[id].name}: ${BLADES[id].effect}`, true)}><span class="om-face">${pimg(swordsmanPortrait(id), 'om-bust')}${got ? '<span class="om-check">{check}</span>' : ''}</span><b>${esc(BLADES[id].name)}</b><small>${label}</small></div>`;
     }
     html += `</div><div class="blist"><small>{swords} Lâminas lendárias</small>`;
     const holder = new Map<string, Unit>();

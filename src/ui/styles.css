@@ -1618,4 +1618,7 @@ h4::after { background: var(--line); opacity: 0.6; }
 /* Bingo Book: os cartões mostram o sprite inteiro (corpo de pé, nítido), em qualquer largura de cartão */
 .kfill .ogrid .om-bust { top: 0; bottom: 0; height: 100%; aspect-ratio: auto; object-fit: contain; object-position: center bottom; transform: none; image-rendering: pixelated; }
 .kfill .ogrid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.kfill .ogrid.five .om-face { min-height: 6.5rem; }
+/* todos os cartões do Bingo Book com a mesma altura e o mesmo visual (Ordem, Espadachins e Som) */
+.bingo .ogrid { flex: none; grid-auto-rows: auto; }
+.bingo .om-face { flex: none; min-height: 0; height: 6.5rem; aspect-ratio: auto; }
+.bingo .omem.unk .om-face, .bingo .omem.lair .om-face, .bingo .omem.down .om-face { filter: none; }

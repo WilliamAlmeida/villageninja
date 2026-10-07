@@ -43,7 +43,8 @@ export const SOUND = {
   stopHonor: 3,
   /** Selo amaldiçoado: atributos a mais do ninja que passou para o lado deles (até o teto 10). */
   curse: 1.5,
-  /** Segundos de nocaute de quem o Som derruba (eles vieram raptar, não matar: ninguém morre para eles na vila). */
+  /** Eles matam até `maxKills` ninjas por invasão; daí em diante quem derrubam fica nocauteado `knockout` segundos. */
+  maxKills: 4,
   knockout: 8,
   /** Roupa da vila do Som (bege com a corda roxa). */
   cloth: '#d8c8a0',

@@ -83,14 +83,17 @@ describe('Quinteto do Som', () => {
     expect(v.gifted.faction).toBe('village');
   });
 
-  test('quem o Som derruba fica nocauteado, não morre', () => {
+  test('na invasão eles matam até 4; dali em diante quem derrubam fica nocauteado', () => {
     const g = createNewGame(SYSTEMS, 2206);
-    const v = village(g);
+    village(g);
+    g.state.sound.raid = { targetId: 0, t: 0, taken: false };
     const m = createSoundMember(g, 'kanade', 500, 500);
-    killUnit(g, v.other, m);
-    expect(v.other.dead).toBeFalsy();
-    expect(v.other.hp).toBe(1);
-    expect(v.other.stun).toBeGreaterThan(0);
+    const victims = Array.from({ length: SOUND.maxKills + 2 }, (_, i) => createNinja(g, 600 + i * 10, 600, 'genin', 0));
+    for (const v of victims) killUnit(g, v, m);
+    expect(victims.filter((v) => v.dead).length).toBe(SOUND.maxKills);
+    const ko = victims.filter((v) => !v.dead);
+    expect(ko.length).toBe(2);
+    expect(ko.every((v) => v.hp === 1 && v.stun > 0)).toBe(true);
   });
 
   test('resgate jogável: caverna com o líder e dois membros; vencendo, o raptado volta', () => {
