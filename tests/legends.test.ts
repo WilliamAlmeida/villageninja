@@ -13,7 +13,7 @@ import { migrate } from '../src/game/save';
 import { createSwordsman, swordsmenOnMap, swordsmenTick } from '../src/game/swordsmen';
 import { SYSTEMS } from '../src/game/systems';
 import { canHit } from '../src/game/factions';
-import { createTeam, joinAsMember } from '../src/game/teams';
+import { autoTeams, createTeam, enforceTeamRules, joinAsMember, teamOf } from '../src/game/teams';
 
 const rich = (g: Game) => Object.assign(g.state.res, { ryo: 99999, food: 9999, wood: 9999, stone: 9999, iron: 999, crystal: 99, darksteel: 99 });
 const build = (g: Game, type: 'intel' | 'forge', level = 1) =>
@@ -152,9 +152,38 @@ describe('ANBU', () => {
     expect(maskOf(c).animal).toBe('crow');
     expect(g.state.teams[0]!.memberIds).not.toContain(c.id);
     expect(c.ninja!.stats.genjutsu).toBe(3);
+    // sem inimigo à vista anda visível; com inimigo por perto entra no modo furtivo
+    g.step(0.1);
+    expect(c.cloak).toBe(false);
+    createSwordsman(g, 'shibuki', c.x + 200, c.y);
     g.step(0.1);
     expect(c.cloak).toBe(true);
     expect(canHit('enemy', undefined, c)).toBe(false);
+  });
+
+  test('Montar equipes: Kage fora, ANBU só com ANBU, Sannin só com Sannin; saves antigos são consertados', () => {
+    const g = createNewGame(SYSTEMS, 2112);
+    const k = makeKage(g);
+    const ns = [0, 1, 2, 3].map((i) => createNinja(g, 600 + i * 20, 600, 'genin', 0));
+    [0, 1].forEach((i) => createNinja(g, 600 + i * 20, 640, 'chunin', 0));
+    const an = [0, 1].map((i) => createNinja(g, 600 + i * 20, 680, 'jounin', 0));
+    an.forEach((u) => (u.ninja!.anbu = true));
+    const sn = [0, 1].map((i) => createNinja(g, 600 + i * 20, 720, 'jounin', 0));
+    sn[0]!.ninja!.sannin = 'toad';
+    sn[1]!.ninja!.sannin = 'slug';
+    // save antigo: Kage e ANBU misturados numa equipe comum
+    g.state.teams.push({ id: 98, name: 'Velha', color: '#fff', senseiId: k.id, memberIds: [ns[0]!.id, an[0]!.id] });
+    expect(enforceTeamRules(g)).toBeGreaterThan(0);
+    expect(teamOf(g, k)).toBeFalsy();
+    expect(autoTeams(g).ok).toBe(true);
+    expect(teamOf(g, k)).toBeFalsy();
+    for (const t of g.state.teams) {
+      const us = [t.senseiId, ...t.memberIds].filter((id) => id != null).map((id) => g.unit(id!)!);
+      const kinds = new Set(us.map((u) => (u.ninja!.anbu ? 'anbu' : u.ninja!.sannin ? 'sannin' : 'common')));
+      expect(kinds.size).toBeLessThanOrEqual(1);
+    }
+    expect(teamOf(g, an[0]!)?.id).toBe(teamOf(g, an[1]!)?.id);
+    expect(teamOf(g, sn[0]!)?.id).toBe(teamOf(g, sn[1]!)?.id);
   });
 
   test('emboscada: o golpe que sai da invisibilidade é mais forte e revela o ANBU', () => {

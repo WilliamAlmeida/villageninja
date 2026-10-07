@@ -25,6 +25,8 @@ export const ANBU = {
   /** Guarda do Kage: distância máxima para acudir e recarga. */
   guardRange: 600,
   guardCd: 20,
+  /** Só some (furtivo) com inimigo à vista: distância em px. */
+  alert: 360,
 };
 
 /** Máscara de um animal: nome, atributo que representa e o rótulo dele. */
@@ -103,7 +105,13 @@ export function anbuAmbush(src: Unit | null): number {
   return ANBU.ambush;
 }
 
-/** Passo do ANBU: invisível quando não atacou nem apanhou há pouco; acode o Kage que estiver lutando. */
+/** Há inimigo à vista do ANBU? (invasor ou bicho atacando a vila por perto) */
+function enemyNear(g: Game, u: Unit) {
+  const r2 = ANBU.alert * ANBU.alert;
+  return g.state.units.some((o) => !o.dead && o.away == null && (o.faction === 'enemy' || (o.faction === 'wild' && o.targetId != null && g.unit(o.targetId)?.faction === 'village')) && (o.x - u.x) ** 2 + (o.y - u.y) ** 2 < r2);
+}
+
+/** Passo do ANBU: com inimigo à vista fica invisível (até atacar ou apanhar); sem, anda visível. Acode o Kage que lutar. */
 export function anbuTick(g: Game, u: Unit, dt: number) {
   const n = u.ninja!;
   if (!n.anbu || g.state.sceneInfo) {
@@ -113,7 +121,7 @@ export function anbuTick(g: Game, u: Unit, dt: number) {
   u.seenT = (u.seenT ?? 0) - dt;
   u.guardCd = (u.guardCd ?? 0) - dt;
   if (u.hitFlash > 0) u.seenT = Math.max(u.seenT, ANBU.seen); // apanhou: foi visto
-  u.cloak = u.seenT <= 0 && !u.hidden;
+  u.cloak = u.seenT <= 0 && !u.hidden && enemyNear(g, u);
   // guarda do Kage
   const k = g.state.kageId != null ? g.unit(g.state.kageId) : null;
   if (!k || k.dead || k.hidden || k.combatTimer <= 0 || u.combatTimer > 0 || u.hidden || u.stun > 0 || (u.guardCd ?? 0) > 0) return;

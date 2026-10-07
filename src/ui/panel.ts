@@ -12,7 +12,7 @@ import { SPECS, type SpecKind } from '../data/specs';
 import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
 import { daysToNextSeason, festivalBlock, festivalOn, holdFestival, moodFactors, seasonOf } from '../game/mood';
 import { learnSpec, specBlock } from '../game/specs';
-import { adoptDog, breedBlock, dogBlock, dogCap, dogOf, DOG_COST, freeDogs, giveDog, kennelLevel, releaseDog, villageDogs } from '../game/ninken';
+import { adoptDog, breedBlock, dogBlock, dogCap, dogOf, DOG_COST, freeDogs, giveDog, releaseDog, villageDogs } from '../game/ninken';
 import { BREED_LIST, BREEDS, breedArt, type DogBreed } from '../data/breeds';
 import { artUrl } from '../render/art';
 import { searchTiles } from '../game/systems/villagers';
@@ -254,6 +254,8 @@ export class Panel {
   private sanninSel: Record<string, number> = {};
   /** Raça escolhida para a próxima adoção de ninken. */
   private dogBreed: DogBreed = 'shiba';
+  /** Cão sem dono escolhido no Canil para dar a um ninja (null = o da raça escolhida). */
+  private dogPick: number | null = null;
   /** Região: lugar aberto e equipe escolhida para as ações. */
   private regionNode: string | null = null;
   private regionTeam: number | null = null;
@@ -1242,15 +1244,20 @@ export class Panel {
     const cap = dogCap(g);
     const all = villageDogs(g);
     const free = freeDogs(g);
-    let html = `<h4>{paw} Ninken <small>${all.length}/${cap} cães · Canil nível ${kennelLevel(g)}</small></h4>`;
-    html += `<p class="hint">O cão acompanha o dono, luta junto, fareja espiões invisíveis por perto e, fora da vila, acha ervas. Adotar custa ${costLabel(DOG_COST)}; o upgrade do Canil abre mais vagas e novas raças.</p>`;
+    let html = '';
+    // só o essencial: vagas e o custo de adotar (o que o cão faz já está na descrição do prédio e na raça escolhida)
+    const chips = RES_KEYS.filter((k) => DOG_COST[k]).map((k) => `<span class="mchip ${g.state.res[k] < DOG_COST[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${DOG_COST[k]}</span>`).join('');
+    html = `<div class="khead"><h4>{paw} Ninken <small class="${all.length > cap ? 'bad' : ''}">${all.length}/${cap} cães</small></h4><span class="bup-cost"><small>Adotar</small>${chips}</span></div>`;
     html += this.breedPicker();
     if (!ninjas.length) return html + `<p class="why">Nenhum ninja na vila.</p>`;
-    // cão esperando no Canil: o da raça escolhida primeiro
-    const waiting = free.find((d) => (d.breed ?? 'shiba') === this.dogBreed) ?? free[0];
+    // cão esperando no Canil: o escolhido na lista; sem escolha, o da raça escolhida
+    const waiting = free.find((d) => d.id === this.dogPick) ?? free.find((d) => (d.breed ?? 'shiba') === this.dogBreed) ?? free[0];
     if (free.length)
-      html += `<div class="bsec"><h4>{home} No Canil, sem dono <small>${free.length}</small></h4><div class="chips">${free
-        .map((d) => `<span class="badge">{paw} ${esc(d.name.replace(' (ninken)', ''))} · ${esc(BREEDS[d.breed ?? 'shiba'].name)}</span>`)
+      html += `<div class="bsec"><h4>{home} No Canil, sem dono <small>${free.length}</small></h4><div class="kfree scrollist">${free
+        .map(
+          (d) =>
+            `<button class="${d === waiting ? 'on' : ''}" data-act="dog-pick" data-arg="${d.id}">{paw} <b>${esc(d.name.replace(' (ninken)', ''))}</b><small>${esc(BREEDS[d.breed ?? 'shiba'].name)} · vida ${Math.ceil(d.hp)}/${d.maxHp}</small></button>`,
+        )
         .join('')}</div></div>`;
     const without = ninjas.filter((u) => !dogOf(g, u));
     const withDog = ninjas.filter((u) => dogOf(g, u));
@@ -1264,10 +1271,10 @@ export class Panel {
       html += `<div class="roster scrollist">`;
       for (const u of without.sort(byLevel).slice(0, MAX_ROWS)) {
         const give = waiting
-          ? `<button class="btn mini primary" data-act="dog-give" data-arg="${waiting.id}:${u.id}" ${blocked(g, [u.away != null && 'Está fora numa expedição.'])} ${tipAttr('Dar cão', `${waiting.name} espera no Canil: vai com este ninja, sem custo.`)}>{paw} Dar ${esc(waiting.name.replace(' (ninken)', ''))}</button>`
+          ? `<button class="btn mini primary" data-act="dog-give" data-arg="${waiting.id}:${u.id}" ${blocked(g, [u.away != null && 'Está fora numa expedição.'])} ${tipAttr('Dar cão', `${waiting.name} (escolhido na lista do Canil) vai com este ninja, sem custo.`)}>{paw} Dar</button>`
           : '';
         const why = dogBlock(g, u, this.dogBreed);
-        html += `<div class="cand">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge rank">${RANKS[u.ninja!.rank].name}</span><span class="badge">Nv ${u.ninja!.level}</span></span><span class="btnrow">${give}<button class="btn mini ${give ? '' : 'primary'}" data-act="dog-for" data-arg="${u.id}" ${blocked(g, [why], DOG_COST)}>{plus} Adotar ${esc(BREEDS[this.dogBreed].name.split(' ')[0]!)}</button></span></div>`;
+        html += `<div class="cand krow">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge rank">${RANKS[u.ninja!.rank].name}</span><span class="badge">Nv ${u.ninja!.level}</span></span><span class="btnrow">${give}<button class="btn mini ${give ? '' : 'primary'}" data-act="dog-for" data-arg="${u.id}" ${blocked(g, [why], DOG_COST)} ${tipAttr('Adotar', `Um ${BREEDS[this.dogBreed].name} para este ninja (a raça se escolhe acima).`)}>{plus} Adotar</button></span></div>`;
       }
       return html + `</div>${more(without.length)}`;
     }
@@ -1276,7 +1283,7 @@ export class Panel {
       html += `<div class="roster scrollist">`;
       for (const u of withDog.sort(byLevel).slice(0, MAX_ROWS)) {
         const d = dogOf(g, u)!;
-        html += `<div class="cand">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge">{paw} ${esc(d.name.replace(' (ninken)', ''))}</span><span class="badge">${esc(BREEDS[d.breed ?? 'shiba'].name)}</span></span><span class="btnrow"><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e fica esperando: dá para passá-lo a outro ninja sem custo.')}>{x} Soltar</button></span></div>`;
+        html += `<div class="cand krow">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge">{paw} ${esc(d.name.replace(' (ninken)', ''))}</span><span class="badge">${esc(BREEDS[d.breed ?? 'shiba'].name)}</span></span><span class="btnrow"><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e fica esperando: dá para passá-lo a outro ninja sem custo.')}>{x} Soltar</button></span></div>`;
       }
       html += `</div>${more(withDog.length)}`;
     }
@@ -2507,6 +2514,9 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'dog-pick':
+        this.dogPick = Number(arg);
+        return this.report({ ok: true });
       case 'kennel-tab':
         this.kennelTab = arg === 'with' ? 'with' : 'without';
         return this.report({ ok: true });

@@ -99,23 +99,46 @@ export function leaveTeam(g: Game, unitId: number) {
   }
 }
 
-/** A equipe é da ANBU? (tem algum ANBU; vazia: null, aceita qualquer um) */
-export function teamIsAnbu(g: Game, t: Team): boolean | null {
-  const us = teamUnits(g, t);
-  return us.length ? us.some((u) => !!u.ninja?.anbu) : null;
+/** Grupo do ninja para as equipes: o Kage não tem equipe; ANBU só com ANBU; Sannin só com Sannin (como os três do anime). */
+export type TeamKind = 'kage' | 'anbu' | 'sannin' | 'common';
+export const teamKind = (u: Unit): TeamKind =>
+  u.ninja?.rank === 'kage' ? 'kage' : u.ninja?.anbu ? 'anbu' : u.ninja?.sannin ? 'sannin' : 'common';
+const KIND_NAME: Record<TeamKind, string> = { kage: 'do Kage', anbu: 'da ANBU', sannin: 'dos Sannin', common: 'comum' };
+
+/** Tipo da equipe (pelo sensei, senão pelo primeiro membro), sem contar `skip`; vazia: null, aceita qualquer um. */
+export function teamKindOf(g: Game, t: Team, skip?: number): TeamKind | null {
+  const s = t.senseiId != null && t.senseiId !== skip ? g.unit(t.senseiId) : null;
+  if (s && !s.dead) return teamKind(s);
+  const m = teamUnits(g, t).find((o) => o.id !== skip);
+  return m ? teamKind(m) : null;
 }
 
 /**
- * Pode entrar nesta equipe? O Kage não tem equipe (a ANBU o protege) e a ANBU só forma equipe com a ANBU.
- * (motivo quando não)
+ * Pode entrar nesta equipe? O Kage não tem equipe (a ANBU o protege), a ANBU só forma equipe com a ANBU e os Sannin
+ * só entre si. (motivo quando não)
  */
 export function teamFit(g: Game, t: Team, u: Unit): string | null {
-  if (u.ninja!.rank === 'kage') return 'O Kage não entra em equipes: a ANBU o protege.';
-  const anbu = teamIsAnbu(g, t);
-  if (anbu === null || teamUnits(g, t).every((o) => o.id === u.id)) return null;
-  if (anbu && !u.ninja!.anbu) return `${t.name} é da ANBU: só entra ANBU.`;
-  if (!anbu && u.ninja!.anbu) return 'A ANBU só forma equipe com a ANBU.';
-  return null;
+  const mine = teamKind(u);
+  if (mine === 'kage') return 'O Kage não entra em equipes: a ANBU o protege.';
+  const kind = teamKindOf(g, t, u.id);
+  if (kind == null || kind === mine) return null;
+  if (mine === 'anbu') return 'A ANBU só forma equipe com a ANBU.';
+  if (mine === 'sannin') return 'Os Sannin só formam equipe entre si.';
+  return `${t.name} é uma equipe ${KIND_NAME[kind]}: só entra quem também é.`;
+}
+
+/** Tira de cada equipe quem não cabe nela (o Kage; ANBU ou Sannin misturado). Conserta saves antigos e títulos novos. */
+export function enforceTeamRules(g: Game): number {
+  let n = 0;
+  for (const t of g.state.teams) {
+    for (const id of [t.senseiId, ...t.memberIds]) {
+      const u = id != null ? g.unit(id) : null;
+      if (!u || u.dead || !u.ninja || !teamFit(g, t, u)) continue;
+      leaveTeam(g, u.id);
+      n++;
+    }
+  }
+  return n;
 }
 
 export function joinAsMember(g: Game, teamId: number, unitId: number): Result {
@@ -158,7 +181,7 @@ export function promoteToSensei(g: Game, u: Unit): boolean {
 export function createTeamWith(g: Game, unitId: number): Result {
   const u = validNinja(g, unitId);
   if (!u) return fail('Inválido.');
-  if (u.ninja!.rank === 'kage') return fail('O Kage não entra em equipes.');
+  if (teamKind(u) === 'kage') return fail('O Kage não entra em equipes: a ANBU o protege.');
   const t = createTeam(g);
   const r = canBeSensei(u) ? joinAsSensei(g, t.id, u.id) : joinAsMember(g, t.id, u.id);
   if (!r.ok) disbandTeam(g, t.id);
@@ -171,27 +194,32 @@ export function createTeamWith(g: Game, unitId: number): Result {
  * com um sensei cada, enquanto houver. Retorna quantas equipes foram criadas e quantos ninjas entraram.
  */
 export function autoTeams(g: Game): { ok: true; created: number; placed: number } | { ok: false; error: string } {
+  enforceTeamRules(g);
   const all = g.state.units
     .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && u.ninja.rank !== 'kage' && !teamOf(g, u))
     .sort((a, b) => b.ninja!.level - a.ninja!.level);
   if (!all.length) return { ok: false, error: 'Todos os ninjas já estão em equipes.' };
-  // a ANBU monta equipes só entre si; os outros, entre si
-  const a = autoTeamsOf(g, all.filter((u) => !u.ninja!.anbu), false);
-  const b = autoTeamsOf(g, all.filter((u) => u.ninja!.anbu), true);
-  const placed = a.placed + b.placed;
+  // cada grupo monta equipes só entre si: comuns, ANBU e Sannin
+  let created = 0;
+  let placed = 0;
+  for (const kind of ['common', 'anbu', 'sannin'] as const) {
+    const r = autoTeamsOf(g, all.filter((u) => teamKind(u) === kind), kind);
+    created += r.created;
+    placed += r.placed;
+  }
   if (!placed) return { ok: false, error: 'Nenhuma vaga: as equipes estão cheias e não há ninjas suficientes para uma nova.' };
-  return { ok: true, created: a.created + b.created, placed };
+  return { ok: true, created, placed };
 }
 
-function autoTeamsOf(g: Game, free: Unit[], anbu: boolean): { created: number; placed: number } {
+function autoTeamsOf(g: Game, free: Unit[], want: TeamKind): { created: number; placed: number } {
   if (!free.length) return { created: 0, placed: 0 };
   const leads = free.filter(canBeSensei);
   const genins = free.filter((u) => !canBeSensei(u));
   let placed = 0;
-  // 1) vagas das equipes atuais (do mesmo tipo: ANBU com ANBU)
+  // 1) vagas das equipes atuais do mesmo tipo (vazias servem para qualquer um)
   for (const t of g.state.teams) {
-    const kind = teamIsAnbu(g, t);
-    if (kind !== null && kind !== anbu) continue;
+    const kind = teamKindOf(g, t);
+    if (kind !== null && kind !== want) continue;
     if (t.senseiId == null && leads.length && joinAsSensei(g, t.id, leads[0]!.id).ok) {
       leads.shift();
       placed++;
