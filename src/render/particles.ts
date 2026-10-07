@@ -49,6 +49,12 @@ export class Particles {
   }
 
   /** Bafo de frio: nuvenzinha branca na frente do rosto. */
+  /** Poeira no chão (árvore que caiu). */
+  dust(x: number, y: number, n: number) {
+    for (let i = 0; i < n; i++)
+      this.add({ kind: 'dust', x: x + rnd(-14, 14), y: y + rnd(-4, 4), vx: rnd(-18, 18), vy: rnd(-6, 2), life: rnd(0.5, 0.9), size: rnd(3, 5), color: pick(EARTH) });
+  }
+
   breath(x: number, y: number, dir: number) {
     this.add({ kind: 'mist', x, y, vx: dir * rnd(8, 14), vy: rnd(-4, -1), life: rnd(0.5, 0.8), size: rnd(2.5, 3.5), color: '#ffffff' });
   }

@@ -24,7 +24,7 @@ import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from '
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
-import { drawBuilding, drawNode, drawProjectile, drawUnit, type WorkAction } from './sprites';
+import { drawBuilding, drawNode, drawProjectile, drawUnit, isStump, workImpact, type WorkAction } from './sprites';
 import { drawWaterAnim, renderTerrain, waterDepth } from './terrain';
 
 export interface Ghost {
@@ -54,6 +54,9 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
  *    com a transformação `groundTransform`;
  * 2. "em pé": prédios, árvores e unidades são desenhados de frente no ponto projetado, do fundo para a frente.
  */
+/** Segundos da árvore tombando. */
+const TREE_FALL = 1.1;
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private terrain: HTMLCanvasElement | null = null;
@@ -77,6 +80,11 @@ export class Renderer {
   private fogOf: GameState | null = null;
   private fogSoft: HTMLCanvasElement | null = null;
   private particles = new Particles();
+  /** Árvores: era árvore no quadro anterior (para pegar a hora em que vira toco) e quando começou a cair. */
+  private treeWas = new Map<number, { tree: boolean; t: number }>();
+  private treeFall = new Map<number, number>();
+  /** Recurso sendo golpeado agora: força da tremida (0–1) por id. */
+  private hitNodes = new Map<number, number>();
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
@@ -270,6 +278,13 @@ export class Renderer {
     list.sort((a, b) => a.k! - b.k!);
 
     this.drawCamps(g, time);
+    // quem está golpeando um recurso agora (o quadro do impacto do morador) faz ele tremer
+    this.hitNodes.clear();
+    for (const u of s.units)
+      if (u.kind === 'villager' && u.state === 'gather' && u.taskId != null && !u.dead) {
+        const k = workImpact(u, time);
+        if (k > (this.hitNodes.get(u.taskId) ?? 0)) this.hitNodes.set(u.taskId, k);
+      }
     const occluded = this.occluders(list);
     for (const d of list) {
       if (d.b || d.n) {
@@ -289,7 +304,7 @@ export class Renderer {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
         ctx.save();
         ctx.translate(d.x - (d.n.tx * TILE + TILE / 2), d.y - (d.n.ty * TILE + TILE / 2));
-        drawNode(ctx, d.n);
+        this.node(d.n, time);
         ctx.restore();
       }
       ctx.globalAlpha = 1;
@@ -420,6 +435,57 @@ export class Renderer {
   }
 
   /** Prédio em pé: arte isométrica apoiada na base; sem arte, o desenho antigo como "placa" de frente. */
+  /**
+   * Recurso no mapa: treme a cada machadada/picaretada (no quadro do impacto do morador) e a árvore que vira toco
+   * cai para o lado antes de sobrar só o toco. Só visual (fora do estado).
+   */
+  private node(n: ResourceNode, time: number) {
+    const ctx = this.ctx;
+    const hit = this.hitNodes.get(n.id) ?? 0;
+    const shake = hit ? Math.sin(time * 70) * 1.6 * hit : 0;
+    if (n.type === 'tree') {
+      const stump = isStump(n);
+      const was = this.treeWas.get(n.id);
+      this.treeWas.set(n.id, { tree: !stump, t: time });
+      // acabou de virar toco (visto como árvore há pouco): começa a queda
+      if (stump && was?.tree && time - was.t < 0.5) this.treeFall.set(n.id, time);
+      if (!stump) this.treeFall.delete(n.id);
+      const start = this.treeFall.get(n.id);
+      if (stump && start != null) {
+        const k = (time - start) / TREE_FALL;
+        if (k >= 1) this.treeFall.delete(n.id);
+        else {
+          drawNode(ctx, n); // o toco fica; a árvore tomba por cima, girando pela base
+          const bx = n.tx * TILE + TILE / 2;
+          const by = n.ty * TILE + TILE * 0.7;
+          const dir = n.id % 2 ? 1 : -1;
+          const ease = Math.min(1, k / 0.75) ** 2.2; // acelera caindo
+          ctx.save();
+          ctx.translate(bx, by - 2);
+          ctx.rotate(dir * ease * 1.45);
+          ctx.globalAlpha *= k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
+          ctx.translate(-bx, -(by - 2));
+          drawNode(ctx, n, true);
+          ctx.restore();
+          if (k > 0.72 && !this.treeDust.has(n.id)) {
+            this.treeDust.add(n.id);
+            const p = project(bx + dir * 34, by - 4);
+            this.particles.dust(p.x, p.y, 10);
+          }
+          return;
+        }
+      }
+      this.treeDust.delete(n.id);
+    }
+    if (shake) {
+      ctx.save();
+      ctx.translate(shake, 0);
+      drawNode(ctx, n);
+      ctx.restore();
+    } else drawNode(ctx, n);
+  }
+  private treeDust = new Set<number>();
+
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
     const d = BUILDINGS[b.type];

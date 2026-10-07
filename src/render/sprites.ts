@@ -115,11 +115,15 @@ function nodeSprite(type: ResourceNode['type'], variant: number) {
 /** Altura (px) da arte de cada tipo de nó. */
 const NODE_ART_H: Record<ResourceNode['type'], number> = { tree: 48, rock: 22, ore: 26, herb: 24 };
 
-export function drawNode(ctx: Ctx, n: ResourceNode) {
+/** Árvore já virou toco? (estágio do desenho: quase no fim) */
+export const isStump = (n: ResourceNode) => n.type === 'tree' && n.amount / n.max < 0.25;
+
+/** `whole`: desenha a árvore inteira mesmo já sendo toco (a queda, no renderer). */
+export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
   const s = 0.65 + 0.35 * (n.amount / n.max);
   // estágios: árvore vira toco quando está quase no fim; rocha racha depois da metade
   const left = n.amount / n.max;
-  const stage = n.type === 'tree' && left < 0.25 ? 'stump' : n.type === 'rock' && left < 0.5 ? 'rock-cracked' : null;
+  const stage = n.type === 'tree' && left < 0.25 && !whole ? 'stump' : n.type === 'rock' && left < 0.5 ? 'rock-cracked' : null;
   const name = stage ?? (n.type === 'tree' ? `tree${n.variant % 2}` : n.type);
   const base = art(name);
   if (base) {
@@ -326,7 +330,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   const base = u.animal ? u.y + size * 0.7 : u.y + 9;
   const sheet = artFrames(pic);
   // trabalhando: ciclo do golpe; andando: ciclo de caminhada; parado: quadro de descanso
-  const frame = action ? Math.floor(t * 5 + u.id) % sheet.frames : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
+  const frame = action ? workFrame(u, t, sheet.frames) : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ellipse(ctx, u.x, base - 1.5, u.animal ? size * 1.2 : 8, u.animal ? size * 0.4 : 3.5);
   ctx.save();
@@ -345,6 +349,13 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
 
 /** Animação de trabalho do morador (folhas villager-<ação>). */
 export type WorkAction = 'chop' | 'mine' | 'farm';
+/** Quadro do ciclo de trabalho (levanta · balança · IMPACTO · recupera); o renderer usa o mesmo para tremer a árvore. */
+export const workFrame = (u: Unit, t: number, frames = 4) => Math.floor(t * 5 + u.id) % frames;
+/** 0–1 dentro do quadro do impacto (1 = acabou de bater), ou 0 fora dele. */
+export function workImpact(u: Unit, t: number) {
+  const k = t * 5 + u.id;
+  return Math.floor(k) % 4 === 2 ? 1 - (k % 1) : 0;
+}
 
 /** `bare`: só o corpo (vulto do Shunshin), sem barras, marcas nem status. */
 export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction, bare = false) {
