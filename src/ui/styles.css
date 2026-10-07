@@ -869,6 +869,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .omem.down { opacity: 0.6; } .omem.down small { color: var(--good); } .omem.down .om-face { filter: grayscale(1); }
 .omem.live { border-color: var(--bad); box-shadow: 0 0 8px rgba(255, 90, 90, 0.3); } .omem.live small { color: var(--bad); }
 .omem.lair small { color: var(--warn); }
+.om-shadow { filter: brightness(0) drop-shadow(0 0 3px rgba(200, 40, 40, 0.8)); }
 .sgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
 @media (max-width: 900px) { .sgrid { grid-template-columns: 1fr; } }
 .scard { padding: 0.5rem 0.6rem; border-radius: var(--r); background: rgba(0, 0, 0, 0.18); border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); display: flex; flex-direction: column; gap: 0.35rem; }

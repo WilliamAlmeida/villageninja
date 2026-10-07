@@ -1560,7 +1560,8 @@ export class Panel {
       const hidden = id === 'yomi' && !down;
       const unknown = !down && !onMap.has(id) && (lair ? !o.lairKnown && id !== 'yomi' : cur >= 0 && pairIdx > cur);
       const [st, cls] = down ? ['{check} Derrotado', 'down'] : onMap.has(id) ? ['{swords} Ativo', 'live'] : unknown ? ['{question} Desconhecido', 'unk'] : lair ? ['{lock} Covil', 'lair'] : ['{alert} À solta', ''];
-      const bust = (hidden && atlasCell(CARDS, 'org-yomi-unknown', 'om-bust')) || atlasCell(CARDS, `org-${id}`, 'om-bust') || pimg(artPortrait(`org-${id}`), 'om-bust');
+      // o sprite do membro, como os Espadachins; o líder fica em silhueta até cair
+      const bust = pimg(artPortrait(`org-${id}`, true), hidden ? 'om-bust om-shadow' : 'om-bust');
       html += `<div class="omem ${cls}" ${tipAttr(hidden ? '???' : `${d.name}, ${d.title}`, hidden ? 'O líder da Ordem. Ninguém viu o rosto dele.' : `${d.art}: ${d.desc}`, true)}><span class="om-face">${bust}${down ? '<span class="om-check">{check}</span>' : ''}</span><b>${d.name}</b><small>${st}</small></div>`;
     }
     html += `</div>`;
