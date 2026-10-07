@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ferramentas — Vila Ninja</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #1a120c; color: #f0e2c8; font: 14px/1.4 system-ui, sans-serif; }
+      main { max-width: 960px; margin: 0 auto; padding: 40px 16px; }
+      h1 { margin: 0 0 4px; color: #ffb347; font-size: 22px; }
+      p.sub { margin: 0 0 24px; color: #a89070; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+      a.card { display: flex; flex-direction: column; gap: 6px; padding: 18px; border: 1px solid #6b4a25; border-radius: 10px; background: #24180f; color: inherit; text-decoration: none; transition: background 0.15s, border-color 0.15s; }
+      a.card:hover { background: #3a2817; border-color: #ffb347; }
+      a.card b { color: #ffd34d; font-size: 16px; }
+      a.card span { color: #c9b08a; font-size: 13px; }
+      a.card code { color: #a89070; font-size: 12px; margin-top: auto; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Ferramentas da Vila Ninja</h1>
+      <p class="sub">Só neste computador (127.0.0.1). O que for salvo aqui o jogo pega sozinho.</p>
+      <div class="grid">
+        <a class="card" href="/spr">
+          <b>Editor de sprites</b>
+          <span>Ninja montado em camadas e qualquer PNG de src/art: editar pixels, mover camadas, ver a animação.</span>
+          <code>/spr</code>
+        </a>
+        <a class="card" href="/lab">
+          <b>Laboratório de jutsus</b>
+          <span>Solta cada jutsu, golpe, técnica e arte num boneco de treino; duelo IA × IA.</span>
+          <code>/lab</code>
+        </a>
+        <a class="card" href="/cenario">
+          <b>Editor de cenário</b>
+          <span>Peças, terreno, escala e pontos de construções, locais e objetos; bonecos de teste.</span>
+          <code>/cenario</code>
+        </a>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-// Editor de sprites (ferramenta de desenvolvimento): http://localhost:3011
+// Ferramentas de desenvolvimento: http://localhost:3011 (início com os três editores); editor de sprites em /spr.
 // Monta o ninja em camadas como o jogo (src/render/doll.ts), mostra a animação e deixa editar/mover pixels das camadas
 // e de qualquer PNG de src/art; "Salvar" grava o arquivo em src/art (o build do jogo se refaz sozinho).
 // Só escuta em 127.0.0.1 e fica fora do túnel da Cloudflare: ninguém de fora grava arquivo.
@@ -7,6 +7,7 @@
 //   bun scripts/editor.ts   |   pm2 start ecosystem.local.config.cjs --only villageninja-editor
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import home from '../tools/home/index.html';
 import page from '../tools/sprite-editor/index.html';
 import lab from '../tools/jutsu-lab/index.html';
 import cenario from '../tools/scene-editor/index.html';
@@ -27,7 +28,9 @@ Bun.serve({
   hostname: '127.0.0.1',
   development: { hmr: false, console: true }, // HMR do Bun quebra com o await no topo do editor.ts; recarregue a página
   routes: {
-    '/': page,
+    // início: escolhe entre os editores
+    '/': home,
+    '/spr': page,
     // laboratório de jutsus: testa jutsus, golpes, técnicas e artes num boneco de treino (código real do jogo)
     '/lab': lab,
     // editor de cenário: peças (camadas), terreno (muro/portão), escala, pontos; grava src/data/layout.json

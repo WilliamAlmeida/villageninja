@@ -27,6 +27,7 @@ label { display: block; color: var(--muted); margin: 6px 0 3px; }
 label.check { display: inline-flex; gap: 4px; align-items: center; margin: 0 8px 0 0; color: var(--text); }
 .grow { flex: 1; }
 
+.top .home { color: #c9a66b; font-size: 12px; }
 .top { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .brand { font-size: 15px; margin-right: 8px; }
 .status { color: var(--muted); }
