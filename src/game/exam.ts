@@ -30,7 +30,7 @@ export const arenaOf = (g: Game) => g.findBuilt('arena');
 /** Genins da vila que podem se inscrever (nível mínimo, sem missão em andamento). */
 export function eligibleGenin(g: Game): Unit[] {
   return g.state.units
-    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja!.rank === 'genin' && u.ninja!.level >= EXAM_MIN_LEVEL)
+    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.away == null && u.ninja!.rank === 'genin' && u.ninja!.level >= EXAM_MIN_LEVEL)
     .filter((u) => {
       const t = teamOf(g, u);
       return !(t && missionOfTeam(g, t.id));

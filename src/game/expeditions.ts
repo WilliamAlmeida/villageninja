@@ -38,6 +38,8 @@ export function teamBusy(g: Game, teamId: number): string | null {
   if (!us.length) return `${tm.name} não tem ninjas.`;
   if (expeditionOfTeam(g, teamId)) return `${tm.name} já está numa expedição.`;
   if (missionOfTeam(g, teamId)) return `${tm.name} está numa missão.`;
+  const inExam = us.find((u) => g.state.exam?.entrants.some((e) => e.id === u.id));
+  if (inExam) return `${inExam.name} está no Exame Chunin: espere acabar.`;
   if (us.some((u) => u.hp < u.maxHp * 0.5)) return `Há ninjas feridos em ${tm.name}: cure-os antes.`;
   return null;
 }

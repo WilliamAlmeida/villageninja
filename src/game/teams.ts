@@ -278,7 +278,7 @@ export function setTeamOrder(g: Game, teamId: number, order: NinjaOrder): Result
 
 // ------------------------------------------------------------------ ordens
 function commandable(g: Game, ids: number[]) {
-  return ids.map((id) => validNinja(g, id)).filter((u): u is Unit => !!u);
+  return ids.map((id) => validNinja(g, id)).filter((u): u is Unit => !!u && u.away == null); // fora em expedição não recebe ordem
 }
 
 /** Alvo que dá para mandar atacar: inimigo ou bicho vivo (convidados do exame não). */

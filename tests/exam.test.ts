@@ -80,6 +80,25 @@ describe('Exame Chunin', () => {
     expect(a2.tx !== arena.tx || a2.ty !== arena.ty).toBe(true);
   });
 
+  test('equipe no Exame não parte em expedição; save com alguém nos dois some do mapa e sai do Exame', async () => {
+    const { teamBusy } = await import('../src/game/expeditions');
+    const g = setup(12, 4);
+    expect(startExam(g).ok).toBe(true);
+    const ex = g.state.exam!;
+    const team = g.state.teams.find((t) => t.memberIds.some((id) => ex.entrants.some((e) => e.id === id)))!;
+    expect(teamBusy(g, team.id)).toContain('Exame');
+    // save antigo: entrou na mina mesmo assim
+    const u = g.unit(ex.entrants.find((e) => team.memberIds.includes(e.id))!.id)!;
+    g.state.expeditions.push({ id: 777, kind: 'mine', teamId: team.id, unitIds: [u.id], floor: 0, timer: 1e9, status: 'going', log: [], loot: {}, day: 0 });
+    u.away = 777;
+    u.hidden = false;
+    run(g, 1);
+    expect(u.hidden).toBe(true);
+    const x = u.x;
+    run(g, 20);
+    expect(u.x).toBe(x); // o Exame não o leva mais para lá e para cá
+  });
+
   test('exige arena e genins de nível 2+', () => {
     const g = createNewGame(SYSTEMS, 1);
     expect(examStatus(g).ready).toBe(false);

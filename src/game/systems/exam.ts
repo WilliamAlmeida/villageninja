@@ -24,7 +24,7 @@ export function examSystem(g: Game, dt: number) {
   // quem não está lutando fica na arquibancada
   exam.entrants.forEach((e, i) => {
     const u = g.unit(e.id);
-    if (!u || u.dead || u === a || u === b) return;
+    if (!u || u.dead || u.away != null || u === a || u === b) return;
     walkTo(g, u, spots.stand(i), dt);
   });
 
@@ -89,7 +89,12 @@ const short = (u: Unit) => u.name.replace(' (convidado)', '').split(' ').pop();
 
 function fighters(g: Game, exam: Exam): [Unit | undefined, Unit | undefined] {
   if (exam.phase === 'gather' || exam.phase === 'done') return [undefined, undefined];
-  return [g.unit(exam.bracket[exam.match]), g.unit(exam.bracket[exam.match + 1])];
+  // quem saiu em expedição (saves de antes da trava em teamBusy) não luta: o outro passa
+  const f = (id: number | undefined) => {
+    const u = g.unit(id);
+    return u && u.away == null ? u : undefined;
+  };
+  return [f(exam.bracket[exam.match]), f(exam.bracket[exam.match + 1])];
 }
 
 /** Anda até o ponto; retorna true ao chegar. */

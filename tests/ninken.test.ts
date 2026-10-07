@@ -24,7 +24,10 @@ describe('ninken', () => {
     const n = createNinja(g, 36 * 32, 24 * 32, 'genin', 0);
     expect(adoptDog(g, n.id).ok).toBe(true);
     const dog = dogOf(g, n)!;
-    n.away = 999; // fora numa expedição (em casa vale o mesmo: dono escondido)
+    // fora numa expedição (em casa vale o mesmo: dono escondido); a expedição precisa existir, senão o sistema solta o dono
+    g.state.expeditions.push({ id: 999, kind: 'mine', teamId: -1, unitIds: [n.id], floor: 0, timer: 1e9, status: 'going', log: [], loot: {}, day: 0 });
+    n.away = 999;
+    n.hidden = true;
     const at = (hour: number, seconds: number) => {
       for (let t = 0; t < seconds; t += SIM_DT) {
         g.state.time = (((hour - 6 + 24) % 24) / 24) * DAY_LENGTH; // o relógio começa às 6h
@@ -40,6 +43,8 @@ describe('ninken', () => {
     at(9, 0.2); // amanheceu: sai para patrulhar
     expect(dog.hidden).toBe(false);
     n.away = undefined;
+    n.hidden = false;
+    g.state.expeditions.pop();
     at(9, 0.2);
     expect(dog.state).not.toBe('dogPatrol');
   });
