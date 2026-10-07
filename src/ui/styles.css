@@ -896,11 +896,19 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .a-main small { color: var(--muted); font-size: 0.74rem; }
 .a-cov { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
 .a-cov > small { color: var(--muted); display: flex; gap: 0.2rem; align-items: center; }
-.blist { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.55rem; align-items: center; }
-.blist > small { width: 100%; color: var(--muted); display: flex; gap: 0.2rem; align-items: center; }
-.bl { display: flex; flex-direction: column; padding: 0.2rem 0.45rem; border-radius: 0.45rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); opacity: 0.6; }
-.bl.on { opacity: 1; border-color: rgba(255, 211, 77, 0.5); }
-.bl b { font-size: 0.78rem; } .bl small { font-size: 0.68rem; color: var(--muted); }
+/* lâminas lendárias: uma linha com rolagem horizontal que encaixa cartão a cartão (scroll snap); a espada no fundo */
+.bl-title { display: flex; gap: 0.25rem; align-items: center; margin-top: 0.55rem; color: var(--muted); }
+.bl-title span { margin-left: auto; font-weight: 700; color: var(--warn); }
+.blist { display: flex; flex-wrap: nowrap; gap: 0.4rem; margin-top: 0.3rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding: 0 0.1rem; padding-bottom: 0.3rem; scrollbar-width: thin; }
+.bl { position: relative; flex: 0 0 8.6rem; height: 5.6rem; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: flex-end; padding: 0.3rem 0.45rem; border-radius: 0.55rem; border: 1px solid var(--line); background: radial-gradient(circle at 60% 35%, rgba(255, 214, 150, 0.1), rgba(0, 0, 0, 0.35)); overflow: hidden; }
+.bl .bl-ic { position: absolute; right: 0; top: 46%; height: 135%; width: auto; max-width: 80%; object-fit: contain; transform: translateY(-50%) rotate(-12deg); opacity: 0.35; filter: grayscale(0.8) brightness(0.8); image-rendering: pixelated; pointer-events: none; }
+.bl.on { border-color: rgba(255, 211, 77, 0.55); box-shadow: inset 0 0 12px rgba(255, 211, 77, 0.08); }
+.bl.on .bl-ic { opacity: 0.85; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
+.bl b { position: relative; font-size: 0.86rem; line-height: 1.1; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.bl small { position: relative; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.bl.on small { color: var(--good); }
+.bl-ok { position: absolute; top: 0.25rem; left: 0.3rem; color: var(--good); }
+.bl-ok .ic { width: 0.9rem; height: 0.9rem; }
 
 /* ---------- janela Mundo ---------- */
 .rnode { gap: 0.15rem; }

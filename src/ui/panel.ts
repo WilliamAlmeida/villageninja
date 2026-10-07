@@ -37,7 +37,7 @@ import {
   abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
-import { artPortrait, kagePortrait, swordsmanPortrait, unitPortrait } from '../render/sprites';
+import { artPortrait, bladeIcon, kagePortrait, swordsmanPortrait, unitPortrait } from '../render/sprites';
 import { ART, CARDS, ICONS } from './pxicons';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
@@ -1667,7 +1667,7 @@ export class Panel {
       const [label, cls] = got ? ['{check} Espada da vila', 'down'] : onMap.has(id) ? ['{swords} Atacando', 'live'] : ['{alert} À solta', ''];
       html += `<div class="omem ${cls}" ${tipAttr(`${d.name}, ${d.title}`, `${BLADES[id].name}: ${BLADES[id].effect}`, true)}><span class="om-face">${pimg(swordsmanPortrait(id), 'om-bust')}${got ? '<span class="om-check">{check}</span>' : ''}</span><b>${esc(BLADES[id].name)}</b><small>${label}</small></div>`;
     }
-    html += `</div><div class="blist"><small>{swords} Lâminas lendárias</small>`;
+    html += `</div><small class="bl-title">{swords} Lâminas lendárias <span>${s.blades.length}/${BLADE_IDS.length}</span></small><div class="blist">`;
     const holder = new Map<string, Unit>();
     for (const u of s.units) if (!u.dead && u.faction === 'village' && bladeOf(u)) holder.set(bladeOf(u)!, u);
     for (const id of BLADE_IDS) {
@@ -1675,7 +1675,8 @@ export class Panel {
       const got = s.blades.includes(id);
       const who = holder.get(id);
       const where = !got ? d.source : who ? who.name.split(' ').pop()! : 'no estoque';
-      html += `<span class="bl ${got ? 'on' : ''}" ${tipAttr(d.name, `${d.effect} De onde vem: ${d.source}.`, true)}><b>${esc(d.name)}</b><small>${esc(where)}</small></span>`;
+      const icon = bladeIcon(id); // a espada no fundo do cartão
+      html += `<span class="bl ${got ? 'on' : ''}" ${tipAttr(d.name, `${d.effect} De onde vem: ${d.source}.`, true)}>${pimg(icon, 'bl-ic')}<b>${esc(d.name)}</b><small>${esc(where)}</small>${got ? '<span class="bl-ok">{check}</span>' : ''}</span>`;
     }
     return html + `</div></section>`;
   }

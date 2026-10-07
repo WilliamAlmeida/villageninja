@@ -2,7 +2,7 @@
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
 import { art, artFrames, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
-import { anbuMask, dollParts } from './doll';
+import { anbuMask, dollParts, SWORDS, tintPixels } from './doll';
 import { bladeOf } from '../game/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import type { MistBlade } from '../data/blades';
@@ -215,6 +215,47 @@ export function swordsmanPortrait(id: MistBlade): string | null {
   const doll = dollParts({ style: d.style, rank: 'chunin', sword: id, look });
   const pic = doll && dollArt(doll, look.skin);
   return pic ? picPortrait(pic, true, `sw|${id}`) : null;
+}
+
+/**
+ * Ícone de uma lâmina lendária para a interface: a camada da espada na vista de costas (onde ela aparece inteira),
+ * recolorida como no jogo e recortada no contorno. Sem a arte, null.
+ */
+export function bladeIcon(id: string): string | null {
+  const key = `blade|${id}`;
+  if (known(key)) return portraits.get(key)!;
+  const pic = art(`layer-sword-${id}`);
+  const colors = SWORDS[id];
+  if (!pic || !colors || typeof document === 'undefined') return null;
+  const fw = Math.floor(pic.naturalWidth / 4);
+  const fh = Math.floor(pic.naturalHeight / 3);
+  const f = document.createElement('canvas');
+  f.width = fw;
+  f.height = fh;
+  const fx = f.getContext('2d', { willReadFrequently: true })!;
+  fx.drawImage(pic, fw, fh * SHEET_ROWS.back, fw, fh, 0, 0, fw, fh); // costas, parado
+  const data = fx.getImageData(0, 0, fw, fh);
+  tintPixels(data.data, { name: id, color: colors[0], color2: colors[1] }, false, '#000000');
+  fx.putImageData(data, 0, 0);
+  let x0 = fw, y0 = fh, x1 = -1, y1 = -1;
+  for (let y = 0; y < fh; y++)
+    for (let x = 0; x < fw; x++)
+      if (data.data[(y * fw + x) * 4 + 3]! > 20) {
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x);
+        y1 = Math.max(y1, y);
+      }
+  if (x1 < 0) return null;
+  const w = x1 - x0 + 1;
+  const h = y1 - y0 + 1;
+  const c = document.createElement('canvas');
+  c.width = w * 3;
+  c.height = h * 3;
+  const cx = c.getContext('2d')!;
+  cx.imageSmoothingEnabled = false;
+  cx.drawImage(f, x0, y0, w, h, 0, 0, w * 3, h * 3);
+  return canvasUrl(key, c);
 }
 
 /** Retrato do Kage: o busto do penteado dele com o chapéu e o manto de Kage, recolorido; sem a arte, o busto comum. */
