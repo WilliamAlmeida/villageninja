@@ -86,6 +86,7 @@ export type View =
   | { kind: 'unit'; id: number; teach?: boolean }
   | { kind: 'village' }
   | { kind: 'kage' }
+  | { kind: 'bingo' }
   | { kind: 'stats' }
   | { kind: 'missions' }
   | { kind: 'group' }
@@ -101,7 +102,7 @@ export type View =
 
 /** Para onde o botão "Voltar" do ninja leva (tela da janela de onde ele foi aberto). */
 const BACK_LABEL: Partial<Record<View['kind'], string>> = {
-  roster: 'a lista de ninjas', teams: 'as equipes', team: 'a equipe', clans: 'os clãs', missions: 'as missões', region: 'a região', expeditions: 'as expedições', village: 'a vila', kage: 'o Kage', crafts: 'as oficinas',
+  roster: 'a lista de ninjas', teams: 'as equipes', team: 'a equipe', clans: 'os clãs', missions: 'as missões', region: 'a região', expeditions: 'as expedições', village: 'a vila', kage: 'o Kage', bingo: 'o Bingo Book', crafts: 'as oficinas',
 };
 
 interface Built {
@@ -113,11 +114,11 @@ interface Built {
 /** Abas da janela central: cada grupo de telas de gestão. */
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
-  village: [['village', '{home} Vila'], ['kage', '{kage} Kage'], ['stats', '{chart} Estatísticas']],
+  village: [['village', '{home} Vila'], ['kage', '{kage} Kage'], ['bingo', '{skull} Bingo Book'], ['stats', '{chart} Estatísticas']],
   world: [['region', '{map} Região'], ['expeditions', '{pickaxe} Expedições']],
 };
 const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: '{map} Mundo' };
-const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', stats: 'village', expeditions: 'world', region: 'world' };
+const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', bingo: 'village', stats: 'village', expeditions: 'world', region: 'world' };
 
 type BuildingTab = 'main' | 'inside';
 
@@ -346,6 +347,7 @@ export class Panel {
     else if (this.view.kind === 'group') built = this.groupView();
     else if (this.view.kind === 'village') built = this.villageView();
     else if (this.view.kind === 'kage') built = { html: this.tabs('kage') + this.kageSection(), t: {}, b: {} };
+    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill"><div class="kgrid bgrid">${this.orgSection()}${this.swordsmenSection()}</div></div>`, t: {}, b: {} };
     else if (this.view.kind === 'stats') built = this.statsView();
     else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
@@ -1498,7 +1500,8 @@ export class Panel {
 
   /**
    * Aba Kage (mockup kage.png): Kage atual à esquerda (retrato com chapéu e manto, etiquetas, Hiraishin, ações), a
-   * Ordem do Eclipse à direita, os Três Sannin embaixo. `.kfill` estica para ocupar a janela toda (sem sobra).
+   * ANBU à direita, os Três Sannin embaixo. `.kfill` estica para ocupar a janela toda (sem sobra). As ameaças (Ordem do
+   * Eclipse, Espadachins da Névoa) ficam na aba Bingo Book.
    */
   private kageSection() {
     const g = this.app.game;
@@ -1531,8 +1534,8 @@ export class Panel {
     }
     if (g.state.kageHistory.length > 1)
       html += `<p class="hint k-hist">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
-    html += `</section>${this.orgSection()}</div>`;
-    return html + this.sanninSection() + `<div class="kgrid">${this.anbuSection()}${this.swordsmenSection()}</div></div>`;
+    html += `</section>${this.anbuSection()}</div>`;
+    return html + this.sanninSection() + `</div>`;
   }
 
   /** Ordem do Eclipse: emblema, progresso e próxima aparição, os 8 bustos com o estado, a dupla e as ações. */

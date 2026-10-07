@@ -26,7 +26,7 @@ export function createUI(app: App, root: HTMLElement) {
   const win = new Panel(app, 'window');
   const build = new BuildUI(app);
   const NINJA_VIEWS = ['roster', 'teams', 'clans', 'team'];
-  const VILLAGE_VIEWS = ['village', 'kage', 'stats'];
+  const VILLAGE_VIEWS = ['village', 'kage', 'bingo', 'stats'];
   const WORLD_VIEWS = ['expeditions', 'region'];
   /** Abre (ou fecha, se já estiver nela) uma tela da janela central. */
   function toggleWindow(view: View, group: string[]) {
