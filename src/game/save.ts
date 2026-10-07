@@ -188,6 +188,13 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
           }
     }
   },
+  24: (s) => {
+    // a arena virou cercado (muro com portão): árvore/rocha que ficou dentro dela (cresceu ou foi deslocada) sai
+    const W = BUILDINGS.arena.w;
+    for (const a of s.buildings ?? [])
+      if (a.type === 'arena')
+        s.nodes = (s.nodes ?? []).filter((n: { tx: number; ty: number }) => n.tx < a.tx || n.tx >= a.tx + W || n.ty < a.ty || n.ty >= a.ty + W);
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

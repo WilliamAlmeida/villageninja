@@ -49,7 +49,9 @@ const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 /** Tiles de névoa em volta do mapa (só na textura). */
 const FOG_PAD = 3;
 
-type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco };
+type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco;
+  /** Cercado (arena) desenhado em duas peças: fundo atrás de quem está dentro, muro da frente na frente. */
+  part?: 'back' | 'front' };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -222,7 +224,7 @@ export class Renderer {
     ctx.restore();
 
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo
-    for (const b of s.buildings) if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
+    for (const b of s.buildings) if (BUILDINGS[b.type].walkable && !BUILDINGS[b.type].enclosure && art(b.type)) this.building(b, time, night, s.level);
     this.drawHarvest(g);
 
     // ================= passada 2: em pé, do fundo para a frente =================
@@ -236,7 +238,20 @@ export class Renderer {
     const list = this.list;
     list.length = 0;
     for (const b of s.buildings) {
-      if (BUILDINGS[b.type].walkable) continue;
+      const def = BUILDINGS[b.type];
+      if (def.enclosure && art(b.type)) {
+        // arena: o fundo entra na profundidade do muro de trás; o muro da frente, na do muro da frente
+        const c = buildingCenter(b);
+        const r = (def.w * TILE) / 2 / Math.SQRT2;
+        const back = project(c.x - r, c.y - r);
+        const front = project(c.x + r, c.y + r);
+        if (seen(project(c.x, c.y))) {
+          list.push({ x: back.x, y: back.y, b, part: 'back' });
+          list.push({ x: front.x, y: front.y, b, part: 'front' });
+        }
+        continue;
+      }
+      if (def.walkable) continue;
       const c = buildingCenter(b);
       const p = project(c.x, c.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, b });
@@ -266,7 +281,7 @@ export class Renderer {
     // diante de uma face frontal do prédio (x além da direita ou y além do fundo do retângulo) vem depois dele;
     // as outras próximas vêm antes.
     for (const d of list) d.k = d.y;
-    const blocks = list.filter((d) => d.b);
+    const blocks = list.filter((d) => d.b && !d.part);
     for (const d of list) {
       if (d.b) continue;
       const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
@@ -278,6 +293,23 @@ export class Renderer {
         const front = wx >= b.tx + def.w || wy >= b.ty + def.h;
         if (front && d.k! <= o.y) d.k = o.y + 0.01;
         else if (!front && d.k! >= o.y) d.k = o.y - 0.01;
+      }
+    }
+    // cercado (arena): quem está fora do círculo fica atrás de tudo dele (se está atrás do centro) ou na frente de tudo
+    // (se está na frente) — senão uma rocha ou um ninja colado do lado de fora aparece em cima do muro
+    for (const back of list) {
+      if (back.part !== 'back') continue;
+      const b = back.b!;
+      const front = list.find((o) => o.part === 'front' && o.b === b)!;
+      const c = buildingCenter(b);
+      const r = (BUILDINGS[b.type].w * TILE) / 2;
+      for (const d of list) {
+        if (d.b) continue;
+        const wx = d.u ? d.u.x : d.deco ? d.deco.x : d.n ? (d.n.tx + 0.5) * TILE : (d.site!.tx + 0.5) * TILE;
+        const wy = d.u ? d.u.y : d.deco ? d.deco.y : d.n ? (d.n.ty + 0.5) * TILE : (d.site!.ty + 0.5) * TILE;
+        const dist = Math.hypot(wx - c.x, wy - c.y);
+        if (dist < r - 4 || dist > r + 3 * TILE) continue;
+        d.k = wx + wy < c.x + c.y ? Math.min(d.k!, back.k! - 0.01) : Math.max(d.k!, front.k! + 0.01);
       }
     }
     list.sort((a, b) => a.k! - b.k!);
@@ -294,7 +326,7 @@ export class Renderer {
     for (const d of list) {
       if (d.b || d.n) {
         // quem tapa uma unidade fica semitransparente (some e volta suavemente)
-        const key = d.b ? `b${d.b.id}` : `n${d.n!.id}`;
+        const key = d.b ? `b${d.b.id}${d.part ?? ""}` : `n${d.n!.id}`;
         const target = occluded.has(d) ? 0.38 : 1;
         const cur = this.fade.get(key) ?? 1;
         const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
@@ -302,7 +334,8 @@ export class Renderer {
         else this.fade.set(key, a);
         ctx.globalAlpha = a;
       }
-      if (d.b) this.building(d.b, time, night, s.level);
+      if (d.b && d.part) this.enclosurePart(d.b, d.part);
+      else if (d.b) this.building(d.b, time, night, s.level);
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
       else if (d.n) {
@@ -430,7 +463,11 @@ export class Renderer {
     if (!bodies.length) return out;
     list.forEach((d, i) => {
       let r: { x0: number; x1: number; y0: number; y1: number } | null = null;
-      if (d.b) {
+      if (d.b && d.part) {
+        // peça do cercado: o fundo tapa quem está atrás do muro de trás; a frente, quem está colado no muro da frente
+        const e = this.enclosureGeom(d.b);
+        if (e) r = d.part === 'back' ? { x0: e.left, x1: e.left + e.w, y0: e.top, y1: e.ey - e.ery * 0.6 } : { x0: e.ex - e.erx, x1: e.ex + e.erx, y0: e.ey + e.ery * 0.55, y1: e.top + e.h };
+      } else if (d.b) {
         const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty);
         const pic = art(d.b.type);
         const h = pic ? (width / pic.naturalWidth) * pic.naturalHeight : width * 0.8;
@@ -441,6 +478,66 @@ export class Renderer {
       if (bodies.some((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1)) out.add(d);
     });
     return out;
+  }
+
+  /** Onde a arte do cercado fica na cena e a elipse do chão nela (para cortar fundo / muro da frente). */
+  private enclosureGeom(b: Building) {
+    const d = BUILDINGS[b.type];
+    const pic = art(b.type);
+    if (!pic || !d.enclosure) return null;
+    const { front, width } = this.footprint(b.type, b.tx, b.ty);
+    const h = ((width * (ART_SCALE[b.type] ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
+    const w = (h / pic.naturalHeight) * pic.naturalWidth;
+    const left = front.x - w / 2;
+    const top = front.y + 4 - h;
+    const f = d.enclosure.floor;
+    return { pic, front, left, top, w, h, ex: left + f.cx * w, ey: top + f.cy * h, erx: f.rx * w, ery: f.ry * h };
+  }
+
+  /**
+   * Uma peça do cercado (arena): `back` = tudo menos o muro da frente (chão, arquibancada, muro de trás), desenhado
+   * atrás de quem está dentro; `front` = o muro da frente (abaixo da borda de baixo do chão), na frente de quem está
+   * dentro e atrás de quem está do lado de fora.
+   */
+  private enclosurePart(b: Building, part: 'back' | 'front') {
+    const e = this.enclosureGeom(b);
+    if (!e) return;
+    const ctx = this.ctx;
+    const d = BUILDINGS[b.type];
+    const fade = ctx.globalAlpha; // transparência de quem tapa alguém (só muros e arquibancada; o chão fica firme)
+    ctx.save();
+    const built = b.built ? 1 : 0.35 + 0.45 * Math.min(1, b.progress / Math.max(1, d.buildTime));
+    if (part === 'back' && fade < 1) {
+      ctx.save();
+      ctx.globalAlpha = built;
+      ctx.beginPath();
+      ctx.ellipse(e.ex, e.ey, e.erx, e.ery, 0, 0, Math.PI * 2);
+      ctx.clip();
+      drawArt(ctx, e.pic, e.front.x, e.front.y + 4, e.h);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.ellipse(e.ex, e.ey, e.erx, e.ery, 0, 0, Math.PI * 2); // o chão sai do recorte (já foi desenhado)
+    } else ctx.beginPath();
+    ctx.globalAlpha = fade * built;
+    if (part === 'back') ctx.rect(e.left - 2, e.top - 20, e.w + 4, e.h + 40);
+    // região do muro da frente: abaixo da metade de baixo da elipse do chão (e das laterais dela) + o telhado do
+    // portão; um polígono só (amostrado em x) para o "fundo" ser o resto (evenodd)
+    const arch = d.enclosure!.arch;
+    const N = 64;
+    for (let i = 0; i <= N; i++) {
+      const x = e.left - 2 + ((e.w + 4) * i) / N;
+      const u = (x - e.ex) / e.erx;
+      let y = Math.abs(u) <= 1 ? e.ey + e.ery * Math.sqrt(1 - u * u) : e.ey;
+      if (arch && x >= e.left + arch.x0 * e.w && x <= e.left + arch.x1 * e.w) y = Math.min(y, e.top + arch.y0 * e.h);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(e.left + e.w + 2, e.top + e.h + 20);
+    ctx.lineTo(e.left - 2, e.top + e.h + 20);
+    ctx.closePath();
+    ctx.clip(part === 'back' ? 'evenodd' : 'nonzero');
+    drawArt(ctx, e.pic, e.front.x, e.front.y + 4, e.h);
+    ctx.restore();
   }
 
   /** Ponta da frente do losango da base (onde o sprite do prédio apoia) e largura do losango, na cena. */

@@ -171,7 +171,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   a máscara é escolhida ao nomear (`NinjaInfo.mask`, qualquer animal) e dá +1 no atributo que ela representa (`maskKey`). Invisíveis (`cloak`) só com inimigo à vista (`ANBU.alert`) e até atacar — emboscada (`anbuAmbush`) —, ficam na
   rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
   na Região: ação `covert` (`startCovert`, expedição com `teamId -1`): metade do saque sem infâmia se não forem descobertos.
-- **Arena do Exame redonda** (6×6, arte de coliseu com arquibancada atrás e muro baixo na frente; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
+- **Cercados** (`BuildingDef.enclosure`, hoje a arena): andável por dentro, mas o anel de tiles da borda é muro
+  (`World.rebuild`) menos o portão (`gate`); ninguém atravessa. Desenho em duas peças (`enclosurePart` no renderer, corte
+  pela elipse do chão `floor` + telhado do portão `arch`): o fundo (chão, arquibancada, muro de trás) atrás de quem está
+  dentro, o muro da frente na frente; quem está fora do círculo vai para trás ou para a frente da arena inteira; com
+  alguém tapado, muros/arquibancada ficam semitransparentes e o chão continua firme. Arte nova = medir a elipse do chão.
+- **Arena do Exame redonda** (6×6, arte de coliseu com portão na frente-esquerda com arquibancada atrás e muro baixo na frente; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
   só pousam dentro (`keepInRing`), a distância de luta cabe nele (`ringDesired`) e andar não tira ninguém; empurrado para
   fora por um golpe (`Unit.knockT`, setado em `push`) perde (ring-out, `systems/exam.ts`). Migração 23 desloca a arena que
   cresceu e encostou noutro prédio.
@@ -316,7 +321,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v24.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v25.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

@@ -44,12 +44,27 @@ describe('Exame Chunin', () => {
     a.knockT = 0;
     run(g, SIM_DT);
     expect(Math.hypot(a.x - ring.cx, a.y - ring.cy)).toBeLessThanOrEqual(ring.r);
-    // empurrado para fora por um golpe: perde
-    b.x = ring.cx + ring.r - 4;
+    // o muro segura o empurrão (ninguém atravessa a parede)
+    b.x = ring.cx + ring.r - 30;
     b.y = ring.cy;
-    push(g, b, 60, 0);
+    push(g, b, 80, 0);
+    expect(g.world.walkablePx(b.x, b.y)).toBe(true);
+    expect(Math.hypot(b.x - ring.cx, b.y - ring.cy)).toBeLessThan(ring.r);
+    // empurrado para fora pelo portão: perde
+    b.x = ring.cx;
+    b.y = ring.cy + ring.r - 20;
+    push(g, b, 0, 80);
     run(g, SIM_DT);
     expect(ex.entrants.find((e) => e.id === b.id)!.out).toBe(true);
+  });
+
+  test('arena é cercado: muro bloqueia, portão deixa passar', () => {
+    const g = setup(13, 2);
+    const a = g.state.buildings.find((b) => b.type === 'arena')!;
+    g.world.rebuild();
+    expect(g.world.walkable(a.tx, a.ty + 2)).toBe(false); // muro do lado
+    expect(g.world.walkable(a.tx + 2, a.ty + 5)).toBe(true); // portão
+    expect(g.world.walkable(a.tx + 2, a.ty + 2)).toBe(true); // chão
   });
 
   test('save 23: a arena que cresceu não fica em cima de outro prédio', () => {

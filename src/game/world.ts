@@ -53,6 +53,9 @@ export class World {
           const i = idx(x, y);
           this.occupied[i] = b.id;
           if (!d.walkable) this.blocked[i] = 1;
+          // cercado (arena): a borda é muro, menos o portão; só se entra e sai por ele
+          else if (d.enclosure && b.built && (x === b.tx || y === b.ty || x === b.tx + d.w - 1 || y === b.ty + d.h - 1))
+            if (!d.enclosure.gate.some(([gx, gy]) => b.tx + gx === x && b.ty + gy === y)) this.blocked[i] = 1;
         }
       const m = VILLAGE_MARGIN * TILE;
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
