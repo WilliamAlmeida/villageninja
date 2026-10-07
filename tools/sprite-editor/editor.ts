@@ -1,7 +1,7 @@
 // Editor de sprites da Vila Ninja: monta o ninja em camadas igual ao jogo (src/render/doll.ts), anima e deixa editar
 // pixel a pixel (lápis, borracha, conta-gotas) e mover uma camada num quadro ou na vista inteira. Também abre qualquer
 // PNG de src/art. Salvar grava em src/art pelo servidor local (scripts/editor.ts).
-import { ANBU_MASKS, DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
+import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
 type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move';
@@ -90,9 +90,8 @@ async function refreshList() {
 function who() {
   const [rank, sannin] = rankSel.split(':');
   const anbu = rank === 'anbu';
-  const stat = Object.entries(ANBU_MASKS).find(([, a]) => a === maskSel)![0];
   return {
-    style, rank: rank === 'sannin' || anbu ? 'jounin' : rank, sannin, anbu, stats: { [stat]: 1 },
+    style, rank: rank === 'sannin' || anbu ? 'jounin' : rank, sannin, anbu, mask: maskSel,
     sword: swordSel === 'none' ? null : swordSel, look: { ...look },
   };
 }

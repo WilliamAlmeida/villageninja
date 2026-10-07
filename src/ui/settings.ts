@@ -1,5 +1,4 @@
 // Preferências de interface (por dispositivo, fora do save do jogo).
-import { setArtEnabled } from '../render/art';
 import { setLightWeatherFx } from '../render/seasonal';
 
 const KEY = 'villageninja.ui';
@@ -12,7 +11,7 @@ export const FONT_SIZES: { id: FontSize; label: string }[] = [
 ];
 
 /** Desktop (mouse + tela larga) começa no médio; celular, no pequeno. */
-function load(): { fontSize?: unknown; art?: unknown; weatherFx?: unknown } {
+function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown } {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? '{}') ?? {};
   } catch {
@@ -27,11 +26,12 @@ function store(patch: object) {
   }
 }
 
-/** Arte ilustrada (PNG) ou o desenho procedural antigo. */
-export const artOn = () => load().art !== false;
-export function setArtOn(v: boolean) {
-  store({ art: v });
-  setArtEnabled(v);
+/** Câmera segue o ninja selecionado (suave), ligado por padrão. */
+let follow: boolean | null = null; // lido a cada quadro: guardado em memória
+export const followCam = () => (follow ??= load().follow !== false);
+export function setFollowCam(v: boolean) {
+  follow = v;
+  store({ follow: v });
 }
 
 /** Efeitos de clima leves: sem pegadas, bafo, fumaça das chaminés e névoa da nevasca (poupa bateria). */
@@ -57,6 +57,5 @@ export function setFontSize(v: FontSize) {
 
 export function applySettings(v: FontSize = fontSize()) {
   document.documentElement.dataset.fs = v;
-  setArtEnabled(artOn());
   setLightWeatherFx(weatherFxLight());
 }

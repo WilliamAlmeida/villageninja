@@ -2,7 +2,7 @@
 // bandana pela máscara: o animal mostra o melhor atributo (raposa = Ninjutsu, corvo = Genjutsu…) e o nomeado ganha +1
 // nele. Em campo: invisíveis até atacar (o primeiro golpe é uma emboscada), patrulham a vila à noite, revelam espiões e
 // aparecem com Shunshin ao lado do Kage quando ele luta. Missões secretas na Região: `startCovert` (game/region.ts).
-import { anbuMask, MASK_NAMES, maskStat } from '../data/anbu';
+import { anbuMask, MASK_LIST, MASK_NAMES, maskKey } from '../data/anbu';
 import { STAT_INFO } from '../data/ninja';
 import { costLabel } from '../data/resources';
 import { rand } from '../core/rng';
@@ -27,12 +27,15 @@ export const ANBU = {
   guardCd: 20,
 };
 
-/** Máscara do ninja: animal, nome, atributo que representa e o rótulo dele. */
-export function maskOf(u: Unit) {
-  const key = maskStat(u.ninja?.stats);
-  const animal = anbuMask(u.ninja?.stats);
-  return { animal, name: MASK_NAMES[animal]!, key, stat: STAT_INFO[key].label };
+/** Máscara de um animal: nome, atributo que representa e o rótulo dele. */
+export function maskInfo(animal: string) {
+  const key = maskKey(animal);
+  return { animal, name: MASK_NAMES[animal] ?? animal, key, stat: STAT_INFO[key].label };
 }
+/** Máscara do ninja da ANBU (a escolhida ao nomear; saves antigos: a do melhor atributo). */
+export const maskOf = (u: Unit) => maskInfo(u.ninja?.mask ?? anbuMask(u.ninja?.stats));
+/** Primeira máscara que ninguém da ANBU usa (sugestão ao nomear). */
+export const freeMask = (g: Game) => MASK_LIST.find((m) => !anbus(g).some((u) => maskOf(u).animal === m)) ?? MASK_LIST[0]!;
 
 const village = (u: Unit) => !u.dead && u.faction === 'village' && u.kind === 'ninja' && !!u.ninja;
 export const anbus = (g: Game) => g.state.units.filter((u) => village(u) && u.ninja!.anbu);
@@ -59,7 +62,7 @@ export function anbuBlock(g: Game, u?: Unit): string | null {
 }
 
 /** Nomeia o ninja para a ANBU: sai das equipes, ganha a máscara e +1 no atributo dela. */
-export function appointAnbu(g: Game, unitId: number): Result {
+export function appointAnbu(g: Game, unitId: number, mask = freeMask(g)): Result {
   const u = g.unit(unitId);
   if (!u || !village(u)) return { ok: false, error: 'Ninja não encontrado.' };
   const why = anbuBlock(g, u);
@@ -70,7 +73,8 @@ export function appointAnbu(g: Game, unitId: number): Result {
     t.memberIds = t.memberIds.filter((id) => id !== u.id);
     if (t.senseiId === u.id) t.senseiId = null;
   }
-  const m = maskOf(u);
+  const m = maskInfo(MASK_LIST.includes(mask) ? mask : freeMask(g));
+  n.mask = m.animal;
   n.stats[m.key] = Math.min(statCapOf(n), n.stats[m.key] + 1);
   n.anbu = true;
   n.order = 'auto';

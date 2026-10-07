@@ -1,6 +1,6 @@
 // Arte em pixel art (PNG pequenos em src/art, gerados por IA e preparados por scripts/prepare-art.py).
-// Cada desenho procedural tenta primeiro a imagem; sem ela (ou com a arte desligada no menu,
-// ou fora do navegador) cai no desenho antigo.
+// O jogo é sempre em pixel art; o desenho procedural de sprites.ts só aparece enquanto a imagem carrega (ou fora do
+// navegador, nos testes).
 import { DOLL_FRAME_PAD, type DollPart, hex, hsv, tintPixels } from './doll';
 import hokage from '../art/hokage.png';
 import house from '../art/house.png';
@@ -177,7 +177,6 @@ export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns', '
 const SHEETS = new Set(['ninja', 'ninja-body', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', 'org-goen', 'org-tetsuo', 'org-mizuchi', 'org-raiga', 'org-kagero', 'org-shiryo', 'org-tsuchigumo', 'org-yomi', 'sound-iwao', 'sound-kumomaru', 'sound-kanade', 'sound-sokon', 'sound-hakkotsu', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
 
 const images = new Map<string, HTMLImageElement>();
-let enabled = true;
 
 /** URL do PNG (para usar no DOM, ex.: fundo dos cards de construção). */
 /**
@@ -194,10 +193,6 @@ export const ART_SCALE: Record<string, number> = {
 };
 
 export const artUrl = (name: string): string | null => URLS[name] ?? null;
-
-export function setArtEnabled(v: boolean) {
-  enabled = v;
-}
 
 /** Imagem pronta para desenhar, ou null (arte desligada, nome sem imagem, ainda carregando). */
 /**
@@ -235,7 +230,7 @@ export function art(name: string): HTMLImageElement | null {
     img.dataset.name = name;
     images.set(name, img);
   }
-  return enabled && img.complete && img.naturalWidth > 0 ? img : null;
+  return img.complete && img.naturalWidth > 0 ? img : null;
 }
 
 type Pic = HTMLImageElement | HTMLCanvasElement;

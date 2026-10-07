@@ -13,6 +13,10 @@ export class Camera {
   viewW = 800;
   viewH = 400;
   private follow: { x: number; y: number } | null = null;
+  /** Unidade que a câmera acompanha (main.ts); arrastar o mapa solta. */
+  trackId: number | null = null;
+  /** Já seguiu este id (não volta a seguir sozinha o mesmo selecionado depois de o jogador arrastar). */
+  trackedOnce: number | null = null;
 
   resize(w: number, h: number) {
     this.viewW = w;
@@ -50,6 +54,7 @@ export class Camera {
 
   pan(dxScreen: number, dyScreen: number) {
     this.follow = null;
+    this.trackId = null;
     this.x -= dxScreen / this.zoom;
     this.y -= dyScreen / this.zoom;
     this.clamp();
@@ -78,9 +83,17 @@ export class Camera {
     this.clamp();
   }
 
+  /** Acompanha um ponto que se move (mundo), suave (lerp mais lento que o `focus`). */
+  track(wx: number, wy: number) {
+    this.follow = project(wx, wy);
+    this.trackSpeed = 3.5;
+  }
+  private trackSpeed = 8;
+
   update(dt: number) {
     if (!this.follow) return;
-    const k = 1 - Math.exp(-dt * 8);
+    const k = 1 - Math.exp(-dt * this.trackSpeed);
+    this.trackSpeed = 8;
     this.x += (this.follow.x - this.x) * k;
     this.y += (this.follow.y - this.y) * k;
     if (Math.hypot(this.follow.x - this.x, this.follow.y - this.y) < 1) this.follow = null;

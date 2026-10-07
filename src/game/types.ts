@@ -73,6 +73,8 @@ export interface NinjaInfo {
   sannin?: SanninPath;
   /** Nomeado para a ANBU pelo Kage (game/anbu.ts): uniforme, máscara e furtividade. */
   anbu?: boolean;
+  /** Animal da máscara da ANBU (escolhido ao nomear; sem = o do melhor atributo, saves antigos). */
+  mask?: string;
 }
 
 /** Herança de família: o que um morador traz de berço (usado ao virar ninja). */

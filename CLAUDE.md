@@ -25,8 +25,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`SCENERY_SCALE`, paleta de 256 cores): o jogo desenha pelo tamanho no mundo e só ganha nitidez com zoom; abaixo do
   tamanho guardado `smoothIfShrunk` (art.ts) reduz com suavização. Personagens e camadas do ninja seguem em 1×. **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
   usa `-m gpt-5.5` e tira o fundo localmente com `scripts/remove-bg.py`). A Runware (`scripts/runware.mjs`,
-  `scripts/sprite.mjs`, paga por imagem) é só alternativa quando o Codex não estiver disponível. Sem imagem (ou com "Arte: Antiga" no menu) vale o desenho
-  procedural de `sprites.ts`.
+  `scripts/sprite.mjs`, paga por imagem) é só alternativa quando o Codex não estiver disponível. O jogo é sempre pixel art
+  (a opção de arte antiga saiu); o desenho procedural de `sprites.ts` só aparece enquanto a imagem carrega e nos testes.
 - **Folhas de sprite (personagens e bichos) têm um padrão fixo** — nunca gere "um sprite sheet" solto:
   `node scripts/codex-image.mjs docs/arte/sprites/<nome>.png "<descrição>" --sheet biped|quadruped [--ref visual.png]`
   manda o gabarito de poses (`docs/arte/gabarito-*.png`, criado por `scripts/sprite-template.py`) como 1ª referência.
@@ -156,9 +156,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   amaldiçoado (`cursed`, vira inimigo mais forte e vem nas invasões; derrotado, volta para a vila, `cursedDefeated`).
   Voltam sempre (não acabam). Seção no Bingo Book com o placar.
 - **ANBU** (`game/anbu.ts`, seção na aba Kage): o Kage nomeia Chunins/Jounins (Torre de Inteligência; 3 vagas); saem das
-  equipes, máscara pelo melhor atributo (+1 nele). Invisíveis (`cloak`) até atacar — emboscada (`anbuAmbush`) —, ficam na
+  equipes comuns e só formam equipe entre si (`teamFit` em teams.ts; o Kage não tem equipe e sai da sua ao ser coroado);
+  a máscara é escolhida ao nomear (`NinjaInfo.mask`, qualquer animal) e dá +1 no atributo que ela representa (`maskKey`). Invisíveis (`cloak`) até atacar — emboscada (`anbuAmbush`) —, ficam na
   rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
   na Região: ação `covert` (`startCovert`, expedição com `teamId -1`): metade do saque sem infâmia se não forem descobertos.
+- **Câmera segue o selecionado** (`followSelected` em main.ts, `Camera.track`/`trackId`): lerp suave; arrastar solta; se a
+  unidade se perder (caiu, saiu do mapa) volta suave para a Residência. Menu "Câmera segue o ninja" (`followCam`, padrão sim).
+  Menu de pausa numa coluna (ações, configurações, novo jogo) com botão "Guia" para as dicas.
+- **Oficinas** (janela, tecla F): uma oficina por aba (`craftTab`), estoque/produção/upgrade à esquerda e receitas à direita.
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Exploração** (`game/explore.ts`, `systems/explore.ts`): névoa em bitset (`state.explored`, 1 bit por tile);
   unidades/torres da vila revelam ao redor. Na névoa nada em pé é desenhado nem clicável (inimigos, recursos, locais).
@@ -198,7 +203,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   raças (`BreedDef.kennel`: Shiba e Pug no 1, Cão branco no 2, Buldogue no 3). `releaseDog` solta o cão (volta ao Canil
   sem dono, `freeDogs`) e `giveDog` o passa a outro ninja sem custo; dono que cai: o cão para de lutar e corre para o Canil
   (morre se for abatido no caminho); lá dentro recupera a vida (`kennelRest`) e espera outro dono. Drawer do
-  Canil separa "Sem cão" e "Com cão" em listas `.scrollist` (rolam por dentro). Dono escondido (em casa) ou em expedição: de dia o cão patrulha a vila farejando (`dogPatrol`), à noite dorme no Canil (`goKennel`, em hostiles.ts); volta a seguir o dono quando ele sai.
+  Canil: raças ordenadas pelo nível (cartão baixo com o cão de lado em meio corpo e o nível no canto; travada abre o aviso
+  em vez de trocar) e abas "Sem cão" / "Com cão" (`kennelTab`, até 20 ninjas, os de nível mais alto). Dono escondido (em casa) ou em expedição: de dia o cão patrulha a vila farejando (`dogPatrol`), à noite dorme no Canil (`goKennel`, em hostiles.ts); volta a seguir o dono quando ele sai.
 - **Recursos crescem de volta** (`data/regrow.ts`, `systems/nature.ts`): árvore/rocha/veio esgotado vira toco/rocha rachada
   (`ResourceNode.regrow`) em vez de sumir. Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
   coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).

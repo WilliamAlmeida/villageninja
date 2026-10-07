@@ -1,14 +1,15 @@
 import type { App } from '../app';
-import { levelDef } from '../data/villageLevels';
 import { el } from './dom';
 import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 import { rich } from './icons';
-import { artOn, FONT_SIZES, fontSize, setArtOn, setFontSize, setWeatherFxLight, weatherFxLight, type FontSize } from './settings';
+import { FONT_SIZES, followCam, fontSize, setFollowCam, setFontSize, setWeatherFxLight, weatherFxLight, type FontSize } from './settings';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
 export class Menu {
   readonly root: HTMLElement;
   private armedNew = false;
+  /** Mostrando o guia (como jogar) no lugar das configurações. */
+  private guide = false;
   private prevSpeed = 1;
 
   constructor(private app: App) {
@@ -26,8 +27,12 @@ export class Menu {
         else toggleFullscreen();
       }
       if (a === 'install') install().then(() => this.render());
-      if (a === 'art') {
-        setArtOn((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
+      if (a === 'follow') {
+        setFollowCam((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
+        this.render();
+      }
+      if (a === 'guide') {
+        this.guide = !this.guide;
         this.render();
       }
       if (a === 'wfx') {
@@ -57,6 +62,7 @@ export class Menu {
 
   open() {
     this.armedNew = false;
+    this.guide = false;
     this.prevSpeed = this.app.home.state.speed || 1;
     this.app.home.state.speed = 0;
     this.render();
@@ -71,24 +77,11 @@ export class Menu {
   private render() {
     const s = this.app.home.state;
     const fs = fontSize();
-    this.root.innerHTML = rich(`<div class="box">
-      <h2>{leaf} Vila Ninja <small style="color:var(--muted);font-weight:400">— protótipo</small></h2>
-      <div class="col">
-        <button class="btn primary" data-act="resume">{play} Continuar</button>
-        <button class="btn" data-act="save">{save} Salvar agora</button>
-        ${isStandalone() ? '' : `<button class="btn" data-act="full">{fullscreen} ${isFullscreen() ? 'Sair da tela cheia' : 'Tela cheia'}</button>`}
-        ${canInstall() ? `<button class="btn" data-act="install">{phone} Instalar como app (sem barra do navegador)</button>` : ''}
-        ${!isStandalone() && isIOS() ? `<p class="hint">${IOS_HINT}</p>` : ''}
-        <div class="setrow">{text} Texto<div class="seg">${FONT_SIZES.map((f) => `<button data-act="font" data-arg="${f.id}" class="${f.id === fs ? 'on' : ''}">${f.label}</button>`).join('')}</div></div>
-        <div class="setrow">{swords} Combate<div class="seg"><button data-act="pace" data-arg="fast" class="${s.pace === 'tactical' ? '' : 'on'}">Rápido</button><button data-act="pace" data-arg="tactical" class="${s.pace === 'tactical' ? 'on' : ''}">Tático</button></div></div>
-        <p class="hint">${s.pace === 'tactical' ? 'Tático: antes de cada jutsu o ninja faz os selos (mais rápido com o atributo Selos). Um golpe forte nessa hora interrompe e o chakra se perde. Taijutsu sai na hora.' : 'Rápido: os jutsus saem na hora, sem selos.'}</p>
-        <div class="setrow">{snow} Clima<div class="seg"><button data-act="wfx" data-arg="full" class="${weatherFxLight() ? '' : 'on'}">Completo</button><button data-act="wfx" data-arg="light" class="${weatherFxLight() ? 'on' : ''}">Leve</button></div></div>
-        <div class="setrow">{eye} Arte<div class="seg"><button data-act="art" data-arg="1" class="${artOn() ? 'on' : ''}">Pixel art</button><button data-act="art" data-arg="0" class="${artOn() ? '' : 'on'}">Antiga</button></div></div>
-        <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
-        <p class="hint">${levelDef(s.level).icon} ${levelDef(s.level).name} · Dia ${s.day} · Abates ${s.stats.kills} · Invasões repelidas ${s.stats.raidsRepelled} · Chefes ${s.stats.bossesDefeated} · Missões ${s.stats.missionsDone} · Perdas ${s.stats.lost}</p>
-      </div>
-      <div class="col">
-        <ul>
+    const seg = (act: string, opts: [string, string, boolean][]) => `<div class="seg">${opts.map(([arg, label, on]) => `<button data-act="${act}" data-arg="${arg}" class="${on ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+    if (this.guide) {
+      this.root.innerHTML = rich(`<div class="box menu1">
+        <h2>{books} Guia</h2>
+        <ul class="guide">
           <li><b>Arraste</b> para mover, <b>pinça</b>/roda do mouse para zoom, <b>toque</b> para selecionar.</li>
           <li><b>Selecionar</b> (ou Shift + arrastar): marque vários ninjas com uma caixa. <b>Botão direito</b> no mapa manda mover ou atacar.</li>
           <li>Moradores trabalham sozinhos. Sem emprego, eles constroem as obras.</li>
@@ -101,8 +94,27 @@ export class Menu {
           <li><b>{castle} Vila</b>: cumpra os requisitos e evolua de Aldeia até Grande Vila Oculta (mais território e prédios).</li>
           <li>O jogo salva sozinho a cada 20 s.</li>
         </ul>
+        <button class="btn primary" data-act="guide">{back} Voltar</button>
+      </div>`);
+      return;
+    }
+    this.root.innerHTML = rich(`<div class="box menu1">
+      <h2>{leaf} Vila Ninja</h2>
+      <div class="mgrid">
+        <button class="btn primary" data-act="resume">{play} Continuar</button>
+        <button class="btn" data-act="save">{save} Salvar agora</button>
+        ${isStandalone() ? '' : `<button class="btn" data-act="full">{fullscreen} ${isFullscreen() ? 'Sair da tela cheia' : 'Tela cheia'}</button>`}
+        <button class="btn" data-act="guide">{books} Guia</button>
+        ${canInstall() ? `<button class="btn wide" data-act="install">{phone} Instalar como app</button>` : ''}
       </div>
+      ${!isStandalone() && isIOS() ? `<p class="hint">${IOS_HINT}</p>` : ''}
+      <h4>{gear} Configurações</h4>
+      <div class="setrow"><span class="sl">{text} Texto</span>${seg('font', FONT_SIZES.map((f) => [f.id, f.label, f.id === fs]))}</div>
+      <div class="setrow"><span class="sl">{swords} Combate</span>${seg('pace', [['fast', 'Rápido', s.pace !== 'tactical'], ['tactical', 'Tático', s.pace === 'tactical']])}</div>
+      <p class="hint">${s.pace === 'tactical' ? 'Tático: antes de cada jutsu o ninja faz os selos; um golpe forte nessa hora interrompe.' : 'Rápido: os jutsus saem na hora, sem selos.'}</p>
+      <div class="setrow"><span class="sl">{eye} Câmera segue o ninja</span>${seg('follow', [['1', 'Sim', followCam()], ['0', 'Não', !followCam()]])}</div>
+      <div class="setrow"><span class="sl">{snow} Clima</span>${seg('wfx', [['full', 'Completo', !weatherFxLight()], ['light', 'Leve', weatherFxLight()]])}</div>
+      <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
     </div>`);
   }
-
 }

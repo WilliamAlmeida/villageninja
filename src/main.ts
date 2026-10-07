@@ -11,7 +11,7 @@ import { doorPos } from './game/world';
 import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
-import { applySettings } from './ui/settings';
+import { applySettings, followCam } from './ui/settings';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui')!;
@@ -118,6 +118,35 @@ let acc = 0;
 let clock = 0;
 let winEl: HTMLElement | null = null;
 let drawWait = 0;
+/**
+ * Câmera segue o ninja (ou bicho, inimigo) selecionado, suave; arrastar o mapa solta. Se ele se perder (caiu, saiu do
+ * mapa numa expedição), a câmera volta suave para a Residência. Desligável no menu ("Câmera segue o ninja").
+ */
+function followSelected() {
+  const g = app.game;
+  if (camera.trackId != null) {
+    const u = g.unit(camera.trackId);
+    if (!u || u.dead || u.away != null) {
+      camera.trackId = null;
+      const hk = g.hokage();
+      if (hk) {
+        const p = doorPos(hk);
+        camera.focus(p.x, p.y);
+      }
+      return;
+    }
+  }
+  const sel = g.selected;
+  const id = followCam() && sel?.kind === 'unit' ? sel.id : null;
+  if (id !== camera.trackedOnce) {
+    camera.trackedOnce = id;
+    camera.trackId = id;
+  }
+  if (camera.trackId == null) return;
+  const u = g.unit(camera.trackId)!;
+  camera.track(u.x, u.y);
+}
+
 function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -142,6 +171,7 @@ function frame(now: number) {
 
   // a invasão acabou enquanto o jogador olhava: volta para a vila
   if (app.viewScene && !home.state.scene) app.setView(false);
+  followSelected();
   camera.update(dt);
   // janela de gestão aberta cobre quase todo o mapa: desenha o fundo a ~12 quadros/s (a simulação segue igual).
   // Poupa a GPU/CPU para a janela (num save grande, mapa a 60 quadros + janela por cima travava as abas).

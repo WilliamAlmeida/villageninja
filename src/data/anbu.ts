@@ -15,3 +15,6 @@ export function maskStat(stats?: Partial<Record<string, number>>): StatKey {
   return best;
 }
 export const anbuMask = (stats?: Partial<Record<string, number>>) => ANBU_MASKS[maskStat(stats)];
+export const MASK_LIST = Object.values(ANBU_MASKS);
+/** Atributo que o animal representa. */
+export const maskKey = (animal: string) => (Object.keys(ANBU_MASKS) as StatKey[]).find((k) => ANBU_MASKS[k] === animal) ?? 'ninjutsu';

@@ -232,7 +232,7 @@ h4 small { text-transform: none; letter-spacing: 0; }
 /* lista longa dentro de drawer/janela: rola por dentro (o topo, com filtros e botões, fica à vista) */
 .roster.scrollist, .scrollist { max-height: min(46vh, 22rem); overflow-y: auto; overscroll-behavior: contain; padding-right: 0.25rem; scrollbar-width: thin; }
 .jscroll { max-height: min(62vh, 34rem); display: flex; flex-direction: column; gap: 0.5rem; }
-.breed.locked { opacity: 0.55; } .breed .lk { font-size: 0.68rem; color: var(--warn); display: flex; gap: 0.15rem; align-items: center; }
+.breed.locked { opacity: 0.55; } .breed.locked .pic { filter: grayscale(1); }
 .rrow {
   display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.45rem; padding: 0.5rem 0.65rem; border-radius: 0.65rem;
   background: var(--card); text-align: left; border-left: 0.25rem solid transparent; transition: background 0.12s;
@@ -345,6 +345,15 @@ h4 small { text-transform: none; letter-spacing: 0; }
 #modal li { margin-bottom: 0.25rem; }
 .setrow { display: flex; align-items: center; gap: 0.6rem; font-size: 0.92rem; color: var(--muted); }
 .setrow .seg { flex: 1; }
+/* menu de pausa numa coluna só: ações em grade, configurações, novo jogo; o guia abre no lugar delas */
+#modal .box.menu1 { width: min(30rem, 92vw); grid-template-columns: 1fr; gap: 0.6rem; }
+#modal .menu1 h4 { margin: 0.3rem 0 0; display: flex; gap: 0.35rem; align-items: center; color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+#modal .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+#modal .mgrid .btn.primary, #modal .mgrid .wide { grid-column: 1 / -1; }
+#modal .menu1 .setrow { justify-content: space-between; }
+#modal .menu1 .setrow .sl { display: flex; align-items: center; gap: 0.4rem; }
+#modal .menu1 .setrow .seg { flex: 0 1 15rem; }
+#modal .guide li { margin-bottom: 0.4rem; line-height: 1.35; }
 
 /* ---------- mouse (desktop) ---------- */
 @media (hover: hover) {
@@ -486,13 +495,18 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .workers .wnum small { color: var(--muted); font-size: 0.75rem; }
 .gearbar { margin-bottom: 0.4rem; }
 /* Canil: raças em cartões com o cão parado de frente (folha 4×3: coluna 2, linha 2) */
-.breeds { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr)); gap: 0.4rem; margin: 0.3rem 0; }
-.breed { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.35rem 0.3rem 0.4rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); }
-.breed.on { border-color: var(--accent); background: var(--card-hi); }
+/* raças do Canil: cartão baixo, o cão de lado (olhando para a direita) com meio corpo escondido à esquerda e o nível
+   flutuando no canto (mesmo estilo dos cartões das lâminas no Bingo Book) */
+.breeds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; margin: 0.3rem 0; }
+.breed { position: relative; height: 3.4rem; overflow: hidden; display: flex; align-items: flex-end; justify-content: flex-end; padding: 0.3rem 0.45rem; border-radius: 0.55rem; background: radial-gradient(circle at 25% 60%, rgba(255, 214, 150, 0.12), rgba(0, 0, 0, 0.3)); border: 1px solid var(--line); text-align: right; }
+.breed.on { border-color: var(--accent); box-shadow: inset 0 0 12px rgba(255, 138, 43, 0.15); }
 .breed.on .n { color: var(--accent); }
-.breed .pic { width: 4rem; height: 4rem; background-size: 400% 300%; background-position: 33.333% 50%; background-repeat: no-repeat; image-rendering: pixelated; }
+.breed .pic { position: absolute; left: -1.6rem; bottom: -0.6rem; width: 5rem; height: 5rem; background-size: 400% 300%; background-position: 33.333% 0%; background-repeat: no-repeat; image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5)); }
 .breed .pic.none { display: grid; place-items: center; color: var(--muted); }
-.breed .n { font-size: 0.82rem; font-weight: 700; text-align: center; line-height: 1.15; }
+.breed .n { position: relative; font-size: 0.8rem; font-weight: 700; line-height: 1.1; max-width: 62%; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.breed .lv { position: absolute; top: 0.2rem; right: 0.35rem; font-size: 0.66rem; font-weight: 700; color: var(--warn); display: flex; gap: 0.15rem; align-items: center; }
+.breed .lv .ic { width: 0.75rem; height: 0.75rem; }
+.ktabs { margin: 0.5rem 0 0.4rem; }
 .gearbar.workshop-bar { display: grid; grid-template-columns: 1fr 1fr; margin-top: 0.45rem; }
 .gearbar.workshop-bar .btn { justify-content: center; white-space: nowrap; }
 
@@ -698,6 +712,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .tc-side { grid-area: side; display: flex; flex-direction: column; gap: 0.35rem; align-items: stretch; justify-content: center; }
 .tc-side .mpill { justify-content: center; }
 .tfoot { margin-top: 0.6rem; }
+.thead { margin-bottom: 0.6rem; }
 .tempty { display: grid; place-items: center; text-align: center; color: var(--muted); padding: 3rem 1rem; gap: 0.4rem; }
 .tempty > .ic { width: 2.6rem; height: 2.6rem; color: var(--accent); opacity: 0.6; }
 
@@ -898,6 +913,8 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .a-face img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .a-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .a-main small { color: var(--muted); font-size: 0.74rem; }
+.a-masks { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.45rem; }
+.a-masks > small { color: var(--muted); }
 .a-cov { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
 .a-cov > small { color: var(--muted); display: flex; gap: 0.2rem; align-items: center; }
 /* lâminas lendárias: uma linha com rolagem horizontal que encaixa cartão a cartão (scroll snap); a espada no fundo */
@@ -1634,6 +1651,15 @@ h4::after { background: var(--line); opacity: 0.6; }
 .bingo .ogrid { flex: none; grid-auto-rows: auto; }
 .bingo .om-face { flex: none; min-height: 0; height: 6.5rem; aspect-ratio: auto; }
 .bingo .omem.unk .om-face, .bingo .omem.lair .om-face, .bingo .omem.down .om-face { filter: none; }
+
+/* ---------- janela Oficinas: uma oficina por vez (abas), receitas numa coluna larga à direita ---------- */
+.craftone { margin-top: 0.4rem; }
+.craftone .wscard { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); grid-template-areas: 'h h' 'a r' 'b r' 'u r'; align-items: start; gap: 0.5rem 0.9rem; }
+.craftone .wshead { grid-area: h; }
+.craftone .ws-a { grid-area: a; } .craftone .ws-b { grid-area: b; } .craftone .ws-u { grid-area: u; }
+.craftone .ws-r { grid-area: r; }
+.craftone .ws-r .scrollist { max-height: min(62vh, 34rem); }
+@media (max-width: 760px) { .craftone .wscard { grid-template-columns: 1fr; grid-template-areas: 'h' 'a' 'b' 'r' 'u'; } }
 
 /* ---------- inventário do ninja (drawer): boneco com os espaços em volta e a grade do estoque ---------- */
 .inv { display: flex; flex-direction: column; gap: 0.55rem; }

@@ -59,7 +59,8 @@ import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
 import { bladeOf, canWield } from '../game/blades';
-import { ANBU, anbuBlock, anbuCandidates, anbus, anbuSlots, appointAnbu, dismissAnbu, maskOf } from '../game/anbu';
+import { ANBU, anbuBlock, anbuCandidates, anbus, anbuSlots, appointAnbu, dismissAnbu, freeMask, maskInfo, maskOf } from '../game/anbu';
+import { MASK_LIST } from '../data/anbu';
 import { BLADE_IDS, BLADES, MIST_BLADES } from '../data/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import { SOUND, SOUND_MEMBERS } from '../data/sound';
@@ -67,7 +68,7 @@ import { WITH_SOUND } from '../game/sound';
 import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
-  setTeamOrder, teamOf, teamUnits,
+  setTeamOrder, teamFit, teamOf, teamUnits,
 } from '../game/teams';
 import type { Building, Expedition, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
 import { occupantsOf } from '../game/interior';
@@ -192,9 +193,9 @@ const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hu
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
   safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
 };
-type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin' | 'sannin' | 'kage';
+type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin' | 'sannin' | 'anbu' | 'kage';
 /** Filtros de graduação: aparecem sempre, mesmo vazios (dá para ver que existe Sannin e Kage). */
-const RANK_FILTERS: RosterFilter[] = ['genin', 'chunin', 'jounin', 'sannin', 'kage'];
+const RANK_FILTERS: RosterFilter[] = ['genin', 'chunin', 'jounin', 'sannin', 'anbu', 'kage'];
 type RosterSort = 'level' | 'rank' | 'power' | 'hp' | 'name';
 const ROSTER_SORTS: [RosterSort, string, string][] = [
   ['level', 'Nível', 'Maior nível primeiro'],
@@ -237,6 +238,12 @@ export class Panel {
   private unitTab: UnitTab = 'info';
   /** Filtro da grade do inventário do ninja. */
   private invFilter: 'all' | ItemSlot = 'all';
+  /** Oficina aberta na janela Oficinas (uma por vez, em abas). */
+  private craftTab: 'forge' | 'pharmacy' | 'sealshop' = 'forge';
+  /** Lista mostrada no Canil (uma por vez). */
+  private kennelTab: 'without' | 'with' = 'without';
+  /** Máscara escolhida para o próximo nomeado da ANBU (null = a primeira livre). */
+  private anbuMaskSel: string | null = null;
   /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
   private rosterFilter: RosterFilter = 'all';
   private rosterSort: RosterSort = 'level';
@@ -1111,11 +1118,11 @@ export class Panel {
       `<span class="mchip">{users} De ${ninjas.length} ninjas:</span>${chip(lack('weapon'), '{kunai}', 'sem arma')}${chip(lack('armor'), '{vest}', 'sem colete')}${chip(lack('item'), '{pill}', 'sem consumível')}`,
       `<button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
        ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}`,
-      [],
+      (['forge', 'pharmacy', 'sealshop'] as const).map((k): [string, string, boolean, string] => [k, `${BUILDINGS[k].icon} ${k === 'sealshop' ? 'Selos' : BUILDINGS[k].name}`, this.craftTab === k, 'craft-tab']),
     );
-    html += `<div class="craftgrid">`;
-    for (const type of ['forge', 'pharmacy', 'sealshop'] as const) html += this.craftCard(type, t, b);
-    return { html: html + `</div>`, t, b };
+    // uma oficina por vez (menos coisa atualizando o tempo todo e mais espaço para as receitas)
+    html += `<div class="craftone">${this.craftCard(this.craftTab, t, b)}</div>`;
+    return { html, t, b };
   }
 
   /**
@@ -1139,14 +1146,14 @@ export class Panel {
     html += `</div></div>`;
     const recipes = recipesOf(type);
     // estoque
-    html += `<div class="ws-sec"><h4>{luggage} Estoque</h4><div class="ws-stock">${recipes
+    html += `<div class="ws-sec ws-a"><h4>{luggage} Estoque</h4><div class="ws-stock">${recipes
       .map((r) => `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${r.icon}</span><span>${esc(r.name)}</span><b>${stock(g, r.id)}</b></span>`)
       .join('')}</div></div>`;
     // produção e fila
     const q = bd.queue ?? [];
     const used = q.length + (bd.craft ? 1 : 0);
     const max = queueMax(bd);
-    html += `<div class="ws-sec"><h4>{hammer} Produção atual</h4>`;
+    html += `<div class="ws-sec ws-b"><h4>{hammer} Produção atual</h4>`;
     if (bd.craft) {
       const it = ITEMS[bd.craft.itemId]!;
       const k = `cr${bd.id}`;
@@ -1163,7 +1170,7 @@ export class Panel {
     html += `</div></div>`;
     // receitas
     const auto = canAutoCraft(bd);
-    html += `<div class="ws-sec"><h4>{scroll} Receitas</h4><div class="scrollist">`;
+    html += `<div class="ws-sec ws-r"><h4>{scroll} Receitas</h4><div class="scrollist">`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
       const keep = bd.keep?.[r.id] ?? 0;
@@ -1194,7 +1201,7 @@ export class Panel {
       const st = upgradeStatus(g, bd);
       const cost = st.cost ?? {};
       const chips = RES_KEYS.filter((k) => cost[k]).map((k) => `<span class="mchip ${g.state.res[k] < cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${cost[k]}</span>`).join('');
-      html += `<div class="bup"><div class="bup-t">{up} Melhorar para Nv ${lvl + 1}</div><div class="bup-row"><div class="bup-txt">${
+      html += `<div class="bup ws-u"><div class="bup-t">{up} Melhorar para Nv ${lvl + 1}</div><div class="bup-row"><div class="bup-txt">${
         auto ? esc(UPGRADES[type]!.perks[lvl]!) : `No nível ${AUTO_CRAFT_LEVEL} ela fabrica sozinha para manter o estoque.`
       }<div class="bup-cost">${chips}</div></div><button class="btn primary" data-act="ws-upgrade" data-arg="${bd.id}" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>{up} Nível ${lvl + 1}</button></div></div>`;
     }
@@ -1212,13 +1219,15 @@ export class Panel {
   /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
   private breedPicker() {
     // cartão com o cão parado de frente (quadro do meio da linha 2 da folha 4×3)
+    // ordenadas pelo nível do Canil que libera; o cão de lado (olhando para a direita), meio corpo dentro do cartão
+    const g = this.app.game;
     let html = `<div class="breeds">`;
-    for (const k of BREED_LIST) {
+    for (const k of [...BREED_LIST].sort((a, b) => BREEDS[a].kennel - BREEDS[b].kennel)) {
       const d = BREEDS[k];
       const url = artUrl(breedArt(k));
       const pic = url ? `<span class="pic" style="background-image:url('${url}')"></span>` : `<span class="pic none">{paw}</span>`;
-      const lock = breedBlock(this.app.game, k);
-      html += `<button data-act="dog-breed" data-arg="${k}" class="breed ${this.dogBreed === k ? 'on' : ''} ${lock ? 'locked' : ''}" ${tipAttr(d.name, `${d.desc}${lock ? ` ${lock}` : ''}`)}>${pic}<span class="n">${esc(d.name)}</span>${lock ? `<span class="lk">{lock} Nv ${d.kennel}</span>` : ''}</button>`;
+      const lock = breedBlock(g, k);
+      html += `<button data-act="dog-breed" data-arg="${k}" class="breed ${this.dogBreed === k ? 'on' : ''} ${lock ? 'locked' : ''}" ${lock ? blocked(g, [lock]) : tipAttr(d.name, d.desc)}>${pic}<span class="n">${esc(d.name)}</span><span class="lv">${lock ? '{lock} ' : ''}Nv ${d.kennel}</span></button>`;
     }
     return html + `</div><p class="hint"><b>${esc(BREEDS[this.dogBreed].name)}:</b> ${esc(BREEDS[this.dogBreed].desc)}</p>`;
   }
@@ -1245,28 +1254,31 @@ export class Panel {
         .join('')}</div></div>`;
     const without = ninjas.filter((u) => !dogOf(g, u));
     const withDog = ninjas.filter((u) => dogOf(g, u));
-    html += `<h4>{users} Sem cão <small>${without.length}</small></h4>`;
-    if (!without.length) html += `<p class="hint">Todos os ninjas já têm cão.</p>`;
-    else {
+    // uma lista por vez (abas); no máximo 20 ninjas, os de nível mais alto primeiro
+    const MAX_ROWS = 20;
+    const byLevel = (a: Unit, b: Unit) => b.ninja!.level - a.ninja!.level;
+    html += `<div class="seg ktabs"><button data-act="kennel-tab" data-arg="without" class="${this.kennelTab === 'without' ? 'on' : ''}">{users} Sem cão ${without.length}</button><button data-act="kennel-tab" data-arg="with" class="${this.kennelTab === 'with' ? 'on' : ''}">{paw} Com cão ${withDog.length}</button></div>`;
+    const more = (n: number) => (n > MAX_ROWS ? `<p class="hint">Mostrando ${MAX_ROWS} de ${n} (os de nível mais alto). Os outros: pelo inventário/ficha de cada ninja.</p>` : '');
+    if (this.kennelTab === 'without') {
+      if (!without.length) return html + `<p class="hint">Todos os ninjas já têm cão.</p>`;
       html += `<div class="roster scrollist">`;
-      for (const u of without) {
+      for (const u of without.sort(byLevel).slice(0, MAX_ROWS)) {
         const give = waiting
           ? `<button class="btn mini primary" data-act="dog-give" data-arg="${waiting.id}:${u.id}" ${blocked(g, [u.away != null && 'Está fora numa expedição.'])} ${tipAttr('Dar cão', `${waiting.name} espera no Canil: vai com este ninja, sem custo.`)}>{paw} Dar ${esc(waiting.name.replace(' (ninken)', ''))}</button>`
           : '';
         const why = dogBlock(g, u, this.dogBreed);
         html += `<div class="cand">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge rank">${RANKS[u.ninja!.rank].name}</span><span class="badge">Nv ${u.ninja!.level}</span></span><span class="btnrow">${give}<button class="btn mini ${give ? '' : 'primary'}" data-act="dog-for" data-arg="${u.id}" ${blocked(g, [why], DOG_COST)}>{plus} Adotar ${esc(BREEDS[this.dogBreed].name.split(' ')[0]!)}</button></span></div>`;
       }
-      html += `</div>`;
+      return html + `</div>${more(without.length)}`;
     }
-    html += `<h4>{paw} Com cão <small>${withDog.length}</small></h4>`;
     if (!withDog.length) html += `<p class="hint">Nenhum ninja com cão ainda.</p>`;
     else {
       html += `<div class="roster scrollist">`;
-      for (const u of withDog) {
+      for (const u of withDog.sort(byLevel).slice(0, MAX_ROWS)) {
         const d = dogOf(g, u)!;
         html += `<div class="cand">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge">{paw} ${esc(d.name.replace(' (ninken)', ''))}</span><span class="badge">${esc(BREEDS[d.breed ?? 'shiba'].name)}</span></span><span class="btnrow"><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e fica esperando: dá para passá-lo a outro ninja sem custo.')}>{x} Soltar</button></span></div>`;
       }
-      html += `</div>`;
+      html += `</div>${more(withDog.length)}`;
     }
     return html;
   }
@@ -1678,7 +1690,7 @@ export class Panel {
     const g = this.app.game;
     const slots = anbuSlots(g);
     const list = anbus(g);
-    const tip = tipAttr('ANBU', `Nomeados pelo Kage (precisa da Torre de Inteligência). Saem das equipes e usam máscara: o animal é o melhor atributo e dá +1 nele. Invisíveis até atacar (emboscada: +${Math.round((ANBU.ambush - 1) * 100)}% no golpe), patrulham à noite, revelam espiões e aparecem ao lado do Kage quando ele luta.`, true);
+    const tip = tipAttr('ANBU', `Nomeados pelo Kage (precisa da Torre de Inteligência). Saem das equipes comuns (só formam equipe entre si) e usam a máscara que você escolher: cada animal representa um atributo e dá +1 nele. Invisíveis até atacar (emboscada: +${Math.round((ANBU.ambush - 1) * 100)}% no golpe), patrulham à noite, revelam espiões e aparecem ao lado do Kage quando ele luta.`, true);
     let html = `<section class="kpanel acard"><div class="kp-head">{shield}<b ${tip}>ANBU</b><small>${list.length}/${slots || '—'} vagas · ${costLabel(ANBU.cost)}</small></div>`;
     const block = anbuBlock(g);
     if (!list.length && block && !block.startsWith('Escolha')) html += `<p class="hint">${esc(block)}</p>`;
@@ -1694,9 +1706,16 @@ export class Panel {
     }
     const cands = anbuCandidates(g).slice(0, 3);
     if (list.length < slots && cands.length) {
+      // a máscara é escolhida aqui (qualquer uma, para qualquer ninja): dá +1 no atributo que ela representa
+      const sel = this.anbuMaskSel ?? freeMask(g);
+      const used = new Set(list.map((u) => maskOf(u).animal));
+      html += `<div class="a-masks"><small>Máscara do próximo</small><span class="chips">${MASK_LIST.map((m) => {
+        const i = maskInfo(m);
+        return `<button data-act="anbu-mask" data-arg="${m}" class="${sel === m ? 'on' : ''}" ${tipAttr(i.name, `Representa ${i.stat}: o nomeado ganha +1 nele.${used.has(m) ? ' Já há um ANBU com esta máscara.' : ''}`)}>${esc(i.name)}${used.has(m) ? ' ·' : ''}</button>`;
+      }).join('')}</span><small>${esc(maskInfo(sel).name)} = ${esc(maskInfo(sel).stat)} +1</small></div>`;
       html += `<div class="kcands">`;
       for (const c of cands)
-        html += `<button class="kcand" data-act="anbu-in" data-arg="${c.id}" ${blocked(g, [anbuBlock(g, c)?.startsWith('Custa') ? null : anbuBlock(g, c)], ANBU.cost)}>${this.face(c)}<span><b>${esc(c.name)}</b><small>${RANKS[c.ninja!.rank].name} · Nv ${c.ninja!.level} · máscara de ${esc(maskOf(c).name)}</small></span><span class="btn primary mini">{userplus} Nomear</span></button>`;
+        html += `<button class="kcand" data-act="anbu-in" data-arg="${c.id}" ${blocked(g, [anbuBlock(g, c)?.startsWith('Custa') ? null : anbuBlock(g, c)], ANBU.cost)}>${this.face(c)}<span><b>${esc(c.name)}</b><small>${RANKS[c.ninja!.rank].name} · Nv ${c.ninja!.level}</small></span><span class="btn primary mini">{userplus} Nomear</span></button>`;
       html += `</div>`;
     }
     if (list.length) {
@@ -2106,6 +2125,7 @@ export class Panel {
       chunin: ['Chunin', (u) => u.ninja!.rank === 'chunin'],
       jounin: ['Jounin', (u) => u.ninja!.rank === 'jounin'],
       sannin: ['Sannin', (u) => !!u.ninja!.sannin],
+      anbu: ['ANBU', (u) => !!u.ninja!.anbu],
       kage: ['Kage', (u) => u.ninja!.rank === 'kage'],
     };
     // filtros (os de status só aparecem com alguém; os de graduação sempre) e a ordem, numa faixa
@@ -2215,11 +2235,9 @@ export class Panel {
     const wide = window.matchMedia(WIDE_BOARD).matches;
     let html = this.tabs(sel ? 'team' : 'teams');
     if (sel && !wide) return { html: html + this.teamDetail(sel, t, b, true), t, b };
-    let list = `<h4>Equipes da vila</h4><div class="tcards">`;
-    for (const tm of g.state.teams) list += this.teamCard(tm, sel?.id === tm.id);
-    if (!g.state.teams.length) list += `<p class="hint">Nenhuma equipe ainda. Monte automaticamente ou crie uma vazia.</p>`;
+    // ações no topo, antes da lista (não ficam lá embaixo depois de muitas equipes)
     const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja!.rank !== 'kage' && !teamOf(g, u)).length;
-    list += `</div><div class="wtools tfoot"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
+    let list = `<div class="wtools thead"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
       'Montar automaticamente',
       'Completa as vagas das equipes que já existem e cria novas com quem está sem equipe, equilibrando a força e dando um sensei Chunin+ a cada uma quando houver.',
     )}>{users} Montar${free ? ` (${free})` : ''}</button>
@@ -2228,6 +2246,10 @@ export class Panel {
         'Senseis automáticos',
         'Ligado: equipe sem sensei recebe um sozinha (um Chunin+ da própria equipe ou o Jounin livre mais forte).',
       )}>{crown} Auto-sensei<i class="sw"></i></button></div>`;
+    list += `<h4>Equipes da vila</h4><div class="tcards">`;
+    for (const tm of g.state.teams) list += this.teamCard(tm, sel?.id === tm.id);
+    if (!g.state.teams.length) list += `<p class="hint">Nenhuma equipe ainda. Monte automaticamente ou crie uma vazia.</p>`;
+    list += `</div>`;
     if (!wide) return { html: html + list, t, b };
     const detail = sel
       ? this.teamDetail(sel, t, b, false)
@@ -2313,7 +2335,8 @@ export class Panel {
   /** Ninjas sem equipe que podem entrar nesta: membro (qualquer patente) ou sensei (Chunin+). */
   private teamCandidates(tm: Team) {
     const g = this.app.game;
-    const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja!.rank !== 'kage' && !teamOf(g, u));
+    // só quem pode entrar nesta equipe (o Kage nunca; ANBU só com ANBU)
+    const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && !teamOf(g, u) && !teamFit(g, tm, u));
     const room = tm.memberIds.length < MAX_MEMBERS;
     if (!room && tm.senseiId != null) return '';
     let html = `<h4>Adicionar à equipe</h4>`;
@@ -2449,8 +2472,14 @@ export class Panel {
         return this.report(awakenKekkei(g, Number(arg), btn.dataset.k as KekkeiId));
       case 'org-defend':
         return this.report(prepareDefense(g));
-      case 'anbu-in':
-        return this.report(appointAnbu(g, Number(arg)));
+      case 'anbu-in': {
+        const r = appointAnbu(g, Number(arg), this.anbuMaskSel ?? freeMask(g));
+        if (r.ok) this.anbuMaskSel = null;
+        return this.report(r);
+      }
+      case 'anbu-mask':
+        this.anbuMaskSel = MASK_LIST.includes(String(arg)) ? String(arg) : null;
+        return this.report({ ok: true });
       case 'anbu-out':
         return this.report(dismissAnbu(g, Number(arg)));
       case 'covert':
@@ -2478,6 +2507,12 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'kennel-tab':
+        this.kennelTab = arg === 'with' ? 'with' : 'without';
+        return this.report({ ok: true });
+      case 'craft-tab':
+        if (arg === 'forge' || arg === 'pharmacy' || arg === 'sealshop') this.craftTab = arg;
+        return this.report({ ok: true });
       case 'inv-filter':
         this.invFilter = (['weapon', 'armor', 'item'] as string[]).includes(String(arg)) ? (arg as ItemSlot) : 'all';
         return this.report({ ok: true });

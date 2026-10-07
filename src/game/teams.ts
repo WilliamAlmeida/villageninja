@@ -99,11 +99,31 @@ export function leaveTeam(g: Game, unitId: number) {
   }
 }
 
+/** A equipe é da ANBU? (tem algum ANBU; vazia: null, aceita qualquer um) */
+export function teamIsAnbu(g: Game, t: Team): boolean | null {
+  const us = teamUnits(g, t);
+  return us.length ? us.some((u) => !!u.ninja?.anbu) : null;
+}
+
+/**
+ * Pode entrar nesta equipe? O Kage não tem equipe (a ANBU o protege) e a ANBU só forma equipe com a ANBU.
+ * (motivo quando não)
+ */
+export function teamFit(g: Game, t: Team, u: Unit): string | null {
+  if (u.ninja!.rank === 'kage') return 'O Kage não entra em equipes: a ANBU o protege.';
+  const anbu = teamIsAnbu(g, t);
+  if (anbu === null || teamUnits(g, t).every((o) => o.id === u.id)) return null;
+  if (anbu && !u.ninja!.anbu) return `${t.name} é da ANBU: só entra ANBU.`;
+  if (!anbu && u.ninja!.anbu) return 'A ANBU só forma equipe com a ANBU.';
+  return null;
+}
+
 export function joinAsMember(g: Game, teamId: number, unitId: number): Result {
   const t = g.team(teamId);
   const u = validNinja(g, unitId);
   if (!t || !u) return fail('Inválido.');
-  if (u.ninja!.rank === 'kage') return fail('O Kage não entra em equipes.');
+  const why = teamFit(g, t, u);
+  if (why) return fail(why);
   if (t.memberIds.includes(u.id)) return ok;
   if (t.memberIds.length >= MAX_MEMBERS) return fail(`${t.name} já tem ${MAX_MEMBERS} membros.`);
   leaveTeam(g, u.id);
@@ -116,6 +136,8 @@ export function joinAsSensei(g: Game, teamId: number, unitId: number): Result {
   const u = validNinja(g, unitId);
   if (!t || !u) return fail('Inválido.');
   if (!canBeSensei(u)) return fail('O sensei precisa ser Chunin ou superior.');
+  const why = teamFit(g, t, u);
+  if (why) return fail(why);
   if (t.senseiId != null && t.senseiId !== u.id) return fail(`${t.name} já tem sensei.`);
   leaveTeam(g, u.id);
   t.senseiId = u.id;
@@ -149,15 +171,27 @@ export function createTeamWith(g: Game, unitId: number): Result {
  * com um sensei cada, enquanto houver. Retorna quantas equipes foram criadas e quantos ninjas entraram.
  */
 export function autoTeams(g: Game): { ok: true; created: number; placed: number } | { ok: false; error: string } {
-  const free = g.state.units
+  const all = g.state.units
     .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && u.ninja.rank !== 'kage' && !teamOf(g, u))
     .sort((a, b) => b.ninja!.level - a.ninja!.level);
-  if (!free.length) return { ok: false, error: 'Todos os ninjas já estão em equipes.' };
+  if (!all.length) return { ok: false, error: 'Todos os ninjas já estão em equipes.' };
+  // a ANBU monta equipes só entre si; os outros, entre si
+  const a = autoTeamsOf(g, all.filter((u) => !u.ninja!.anbu), false);
+  const b = autoTeamsOf(g, all.filter((u) => u.ninja!.anbu), true);
+  const placed = a.placed + b.placed;
+  if (!placed) return { ok: false, error: 'Nenhuma vaga: as equipes estão cheias e não há ninjas suficientes para uma nova.' };
+  return { ok: true, created: a.created + b.created, placed };
+}
+
+function autoTeamsOf(g: Game, free: Unit[], anbu: boolean): { created: number; placed: number } {
+  if (!free.length) return { created: 0, placed: 0 };
   const leads = free.filter(canBeSensei);
   const genins = free.filter((u) => !canBeSensei(u));
   let placed = 0;
-  // 1) vagas das equipes atuais
+  // 1) vagas das equipes atuais (do mesmo tipo: ANBU com ANBU)
   for (const t of g.state.teams) {
+    const kind = teamIsAnbu(g, t);
+    if (kind !== null && kind !== anbu) continue;
     if (t.senseiId == null && leads.length && joinAsSensei(g, t.id, leads[0]!.id).ok) {
       leads.shift();
       placed++;
@@ -188,8 +222,7 @@ export function autoTeams(g: Game): { ok: true; created: number; placed: number 
     if (joinAsSensei(g, t.id, leads.shift()!.id).ok) placed++;
     while (t.memberIds.length < MAX_MEMBERS && leads.length && joinAsMember(g, t.id, leads.shift()!.id).ok) placed++;
   }
-  if (!placed) return { ok: false, error: 'Nenhuma vaga: as equipes estão cheias e não há ninjas suficientes para uma nova.' };
-  return { ok: true, created, placed };
+  return { created, placed };
 }
 
 export function disbandTeam(g: Game, teamId: number): Result {

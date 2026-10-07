@@ -13,6 +13,7 @@ import { migrate } from '../src/game/save';
 import { createSwordsman, swordsmenOnMap, swordsmenTick } from '../src/game/swordsmen';
 import { SYSTEMS } from '../src/game/systems';
 import { canHit } from '../src/game/factions';
+import { createTeam, joinAsMember } from '../src/game/teams';
 
 const rich = (g: Game) => Object.assign(g.state.res, { ryo: 99999, food: 9999, wood: 9999, stone: 9999, iron: 999, crystal: 99, darksteel: 99 });
 const build = (g: Game, type: 'intel' | 'forge', level = 1) =>
@@ -120,7 +121,22 @@ describe('lâminas lendárias', () => {
 });
 
 describe('ANBU', () => {
-  test('o Kage nomeia com a Torre de Inteligência: sai da equipe, ganha +1 no atributo da máscara e fica invisível', () => {
+  test('ANBU só forma equipe com ANBU; o Kage não tem equipe', () => {
+    const g = createNewGame(SYSTEMS, 2111);
+    const a = createNinja(g, 600, 600, 'chunin', 0);
+    const b = createNinja(g, 620, 600, 'chunin', 0);
+    const c = createNinja(g, 640, 600, 'genin', 0);
+    a.ninja!.anbu = true;
+    b.ninja!.anbu = true;
+    const t = createTeam(g);
+    expect(joinAsMember(g, t.id, a.id).ok).toBe(true);
+    expect(joinAsMember(g, t.id, c.id).ok).toBe(false);
+    expect(joinAsMember(g, t.id, b.id).ok).toBe(true);
+    const k = makeKage(g);
+    expect(joinAsMember(g, createTeam(g).id, k.id).ok).toBe(false);
+  });
+
+  test('o Kage nomeia com a Torre de Inteligência e a máscara escolhida: sai da equipe, +1 no atributo da máscara, invisível', () => {
     const g = createNewGame(SYSTEMS, 2108);
     rich(g);
     const c = createNinja(g, 600, 600, 'chunin', 0);
@@ -129,12 +145,13 @@ describe('ANBU', () => {
     expect(anbuBlock(g, c)).toContain('Kage');
     makeKage(g);
     g.state.teams.push({ id: 99, name: 'T', color: '#fff', senseiId: null, memberIds: [c.id] });
-    const m = maskOf(c);
-    const before = c.ninja!.stats[m.key];
-    expect(appointAnbu(g, c.id).ok).toBe(true);
+    // a máscara é escolhida (qualquer uma): o corvo representa Genjutsu e dá +1 nele
+    c.ninja!.stats.genjutsu = 2;
+    expect(appointAnbu(g, c.id, 'crow').ok).toBe(true);
     expect(c.ninja!.anbu).toBe(true);
+    expect(maskOf(c).animal).toBe('crow');
     expect(g.state.teams[0]!.memberIds).not.toContain(c.id);
-    expect(c.ninja!.stats[m.key]).toBeGreaterThan(before);
+    expect(c.ninja!.stats.genjutsu).toBe(3);
     g.step(0.1);
     expect(c.cloak).toBe(true);
     expect(canHit('enemy', undefined, c)).toBe(false);

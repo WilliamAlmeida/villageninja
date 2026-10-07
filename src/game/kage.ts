@@ -3,6 +3,7 @@ import { RANKS } from '../data/ninja';
 import { DEFAULT_KAGE_ART } from '../data/kageArts';
 import { levelDef } from '../data/villageLevels';
 import { refreshDerived } from './entities';
+import { leaveTeam } from './teams';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { Unit } from './types';
@@ -61,6 +62,8 @@ export function crownKage(g: Game) {
   }
   u.ninja!.rank = 'kage';
   u.ninja!.kageArt ??= DEFAULT_KAGE_ART;
+  u.ninja!.anbu = false;
+  leaveTeam(g, u.id); // o Kage não tem equipe: a ANBU o protege
   refreshDerived(u);
   u.hp = u.maxHp;
   s.kageId = u.id;

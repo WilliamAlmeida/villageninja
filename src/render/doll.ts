@@ -16,7 +16,8 @@ export interface DollWho {
   sannin?: string;
   /** Da ANBU (nomeado pelo Kage): uniforme, tantō e máscara no lugar da bandana. */
   anbu?: boolean;
-  /** Atributos: o maior escolhe o animal da máscara da ANBU. */
+  /** Animal da máscara da ANBU (sem: o do maior atributo). */
+  mask?: string;
   stats?: Record<string, number>;
   /** Lâmina lendária que carrega (data/blades.ts: a arma equipada); null/undefined = nenhuma. */
   sword?: string | null;
@@ -62,7 +63,7 @@ export function dollParts(w: DollWho): DollPart[] | null {
     const parts: DollPart[] = [{ name: 'ninja-body' }, { name: 'layer-outfit-anbu', color: ANBU_COLORS[0], color2: ANBU_COLORS[1] }];
     parts.push(sword(w.sword ?? 'tanto'));
     if (hair) parts.push({ name: hair, color: w.look.hair });
-    parts.push({ name: `layer-mask-${anbuMask(w.stats)}`, color: MASK_COLORS[0], color2: MASK_COLORS[1] });
+    parts.push({ name: `layer-mask-${w.mask ?? anbuMask(w.stats)}`, color: MASK_COLORS[0], color2: MASK_COLORS[1] });
     return parts;
   }
   const parts: DollPart[] = [{ name: 'ninja-body' }, { name: 'layer-outfit-genin', color: w.look.cloth }];
