@@ -196,11 +196,17 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   gigante, pug farejador, buldogue) com arte `dog` / `dog-<raça>` e multiplicadores de vida, mordida, faro e ervas; a raça
   se escolhe no Canil. **Canil com upgrade** (sem arte nova): nível = vagas (`KENNEL_DOGS` 3/6/10, contando os sem dono) e
   raças (`BreedDef.kennel`: Shiba e Pug no 1, Cão branco no 2, Buldogue no 3). `releaseDog` solta o cão (volta ao Canil
-  sem dono, `freeDogs`) e `giveDog` o passa a outro ninja sem custo; dono que cai também deixa o cão no Canil. Drawer do
+  sem dono, `freeDogs`) e `giveDog` o passa a outro ninja sem custo; dono que cai: o cão para de lutar e corre para o Canil
+  (morre se for abatido no caminho); lá dentro recupera a vida (`kennelRest`) e espera outro dono. Drawer do
   Canil separa "Sem cão" e "Com cão" em listas `.scrollist` (rolam por dentro). Dono escondido (em casa) ou em expedição: de dia o cão patrulha a vila farejando (`dogPatrol`), à noite dorme no Canil (`goKennel`, em hostiles.ts); volta a seguir o dono quando ele sai.
 - **Recursos crescem de volta** (`data/regrow.ts`, `systems/nature.ts`): árvore/rocha/veio esgotado vira toco/rocha rachada
   (`ResourceNode.regrow`) em vez de sumir. Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
   coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).
+- **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
+  consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor
+  que o equipado, lâminas com o ícone recortado do sprite (`bladeIcon`). Toque no item equipa; no espaço, tira.
+  Listas longas em drawers rolam por dentro (`.scrollist`: Canil, jutsus, grupo, "Lá dentro", candidatos da equipe,
+  receitas, inventário).
 - **Equipamento automático** (`autoEquipAll`/`setAutoGear` em gear.ts, `systems/gear.ts`, `state.flags.autoGear`): botões
   na lista de ninjas e nas oficinas. Promovido a Chunin numa equipe sem sensei vira o sensei (`promoteToSensei`).
 - **Técnicas ninja** (`game/techniques.ts`, `systems/techniques.ts`, tudo automático): **Shunshin** (some num redemoinho e

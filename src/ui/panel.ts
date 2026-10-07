@@ -235,6 +235,8 @@ export class Panel {
   private armedDemolish = 0;
   /** Aba do painel do ninja (mantida ao trocar de ninja). */
   private unitTab: UnitTab = 'info';
+  /** Filtro da grade do inventário do ninja. */
+  private invFilter: 'all' | ItemSlot = 'all';
   /** Lista de ninjas: filtro e ordem escolhidos (mantidos enquanto o jogo está aberto). */
   private rosterFilter: RosterFilter = 'all';
   private rosterSort: RosterSort = 'level';
@@ -439,7 +441,7 @@ export class Panel {
         b.xp = n.xp / xpToNext(n.level);
         // abas: o painel do ninja mostra um assunto por vez em vez de uma lista comprida
         html += `<div class="mtabs subtabs">`;
-        for (const [k, label] of [['info', '{ninja} Ficha'], ['cmd', '{flag} Ordens'], ['gear', '{shield} Equipar']] as [UnitTab, string][])
+        for (const [k, label] of [['info', '{ninja} Ficha'], ['cmd', '{flag} Ordens'], ['gear', '{luggage} Inventário']] as [UnitTab, string][])
           html += `<button data-act="unit-tab" data-arg="${k}" class="${this.unitTab === k ? 'on' : ''}">${label}</button>`;
         html += `</div>`;
         if (this.unitTab === 'cmd') {
@@ -787,26 +789,49 @@ export class Panel {
   }
 
 
-  /** Arma, colete e consumível: o atual e o que há no estoque para trocar. */
+  /** Ícone de um item: a espada recortada do sprite (lâminas lendárias) ou o ícone do item. */
+  private itemIcon(id: string) {
+    const d = ITEMS[id]!;
+    return d.blade ? pimg(bladeIcon(d.blade), 'inv-blade') : `<span class="inv-ic">${d.icon}</span>`;
+  }
+
+  /**
+   * Inventário do ninja (como nos RPGs): o boneco no meio com os espaços em volta (arma, colete, consumível) e o bônus
+   * somado; embaixo a grade do estoque da vila, com filtro por tipo. Toque num item para equipar; num espaço para tirar.
+   */
   private equipSection(u: Unit) {
     const g = this.app.game;
     const e = u.ninja!.equip;
-    let html = `<h4>Equipamento</h4>`;
-    for (const slot of ['weapon', 'armor', 'item'] as const) {
-      const cur = e[slot] ? ITEMS[e[slot]!] : undefined;
-      const status = slot === 'item' && cur ? (e.itemReady ? ' (pronto)' : ' (gasto — repõe na vila)') : '';
-      html += `<div class="eqrow"><span class="eqlabel">${SLOT_LABEL[slot]}</span><span class="eqcur">${cur ? `${cur.icon} ${esc(cur.name)}${status}` : '—'}</span>`;
-      if (cur) html += `<button class="btn mini" data-act="unequip" data-arg="${slot}">{x}</button>`;
-      html += `</div>`;
-      const opts = ITEM_LIST.filter((d) => d.slot === slot && d.id !== e[slot] && stock(g, d.id) > 0 && !canWield(u, d.id));
-      if (opts.length)
-        html += `<div class="btnrow eqopts">${opts.map((d) => `<button class="btn mini" data-act="equip" data-arg="${d.id}">${d.icon} ${esc(d.name)} ×${stock(g, d.id)}</button>`).join('')}</div>`;
-    }
+    const slot = (k: ItemSlot, area: string) => {
+      const id = e[k];
+      const d = id ? ITEMS[id] : undefined;
+      const state = k === 'item' && d ? (e.itemReady ? 'pronto' : 'gasto, repõe na vila') : '';
+      if (!d) return `<div class="inv-slot empty" style="grid-area:${area}"><span class="inv-sl">${SLOT_LABEL[k]}</span><span class="inv-none">{plus}</span></div>`;
+      return `<button class="inv-slot" style="grid-area:${area}" data-act="unequip" data-arg="${k}" ${tipAttr(d.name, `${d.desc} Toque para tirar.`)}><span class="inv-sl">${SLOT_LABEL[k]}</span>${this.itemIcon(d.id)}<small>${esc(d.name)}${state ? ` · ${state}` : ''}</small></button>`;
+    };
     const gb = gearBonus(u);
-    if (gb.melee || gb.defense || gb.hp) html += `<p class="hint">Bônus: +${gb.melee} dano · +${gb.kunai} kunai · ${Math.round(gb.defense * 100)}% defesa · +${gb.hp} vida</p>`;
-    if (!ITEM_LIST.some((d) => stock(g, d.id) > 0)) html += `<p class="hint">Estoque vazio. Fabrique na Forja, Farmácia ou Oficina de Selos.</p>`;
-    else html += `<div class="btnrow"><button class="btn" data-act="autoequip">{gear} Equipar o melhor</button></div>`;
-    return html;
+    let html = `<div class="inv"><div class="inv-doll">${slot('weapon', 'w')}<span class="inv-fig" style="grid-area:f">${pimg(unitPortrait(u, true))}</span>${slot('armor', 'a')}${slot('item', 'i')}
+      <div class="inv-stats" style="grid-area:s"><span>{swords} +${gb.melee} dano</span><span>{kunai} +${gb.kunai} kunai</span><span>{shield} ${Math.round(gb.defense * 100)}% defesa</span><span>{medic} +${gb.hp} vida</span></div></div>`;
+    // grade do estoque
+    const stockList = ITEM_LIST.filter((d) => stock(g, d.id) > 0);
+    const count = (k: ItemSlot | 'all') => stockList.filter((d) => k === 'all' || d.slot === k).length;
+    html += `<div class="inv-head"><b>{luggage} Estoque da vila</b><span class="chips">${(['all', 'weapon', 'armor', 'item'] as const)
+      .map((k) => `<button data-act="inv-filter" data-arg="${k}" class="${this.invFilter === k ? 'on' : ''}">${k === 'all' ? 'Tudo' : SLOT_LABEL[k]} ${count(k)}</button>`)
+      .join('')}</span></div>`;
+    const list = stockList.filter((d) => this.invFilter === 'all' || d.slot === this.invFilter);
+    if (!list.length) html += `<p class="hint">${stockList.length ? 'Nada deste tipo no estoque.' : 'Estoque vazio. Fabrique na Forja, Farmácia ou Oficina de Selos.'}</p>`;
+    else {
+      html += `<div class="inv-grid scrollist">`;
+      for (const d of list) {
+        const cur = e[d.slot] ? ITEMS[e[d.slot]!] : undefined;
+        const better = d.slot === 'weapon' ? (d.bonus?.melee ?? 0) > (cur?.bonus?.melee ?? 0) : d.slot === 'armor' ? (d.bonus?.defense ?? 0) > (cur?.bonus?.defense ?? 0) : !cur;
+        const why = canWield(u, d.id);
+        html += `<button class="inv-cell ${d.blade ? 'legend' : ''}" data-act="equip" data-arg="${d.id}" ${blocked(g, [why])} ${tipAttr(d.name, `${SLOT_LABEL[d.slot]}. ${d.desc}`)}>${this.itemIcon(d.id)}<span class="inv-n">${esc(d.name)}</span><b class="inv-q">×${stock(g, d.id)}</b>${better && !why ? '<span class="inv-up">{up}</span>' : ''}</button>`;
+      }
+      html += `</div>`;
+    }
+    if (stockList.length) html += `<div class="btnrow"><button class="btn" data-act="autoequip">{gear} Equipar o melhor</button></div>`;
+    return html + `</div>`;
   }
 
   /** Aba Ficha: ensinar jutsu, promoção e clã. */
@@ -1138,7 +1163,7 @@ export class Panel {
     html += `</div></div>`;
     // receitas
     const auto = canAutoCraft(bd);
-    html += `<div class="ws-sec"><h4>{scroll} Receitas</h4>`;
+    html += `<div class="ws-sec"><h4>{scroll} Receitas</h4><div class="scrollist">`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
       const keep = bd.keep?.[r.id] ?? 0;
@@ -1163,7 +1188,7 @@ export class Panel {
       }
       html += `</div></div>`;
     }
-    html += `</div>`;
+    html += `</div></div>`;
     if (bd.upgrade != null) html += `<p class="hint">{up} Upgrade em obra…</p>`;
     else if (lvl < 3) {
       const st = upgradeStatus(g, bd);
@@ -1272,7 +1297,7 @@ export class Panel {
     if (!inside.length && !d.housing) return '';
     let html = `<canvas class="interior"></canvas>`;
     if (!inside.length) return html + `<p class="hint">Ninguém aqui agora. À noite os moradores voltam para dormir.</p>`;
-    html += `<div class="roster binside">`;
+    html += `<div class="roster binside scrollist">`;
     for (const u of inside) {
       if (u.ninja) html += this.ninjaRow(u, t, b, this.face(u));
       else {
@@ -1298,7 +1323,7 @@ export class Panel {
       <div class="btnrow"><button class="btn primary" data-act="cmd-mode" data-arg="group">{pin} Dar ordem</button>
       <button class="btn" data-act="cmd-retreat" data-arg="group">{run} Recuar</button>
       <button class="btn" data-act="cmd-clear" data-arg="group">{x} Cancelar ordens</button></div>
-      <h4>Selecionados</h4><div class="roster">`;
+      <h4>Selecionados</h4><div class="roster scrollist">`;
     for (const u of units) html += this.ninjaRow(u, t, b);
     html += `</div>`;
     return { html, t, b };
@@ -1900,14 +1925,14 @@ export class Panel {
     } else html += `<p class="hint">${bd.workers.length ? 'Nada em produção.' : 'Sem artesão: aumente os trabalhadores (+).'}</p>`;
     if (queue.length) html += `<p class="hint">Na fila: ${queue.map((id) => ITEMS[id]!.icon).join(' ')}</p>`;
     if (queue.length || bd.craft) html += `<div class="btnrow"><button class="btn" data-act="craft-cancel" ${tipAttr('Cancelar último', 'Tira o último pedido da fila e devolve os recursos.')}>{x} Cancelar último</button></div>`;
-    html += `<h4>Receitas</h4>`;
+    html += `<h4>Receitas</h4><div class="scrollist jscroll">`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
       html += `<div class="jcard ${locked ? 'locked' : ''}"><div class="jn">${r.icon} ${esc(r.name)} <small>· ${SLOT_LABEL[r.slot]}</small></div>
         <div class="jm">${costLabel(r.cost)} · ${r.craftTime}s</div><div class="jd">${esc(r.desc)}</div>
         <div class="jb">${locked ? `<span class="why">{lock} Requer ${levelDef(r.minLevel!).name}</span>` : r.blade && g.state.blades.includes(r.blade) ? `<span class="mpill safe">{check} Forjada</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${blocked(g, [queue.length + (bd.craft ? 1 : 0) >= MAX_QUEUE && `A fila está cheia (máximo ${MAX_QUEUE}).`, r.blade && craftBlock(g, bd, r.id)], r.cost)}>${r.blade ? 'Forjar' : 'Fabricar'}</button>`}</div></div>`;
     }
-    return html;
+    return html + `</div>`;
   }
 
   /**
@@ -2293,7 +2318,7 @@ export class Panel {
     if (!room && tm.senseiId != null) return '';
     let html = `<h4>Adicionar à equipe</h4>`;
     if (!free.length) return html + `<p class="hint">Todos os ninjas já estão em equipes. Recrute mais na Academia ou tire alguém de outra equipe.</p>`;
-    html += `<div class="roster tcands">`;
+    html += `<div class="roster tcands scrollist">`;
     for (const u of free) {
       const n = u.ninja!;
       const nat = NATURES[n.nature];
@@ -2453,6 +2478,9 @@ export class Panel {
         if (this.mode === 'window') this.show({ kind: 'team', id: Number(arg) });
         else this.onWindow({ kind: 'team', id: Number(arg) });
         return;
+      case 'inv-filter':
+        this.invFilter = (['weapon', 'armor', 'item'] as string[]).includes(String(arg)) ? (arg as ItemSlot) : 'all';
+        return this.report({ ok: true });
       case 'dog-release':
         return this.report(releaseDog(g, Number(arg)));
       case 'dog-give': {

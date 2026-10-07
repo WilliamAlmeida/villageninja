@@ -108,6 +108,21 @@ describe('ninken', () => {
     expect(freeDogs(g)).toContain(dog);
   });
 
+  test('dono caiu: o cão corre ferido para o Canil e lá recupera a vida', () => {
+    const g = createNewGame(SYSTEMS, 127);
+    Object.assign(g.state.res, { food: 999, ryo: 999 });
+    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 30, ty: 22, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const n = createNinja(g, 30 * 32 + 200, 22 * 32 + 120, 'genin', 0);
+    adoptDog(g, n.id);
+    const dog = dogOf(g, n)!;
+    dog.hp = dog.maxHp * 0.2;
+    n.dead = true;
+    run(g, 60);
+    expect(dog.dead).toBeFalsy();
+    expect(dog.state).toBe('kennel');
+    expect(dog.hp).toBeGreaterThan(dog.maxHp * 0.5);
+  });
+
   test('o nível do Canil limita os cães e libera as raças', () => {
     const g = createNewGame(SYSTEMS, 125);
     Object.assign(g.state.res, { food: 9999, ryo: 9999 });

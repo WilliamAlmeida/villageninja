@@ -604,10 +604,17 @@ function hydraSpit(g: Game, u: Unit, t: Unit): boolean {
 
 /** Bicho aliado da vila (invocação do contrato, cão ninja): luta perto do dono e o segue; a lesma cura. */
 function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
-  // ninken sem dono (solto, ou o dono caiu): espera no Canil até ir para outro ninja; sem Canil, vai embora
+  // ninken sem dono (solto, ou o dono caiu): para de lutar e corre para o Canil (se morrer no caminho, morreu); lá
+  // dentro recupera a vida e espera outro dono. Sem Canil, vai embora
   if (u.animal === 'dog' && (u.ownerId == null || !g.unit(u.ownerId) || g.unit(u.ownerId)!.dead)) {
-    if (u.ownerId != null) u.ownerId = undefined;
-    if (u.state !== 'kennel' && !goKennel(g, u, dt)) u.dead = true;
+    if (u.ownerId != null) {
+      u.ownerId = undefined;
+      u.targetId = null;
+      if (u.state !== 'kennel') u.state = 'idle';
+      fxText(g, u.x, u.y - 20, 'Ao Canil!', '#e8e0d0');
+    }
+    if (u.state === 'kennel') kennelRest(u, dt);
+    else if (!goKennel(g, u, dt, DOG_FLEE)) u.dead = true;
     return;
   }
   const owner = g.unit(u.ownerId);
@@ -663,6 +670,7 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
   }
   // fora do mapa (dono em expedição) ou escondido: o cão vai para o Canil; os outros esperam
   if (ownerIn) {
+    if (u.state === 'kennel') kennelRest(u, dt); // dormindo no Canil também recupera
     if (u.animal === 'dog' && (night ? goKennel(g, u, dt) : dogPatrol(g, u, dt))) return;
     u.moving = false;
     return;
@@ -684,15 +692,16 @@ function dogPatrol(g: Game, u: Unit, dt: number): boolean {
 }
 
 /** Cão anda até o Canil e entra (fica escondido lá dentro, aparece na aba do prédio). False = não há Canil. */
-function goKennel(g: Game, u: Unit, dt: number): boolean {
+function goKennel(g: Game, u: Unit, dt: number, speed = 1): boolean {
   const k = g.findBuilt('kennel');
   if (!k) return false;
+  if (u.state === 'kennel') return true;
   if (u.state !== 'toKennel') {
     const d = doorPos(k);
     if (!setDestination(g, u, d.x, d.y)) return false;
     u.state = 'toKennel';
   }
-  if (followPath(g, u, dt)) {
+  if (followPath(g, u, dt, speed)) {
     const d = doorPos(k); // na porta: assim aparece na aba "Lá dentro" do Canil
     u.x = d.x;
     u.y = d.y;
@@ -701,6 +710,14 @@ function goKennel(g: Game, u: Unit, dt: number): boolean {
     u.moving = false;
   }
   return true;
+}
+
+/** Cão sem dono correndo para o Canil (mais rápido que o passo normal). */
+const DOG_FLEE = 1.3;
+/** Dentro do Canil o cão recupera a vida (fração da vida máxima por segundo). */
+const KENNEL_HEAL = 0.03;
+function kennelRest(u: Unit, dt: number) {
+  u.hp = Math.min(u.maxHp, u.hp + u.maxHp * KENNEL_HEAL * dt);
 }
 
 function nearestEdge(x: number, y: number) {
