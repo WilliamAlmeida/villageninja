@@ -13,25 +13,27 @@ export interface BreedDef {
   herbs: number;
   /** Tamanho do desenho em relação ao shiba. */
   scale: number;
+  /** Nível do Canil que libera a raça. */
+  kennel: number;
   names: string[];
 }
 
 export const BREEDS: Record<DogBreed, BreedDef> = {
   shiba: {
     name: 'Shiba', desc: 'Equilibrado: luta bem e fareja bem.',
-    hp: 1, damage: 1, sniff: 1, herbs: 1, scale: 1, names: ['Shiba', 'Kibo', 'Riku', 'Sora', 'Hana'],
+    hp: 1, damage: 1, sniff: 1, herbs: 1, scale: 1, kennel: 1, names: ['Shiba', 'Kibo', 'Riku', 'Sora', 'Hana'],
   },
   white: {
     name: 'Cão branco gigante', desc: 'Grande e forte: mais vida e a mordida mais pesada.',
-    hp: 1.4, damage: 1.35, sniff: 1, herbs: 1, scale: 1.3, names: ['Shiro', 'Yuki', 'Haku', 'Kumo', 'Akira'],
+    hp: 1.4, damage: 1.35, sniff: 1, herbs: 1, scale: 1.3, kennel: 2, names: ['Shiro', 'Yuki', 'Haku', 'Kumo', 'Akira'],
   },
   pug: {
     name: 'Pug farejador', desc: 'Fraco na luta, mas tem o melhor faro: descobre espiões de mais longe e acha mais ervas.',
-    hp: 0.75, damage: 0.7, sniff: 1.6, herbs: 2, scale: 0.8, names: ['Pakku', 'Mochi', 'Bun', 'Taro', 'Dango'],
+    hp: 0.75, damage: 0.7, sniff: 1.6, herbs: 2, scale: 0.8, kennel: 1, names: ['Pakku', 'Mochi', 'Bun', 'Taro', 'Dango'],
   },
   bull: {
     name: 'Buldogue', desc: 'Um tanque: muita vida para segurar os inimigos longe do dono.',
-    hp: 2, damage: 1.1, sniff: 0.8, herbs: 1, scale: 1.4, names: ['Buru', 'Gonta', 'Iwa', 'Daigo', 'Kuromaru'],
+    hp: 2, damage: 1.1, sniff: 0.8, herbs: 1, scale: 1.4, kennel: 3, names: ['Buru', 'Gonta', 'Iwa', 'Daigo', 'Kuromaru'],
   },
 };
 

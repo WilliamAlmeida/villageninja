@@ -604,6 +604,12 @@ function hydraSpit(g: Game, u: Unit, t: Unit): boolean {
 
 /** Bicho aliado da vila (invocação do contrato, cão ninja): luta perto do dono e o segue; a lesma cura. */
 function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
+  // ninken sem dono (solto, ou o dono caiu): espera no Canil até ir para outro ninja; sem Canil, vai embora
+  if (u.animal === 'dog' && (u.ownerId == null || !g.unit(u.ownerId) || g.unit(u.ownerId)!.dead)) {
+    if (u.ownerId != null) u.ownerId = undefined;
+    if (u.state !== 'kennel' && !goKennel(g, u, dt)) u.dead = true;
+    return;
+  }
   const owner = g.unit(u.ownerId);
   if (!owner || owner.dead) {
     u.dead = true;

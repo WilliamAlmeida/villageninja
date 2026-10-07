@@ -3,6 +3,7 @@
 import { ANIMALS } from '../data/animals';
 import { BREEDS, type DogBreed } from '../data/breeds';
 import { createAnimal } from './entities';
+import { levelOf } from './upgrade';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { Cost, Unit } from './types';
@@ -15,14 +16,64 @@ export const DOG_COST: Cost = { food: 30, ryo: 40 };
 export const DOG = { sniff: 170, herbEvery: 40, herbChance: 0.5, herbs: 3 };
 
 
-export const dogOf = (g: Game, u: Unit) => g.state.units.find((o) => !o.dead && o.animal === 'dog' && o.ownerId === u.id);
+/** Quantos cães o Canil comporta por nível (com e sem dono). */
+export const KENNEL_DOGS = [3, 6, 10];
 
-export function dogBlock(g: Game, u: Unit): string | null {
+export const dogOf = (g: Game, u: Unit) => g.state.units.find((o) => !o.dead && o.animal === 'dog' && o.ownerId === u.id);
+/** Todos os ninken da vila (com dono e os que esperam no Canil). */
+export const villageDogs = (g: Game) => g.state.units.filter((o) => !o.dead && o.animal === 'dog' && o.faction === 'village');
+/** Cães sem dono, esperando no Canil (soltos por alguém ou cujo dono caiu). */
+export const freeDogs = (g: Game) => villageDogs(g).filter((o) => o.ownerId == null);
+export const kennelLevel = (g: Game) => {
+  const k = g.findBuilt('kennel');
+  return k ? levelOf(k) : 0;
+};
+export const dogCap = (g: Game) => KENNEL_DOGS[Math.max(0, kennelLevel(g) - 1)] ?? 0;
+
+/** A raça está liberada no nível atual do Canil? (motivo quando não) */
+export function breedBlock(g: Game, breed: DogBreed): string | null {
+  const need = BREEDS[breed].kennel;
+  return kennelLevel(g) < need ? `${BREEDS[breed].name}: precisa do Canil no nível ${need}.` : null;
+}
+
+export function dogBlock(g: Game, u: Unit, breed?: DogBreed): string | null {
   if (!u.ninja || u.faction !== 'village' || u.kind !== 'ninja') return 'Inválido.';
   if (!g.findBuilt('kennel')) return 'Construa o Canil primeiro.';
   if (dogOf(g, u)) return 'Já tem um ninken.';
   if (u.away != null) return 'Está fora numa expedição.';
+  if (breed && breedBlock(g, breed)) return breedBlock(g, breed);
+  if (villageDogs(g).length >= dogCap(g))
+    return `O Canil está cheio (${dogCap(g)} cães no nível ${kennelLevel(g)}). Faça o upgrade ou dê a um ninja um cão que espera no Canil.`;
   return null;
+}
+
+/** Tira o cão do ninja: ele volta para o Canil e pode ir para outro ninja (sem custo). */
+export function releaseDog(g: Game, unitId: number): Result {
+  const u = g.unit(unitId);
+  const d = u && dogOf(g, u);
+  if (!d) return fail('Este ninja não tem ninken.');
+  if (!g.findBuilt('kennel')) return fail('Sem Canil para o cão esperar.');
+  d.ownerId = undefined;
+  d.state = 'idle';
+  d.targetId = null;
+  d.hasGoal = false;
+  g.toast(`{paw} ${d.name} voltou para o Canil: pode ir para outro ninja.`, 'info', d);
+  return { ok: true };
+}
+
+/** Dá um cão que espera no Canil a um ninja sem cão (sem custo). */
+export function giveDog(g: Game, dogId: number, unitId: number): Result {
+  const u = g.unit(unitId);
+  const d = g.unit(dogId);
+  if (!u || !d || d.dead || d.animal !== 'dog' || d.ownerId != null) return fail('Cão não encontrado no Canil.');
+  if (!u.ninja || u.faction !== 'village' || u.kind !== 'ninja') return fail('Inválido.');
+  if (dogOf(g, u)) return fail('Já tem um ninken.');
+  if (u.away != null) return fail('Está fora numa expedição.');
+  d.ownerId = u.id;
+  d.state = 'idle';
+  d.hasGoal = false;
+  g.toast(`{paw} ${d.name} agora acompanha ${u.name}.`, 'good', u);
+  return { ok: true };
 }
 
 /** Faro do cão: alcance para descobrir espiões invisíveis (depende da raça). */
@@ -31,7 +82,7 @@ export const sniffRange = (dog: Unit) => DOG.sniff * BREEDS[dog.breed ?? 'shiba'
 export function adoptDog(g: Game, unitId: number, breed: DogBreed = 'shiba'): Result {
   const u = g.unit(unitId);
   if (!u) return fail('Ninja não encontrado.');
-  const why = dogBlock(g, u);
+  const why = dogBlock(g, u, breed);
   if (why) return fail(why);
   if (!g.pay(DOG_COST)) return fail('Recursos insuficientes.');
   const d = createAnimal(g, 'dog', u.x - 16, u.y + 8);

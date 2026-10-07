@@ -3,7 +3,7 @@ import { DAY_LENGTH, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
-import { adoptDog, dogOf, sniffRange } from '../src/game/ninken';
+import { adoptDog, dogOf, freeDogs, giveDog, KENNEL_DOGS, releaseDog, sniffRange } from '../src/game/ninken';
 import { SYSTEMS } from '../src/game/systems';
 import { occupantsOf } from '../src/game/interior';
 
@@ -75,7 +75,7 @@ describe('ninken', () => {
   test('raças: buldogue aguenta mais, pug fareja de mais longe', () => {
     const g = createNewGame(SYSTEMS, 124);
     Object.assign(g.state.res, { food: 999, ryo: 999 });
-    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 2, ty: 2, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 2, ty: 2, built: true, progress: 99, desired: 0, workers: [], cd: 0, level: 3 });
     const a = createNinja(g, 700, 500, 'genin', 0);
     const b = createNinja(g, 760, 500, 'genin', 0);
     const c = createNinja(g, 820, 500, 'genin', 0);
@@ -91,7 +91,7 @@ describe('ninken', () => {
     expect(sniffRange(pug)).toBeGreaterThan(sniffRange(shiba));
   });
 
-  test('adotar pede o Canil; o cão acompanha o dono e some se ele cair', () => {
+  test('adotar pede o Canil; o cão acompanha o dono e, se ele cair, volta para o Canil sem dono', () => {
     const g = createNewGame(SYSTEMS, 121);
     Object.assign(g.state.res, { food: 999, ryo: 999 });
     const n = createNinja(g, 700, 500, 'genin', 0);
@@ -103,7 +103,37 @@ describe('ninken', () => {
     expect(dog.faction).toBe('village');
     n.dead = true;
     run(g, 0.2);
-    expect(dog.dead).toBe(true);
+    expect(dog.dead).toBeFalsy();
+    expect(dog.ownerId).toBeUndefined();
+    expect(freeDogs(g)).toContain(dog);
+  });
+
+  test('o nível do Canil limita os cães e libera as raças', () => {
+    const g = createNewGame(SYSTEMS, 125);
+    Object.assign(g.state.res, { food: 9999, ryo: 9999 });
+    const k = g.addBuilding({ id: g.newId(), type: 'kennel', tx: 2, ty: 2, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const ns = Array.from({ length: 5 }, (_, i) => createNinja(g, 600 + i * 30, 500, 'genin', 0));
+    expect(adoptDog(g, ns[0]!.id, 'white').ok).toBe(false); // cão branco só no nível 2
+    for (let i = 0; i < KENNEL_DOGS[0]!; i++) expect(adoptDog(g, ns[i]!.id).ok).toBe(true);
+    expect(adoptDog(g, ns[3]!.id).ok).toBe(false); // nível 1: 3 cães
+    k.level = 2;
+    expect(adoptDog(g, ns[3]!.id, 'white').ok).toBe(true);
+  });
+
+  test('soltar o cão e dá-lo a outro ninja, sem custo', () => {
+    const g = createNewGame(SYSTEMS, 126);
+    Object.assign(g.state.res, { food: 999, ryo: 999 });
+    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 2, ty: 2, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const a = createNinja(g, 600, 500, 'genin', 0);
+    const b = createNinja(g, 640, 500, 'genin', 0);
+    adoptDog(g, a.id);
+    const dog = dogOf(g, a)!;
+    expect(releaseDog(g, a.id).ok).toBe(true);
+    expect(dogOf(g, a)).toBeUndefined();
+    const ryo = g.state.res.ryo;
+    expect(giveDog(g, dog.id, b.id).ok).toBe(true);
+    expect(dogOf(g, b)).toBe(dog);
+    expect(g.state.res.ryo).toBe(ryo);
   });
 
   test('o faro do cão descobre espião invisível', () => {
