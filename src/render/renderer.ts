@@ -15,6 +15,8 @@ import { missionFocus } from '../game/missionView';
 import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
+import type { Nature } from '../data/natures';
+import type { Vfx } from '../data/vfx';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
@@ -56,6 +58,8 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
  */
 /** Segundos da árvore tombando. */
 const TREE_FALL = 1.1;
+/** Estilo do golpe → natureza para a neve (derrete/congela). */
+const VFX_NATURE: Partial<Record<Vfx, Nature>> = { fire: 'katon', lava: 'katon', heat: 'katon', water: 'suiton', ice: 'suiton', earth: 'doton', wind: 'fuuton', lightning: 'raiton' };
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -357,13 +361,15 @@ export class Renderer {
         this.afterimage(g, e, time);
         continue;
       }
-      if (e.kind === 'burst') this.seasonal.onEffect(s, e, natureOf(e.color));
+      // neve: fogo/lava/calor derretem, água/gelo congelam a poça
+      if (e.kind === 'burst') this.seasonal.onEffect(s, e, e.vfx ? VFX_NATURE[e.vfx] ?? null : natureOf(e.color));
       const a = project(e.x, e.y);
       const b = e.x2 != null && e.y2 != null ? project(e.x2, e.y2) : null;
       const pe = b ? { ...e, x: a.x, y: a.y, x2: b.x, y2: b.y } : { ...e, x: a.x, y: a.y };
       this.particles.effect(e, pe);
       drawEffect(ctx, pe, cam.zoom, this.particles.snowy);
     }
+    ctx.globalAlpha = 1;
     this.particles.update(dt);
     this.particles.draw(ctx);
     this.seasonal.drawRain(ctx, s);

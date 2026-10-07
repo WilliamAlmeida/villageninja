@@ -32,10 +32,10 @@ function explode(g: Game, p: Projectile, hit: Unit | null) {
   p.dead = true;
   const owner = g.unit(p.ownerId) ?? null;
   if (p.radius > 0) {
-    fx(g, 'burst', p.x, p.y, { r: p.radius, color: p.color, life: 0.45 });
+    fx(g, 'burst', p.x, p.y, { r: p.radius, color: p.color, life: 0.45, vfx: p.vfx });
     areaDamage(g, owner, p.faction, p.x, p.y, p.radius, p.damage, p.nature, 0, p.stun, p.side);
   } else if (hit) {
-    fx(g, 'burst', p.x, p.y, { r: p.kind === 'kunai' ? 6 : 14, color: p.color, life: 0.25 });
+    fx(g, 'burst', p.x, p.y, { r: p.kind === 'kunai' ? 8 : 14, color: p.color, life: 0.25, vfx: p.vfx });
     applyDamage(g, owner, hit, p.damage, p.nature, { stun: p.stun });
     if (p.mark != null && !hit.dead) markTarget(g, hit, p.mark);
   }

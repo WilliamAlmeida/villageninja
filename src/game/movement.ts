@@ -117,4 +117,5 @@ export function push(g: Game, u: Unit, dx: number, dy: number) {
     u.y = ny;
   }
   u.hasGoal = false;
+  u.knockT = 0.5; // foi empurrado agora (no Exame, sair da arena assim é derrota)
 }

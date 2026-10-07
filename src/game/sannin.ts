@@ -64,14 +64,21 @@ export function sanninTick(g: Game, u: Unit) {
     u.sage = SAGE.time;
     u.sanninCd = d.cooldown;
     fx(g, 'ring', u.x, u.y, { r: 30, color: d.color, life: 0.8 });
+    fx(g, 'burst', u.x, u.y - 6, { r: 26, color: d.color, life: 0.6, vfx: 'heat' }); // energia natural entrando
     fxText(g, u.x, u.y - 32, d.shout, d.color, true);
   } else if (path === 'slug' && u.hp < u.maxHp * 0.5) {
     u.sanninCd = d.cooldown;
     for (const o of g.state.units) {
       if (o.dead || o.hidden || o.faction !== 'village' || Math.hypot(o.x - u.x, o.y - u.y) > HUNDRED.range) continue;
       o.hp = Math.min(o.maxHp, o.hp + o.maxHp * HUNDRED.heal);
+      // cada aliado curado: cruzes verdes e o fio de chakra da Sannin até ele
+      if (o !== u) {
+        fx(g, 'heal', o.x, o.y, { r: 14, color: d.color, life: 0.9 });
+        fx(g, 'beam', u.x, u.y - 12, { x2: o.x, y2: o.y - 12, color: d.color, life: 0.5 });
+      }
     }
-    fx(g, 'heal', u.x, u.y, { r: HUNDRED.range, color: d.color, life: 1 });
+    fx(g, 'heal', u.x, u.y, { r: 24, color: d.color, life: 1 });
+    fx(g, 'wave', u.x, u.y, { r: HUNDRED.range, color: d.color, life: 0.9 });
     fx(g, 'ring', u.x, u.y, { r: HUNDRED.range, color: d.color, life: 0.8 });
     fxText(g, u.x, u.y - 32, d.shout, d.color, true);
   }

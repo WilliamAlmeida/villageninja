@@ -145,7 +145,7 @@ export function soundBrain(g: Game, u: Unit, dt: number): boolean {
   // gêmeos: ferido, o irmão sai do corpo
   if (u.sound === 'sokon' && !u.split && u.hp < u.maxHp * 0.5) split(g, u);
   const near = g.nearestHostile(u, 160);
-  if (near && u.abilityCd <= 0 && useArt(g, u, near)) {
+  if (near && u.abilityCd <= 0 && soundArt(g, u, near)) {
     u.abilityCd = SOUND_MEMBERS[u.sound].cd;
     return true;
   }
@@ -336,10 +336,12 @@ function split(g: Game, u: Unit) {
   twin.look = { ...u.look };
   twin.maxHp = twin.hp = Math.round(u.maxHp * 0.4);
   fx(g, 'smoke', twin.x, twin.y, { r: 18, life: 0.7, color: '#c9a0ff' });
+  fx(g, 'beam', u.x, u.y - 10, { x2: twin.x, y2: twin.y - 10, color: '#c9a0ff', life: 0.4 });
   fxText(g, u.x, u.y - 34, 'Separação!', '#c9a0ff', true);
 }
 
-function useArt(g: Game, u: Unit, t: Unit): boolean {
+/** Técnica do membro (exportada para o laboratório de jutsus). */
+export function soundArt(g: Game, u: Unit, t: Unit): boolean {
   const id = u.sound!;
   const d = SOUND_MEMBERS[id];
   const dist = Math.hypot(t.x - u.x, t.y - u.y);
@@ -348,25 +350,26 @@ function useArt(g: Game, u: Unit, t: Unit): boolean {
     case 'iwao':
       if (dist > 90) return false;
       shout();
-      fx(g, 'ring', t.x, t.y, { r: 34, color: '#a0703a', life: 3 });
+      fx(g, 'burst', t.x, t.y, { r: 30, color: '#a0703a', life: 0.5, vfx: 'earth' });
       t.stun = Math.max(t.stun, 3);
+      t.stunVfx = 'earth'; // cúpula de terra
       t.chakra = Math.max(0, t.chakra * 0.6);
       return true;
     case 'kumomaru':
       if (dist > 220) return false;
       shout();
       spawnProjectile(g, u, u.faction, u.x, u.y - 6, t.x, t.y - 6, {
-        damage: 40, radius: 0, nature: null, color: '#ffd34d', size: 6, speed: 420, kind: 'kunai', stun: 1.2, range: 240,
+        damage: 40, radius: 0, nature: null, color: '#ffd34d', size: 6, speed: 420, kind: 'arrow', stun: 1.2, range: 240, vfx: 'gold',
       });
       return true;
     case 'kanade': {
       if (dist > 140) return false;
       shout();
-      fx(g, 'ring', u.x, u.y, { r: 140, color: '#c9a0ff', life: 0.8 });
+      fx(g, 'wave', u.x, u.y, { r: 140, color: '#ffd34d', life: 1, vfx: 'sound' }); // ondas da flauta com notas
       for (const o of g.state.units)
         if (!o.dead && !o.hidden && o.faction === 'village' && o.ninja && Math.hypot(o.x - u.x, o.y - u.y) < 140) {
           o.stun = Math.max(o.stun, 2);
-          fx(g, 'swirl', o.x, o.y - 8, { r: 16, color: '#c9a0ff', life: 2 });
+          o.stunVfx = 'sound';
         }
       for (const dx of [-24, 24]) {
         const m = createRogue(g, u.x + dx, u.y + 16, g.state.day, { rank: 'chunin', stats: 1.4, jutsu: 0, name: 'Ogro da flauta' });
@@ -382,7 +385,9 @@ function useArt(g: Game, u: Unit, t: Unit): boolean {
       if (dist > 50) return false;
       shout();
       u.shield = 5;
+      u.shieldVfx = 'bone';
       fx(g, 'slash', t.x, t.y, { r: 28, color: '#f0ece0', life: 0.4 });
+      fx(g, 'burst', t.x, t.y, { r: 20, color: '#f0ece0', life: 0.4, vfx: 'bone' });
       applyDamage(g, u, t, 45, null, { knock: 30 });
       return true;
     default:

@@ -1,11 +1,11 @@
-import { SAVE_KEY, SAVE_VERSION } from '../config';
+import { MAP_H, MAP_W, SAVE_KEY, SAVE_VERSION } from '../config';
 import { Game, type System } from './game';
 import type { GameState } from './types';
 import { JUTSUS } from '../data/jutsus';
 import { needsScroll } from './library';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
 import { newRegion } from './region';
-import { generateMap } from './world';
+import { generateMap, idx, T } from './world';
 import { newOrg } from './org';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 
@@ -162,6 +162,31 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
         }
     s.jutsuOpen = [...open].filter((id) => JUTSUS[id] && needsScroll(JUTSUS[id]));
     if (s.scene) s.scene.jutsuOpen = [...s.jutsuOpen];
+  },
+  23: (s) => {
+    // a arena cresceu (4×4 → 6×6, redonda): se encostar noutro prédio, procura um lugar livre ao lado
+    const W = BUILDINGS.arena.w;
+    for (const a of s.buildings ?? []) {
+      if (a.type !== 'arena') continue;
+      const free = (tx: number, ty: number) => {
+        if (tx < 1 || ty < 1 || tx + W > MAP_W - 1 || ty + W > MAP_H - 1) return false;
+        for (let y = ty; y < ty + W; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[idx(x, y)] === T.WATER) return false;
+        return !s.buildings.some((o: { id: number; type: BuildingType; tx: number; ty: number }) => {
+          if (o === a) return false;
+          const d = BUILDINGS[o.type];
+          return tx < o.tx + d.w + 1 && tx + W + 1 > o.tx && ty < o.ty + d.h + 1 && ty + W + 1 > o.ty;
+        });
+      };
+      if (free(a.tx, a.ty)) continue;
+      search: for (let r = 1; r <= 8; r++)
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !free(a.tx + dx, a.ty + dy)) continue;
+            a.tx += dx;
+            a.ty += dy;
+            break search;
+          }
+    }
   },
 };
 

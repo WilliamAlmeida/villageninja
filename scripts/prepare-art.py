@@ -24,7 +24,7 @@ EDITED = set() if '--force' in sys.argv else set(json.loads((OUT / 'art-edits.js
 # largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles, vezes SCENERY_SCALE
 BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'academy': 6, 'hospital': 5, 'tower': 2.6,
              'library': 5, 'missions': 4, 'ironmine': 4, 'forge': 4, 'pharmacy': 4, 'sealshop': 4, 'monument': 6,
-             'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4, 'arena': 8}
+             'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4, 'arena': 12}
 # prédios e cenário guardados em resolução maior: o jogo os amplia pelo zoom (até 2,5×) e pela densidade da tela, e em
 # 1× ficavam borrados. O jogo desenha pelo tamanho no mundo (a altura sai da proporção), então só a nitidez muda;
 # abaixo do tamanho guardado o drawArt reduz com suavização. Personagens e camadas do ninja seguem em 1×.

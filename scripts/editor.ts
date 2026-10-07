@@ -8,6 +8,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import page from '../tools/sprite-editor/index.html';
+import lab from '../tools/jutsu-lab/index.html';
 
 const ROOT = join(import.meta.dir, '..');
 const ART = join(ROOT, 'src', 'art');
@@ -25,6 +26,8 @@ Bun.serve({
   development: { hmr: false, console: true }, // HMR do Bun quebra com o await no topo do editor.ts; recarregue a página
   routes: {
     '/': page,
+    // laboratório de jutsus: testa jutsus, golpes, técnicas e artes num boneco de treino (código real do jogo)
+    '/lab': lab,
     '/api/art': () =>
       Response.json(
         { files: readdirSync(ART).filter((f) => NAME.test(f)).sort(), edited: edits() },

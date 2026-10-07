@@ -98,6 +98,8 @@ export function bladeHit(g: Game, src: Unit, t: Unit, dmg: number) {
   switch (b) {
     case 'zabuza':
       src.hp = Math.min(src.maxHp, src.hp + Math.round(dmg * f.blood));
+      fx(g, 'beam', t.x, t.y - 10, { x2: src.x, y2: src.y - 10, color: '#c0182b', life: 0.35 }); // o sangue volta para a lâmina
+      fx(g, 'hit', t.x, t.y - 8, { r: 10, color: '#c0182b', life: 0.25, vfx: 'blood' });
       break;
     case 'samehada': {
       const took = Math.min(t.chakra ?? 0, f.drain);
@@ -106,6 +108,7 @@ export function bladeHit(g: Game, src: Unit, t: Unit, dmg: number) {
         src.chakra = Math.min(src.maxChakra, src.chakra + took);
       }
       src.hp = Math.min(src.maxHp, src.hp + Math.round(dmg * f.drainHeal));
+      fx(g, 'beam', t.x, t.y - 10, { x2: src.x, y2: src.y - 10, color: '#4da6ff', life: 0.4 }); // devora o chakra
       break;
     }
     case 'kiba': {
@@ -120,6 +123,7 @@ export function bladeHit(g: Game, src: Unit, t: Unit, dmg: number) {
       if (!ready(g, src)) break;
       src.bladeAt = g.state.time + f.chargeCd;
       fx(g, 'ring', t.x, t.y, { r: f.chargeRadius, color, life: 0.5 });
+      fx(g, 'wave', t.x, t.y, { r: f.chargeRadius, color: '#e0dccc', life: 0.5 });
       fxText(g, src.x, src.y - 30, 'Hiramekarei!', color, true);
       for (const o of foesNear(g, src, t.x, t.y, f.chargeRadius, t)) applyDamage(g, src, o, dmg * 0.6, null, {});
       break;
@@ -127,6 +131,8 @@ export function bladeHit(g: Game, src: Unit, t: Unit, dmg: number) {
       if (!ready(g, src)) break;
       src.bladeAt = g.state.time + f.stitchCd;
       t.stun = Math.max(t.stun, f.stitchStun);
+      t.stunVfx = undefined;
+      fx(g, 'burst', t.x, t.y - 8, { r: 10, color, life: 0.3, vfx: 'needle' });
       for (const o of foesNear(g, src, t.x, t.y, f.stitchRange, t)) {
         applyDamage(g, src, o, dmg * f.stitch, null, { stun: f.stitchStun });
         fx(g, 'bolt', t.x, t.y - 8, { x2: o.x, y2: o.y - 8, color, life: 0.3 });
@@ -135,14 +141,22 @@ export function bladeHit(g: Game, src: Unit, t: Unit, dmg: number) {
     case 'shibuki':
       if (!ready(g, src)) break;
       src.bladeAt = g.state.time + f.blastCd;
-      fx(g, 'burst', t.x, t.y, { r: f.blastRadius, color: '#ff7a3b', life: 0.5 });
+      fx(g, 'burst', t.x, t.y, { r: f.blastRadius, color: '#ff7a3b', life: 0.5, vfx: 'fire' });
       areaDamage(g, src, src.faction, t.x, t.y, f.blastRadius, f.blast, 'katon', 20);
       break;
     case 'sakumo':
-      if (t.cast) interruptCast(g, t);
+      if (t.cast) {
+        interruptCast(g, t);
+        fx(g, 'ring', t.x, t.y - 8, { r: 18, color: '#ffffff', life: 0.35 }); // chakra branco corta os selos
+      }
       break;
     case 'bee':
-      if (!t.dead) applyDamage(g, src, t, dmg * f.flurry, null, {});
+      if (!t.dead) {
+        // as sete espadas: riscos cruzados
+        fx(g, 'slash', t.x - 4, t.y - 4, { r: 18, color: '#e8e8e8', life: 0.25 });
+        fx(g, 'slash', t.x + 4, t.y - 10, { r: 14, color: '#e8e8e8', life: 0.3 });
+        applyDamage(g, src, t, dmg * f.flurry, null, {});
+      }
       break;
   }
 }

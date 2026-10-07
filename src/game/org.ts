@@ -102,7 +102,7 @@ export function orgBrain(g: Game, u: Unit, dt: number): boolean {
   const near = g.nearestHostile(u, inLair ? 260 : 200);
   const t = near ?? (inLair ? null : prey(g));
   if (!t) return inLair; // no covil, espera; na vila, segue o comportamento de renegado
-  if (u.abilityCd <= 0 && Math.hypot(t.x - u.x, t.y - u.y) < 180 && useArt(g, u, t)) {
+  if (u.abilityCd <= 0 && Math.hypot(t.x - u.x, t.y - u.y) < 180 && orgArt(g, u, t)) {
     u.abilityCd = ORG_MEMBERS[u.org].cd;
     return true;
   }
@@ -111,39 +111,44 @@ export function orgBrain(g: Game, u: Unit, dt: number): boolean {
   return true;
 }
 
-function useArt(g: Game, u: Unit, t: Unit): boolean {
+/** Técnica do membro (exportada para o laboratório de jutsus). */
+export function orgArt(g: Game, u: Unit, t: Unit): boolean {
   const id = u.org!;
   const d = ORG_MEMBERS[id];
   const shout = () => fxText(g, u.x, u.y - 34, `${d.art}!`, '#ff5a6a', true);
   switch (id) {
     case 'goen':
       shout();
-      fx(g, 'burst', t.x, t.y, { r: 60, color: '#ff6a2b', life: 0.6 });
+      fx(g, 'beam', u.x, u.y - 12, { x2: t.x, y2: t.y - 6, color: '#ff8a2b', life: 0.3, vfx: 'fire' });
+      fx(g, 'burst', t.x, t.y, { r: 60, color: '#ff6a2b', life: 0.6, vfx: 'fire' });
       areaDamage(g, u, u.faction, t.x, t.y, 60, 20, 'katon', 30);
       return true;
     case 'tetsuo':
       if (Math.hypot(t.x - u.x, t.y - u.y) > 40) return false;
       shout();
-      fx(g, 'burst', t.x, t.y, { r: 26, color: '#9aa4b0', life: 0.4 });
+      fx(g, 'burst', t.x, t.y, { r: 26, color: '#9aa4b0', life: 0.4, vfx: 'metal' });
+      fx(g, 'hit', t.x, t.y - 8, { r: 20, color: '#c8d0d8', life: 0.35, vfx: 'metal' });
       applyDamage(g, u, t, 38, null, { knock: 70, stun: 1 });
       return true;
     case 'mizuchi':
       shout();
-      fx(g, 'swirl', t.x, t.y - 8, { r: 26, color: '#4da6ff', life: 3 });
+      fx(g, 'burst', t.x, t.y - 8, { r: 22, color: '#4da6ff', life: 0.5, vfx: 'water' });
       t.stun = Math.max(t.stun, 3);
+      t.stunVfx = 'water'; // bolha d'água em volta do preso
       t.chakra = Math.max(0, t.chakra * 0.5);
       return true;
     case 'raiga':
       shout();
-      u.dash = { targetId: t.id, t: 1, power: 42, nature: 'raiton', color: '#9fd8ff', lx: u.x, ly: u.y, trail: 0 };
+      u.dash = { targetId: t.id, t: 1, power: 42, nature: 'raiton', color: '#9fd8ff', lx: u.x, ly: u.y, trail: 0, vfx: 'lightning' };
       return true;
     case 'kagero': {
       shout();
+      fx(g, 'wave', u.x, u.y, { r: 150, color: '#b36bff', life: 0.9, vfx: 'genjutsu' }); // a miragem se espalha
       let n = 0;
       for (const o of g.state.units)
         if (!o.dead && !o.hidden && o.faction === 'village' && o.ninja && Math.hypot(o.x - u.x, o.y - u.y) < 150) {
           o.stun = Math.max(o.stun, 2);
-          fx(g, 'swirl', o.x, o.y - 8, { r: 18, color: '#b36bff', life: 2 });
+          o.stunVfx = 'genjutsu';
           n++;
         }
       return n > 0;
@@ -156,6 +161,7 @@ function useArt(g: Game, u: Unit, t: Unit): boolean {
         m.ownerId = u.id;
         m.look = { ...m.look, skin: '#9aa39a', cloth: '#3a3a3a' };
         fx(g, 'smoke', m.x, m.y, { r: 14, life: 0.6, color: '#6a6a6a' });
+        fx(g, 'burst', m.x, m.y + 6, { r: 12, color: '#5a2a8a', life: 0.5, vfx: 'dark' });
       }
       return true;
     }
@@ -166,12 +172,15 @@ function useArt(g: Game, u: Unit, t: Unit): boolean {
         sp.missionId = g.state.sceneInfo ? -1 : undefined;
         sp.homeX = sp.x;
         sp.homeY = sp.y;
+        fx(g, 'burst', sp.x, sp.y, { r: 16, color: '#ffffff', life: 0.5, vfx: 'web' });
       }
       u.shield = 6;
+      u.shieldVfx = 'web';
       return true;
     case 'yomi': {
       shout();
-      fx(g, 'ring', u.x, u.y, { r: 160, color: '#c8a6ff', life: 0.7 });
+      fx(g, 'wave', u.x, u.y, { r: 160, color: '#c8a6ff', life: 0.7 }); // onda de choque
+      fx(g, 'burst', u.x, u.y, { r: 30, color: '#c8a6ff', life: 0.4, vfx: 'storm' });
       for (const o of g.state.units) {
         if (o.dead || o.hidden || o.faction !== 'village') continue;
         const dd = Math.hypot(o.x - u.x, o.y - u.y);

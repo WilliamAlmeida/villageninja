@@ -12,6 +12,8 @@ import { missionOfTeam } from './missions';
 import { gainXp } from './progression';
 import { teamOf } from './teams';
 import type { Building, Exam, ExamEntrant, Unit } from './types';
+import { BUILDINGS } from '../data/buildings';
+import { arenaRing } from './arena';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -59,10 +61,11 @@ export function score(e: ExamEntrant, g: Game) {
 export function arenaSpots(a: Building) {
   const x0 = a.tx * TILE;
   const y0 = a.ty * TILE;
-  const w = 4 * TILE;
+  const w = BUILDINGS.arena.w * TILE;
+  const ring = arenaRing(a);
   return {
-    left: { x: x0 + w * 0.25, y: y0 + w * 0.55 },
-    right: { x: x0 + w * 0.75, y: y0 + w * 0.55 },
+    left: { x: ring.cx - ring.r * 0.5, y: ring.cy },
+    right: { x: ring.cx + ring.r * 0.5, y: ring.cy },
     stand: (i: number) => ({ x: x0 + 10 + (i % 8) * ((w - 20) / 7), y: y0 + w + 14 + Math.floor(i / 8) * 14 }),
     center: { x: x0 + w / 2, y: y0 + w / 2 },
   };

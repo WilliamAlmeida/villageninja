@@ -161,7 +161,7 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'arena', name: 'Arena do Exame', icon: '{arena}', desc: 'Sedia o Exame Chunin: genins lutam 1×1 e os melhores são promovidos.',
-    w: 4, h: 4, cost: { wood: 80, stone: 60, ryo: 50 }, buildTime: 22, unique: true, buildable: true, walkable: true, minLevel: 1,
+    w: 6, h: 6, cost: { wood: 80, stone: 60, ryo: 50 }, buildTime: 22, unique: true, buildable: true, walkable: true, minLevel: 1,
     roof: '#8a6a3a', wall: '#c9a66b',
   },
   {

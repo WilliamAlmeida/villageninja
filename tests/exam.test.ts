@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { createAnimal, createNinja } from '../src/game/entities';
 import { examStatus, startExam } from '../src/game/exam';
+import { arenaRing, keepInRing } from '../src/game/arena';
+import { push } from '../src/game/movement';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
@@ -22,6 +24,47 @@ function setup(seed: number, genins = 3) {
 }
 
 describe('Exame Chunin', () => {
+  test('arena redonda: os dois do duelo ficam dentro; empurrado para fora perde (ring-out)', () => {
+    const g = setup(11, 2);
+    startExam(g);
+    const ex = g.state.exam!;
+    const arena = g.state.buildings.find((b) => b.type === 'arena')!;
+    const ring = arenaRing(arena);
+    let guard = 0;
+    while (ex.phase !== 'fight' && guard++ < 400) run(g, 0.1);
+    expect(ex.phase).toBe('fight');
+    const a = g.unit(ex.bracket[ex.match])!;
+    const b = g.unit(ex.bracket[ex.match + 1])!;
+    // Shunshin/Kawarimi pousam dentro
+    const far = keepInRing(g, a, { x: ring.cx + 500, y: ring.cy });
+    expect(Math.hypot(far.x - ring.cx, far.y - ring.cy)).toBeLessThan(ring.r);
+    // andando para fora: volta para dentro
+    a.x = ring.cx + ring.r + 30;
+    a.y = ring.cy;
+    a.knockT = 0;
+    run(g, SIM_DT);
+    expect(Math.hypot(a.x - ring.cx, a.y - ring.cy)).toBeLessThanOrEqual(ring.r);
+    // empurrado para fora por um golpe: perde
+    b.x = ring.cx + ring.r - 4;
+    b.y = ring.cy;
+    push(g, b, 60, 0);
+    run(g, SIM_DT);
+    expect(ex.entrants.find((e) => e.id === b.id)!.out).toBe(true);
+  });
+
+  test('save 23: a arena que cresceu não fica em cima de outro prédio', () => {
+    const g = setup(12, 2);
+    const arena = g.state.buildings.find((b) => b.type === 'arena')!;
+    const hk = g.state.buildings.find((b) => b.type === 'hokage')!;
+    arena.tx = hk.tx + 5;
+    arena.ty = hk.ty;
+    const old = JSON.parse(JSON.stringify(g.state));
+    old.version = 23;
+    const s = migrate(old)!;
+    const a2 = s.buildings.find((b) => b.type === 'arena')!;
+    expect(a2.tx !== arena.tx || a2.ty !== arena.ty).toBe(true);
+  });
+
   test('exige arena e genins de nível 2+', () => {
     const g = createNewGame(SYSTEMS, 1);
     expect(examStatus(g).ready).toBe(false);

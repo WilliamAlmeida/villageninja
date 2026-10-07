@@ -7,6 +7,7 @@ import type { Stats } from '../data/ninja';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { FlickerStyle, Unit } from './types';
+import { keepInRing } from './arena';
 import { doorPos } from './world';
 
 const TAU = Math.PI * 2;
@@ -60,7 +61,8 @@ export const canFlicker = (u: Unit, d: number) =>
 export function shunshin(g: Game, u: Unit, x: number, y: number): boolean {
   const d = Math.hypot(x - u.x, y - u.y);
   if (!canFlicker(u, d)) return false;
-  const p = landing(g, x, y);
+  const q = keepInRing(g, u, { x, y }); // no duelo do Exame só pousa dentro da arena
+  const p = landing(g, q.x, q.y);
   if (!p) return false;
   u.chakra -= flickerCost(d);
   u.flickerCd = flickerCooldown(u.ninja!.stats);
@@ -131,6 +133,7 @@ export function tryKawarimi(g: Game, t: Unit, src: Unit | null, dmg: number): bo
     p = landing(g, t.x + Math.cos(a) * 42, t.y + Math.sin(a) * 42);
   }
   if (!p) return false;
+  p = keepInRing(g, t, p);
   fx(g, 'log', t.x, t.y, { life: 1.6, color: '#8a5a2e' });
   fx(g, 'smoke', t.x, t.y - 4, { r: 18, life: 0.6, color: '#e8e8e8' });
   fxText(g, t.x, t.y - 26, 'Kawarimi!', '#e8d6b0');

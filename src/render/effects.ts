@@ -198,6 +198,80 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       }
       break;
     }
+    case 'hit': {
+      // estrela de impacto: 4 pontas que se abrem e somem rápido
+      const s = r * (0.6 + k * 0.8);
+      ctx.globalAlpha = 1 - k;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU + 0.4;
+        const l = i % 2 ? s * 0.3 : s;
+        ctx.lineTo(e.x + Math.cos(a) * l, e.y + Math.sin(a) * l * 0.8);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      break;
+    }
+    case 'beam': {
+      // feixe: linha brilhante com núcleo branco que se apaga
+      const x2 = e.x2 ?? e.x;
+      const y2 = e.y2 ?? e.y;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = (1 - k) * 0.7;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 4 * (1 - k) + 1;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      break;
+    }
+    case 'wave':
+      // ondas que se abrem (som, miragem, repulsão): 3 anéis atrasados, achatados no chão
+      ctx.strokeStyle = e.color;
+      for (let i = 0; i < 3; i++) {
+        const kk = k - i * 0.15;
+        if (kk <= 0 || kk >= 1) continue;
+        ctx.globalAlpha = (1 - kk) * 0.8;
+        ctx.lineWidth = 3 * (1 - kk) + 1;
+        ctx.beginPath();
+        for (let j = 0; j <= 40; j++) {
+          const a = (j / 40) * TAU;
+          const wob = e.vfx === 'sound' || e.vfx === 'genjutsu' ? 1 + Math.sin(a * 8 + kk * 20) * 0.06 : 1;
+          const rr = r * kk * wob;
+          ctx.lineTo(e.x + Math.cos(a) * rr, e.y + Math.sin(a) * rr * 0.5);
+        }
+        ctx.stroke();
+      }
+      break;
+    case 'gust': {
+      // rajada em leque: arcos de vento avançando do lançador até o alvo
+      const x2 = e.x2 ?? e.x;
+      const y2 = e.y2 ?? e.y;
+      const a = Math.atan2(y2 - e.y, x2 - e.x);
+      const d = Math.hypot(x2 - e.x, y2 - e.y);
+      ctx.strokeStyle = e.color;
+      for (let i = 0; i < 4; i++) {
+        const kk = k * 1.2 - i * 0.12;
+        if (kk <= 0 || kk >= 1) continue;
+        const cx = e.x + Math.cos(a) * d * kk;
+        const cy = e.y + Math.sin(a) * d * kk - 8;
+        ctx.globalAlpha = (1 - kk) * 0.9;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 10 + kk * r * 0.6, a - 0.9, a + 0.9);
+        ctx.stroke();
+      }
+      break;
+    }
     case 'wind': {
       const x2 = e.x2 ?? e.x;
       const y2 = e.y2 ?? e.y;

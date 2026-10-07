@@ -342,7 +342,9 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
   const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
-  drawArt(ctx, pic, u.x, base, (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale, row === SHEET_ROWS.side && dx < 0, frame, row);
+  // golpe: avança um passo curto na direção do alvo e volta (sem quadro de ataque na folha)
+  const lunge = !action && u.anim > 0 && !u.moving ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
+  drawArt(ctx, pic, u.x + dx * lunge, base + dy * lunge * 0.5, (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale, row === SHEET_ROWS.side && dx < 0, frame, row);
   ctx.restore();
   return true;
 }
@@ -355,6 +357,217 @@ export const workFrame = (u: Unit, t: number, frames = 4) => Math.floor(t * 5 + 
 export function workImpact(u: Unit, t: number) {
   const k = t * 5 + u.id;
   return Math.floor(k) % 4 === 2 ? 1 - (k % 1) : 0;
+}
+
+/**
+ * Atordoado/preso pelo estilo de quem prendeu: folhas da ilusão (Narakumi), pesadelo (Lua Negra), espiral de
+ * genjutsu, raízes (Mokuton), bolha d'água (Prisão d'Água), cúpula de terra, teia, notas (melodia), faíscas
+ * (choque); sem estilo, as estrelinhas.
+ */
+function drawStunned(ctx: Ctx, u: Unit, t: number) {
+  const v = u.stunVfx;
+  ctx.save();
+  switch (v) {
+    case 'leaf':
+    case 'genjutsu':
+    case 'dark': {
+      // espiral girando acima da cabeça + (folhas caindo em volta | sombra roxa)
+      const c = v === 'dark' ? '#8a4ad0' : v === 'leaf' ? '#d8f27a' : '#b36bff';
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 1.8;
+      ctx.globalAlpha = 0.95;
+      ctx.beginPath();
+      for (let i = 0; i < 28; i++) {
+        const a = t * 4 + i * 0.5;
+        const r = 1 + i * 0.4;
+        ctx.lineTo(u.x + Math.cos(a) * r, u.y - 26 + Math.sin(a) * r * 0.45);
+      }
+      ctx.stroke();
+      if (v === 'leaf')
+        // folhas girando em volta do corpo (a ilusão do Narakumi)
+        for (let i = 0; i < 9; i++) {
+          const a = t * 2.2 + (i / 9) * TAU;
+          const h = ((t * 0.5 + i / 9) % 1) * 28;
+          ctx.fillStyle = i % 3 === 0 ? '#f0d860' : i % 3 === 1 ? '#a8e05f' : '#7cc444';
+          ctx.globalAlpha = 0.95;
+          ctx.beginPath();
+          ctx.ellipse(u.x + Math.cos(a) * 13, u.y - 24 + h + Math.sin(a) * 4, 3.4, 1.5, a + t * 3, 0, TAU);
+          ctx.fill();
+        }
+      else {
+        ctx.globalAlpha = 0.22 + Math.sin(t * 3) * 0.06;
+        ctx.fillStyle = c;
+        ellipse(ctx, u.x, u.y - 6, 12, 16);
+      }
+      break;
+    }
+    case 'wood':
+      // raízes enroladas subindo pelas pernas
+      // raízes grossas (contorno escuro + madeira clara) enroladas do chão até o peito
+      for (const [w, c] of [[5.5, '#3a2410'], [3.5, '#a8743d']] as const) {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = w;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * TAU + 0.3;
+          ctx.beginPath();
+          ctx.moveTo(u.x + Math.cos(a) * 14, u.y + 9 + Math.sin(a) * 5);
+          ctx.quadraticCurveTo(u.x + Math.cos(a + 1.3) * 11, u.y - 1, u.x + Math.cos(a + 2.4) * 7, u.y - 10 - (i % 3) * 2);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = '#7cc444';
+      for (let i = 0; i < 4; i++) ellipse(ctx, u.x - 9 + i * 6, u.y - 12 - (i % 2) * 3, 2.4, 1.3);
+      break;
+    case 'water': {
+      // Prisão d'Água: bolha que ondula em volta do corpo
+      const r = 15 + Math.sin(t * 4) * 0.8;
+      const g = ctx.createRadialGradient(u.x - 4, u.y - 12, 2, u.x, u.y - 6, r);
+      g.addColorStop(0, 'rgba(230,246,255,0.35)');
+      g.addColorStop(1, 'rgba(77,166,255,0.45)');
+      ctx.fillStyle = g;
+      ellipse(ctx, u.x, u.y - 6, r, r * 1.1);
+      ctx.strokeStyle = 'rgba(230,246,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(u.x, u.y - 6, r, r * 1.1, 0, 0, TAU);
+      ctx.stroke();
+      break;
+    }
+    case 'earth':
+      // cúpula de terra (Iwao)
+      ctx.fillStyle = 'rgba(138,98,56,0.55)';
+      ctx.beginPath();
+      ctx.ellipse(u.x, u.y + 6, 17, 22, 0, Math.PI, TAU);
+      ctx.fill();
+      ctx.strokeStyle = '#5a3d20';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      break;
+    case 'web':
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU;
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y - 6);
+        ctx.lineTo(u.x + Math.cos(a) * 15, u.y - 6 + Math.sin(a) * 15);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.ellipse(u.x, u.y - 6, 9, 9, 0, 0, TAU);
+      ctx.stroke();
+      break;
+    case 'sound':
+      ctx.fillStyle = '#ffd34d';
+      ctx.strokeStyle = '#ffd34d';
+      for (let i = 0; i < 3; i++) {
+        const a = t * 3 + (i * TAU) / 3;
+        const x = u.x + Math.cos(a) * 10;
+        const y = u.y - 24 + Math.sin(a) * 3;
+        ellipse(ctx, x, y, 1.8, 1.3);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x + 1.5, y);
+        ctx.lineTo(x + 1.5, y - 5);
+        ctx.stroke();
+      }
+      break;
+    case 'lightning':
+    case 'storm':
+      ctx.strokeStyle = v === 'storm' ? '#c8a6ff' : '#ffe14d';
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < 2; i++) {
+        const a = t * 23 + i * 2.6;
+        ctx.beginPath();
+        ctx.moveTo(u.x + Math.cos(a) * 4, u.y - 10);
+        ctx.lineTo(u.x + Math.cos(a + 1) * 10, u.y - 4 + Math.sin(a) * 6);
+        ctx.lineTo(u.x + Math.cos(a + 2) * 7, u.y + 4);
+        ctx.stroke();
+      }
+      break;
+    default:
+      ctx.fillStyle = '#ffe14d';
+      for (let i = 0; i < 3; i++) {
+        const a = t * 5 + (i * TAU) / 3;
+        circle(ctx, u.x + Math.cos(a) * 7, u.y - 22 + Math.sin(a) * 2.5, 1.6);
+      }
+  }
+  ctx.restore();
+}
+
+/** Escudo pelo estilo: muralha de terra na frente (Doryuuheki), teia (Ninho), costelas de osso, brilho de ferro. */
+function drawShield(ctx: Ctx, u: Unit, t: number) {
+  ctx.save();
+  switch (u.shieldVfx) {
+    case 'earth': {
+      // muralha de pedra entre o ninja e para onde ele olha
+      const a = u.facing;
+      const cx = u.x + Math.cos(a) * 12;
+      const cy = u.y + Math.sin(a) * 6 + 4;
+      ctx.translate(cx, cy);
+      ctx.fillStyle = '#8a6238';
+      ctx.fillRect(-11, -20, 22, 20);
+      ctx.fillStyle = '#a87b45';
+      ctx.fillRect(-11, -20, 22, 4);
+      ctx.strokeStyle = '#4a3220';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-11, -20, 22, 20);
+      ctx.beginPath();
+      ctx.moveTo(-4, -16);
+      ctx.lineTo(-1, -9);
+      ctx.lineTo(-5, -3);
+      ctx.moveTo(5, -14);
+      ctx.lineTo(3, -6);
+      ctx.stroke();
+      break;
+    }
+    case 'web':
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = 0.8;
+      for (const r of [9, 14, 19]) {
+        ctx.beginPath();
+        ctx.ellipse(u.x, u.y - 6, r, r * 1.05, 0, Math.PI, TAU);
+        ctx.stroke();
+      }
+      for (let i = 0; i <= 6; i++) {
+        const a = Math.PI + (i / 6) * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y - 6);
+        ctx.lineTo(u.x + Math.cos(a) * 19, u.y - 6 + Math.sin(a) * 20);
+        ctx.stroke();
+      }
+      break;
+    case 'bone':
+      ctx.strokeStyle = '#efe6d0';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        const y = u.y - 16 + i * 6;
+        ctx.beginPath();
+        ctx.arc(u.x, y, 13 - Math.abs(i - 1.5) * 1.5, Math.PI * 1.15, Math.PI * 1.85);
+        ctx.stroke();
+      }
+      break;
+    case 'metal':
+      // Corpo de Ferro: brilho metálico passando pelo corpo
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#c8d0d8';
+      ellipse(ctx, u.x, u.y - 6, 11, 16);
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(u.x - 10 + ((t * 30) % 20), u.y - 20, 2, 26);
+      break;
+    default:
+      ctx.strokeStyle = 'rgba(168,123,69,0.85)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(u.x, u.y - 2, 15, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(u.x, u.y - 2, 15, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /** `bare`: só o corpo (vulto do Shunshin), sem barras, marcas nem status. */
@@ -387,23 +600,8 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
     ctx.stroke();
     ctx.restore();
   }
-  if (u.stun > 0) {
-    ctx.fillStyle = '#ffe14d';
-    for (let i = 0; i < 3; i++) {
-      const a = t * 5 + (i * TAU) / 3;
-      circle(ctx, u.x + Math.cos(a) * 7, u.y - 22 + Math.sin(a) * 2.5, 1.6);
-    }
-  }
-  if (u.shield > 0) {
-    ctx.strokeStyle = 'rgba(168,123,69,0.85)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(u.x, u.y - 2, 15, Math.PI * 0.1, Math.PI * 0.9);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(u.x, u.y - 2, 15, Math.PI * 1.1, Math.PI * 1.9);
-    ctx.stroke();
-  }
+  if (u.stun > 0) drawStunned(ctx, u, t);
+  if (u.shield > 0) drawShield(ctx, u, t);
   const hostile = u.faction !== 'village';
   if (u.cloak && u.faction !== 'village') return; // invisível: sem barra nem marca
   if (selected || u.hp < u.maxHp || (hostile && u.kind !== 'animal')) drawBars(ctx, u, selected);
@@ -1089,6 +1287,12 @@ export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
       ctx.rotate(a);
       ctx.fillStyle = p.mark != null ? '#ffd34d' : '#4b5158'; // kunai do Hiraishin: cabo com a fórmula
       ctx.fillRect(-6, -1, 7, 2);
+      if (p.vfx === 'fire') {
+        ctx.fillStyle = '#f0e2b8'; // papel-bomba amarrado
+        ctx.fillRect(-9, -3, 4, 6);
+        ctx.fillStyle = '#c0182b';
+        ctx.fillRect(-8, -1, 2, 2);
+      }
       ctx.fillStyle = '#dfe6ec';
       ctx.beginPath();
       ctx.moveTo(1, -2);
@@ -1131,6 +1335,77 @@ export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
       }
       ctx.stroke();
       glowOrb(ctx, p.x, p.y, p.size, p.color);
+      return;
+    }
+    case 'jet': {
+      // jato d'água: gota alongada com miolo claro e respingos atrás
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(a);
+      ctx.fillStyle = 'rgba(77,166,255,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(-10, 0, 14, p.size * 0.7, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.ellipse(-2, 0, 9, p.size * 0.75, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#e6f6ff';
+      ctx.beginPath();
+      ctx.ellipse(0, -1, 5, p.size * 0.3, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    case 'shard': {
+      // agulha de gelo: losango comprido, branco-azulado
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(a);
+      ctx.fillStyle = p.color;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-2, -2.5);
+      ctx.lineTo(-8, 0);
+      ctx.lineTo(-2, 2.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    case 'needle':
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(p.x - dx * 9, p.y - dy * 9);
+      ctx.lineTo(p.x + dx * 4, p.y + dy * 4);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+      return;
+    case 'arrow': {
+      // flecha dourada: haste, ponta e brilho
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(a);
+      ctx.strokeStyle = '#ffd34d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-12, 0);
+      ctx.lineTo(4, 0);
+      ctx.stroke();
+      ctx.fillStyle = '#fff3b0';
+      ctx.beginPath();
+      ctx.moveTo(9, 0);
+      ctx.lineTo(3, -3.5);
+      ctx.lineTo(3, 3.5);
+      ctx.fill();
+      ctx.restore();
+      glowOrb(ctx, p.x, p.y, 3, '#ffd34d');
       return;
     }
     case 'dragon':

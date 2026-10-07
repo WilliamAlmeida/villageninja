@@ -21,7 +21,7 @@ import { sageDamage, sanninSurvive } from './sannin';
 import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
 import { gearBonus } from './gearBonus';
-import { bladeDefense, bladeHit, bladeMult, bladeReach, bladeSpeed } from './blades';
+import { bladeDefense, bladeHit, bladeMult, bladeOf, bladeReach, bladeSpeed } from './blades';
 import { anbuAmbush } from './anbu';
 import { swordsmanFall } from './swordsmen';
 import { cursedDefeated, dropCaptive, soundKnockout, soundMemberDown } from './sound';
@@ -32,7 +32,10 @@ import { KAGE_DAMAGE_BONUS } from './kage';
 import { bossDefeated } from './bosses';
 import type { Faction, Projectile, ProjectileKind, Unit } from './types';
 import { KAGE_ARTS } from '../data/kageArts';
+import { jutsuVfx, type Vfx } from '../data/vfx';
+import { BLADES } from '../data/blades';
 import { blink, flickerInCombat, interruptCast, landing, SEAL_BREAK, sealNames, sealTime, tryKawarimi } from './techniques';
+import { ringDesired } from './arena';
 
 export const MELEE_RANGE = 22;
 
@@ -88,6 +91,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
     const r = readyRangedRange(u);
     if (r > 0) desired = r * 0.85;
   }
+  desired = ringDesired(g, u, desired); // no Exame a distância de luta cabe na arena
 
   // Shunshin: longe do alvo aparece perto; atirador encurralado salta para trás
   if (canUseJutsu(u) && flickerInCombat(g, u, t, d, desired)) return;
@@ -101,6 +105,10 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
     if (d <= ms.range + 6 && u.attackCd <= 0) {
       u.attackCd = ms.cd;
       u.anim = 0.25;
+      // impacto do golpe: estrela branca; com lâmina, o risco na cor dela
+      const blade = bladeOf(u);
+      if (blade) fx(g, 'slash', t.x, t.y - 6, { r: 16, color: BLADES[blade].color, life: 0.25 });
+      fx(g, 'hit', t.x + Math.cos(u.facing) * -4, t.y - 8, { r: 9, color: '#ffffff', life: 0.22, vfx: blade ? 'metal' : 'impact' });
       applyDamage(g, u, t, ms.dmg, null, { melee: true });
     }
   }
@@ -128,7 +136,7 @@ function tryConsumable(g: Game, u: Unit, t: Unit, d: number): boolean {
     consumeItem(g, u);
     u.attackCd = 0.8;
     spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
-      damage: use.amount, radius: use.radius ?? 50, nature: null, color: '#ff7a3b', size: 5, speed: 300, kind: 'kunai', stun: 0, range: 140,
+      damage: use.amount, radius: use.radius ?? 50, nature: null, color: '#ff7a3b', size: 5, speed: 300, kind: 'kunai', stun: 0, range: 140, vfx: 'fire',
     });
     return true;
   }
@@ -227,6 +235,7 @@ export function castTick(g: Game, u: Unit, dt: number) {
 function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
   const n = u.ninja!;
   const power = jutsuPower(def, n.stats);
+  const vfx = jutsuVfx(def);
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   u.anim = 0.4;
   shout(g, u, def);
@@ -235,7 +244,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'projectile':
       spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
         damage: power, radius: def.radius ?? 0, nature: def.nature, color: def.color,
-        size: def.radius ? 9 : 6, speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range,
+        size: def.radius ? 9 : 6, speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx,
       });
       break;
     case 'multi': {
@@ -245,32 +254,37 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
         const a = base + (count > 1 ? (i / (count - 1) - 0.5) * 0.6 : 0);
         spawnProjectile(g, u, u.faction, u.x, u.y - 4, u.x + Math.cos(a) * def.range, u.y + Math.sin(a) * def.range, {
           damage: power, radius: 0, nature: def.nature, color: def.color, size: 5,
-          speed: def.projSpeed ?? 260, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range,
+          speed: def.projSpeed ?? 260, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx,
         });
       }
       break;
     }
     case 'aoe':
-      fx(g, 'wind', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.5 });
+      // vento: rajada em leque até o alvo; calor (Shakuton): esferas incandescentes estourando em volta
+      if (vfx === 'wind') fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.55, r: def.radius ?? 50 });
+      fx(g, 'burst', t.x, t.y, { r: def.radius ?? 50, color: def.color, life: 0.55, vfx });
       fx(g, 'ring', t.x, t.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
       areaDamage(g, u, u.faction, t.x, t.y, def.radius ?? 50, power, def.nature, 45);
       break;
     case 'dash':
       // corre até o alvo deixando um rastro (dashTick); golpeia ao chegar
-      u.dash = { targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0 };
+      u.dash = { targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
       u.hasGoal = false;
       break;
     case 'melee':
       fx(g, 'slash', t.x, t.y, { r: 24, color: def.color, life: 0.35 });
+      fx(g, 'hit', t.x, t.y - 8, { r: 16, color: def.color, life: 0.3, vfx: vfx ?? 'impact' });
       applyDamage(g, u, t, power, def.nature, { knock: 22 });
       break;
     case 'stun': {
       const s = t.ninja?.stats;
       const resist = s ? (s.genjutsu + s.inteligencia) * 0.035 : 0;
       fx(g, 'swirl', t.x, t.y - 8, { r: 20, color: def.color, life: 0.9 });
+      fx(g, 'beam', u.x, u.y - 14, { x2: t.x, y2: t.y - 14, color: def.color, life: 0.35, vfx });
       if (chance(resist)) fxText(g, t.x, t.y - 20, 'Kai!', '#d9c2ff');
       else {
         t.stun = Math.max(t.stun, jutsuDuration(def, n.stats));
+        t.stunVfx = vfx ?? 'genjutsu'; // o desenho do atordoado segue a ilusão (folhas, pesadelo…)
         interruptCast(g, t);
       }
       break;
@@ -282,18 +296,20 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
         const cx = u.x + Math.cos(a) * 20;
         const cy = u.y + Math.sin(a) * 20;
         const c = createClone(g, u, g.world.walkablePx(cx, cy) ? cx : u.x, g.world.walkablePx(cx, cy) ? cy : u.y, def.duration ?? 10);
-        fx(g, 'smoke', c.x, c.y, { r: 16, life: 0.6, color: '#e8e8e8' });
+        fx(g, 'smoke', c.x, c.y, { r: 18, life: 0.7, color: '#e8e8e8' });
+        fx(g, 'ring', c.x, c.y, { r: 14, life: 0.35, color: '#ffffff' }); // "puf" do clone
       }
       break;
     }
     case 'bind':
       // raízes prendem o alvo e causam dano
-      fx(g, 'swirl', t.x, t.y, { r: 22, color: def.color, life: 1.2 });
-      fx(g, 'burst', t.x, t.y, { r: 20, color: def.color, life: 0.5 });
-      applyDamage(g, u, t, power, null, { stun: def.duration ?? 2 });
+      fx(g, 'burst', t.x, t.y, { r: 22, color: def.color, life: 0.5, vfx: vfx ?? 'wood' });
+      applyDamage(g, u, t, power, null, { stun: def.duration ?? 2, stunVfx: vfx ?? 'wood' });
       break;
     case 'shield':
       u.shield = def.duration ?? 6;
+      u.shieldVfx = vfx;
+      fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx });
       fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });
       break;
     case 'heal':
@@ -326,6 +342,8 @@ export function trySupport(g: Game, u: Unit): boolean {
     shout(g, u, def);
     const amount = Math.round(jutsuPower(def, n.stats));
     best.hp = Math.min(best.maxHp, best.hp + amount);
+    // chakra verde das mãos do médico até o ferido
+    if (best !== u) fx(g, 'beam', u.x, u.y - 12, { x2: best.x, y2: best.y - 12, color: def.color, life: 0.6 });
     fx(g, 'heal', best.x, best.y, { r: 18, color: def.color, life: 0.8 });
     fxText(g, best.x, best.y - 18, `+${amount}`, def.color);
     return true;
@@ -338,7 +356,7 @@ function throwKunai(g: Game, u: Unit, t: Unit) {
   u.attackCd = 1.6;
   u.anim = 0.2;
   spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
-    damage: d.kunaiDmg + gearBonus(u).kunai, radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 360, kind: 'kunai', stun: 0, range: 160,
+    damage: d.kunaiDmg + gearBonus(u).kunai, radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 360, kind: 'kunai', stun: 0, range: 160, vfx: 'metal',
   });
 }
 
@@ -352,6 +370,7 @@ interface ProjOpts {
   kind: ProjectileKind;
   stun: number;
   range: number;
+  vfx?: Vfx;
 }
 
 export function spawnProjectile(g: Game, owner: Unit | null, faction: Faction, x: number, y: number, tx: number, ty: number, o: ProjOpts) {
@@ -359,7 +378,7 @@ export function spawnProjectile(g: Game, owner: Unit | null, faction: Faction, x
   const p: Projectile = {
     id: g.newId(), x, y, vx: Math.cos(a) * o.speed, vy: Math.sin(a) * o.speed, tx, ty, faction,
     ownerId: owner?.id ?? null, damage: o.damage, radius: o.radius, nature: o.nature, color: o.color,
-    size: o.size, stun: o.stun, life: (o.range * 1.4) / o.speed, kind: o.kind, side: owner?.arenaSide || undefined,
+    size: o.size, stun: o.stun, life: (o.range * 1.4) / o.speed, kind: o.kind, side: owner?.arenaSide || undefined, vfx: o.vfx,
   };
   g.state.projectiles.push(p);
   return p;
@@ -378,6 +397,8 @@ export function areaDamage(g: Game, src: Unit | null, faction: Faction, x: numbe
 interface DamageOpts {
   melee?: boolean;
   stun?: number;
+  /** Desenho do atordoado (raízes, prisão d'água…); sem: as estrelinhas. */
+  stunVfx?: Vfx;
   knock?: number;
   from?: { x: number; y: number };
 }
@@ -407,7 +428,10 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   dmg *= anbuAmbush(src);
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense) * (blade ? bladeDefense(src) : 1);
   if (t.shield > 0) dmg *= 0.4;
-  if (t.org === 'tetsuo') dmg *= 0.5; // Corpo de Ferro
+  if (t.org === 'tetsuo') {
+    dmg *= 0.5; // Corpo de Ferro: o golpe tine no metal
+    fx(g, 'burst', t.x, t.y - 10, { r: 8, color: '#c8d0d8', life: 0.2, vfx: 'metal' });
+  }
   if (t.carrying != null) dmg *= SOUND.carryHurt; // carregando o raptado: mãos ocupadas
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
   // Kawarimi: golpe forte ou fatal vira um tronco
@@ -425,7 +449,10 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   t.combatTimer = 5;
   fxText(g, t.x + rand(-6, 6), t.y - 18, mult > 1 ? `${dmg}!` : `${dmg}`, mult > 1 ? '#ffb347' : mult < 1 ? '#9aa4b0' : '#ffffff');
   if (blade) bladeHit(g, src, t, dmg);
-  if (opts.stun) t.stun = Math.max(t.stun, opts.stun);
+  if (opts.stun) {
+    t.stun = Math.max(t.stun, opts.stun);
+    t.stunVfx = opts.stunVfx;
+  }
   if (opts.knock) {
     const from = opts.from ?? src ?? t;
     const a = Math.atan2(t.y - from.y, t.x - from.x);
@@ -510,7 +537,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
 
 /** Divide o golem em dois menores, com metade da vida máxima, ao lado de onde caiu. */
 function splitGolem(g: Game, t: Unit) {
-  fx(g, 'burst', t.x, t.y, { r: 34, color: '#a0603a', life: 0.6 });
+  fx(g, 'burst', t.x, t.y, { r: 34, color: '#a0603a', life: 0.6, vfx: 'earth' });
   fxText(g, t.x, t.y - 40, 'Se dividiu!', '#e0a070', true);
   for (const dx of [-16, 16]) {
     const c = createAnimal(g, 'golem', t.x + dx, t.y + 6);
@@ -542,8 +569,9 @@ export function dashTick(g: Game, u: Unit, dt: number) {
   if (dist <= 20) {
     u.dash = undefined;
     u.moving = false;
-    fx(g, 'bolt', d.lx, d.ly, { x2: u.x, y2: u.y, color: d.color, life: 0.3 });
-    fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4 });
+    dashTrail(g, u, d);
+    fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx });
+    fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
     applyDamage(g, u, t, d.power, d.nature, { knock: 26 });
     return;
   }
@@ -561,15 +589,23 @@ export function dashTick(g: Game, u: Unit, dt: number) {
   d.trail += dt;
   if (d.trail >= 0.05) {
     d.trail = 0;
-    fx(g, 'bolt', d.lx, d.ly, { x2: u.x, y2: u.y, color: d.color, life: 0.3 });
+    dashTrail(g, u, d);
     d.lx = u.x;
     d.ly = u.y;
   }
 }
 
+/** Rastro da investida: raio (Chidori, Raiton) ou vultos vermelhos de quem força o corpo (Passo de Sangue). */
+function dashTrail(g: Game, u: Unit, d: NonNullable<Unit['dash']>) {
+  if (d.vfx === 'blood' || d.vfx === 'impact') {
+    fx(g, 'afterimage', d.lx, d.ly, { uid: u.id, facing: u.facing, life: 0.3, color: d.color });
+    fx(g, 'burst', d.lx, d.ly + 6, { r: 6, color: d.color, life: 0.3, vfx: d.vfx });
+  } else fx(g, 'bolt', d.lx, d.ly, { x2: u.x, y2: u.y, color: d.color, life: 0.3, vfx: d.vfx });
+}
+
 // ------------------------------------------------------------------ arte do Kage
 /** Usa a técnica do Kage quando faz sentido. Retorna true se agiu neste tick. */
-function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
+export function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
   if (u.ninja?.kageArt !== 'hiraishin' || u.arenaSide) return false;
   const def = KAGE_ARTS.hiraishin;
   // alvo marcado: aparece atrás dele num clarão e golpeia
@@ -585,7 +621,7 @@ function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
     u.artCd = def.cooldown;
     u.attackCd = 0.5;
     u.anim = 0.3;
-    fx(g, 'burst', t.x, t.y, { r: 24, color: def.color, life: 0.4 });
+    fx(g, 'burst', t.x, t.y, { r: 24, color: def.color, life: 0.4, vfx: 'gold' });
     applyDamage(g, u, t, def.power * (0.6 + u.ninja.stats.ninjutsu * 0.1), null, { knock: 20 });
     return true;
   }

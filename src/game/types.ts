@@ -10,6 +10,7 @@ import type { MarketGood } from '../data/specialize';
 // Sistemas mutam o estado; render e UI apenas leem.
 import type { AnimalType } from '../data/animals';
 import type { RogueRole } from '../data/enemies';
+import type { Vfx } from '../data/vfx';
 import type { SiteKind } from '../data/sites';
 import type { ContractKind, RegionAction } from '../data/region';
 import type { SpecKind } from '../data/specs';
@@ -31,7 +32,8 @@ export type FlickerStyle = 'leaf' | 'mist' | 'water' | 'sand' | 'smoke' | 'flash
 /** Ritmo do combate (menu): rápido = jutsu sai na hora; tático = selos antes, que um golpe interrompe. */
 export type CombatPace = 'fast' | 'tactical';
 export type NinjaOrder = 'auto' | 'train' | 'patrol' | 'scout';
-export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai';
+/** `jet` jato d'água, `shard` gelo, `needle` agulha, `arrow` flecha (desenho em render/sprites.ts). */
+export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai' | 'jet' | 'shard' | 'needle' | 'arrow';
 
 export interface Look {
   skin: string;
@@ -159,6 +161,11 @@ export interface Unit {
   homeY?: number;
   /** Exame Chunin: 0 = participante aguardando, 1/2 = lado no duelo atual. */
   arenaSide?: number;
+  /** Segundos desde que foi empurrado por um golpe (conta para baixo; ring-out no Exame). */
+  knockT?: number;
+  /** Visual de quem está atordoado/preso e de quem está com escudo (data/vfx.ts). Só desenho. */
+  stunVfx?: Vfx;
+  shieldVfx?: Vfx;
   heritage?: Heritage;
   /** Chefe de ameaça (aparece na barra de vida da tela). */
   boss?: boolean;
@@ -193,7 +200,7 @@ export interface Unit {
   /** Fazendo os selos de um jutsu (ritmo tático): sai quando `t` zera; um golpe forte interrompe. */
   cast?: { id: string; targetId: number; t: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
-  dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number };
+  dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number; vfx?: Vfx };
   /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
   sage?: number;
   sanninCd?: number;
@@ -406,6 +413,8 @@ export interface Projectile {
   side?: number;
   /** Kunai do Hiraishin: marca quem acertar com a fórmula do Kage (id). */
   mark?: number;
+  /** Estilo visual do rastro e do impacto (data/vfx.ts). */
+  vfx?: Vfx;
 }
 
 /** `harvest`: canteiro recém-colhido (terra à mostra que volta a brotar com o tempo; desenhado no chão). */
@@ -416,7 +425,10 @@ export type EffectKind =
   /** Kawarimi: o tronco que fica no lugar. `seal`: chakra juntando nas mãos durante os selos. */
   | 'log' | 'seal'
   /** Baú aberto: clarão dourado subindo, moedas pulando e confete (render/particles.ts). */
-  | 'treasure';
+  | 'treasure'
+  /** `hit`: impacto de golpe corpo a corpo; `beam`: feixe de x,y até x2,y2 (cura, dreno); `wave`: ondas que se
+   *  abrem (som, miragem, repulsão; `vfx`); `gust`: rajada em leque do lançador até o alvo. */
+  | 'hit' | 'beam' | 'wave' | 'gust';
 
 export interface Effect {
   kind: EffectKind;
@@ -433,6 +445,8 @@ export interface Effect {
   variant?: FlickerStyle;
   uid?: number;
   facing?: number;
+  /** Estilo das partículas (data/vfx.ts); sem: adivinhado pela cor. */
+  vfx?: Vfx;
 }
 
 /** Nuvem de chuva cruzando o mapa (px de mundo). */

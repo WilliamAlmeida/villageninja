@@ -2,6 +2,7 @@ import type { Cost, ProjectileKind } from '../game/types';
 import type { Nature } from './natures';
 import type { KekkeiId } from './kekkei';
 import type { StatKey, Stats } from './ninja';
+import type { Vfx } from './vfx';
 
 export type JutsuType = 'ninjutsu' | 'taijutsu' | 'genjutsu' | 'iryo';
 export type JutsuEffect =
@@ -47,6 +48,8 @@ export interface JutsuDef {
   learnTime: number;
   /** Jutsu proibido: só aparece depois de achar o pergaminho nas ruínas e pode deixar sequela ao aprender. */
   forbidden?: boolean;
+  /** Estilo visual (rastro, impacto, estado). Sem: o da natureza (`jutsuVfx`). */
+  vfx?: Vfx;
 }
 
 /** Chance de o ninja ficar com sequela (perde Stamina) ao terminar de aprender um jutsu proibido. */
@@ -66,7 +69,7 @@ const LIST: JutsuDef[] = [
   {
     id: 'mizurappa', name: 'Suiton: Mizurappa', shout: 'Mizurappa!', desc: 'Jato de água concentrado.',
     nature: 'suiton', type: 'ninjutsu', rank: 1, chakra: 12, cooldown: 4, range: 135, power: 15, effect: 'projectile',
-    projSpeed: 280, projKind: 'orb', color: '#4da6ff', req: { ninjutsu: 2 }, cost: { ryo: 45 }, learnTime: 16,
+    projSpeed: 280, projKind: 'jet', color: '#4da6ff', req: { ninjutsu: 2 }, cost: { ryo: 45 }, learnTime: 16,
   },
   {
     id: 'suiryuudan', name: 'Suiton: Suiryuudan no Jutsu', shout: 'Suiryuudan no Jutsu!', desc: 'Dragão de água devastador em área.',
@@ -111,7 +114,7 @@ const LIST: JutsuDef[] = [
   {
     id: 'narakumi', name: 'Magen: Narakumi no Jutsu', shout: 'Magen: Narakumi!', desc: 'Ilusão aterrorizante que paralisa o alvo.',
     nature: null, type: 'genjutsu', rank: 2, chakra: 18, cooldown: 10, range: 130, power: 0, effect: 'stun',
-    duration: 3, color: '#b36bff', req: { genjutsu: 4 }, cost: { ryo: 90 }, learnTime: 28,
+    duration: 3, color: '#b36bff', req: { genjutsu: 4 }, cost: { ryo: 90 }, learnTime: 28, vfx: 'leaf',
   },
   {
     id: 'kagebunshin', name: 'Kage Bunshin no Jutsu', shout: 'Kage Bunshin no Jutsu!', desc: 'Clones sólidos que lutam ao seu lado.',
@@ -127,43 +130,43 @@ const LIST: JutsuDef[] = [
   {
     id: 'sensatsu', name: 'Hyōton: Sensatsu Suishō', shout: 'Sensatsu Suishō!', desc: 'Agulhas de gelo em leque que congelam por instantes.',
     nature: null, kekkei: 'hyoton', type: 'ninjutsu', rank: 2, chakra: 22, cooldown: 6, range: 150, power: 11, effect: 'multi',
-    count: 6, stun: 0.5, projSpeed: 320, projKind: 'blade', color: '#9fe8ff', req: { ninjutsu: 3 }, cost: { ryo: 120 }, learnTime: 30,
+    count: 6, stun: 0.5, projSpeed: 320, projKind: 'shard', color: '#9fe8ff', req: { ninjutsu: 3 }, cost: { ryo: 120 }, learnTime: 30, vfx: 'ice',
   },
   {
     id: 'jukai', name: 'Mokuton: Jukai Kōtan', shout: 'Jukai Kōtan!', desc: 'Raízes gigantes prendem e esmagam o alvo.',
     nature: null, kekkei: 'mokuton', type: 'ninjutsu', rank: 3, chakra: 30, cooldown: 10, range: 150, power: 22, effect: 'bind',
-    duration: 2.5, color: '#8fcf6a', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+    duration: 2.5, color: '#8fcf6a', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40, vfx: 'wood',
   },
   {
     id: 'yokai', name: 'Yōton: Yōkai no Jutsu', shout: 'Yōkai no Jutsu!', desc: 'Lava ardente que explode numa área enorme.',
     nature: null, kekkei: 'yoton', type: 'ninjutsu', rank: 3, chakra: 34, cooldown: 9, range: 160, power: 36, effect: 'projectile',
-    radius: 56, projSpeed: 190, projKind: 'rock', color: '#ff5a1f', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+    radius: 56, projSpeed: 190, projKind: 'rock', color: '#ff5a1f', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40, vfx: 'lava',
   },
   {
     id: 'reiza', name: 'Ranton: Reiza Sākasu', shout: 'Reiza Sākasu!', desc: 'Feixes de tempestade velozes que paralisam.',
     nature: null, kekkei: 'ranton', type: 'ninjutsu', rank: 3, chakra: 28, cooldown: 7, range: 170, power: 15, effect: 'multi',
-    count: 4, stun: 0.35, projSpeed: 380, projKind: 'spark', color: '#c8a6ff', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+    count: 4, stun: 0.35, projSpeed: 380, projKind: 'spark', color: '#c8a6ff', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40, vfx: 'storm',
   },
   {
     id: 'kajosatsu', name: 'Shakuton: Kajōsatsu', shout: 'Kajōsatsu!', desc: 'Esferas de calor que queimam tudo ao redor do alvo.',
     nature: null, kekkei: 'shakuton', type: 'ninjutsu', rank: 3, chakra: 30, cooldown: 8, range: 130, power: 30, effect: 'aoe',
-    radius: 70, color: '#ffb347', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40,
+    radius: 70, color: '#ffb347', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40, vfx: 'heat',
   },
   // ---- proibidos (pergaminhos achados nas ruínas)
   {
     id: 'kuroduki', name: 'Kinjutsu: Lua Negra', shout: 'Lua Negra!', desc: 'Ilusão proibida: mergulha o alvo num pesadelo que o paralisa por muito tempo.',
     nature: null, type: 'genjutsu', rank: 3, chakra: 38, cooldown: 14, range: 160, power: 0, effect: 'stun', forbidden: true,
-    duration: 5.5, color: '#5a2a8a', req: { genjutsu: 4 }, cost: { ryo: 220, paper: 6 }, learnTime: 50,
+    duration: 5.5, color: '#8a4ad0', req: { genjutsu: 4 }, cost: { ryo: 220, paper: 6 }, learnTime: 50, vfx: 'dark',
   },
   {
     id: 'chisoku', name: 'Kinjutsu: Passo de Sangue', shout: 'Passo de Sangue!', desc: 'Força o corpo além do limite numa investida brutal.',
     nature: null, type: 'taijutsu', rank: 4, chakra: 30, cooldown: 11, range: 160, power: 62, effect: 'dash', forbidden: true,
-    color: '#c0182b', req: { taijutsu: 5, velocidade: 4 }, cost: { ryo: 280, herbs: 10 }, learnTime: 55,
+    color: '#c0182b', req: { taijutsu: 5, velocidade: 4 }, cost: { ryo: 280, herbs: 10 }, learnTime: 55, vfx: 'blood',
   },
   {
     id: 'senbari', name: 'Kinjutsu: Mil Agulhas', shout: 'Mil Agulhas!', desc: 'Chuva de agulhas de chakra que cobre uma área inteira.',
     nature: null, type: 'ninjutsu', rank: 4, chakra: 46, cooldown: 12, range: 170, power: 13, effect: 'multi', forbidden: true,
-    count: 10, projSpeed: 340, projKind: 'blade', color: '#d9d9ff', req: { ninjutsu: 5, selos: 4 }, cost: { ryo: 300, paper: 10 }, learnTime: 60,
+    count: 10, projSpeed: 380, projKind: 'needle', color: '#d9d9ff', req: { ninjutsu: 5, selos: 4 }, cost: { ryo: 300, paper: 10 }, learnTime: 60, vfx: 'needle',
   },
 ];
 
