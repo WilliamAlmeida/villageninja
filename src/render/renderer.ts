@@ -267,7 +267,8 @@ export class Renderer {
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
       if (seen(p)) list.push({ x: p.x, y: p.y, site });
     }
-    this.decos = this.seasonal.decorations(s, (x, y) => g.world.walkablePx(x, y));
+    // enfeites (boneco de neve, lanternas) só em chão livre: nada dentro de campo, horta ou arena
+    this.decos = this.seasonal.decorations(s, (x, y) => g.world.walkablePx(x, y) && !g.world.buildingIdAt(Math.floor(x / TILE), Math.floor(y / TILE)));
     for (const deco of this.decos) {
       const p = project(deco.x, deco.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, deco });
