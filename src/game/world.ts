@@ -78,6 +78,8 @@ export class World {
 
   /** Locais à vista (ruína, entrada de mina…) com muro no layout bloqueiam esses tiles. */
   private blockSites() {
+    // mapas de missão (caverna da mina): a descida fica num beco escavado; muro em volta dela a deixaria sem acesso
+    if (this.state.sceneInfo) return;
     for (const site of this.state.sites) {
       if (!site.found || site.done) continue;
       const r = siteTiles(site);

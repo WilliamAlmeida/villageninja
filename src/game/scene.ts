@@ -23,7 +23,7 @@ import { nodePower, regionOf } from './region';
 import { SCENE_SYSTEMS } from './systems';
 import { createTeam, joinAsMember, joinAsSensei } from './teams';
 import type { Cost, Expedition, GameState, SceneInfo, Unit } from './types';
-import { CENTER_TX, CENTER_TY, doorPos, T, tileCenter } from './world';
+import { CENTER_TX, CENTER_TY, doorPos, T, tileCenter, toTile } from './world';
 
 // ------------------------------------------------------------------ o jogo do mapa de missão
 const games = new WeakMap<GameState, Game>();
@@ -95,6 +95,7 @@ function bringTeam(home: Game, g: Game, e: Expedition, at: { x: number; y: numbe
     });
     if (c.ninja) c.ninja.learning = null; // estudo fica na vila (sem Academia lá ele seria cancelado)
     g.addUnit(c);
+    unstick(g, c);
   });
   const tm = home.team(e.teamId);
   if (tm) {
@@ -103,6 +104,16 @@ function bringTeam(home: Game, g: Game, e: Expedition, at: { x: number; y: numbe
     if (tm.senseiId != null && ids.has(tm.senseiId)) joinAsSensei(g, t.id, ids.get(tm.senseiId)!);
     for (const id of tm.memberIds) if (ids.has(id)) joinAsMember(g, t.id, ids.get(id)!);
   }
+}
+
+/** Quem ficou dentro de parede/rocha (a fila de entrada cai fora do chão numa caverna estreita) vai para o chão mais perto. */
+function unstick(g: Game, u: Unit) {
+  if (g.world.walkablePx(u.x, u.y)) return;
+  const w = nearestWalkable(g.world, toTile(u.x), toTile(u.y), 12);
+  if (!w) return;
+  u.x = tileCenter(w[0]);
+  u.y = tileCenter(w[1]);
+  u.path = [];
 }
 
 /** Monta o mapa do vilarejo invadido: casas, armazém, torres (do inimigo), guardas e, para anexar, o chefe. */
@@ -181,6 +192,7 @@ export function sceneTick(g: Game, dt: number) {
     info.result = r;
     g.toast(text, r === 'win' ? 'good' : 'danger');
   };
+  for (const u of sceneTeam(g)) unstick(g, u); // saves de antes: ninja que entrou preso na rocha
   if (!sceneTeam(g).length) return end('lose', `{skull} A equipe caiu em ${info.kind === 'mine' ? 'na mina' : (REGION[info.node!]?.name ?? 'combate')}.`);
   const foes = sceneFoes(g);
   if (info.kind === 'mine') return mineTick(g, info, foes, end);

@@ -24,7 +24,7 @@ import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits }
 import { pickFoe } from '../tactics';
 import { isNight } from '../time';
 import type { Building, Unit } from '../types';
-import { doorPos, tileCenter, toTile } from '../world';
+import { doorPos, siteTiles, tileCenter, toTile } from '../world';
 
 const DEFEND_RADIUS = 240;
 
@@ -129,7 +129,8 @@ function runCommand(g: Game, u: Unit, dt: number): boolean {
         return true;
       }
       const p = sitePos(site);
-      if (Math.hypot(p.x - u.x, p.y - u.y) > 22) {
+      // com muro no layout (Editor de cenário) o tile do local pode estar bloqueado: basta chegar ao lado
+      if (Math.hypot(p.x - u.x, p.y - u.y) > (siteTiles(site) ? 48 : 22)) {
         if (u.state !== 'cmdMove' || !u.hasGoal) {
           if (!setDestination(g, u, p.x, p.y + 14)) {
             u.command = null;

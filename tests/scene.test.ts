@@ -89,6 +89,8 @@ describe('mina jogável (um mapa de caverna por andar)', () => {
     expect(sg.state.tiles.filter((t) => t === T.ROCK).length).toBeGreaterThan(500);
     expect(sceneFoes(sg).length).toBeGreaterThan(2);
     expect(sg.state.sites.some((x) => x.id === sg.state.sceneInfo!.stairsId)).toBe(true);
+    // ninguém entra preso na rocha (a fila de entrada caía fora do chão e o líder parado segurava a equipe)
+    expect(sceneTeam(sg).every((u) => sg.world.walkablePx(u.x, u.y))).toBe(true);
     // a equipe avança sozinha, luta e acha a descida
     run(g, 300, () => e.status === 'choice' || e.status === 'lost' || e.status === 'done');
     expect(e.status).toBe('choice');
