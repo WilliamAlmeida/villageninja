@@ -1,7 +1,7 @@
 // Editor de sprites da Vila Ninja: monta o ninja em camadas igual ao jogo (src/render/doll.ts), anima e deixa editar
 // pixel a pixel (lápis, borracha, conta-gotas) e mover uma camada num quadro ou na vista inteira. Também abre qualquer
 // PNG de src/art. Salvar grava em src/art pelo servidor local (scripts/editor.ts).
-import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
+import { ANBU_MASKS, DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
 type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move';
@@ -15,15 +15,22 @@ let files: string[] = [];
 // ------------------------------------------------------------------ estado
 const RANK_OPTS: [string, string][] = [
   ['genin', 'Genin'], ['chunin', 'Chunin'], ['jounin', 'Jounin'],
-  ['sannin:toad', 'Sannin Sapo'], ['sannin:snake', 'Sannin Serpente'], ['sannin:slug', 'Sannin Lesma'], ['kage', 'Kage'],
+  ['sannin:toad', 'Sannin Sapo'], ['sannin:snake', 'Sannin Serpente'], ['sannin:slug', 'Sannin Lesma'], ['kage', 'Kage'], ['anbu', 'ANBU'],
 ];
+const SWORD_NAMES: Record<string, string> = {
+  zabuza: 'Kubikiribōchō', samehada: 'Samehada', kiba: 'Kiba', hiramekarei: 'Hiramekarei', nuibari: 'Nuibari', kabutowari: 'Kabutowari',
+  shibuki: 'Shibuki', kusanagi: 'Kusanagi', sakumo: 'Sabre de Chakra', asuma: 'Lâminas do Asuma', raijin: 'Raijin', bee: 'Sete espadas', tanto: 'Tantō ANBU',
+};
+const MASK_NAMES: Record<string, string> = { fox: 'Raposa (Nin)', tiger: 'Tigre (Tai)', crow: 'Corvo (Gen)', owl: 'Coruja (Int)', boar: 'Javali (For)', hawk: 'Falcão (Vel)', bear: 'Urso (Sta)', monkey: 'Macaco (Sel)' };
 const HAIR_NAMES: Record<string, string> = { spiky: 'Espetado', bald: 'Careca', ponytail: 'Rabo de cavalo', short: 'Curto', long: 'Longo', buns: 'Coques' };
 const PART_NAMES: Record<string, string> = {
   'ninja-body': 'Corpo-base', 'layer-outfit-genin': 'Roupa de Genin', 'layer-hair-spiky': 'Cabelo espetado', 'layer-hair-ponytail': 'Rabo de cavalo', 'layer-hair-short': 'Cabelo curto',
   'layer-hair-long': 'Cabelo longo', 'layer-hair-buns': 'Coques', 'layer-headband': 'Bandana',
   'layer-vest-chunin': 'Colete de Chunin', 'layer-vest-jounin': 'Colete de Jounin', 'layer-coat-sannin': 'Sobretudo de Sannin',
-  'layer-cloak-kage': 'Manto de Kage', 'layer-hat-kage': 'Chapéu de Kage', 'layer-sword-zabuza': 'Espada do Zabuza',
+  'layer-cloak-kage': 'Manto de Kage', 'layer-hat-kage': 'Chapéu de Kage', 'layer-outfit-anbu': 'Uniforme ANBU',
 };
+for (const [k, n] of Object.entries(SWORD_NAMES)) PART_NAMES[`layer-sword-${k}`] = `Espada: ${n}`;
+for (const [k, n] of Object.entries(MASK_NAMES)) PART_NAMES[`layer-mask-${k}`] = `Máscara: ${n}`;
 const SHEET_RE = /^(ninja|villager|rogue|org-|layer-|dog|boar|wolf|bear|snake|crow|monkey|spider|tiger|rhino|hydra|golem|puppet|toad|slug|tower-guard)/;
 const KEY_SWATCHES = [
   ['#ff8cff', '#ff00ff', '#a0009f'], ['#fff799', '#ffee00', '#b0a000'], ['#9ff6ff', '#00e5ff', '#0090a0'], ['#7dff8a', '#2ecc40', '#1e8a2b'], ['#18101c'],
@@ -32,7 +39,8 @@ const KEY_SWATCHES = [
 let mode: 'doll' | 'file' = 'doll';
 let rankSel = 'genin';
 let style = 'spiky';
-let suiton = false;
+let swordSel = 'auto';
+let maskSel = 'fox';
 const look = { cloth: '#2d4a9a', hair: '#f2c94c', skin: '#f1c79a' };
 const hiddenParts = new Set<string>();
 let active = 'layer-headband';
@@ -81,7 +89,12 @@ async function refreshList() {
 // ------------------------------------------------------------------ montagem
 function who() {
   const [rank, sannin] = rankSel.split(':');
-  return { style, rank: rank === 'sannin' ? 'jounin' : rank, sannin, nature: suiton ? 'suiton' : undefined, look: { ...look } };
+  const anbu = rank === 'anbu';
+  const stat = Object.keys(ANBU_MASKS).find((k) => ANBU_MASKS[k] === maskSel)!;
+  return {
+    style, rank: rank === 'sannin' || anbu ? 'jounin' : rank, sannin, spec: anbu ? 'spy' : undefined, stats: { [stat]: 1 },
+    sword: swordSel === 'auto' ? undefined : swordSel === 'none' ? null : swordSel, look: { ...look },
+  };
 }
 
 function parts(): DollPart[] {
@@ -636,7 +649,7 @@ function renderLayerList() {
     ul.appendChild(li);
   }
   const w = who();
-  $('call').textContent = `dollParts(${JSON.stringify({ style: w.style, rank: w.rank, sannin: w.sannin, nature: w.nature })})\n${parts()
+  $('call').textContent = `dollParts(${JSON.stringify({ style: w.style, rank: w.rank, sannin: w.sannin, spec: w.spec, sword: w.sword })})\n${parts()
     .map((p, i) => `${i + 1}. ${p.name}${p.color ? `  ${p.color}` : ''}${p.color2 ? ` / ${p.color2}` : ''}`)
     .join('\n')}`;
 }
@@ -757,6 +770,15 @@ function renderLeft() {
   });
   chips($('hair'), Object.keys(DOLL_HAIR).map((h) => [h, HAIR_NAMES[h] ?? h]), style, (v) => {
     style = v;
+    afterDollChange();
+  });
+  chips($('sword'), [['auto', 'Pela patente'], ['none', 'Nenhuma'], ...Object.keys(SWORDS).map((s): [string, string] => [s, SWORD_NAMES[s] ?? s])], swordSel, (v) => {
+    swordSel = v;
+    afterDollChange();
+  });
+  $('maskBox').hidden = rankSel !== 'anbu';
+  chips($('mask'), Object.entries(MASK_NAMES), maskSel, (v) => {
+    maskSel = v;
     afterDollChange();
   });
   renderLayerList();
@@ -939,10 +961,6 @@ for (const b of $('animMode').querySelectorAll<HTMLButtonElement>('button'))
     for (const x of $('animMode').querySelectorAll('button')) x.classList.toggle('on', x === b);
   };
 for (const id of ['grid', 'focus', 'onion', 'raw']) $(id).addEventListener('change', redraw);
-$<HTMLInputElement>('suiton').onchange = (e) => {
-  suiton = (e.target as HTMLInputElement).checked;
-  void afterDollChange();
-};
 for (const [id, k] of [['cCloth', 'cloth'], ['cHair', 'hair'], ['cSkin', 'skin']] as const)
   $<HTMLInputElement>(id).oninput = (e) => {
     look[k] = (e.target as HTMLInputElement).value;

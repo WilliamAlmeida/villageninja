@@ -2,7 +2,7 @@
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
 import { art, artFrames, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
-import { dollParts } from './doll';
+import { anbuMask, dollParts } from './doll';
 import { ANIMALS } from '../data/animals';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
@@ -162,7 +162,7 @@ function unitPic(u: Unit) {
   if (u.faction === 'enemy') return art('rogue');
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
-  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, nature: u.ninja?.nature, look: u.look }) : null;
+  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, nature: u.ninja?.nature, spec: u.ninja?.spec, stats: u.ninja?.stats, id, look: u.look }) : null;
   return (doll && dollArt(doll, u.look.skin)) ?? tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
 }
 
@@ -195,7 +195,7 @@ export function unitPortrait(u: Unit, full = false): string | null {
     }
   }
   const pic = unitPic(u);
-  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}|${u.ninja?.rank ?? ''}|${u.ninja?.sannin ?? ''}`) : null;
+  return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}|${u.ninja?.rank ?? ''}|${u.ninja?.sannin ?? ''}|${u.ninja?.spec ?? ''}|${u.ninja?.spec ? anbuMask(u.ninja.stats) : ''}|${u.ninja?.nature ?? ''}|${u.id}`) : null;
 }
 
 /** Retrato do Kage: o busto do penteado dele com o chapéu e o manto de Kage, recolorido; sem a arte, o busto comum. */

@@ -14,6 +14,14 @@ export interface DollWho {
   rank?: string;
   sannin?: string;
   nature?: string;
+  /** Profissão: o espião da vila veste a ANBU. */
+  spec?: string;
+  /** Atributos: o maior escolhe o animal da máscara da ANBU. */
+  stats?: Record<string, number>;
+  /** Sorteia a espada quando a natureza tem várias (fixo por ninja). */
+  id?: number;
+  /** Força a espada (o editor de sprites escolhe à mão); null = nenhuma. */
+  sword?: string | null;
   look: { hair: string; cloth: string; skin: string };
 }
 
@@ -29,22 +37,68 @@ export const SANNIN_COAT: Record<string, [string, string]> = { toad: ['#8c2a22',
 export const KAGE_COLORS: [string, string] = ['#f0ece0', '#c8352a'];
 /** Cabo da espada do Zabuza. */
 export const SWORD_COLOR = '#3a2a20';
+/** Espadas do anime: cor da chave magenta (bainha, cabo, escamas…) e da amarela (faixas, corda, raios…); o ciano é metal. */
+export const SWORDS: Record<string, [string, string?]> = {
+  zabuza: [SWORD_COLOR], samehada: ['#4a6a8a', '#e0dccc'], kiba: ['#2a2a30', '#bfe6ff'], hiramekarei: ['#e0dccc', '#3a2a20'],
+  nuibari: ['#3a3040', '#c0c0c8'], kabutowari: ['#5a3a20', '#8a8a90'], shibuki: ['#3a2a20', '#e8dcb0'],
+  kusanagi: ['#2a2a30', '#6a4a9a'], sakumo: ['#2a2a30', '#e8e8e8'], asuma: ['#3a2a20', '#2a2a30'], raijin: ['#2a2a40', '#bfe6ff'],
+  bee: ['#2a2a30', '#e8e8e8'], tanto: ['#2a2a30', '#3a3a44'],
+};
+/** Espada do Jounin/Sannin por natureza (várias: uma por ninja); a Névoa fica com os Sete Espadachins. */
+export const NATURE_SWORDS: Record<string, string[]> = {
+  suiton: ['zabuza', 'samehada', 'hiramekarei', 'nuibari', 'shibuki'], raiton: ['kiba', 'bee', 'sakumo'],
+  fuuton: ['asuma'], doton: ['kabutowari'], katon: ['kusanagi'],
+};
+/** ANBU (espião da vila): uniforme e máscara; o animal da máscara mostra o melhor atributo do ninja. */
+export const ANBU_COLORS: [string, string] = ['#d8d4c8', '#2a2a30'];
+export const MASK_COLORS: [string, string] = ['#f0ece0', '#c8352a'];
+export const ANBU_MASKS: Record<string, string> = {
+  ninjutsu: 'fox', taijutsu: 'tiger', genjutsu: 'crow', inteligencia: 'owl', forca: 'boar', velocidade: 'hawk', stamina: 'bear', selos: 'monkey',
+};
+
+const sword = (s: string): DollPart => ({ name: `layer-sword-${s}`, color: SWORDS[s]![0], color2: SWORDS[s]![1] });
+
+/** Animal da máscara: o maior atributo (empate: o primeiro da lista). */
+export function anbuMask(stats?: Record<string, number>) {
+  let best = 'ninjutsu';
+  if (stats) for (const k of Object.keys(ANBU_MASKS)) if ((stats[k] ?? 0) > (stats[best] ?? 0)) best = k;
+  return ANBU_MASKS[best]!;
+}
+
+/** Espada que o ninja carrega (ou nenhuma): Kage = Raijin; Sannin da serpente = Kusanagi; Jounin/Sannin pela natureza. */
+export function dollSword(w: DollWho): string | null {
+  if (w.sword !== undefined) return w.sword;
+  if (w.rank === 'kage') return 'raijin';
+  if (w.sannin === 'snake') return 'kusanagi';
+  if (w.rank !== 'jounin' && !w.sannin) return null;
+  const list = w.nature ? NATURE_SWORDS[w.nature] : undefined;
+  return list ? list[Math.floor((w.id ?? 0) / 6) % list.length]! : null; // /6: o id % 6 já escolhe o penteado
+}
 
 /**
- * Peças de baixo para cima: corpo → roupa → colete da patente / sobretudo de Sannin / manto de Kage → espada nas costas
- * (Jounin e Sannin de Suiton, à moda do Zabuza) → cabelo → bandana; o Kage usa o chapéu no lugar de cabelo e bandana
- * (base careca). Penteado ainda sem camada: null (o jogo usa a folha antiga).
+ * Peças de baixo para cima: corpo → roupa → colete da patente / sobretudo de Sannin / manto de Kage → espada → cabelo →
+ * bandana; o Kage usa o chapéu no lugar de cabelo e bandana (base careca). O espião da vila (ANBU) troca roupa e colete
+ * pelo uniforme, leva o tantō e usa a máscara no lugar da bandana. Penteado ainda sem camada: null (folha antiga).
  */
 export function dollParts(w: DollWho): DollPart[] | null {
   const kage = w.rank === 'kage';
   const hair = DOLL_HAIR[w.style];
   if (hair === undefined && !kage) return null;
+  if (w.spec === 'spy' && !kage && !w.sannin) {
+    const parts: DollPart[] = [{ name: 'ninja-body' }, { name: 'layer-outfit-anbu', color: ANBU_COLORS[0], color2: ANBU_COLORS[1] }];
+    const s = w.sword !== undefined ? w.sword : 'tanto';
+    if (s) parts.push(s === 'zabuza' ? { name: 'layer-sword-zabuza', color: SWORD_COLOR } : sword(s));
+    if (hair) parts.push({ name: hair, color: w.look.hair });
+    parts.push({ name: `layer-mask-${anbuMask(w.stats)}`, color: MASK_COLORS[0], color2: MASK_COLORS[1] });
+    return parts;
+  }
   const parts: DollPart[] = [{ name: 'ninja-body' }, { name: 'layer-outfit-genin', color: w.look.cloth }];
   const vest = w.rank ? VESTS[w.rank] : undefined;
   if (kage) parts.push({ name: 'layer-cloak-kage', color: KAGE_COLORS[0], color2: KAGE_COLORS[1] });
   else if (w.sannin && SANNIN_COAT[w.sannin]) parts.push({ name: 'layer-coat-sannin', color: SANNIN_COAT[w.sannin]![0], color2: SANNIN_COAT[w.sannin]![1] });
   else if (vest) parts.push({ name: vest[0], color: vest[1] });
-  if (w.nature === 'suiton' && (w.rank === 'jounin' || w.sannin)) parts.push({ name: 'layer-sword-zabuza', color: SWORD_COLOR });
+  const s = dollSword(w);
+  if (s) parts.push(s === 'zabuza' ? { name: 'layer-sword-zabuza', color: SWORD_COLOR } : sword(s));
   if (kage) {
     parts.push({ name: 'layer-hat-kage', color: KAGE_COLORS[0], color2: KAGE_COLORS[1] });
     return parts;

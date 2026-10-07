@@ -45,8 +45,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   e a vista de lado (2×2, maior); `python scripts/prepare-layers.py` fica só com a cor-chave, encaixa cada quadro no molde
   (escala comum por vista + posição por quadro) e grava `src/art/layer-<peça>.png` + `ninja-body.png` (corpo com folga
   no quadro, `FRAME_PAD` em art.ts). Peças: roupa de Genin, cabelo espetado, bandana, coletes de Chunin e Jounin,
-  sobretudo de Sannin (cor por caminho), manto e chapéu de Kage (Kage = base careca com chapéu), espada do Zabuza
-  (Jounin/Sannin de Suiton). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
+  sobretudo de Sannin (cor por caminho), manto e chapéu de Kage (Kage = base careca com chapéu), espadas do anime
+  (`SWORDS`/`dollSword` em doll.ts: os Sete Espadachins da Névoa, Kusanagi, Sabre de Chakra, lâminas do Asuma, Raijin,
+  sete espadas do Bee, tantō; por enquanto Jounin/Sannin pela natureza, Kage = Raijin — provisório até virar arma lendária)
+  e ANBU (`outfit-anbu` + máscara `mask-<animal>` pelo melhor atributo, `ANBU_MASKS`; por enquanto veste quem tem a profissão
+  Espião). Máscaras só geram a folha inteira (sem a vista de lado). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
   Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo sem camada segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
 - **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011 (`bun run editor` ou PM2

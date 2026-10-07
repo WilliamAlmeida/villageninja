@@ -46,6 +46,14 @@ PIECES = {
     'hair-short': ('hair', ['outfit-genin'], '#4a3020'),
     'hair-long': ('hair', ['outfit-genin'], '#4a3020'),
     'hair-buns': ('hair', ['outfit-genin'], '#4a3020'),
+    # espadas do anime (os Sete Espadachins da Névoa e outras), nas costas ou na cintura, sobre a roupa
+    **{f'sword-{s}': ('cloth', ['outfit-genin'], '#3a2a20', '#e0dccc') for s in (
+        'samehada', 'kiba', 'hiramekarei', 'nuibari', 'kabutowari', 'shibuki',
+        'kusanagi', 'sakumo', 'asuma', 'raijin', 'bee', 'tanto')},
+    # ANBU: uniforme sobre o corpo (no lugar da roupa de Genin) e uma máscara por animal, sobre o cabelo curto
+    'outfit-anbu': ('cloth', [], '#d8d4c8', '#2a2a30'),
+    **{f'mask-{a}': ('band', ['outfit-anbu', 'hair-short'], '#f0ece0', '#c8352a') for a in (
+        'fox', 'tiger', 'crow', 'owl', 'boar', 'hawk', 'bear', 'monkey')},
 }
 HEAD = 0.42  # fração de cima da figura que é a cabeça (chibi)
 HAIR_FILL = (30, 138, 43, 255)  # tom escuro da chave verde: cobre o topo careca que a peça deixou à mostra
