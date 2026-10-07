@@ -1,6 +1,6 @@
 # Prepara os assets de interface gerados pelo Codex (docs/arte/ui/*) para o jogo:
 #   icons/  → atlas src/art/ui/icons.png, casas de 64 px (ícones; `rich()`/`ico()` usam no lugar do SVG)
-#   seals/ + busts/ → atlas src/art/ui/cards.png, casas de 128 px (selos de rank, retratos de busto)
+#   seals/ → atlas src/art/ui/cards.png, casas de 128 px (selos de rank; os bustos da Ordem saíram: o Bingo Book usa os sprites)
 #   art/    → arquivos soltos em src/art/ui/art, até 256 px no lado maior (cenas, kunai, animais)
 # Atlas = uma requisição só (pelo túnel, dezenas de PNGs soltos demoravam a aparecer). Paleta de 256 cores com
 # transparência: pixel art não perde nada e o arquivo cai a ~1/4. Escreve src/ui/pxicons.ts com os mapas.
@@ -16,7 +16,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'docs', 'arte', 'ui')
 DST = os.path.join(ROOT, 'src', 'art', 'ui')
-ATLASES = {'icons': (['icons'], 64), 'cards': (['seals', 'busts'], 128)}
+ATLASES = {'icons': (['icons'], 64), 'cards': (['seals'], 128)}
 ART_MAX = 256
 COLS = 10
 
@@ -48,7 +48,7 @@ def defringe(im, passes=3):
 # vãos fechados que ficaram com o branco do fundo (o remove-bg não alcança): miolo do cadeado, centro da engrenagem,
 # entre os fios da silhueta do líder e as pernas de aranha. 'maior' = só o maior branco (os outros são brilho);
 # 'todos' = qualquer branco (desenho sem branco nenhum).
-HOLES = {'lock': 'maior', 'gear': 'maior', 'todo': 'maior', 'org-yomi-unknown': 'todos', 'org-tsuchigumo': 'todos'}
+HOLES = {'lock': 'maior', 'gear': 'maior', 'todo': 'maior'}
 WORK = 512  # a limpeza roda nesta resolução (a saída é bem menor)
 
 
