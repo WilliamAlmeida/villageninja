@@ -101,7 +101,7 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       break;
     }
     case 'text': {
-      const size = (e.big ? 10 : 8.5) * Math.max(1, 1.1 / zoom);
+      const size = (e.big ? 10 : e.uid != null ? 7 : 8.5) * Math.max(1, 1.1 / zoom); // dano (uid) em fonte menor
       ctx.globalAlpha = 1 - k * k;
       ctx.font = `bold ${size}px system-ui, sans-serif`;
       ctx.textAlign = 'center';

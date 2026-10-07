@@ -7,12 +7,12 @@ import type { Game } from './game';
 import type { Building, Unit } from './types';
 
 /** Raio do chão de luta em relação ao lado da arena; margem de dentro para pousar. */
-export const ARENA_RING = { radius: 0.4, margin: 12, /** além do raio: fora da arena */ out: 6 };
+export const ARENA_RING = { radius: 0.5, margin: 12, /** além do raio: fora da arena */ out: 6, /** o chão do desenho fica um pouco acima do centro do terreno */ lift: 5 };
 
 /** Círculo de luta da arena (mundo, px). */
 export function arenaRing(b: Building) {
   const w = BUILDINGS.arena.w * TILE;
-  return { cx: b.tx * TILE + w / 2, cy: b.ty * TILE + w / 2, r: w * ARENA_RING.radius };
+  return { cx: b.tx * TILE + w / 2 - ARENA_RING.lift, cy: b.ty * TILE + w / 2 - ARENA_RING.lift, r: w * ARENA_RING.radius };
 }
 
 /** Círculo que prende esta unidade (só os dois do duelo do Exame); null = livre. */

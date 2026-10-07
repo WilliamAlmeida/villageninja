@@ -13,7 +13,7 @@ import { derive } from '../data/ninja';
 import { createClone } from './entities';
 import { canHit } from './factions';
 import { recordDuelDamage, recordDuelJutsu } from './examStats';
-import { fx, fxText } from './fx';
+import { fx, fxDamage, fxMoment, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push } from './movement';
 import { noteHit, shareXp, tryRescue } from './care';
@@ -36,6 +36,7 @@ import { jutsuVfx, type Vfx } from '../data/vfx';
 import { BLADES } from '../data/blades';
 import { blink, flickerInCombat, interruptCast, landing, SEAL_BREAK, sealNames, sealTime, tryKawarimi } from './techniques';
 import { ringDesired } from './arena';
+import { engageAdjust } from './tactics';
 
 export const MELEE_RANGE = 22;
 
@@ -92,13 +93,20 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
     if (r > 0) desired = r * 0.85;
   }
   desired = ringDesired(g, u, desired); // no Exame a distância de luta cabe na arena
+  // papel e tática: suporte fica atrás, flanquear chega pelo lado, segurar posição não persegue longe
+  const adj = engageAdjust(u, t, desired);
+  desired = adj.desired;
+  if (adj.back) {
+    chase(g, u, adj.back.x, adj.back.y, dt, 12);
+    return;
+  }
 
   // Shunshin: longe do alvo aparece perto; atirador encurralado salta para trás
   if (canUseJutsu(u) && flickerInCombat(g, u, t, d, desired)) return;
 
   if (d > desired) {
     if (canUseJutsu(u) && u.attackCd <= 0 && d > 50 && d < 130) throwKunai(g, u, t);
-    chase(g, u, t.x, t.y, dt, desired * 0.9);
+    chase(g, u, adj.chaseX, adj.chaseY, dt, adj.chaseX === t.x ? desired * 0.9 : 6);
   } else {
     u.moving = false;
     u.facing = Math.atan2(t.y - u.y, t.x - u.x);
@@ -239,6 +247,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   u.anim = 0.4;
   shout(g, u, def);
+  if (def.forbidden) fxMoment(g, u.x, u.y, def.name, def.color);
 
   switch (def.effect) {
     case 'projectile':
@@ -447,7 +456,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   t.hitFlash = 0.15;
   if (t.arenaSide) recordDuelDamage(g.state, src?.id, dmg);
   t.combatTimer = 5;
-  fxText(g, t.x + rand(-6, 6), t.y - 18, mult > 1 ? `${dmg}!` : `${dmg}`, mult > 1 ? '#ffb347' : mult < 1 ? '#9aa4b0' : '#ffffff');
+  fxDamage(g, t.x + rand(-6, 6), t.y - 18, t.id, dmg, mult > 1 ? '#ffb347' : mult < 1 ? '#9aa4b0' : '#ffffff', mult > 1);
   if (blade) bladeHit(g, src, t, dmg);
   if (opts.stun) {
     t.stun = Math.max(t.stun, opts.stun);
@@ -615,6 +624,7 @@ export function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
     const p = [1, -1].map((s) => ({ x: t.x + Math.cos(a) * 16 * s, y: t.y + Math.sin(a) * 16 * s })).find((q) => g.world.walkablePx(q.x, q.y)) ?? landing(g, t.x, t.y);
     if (!p) return false;
     fxText(g, u.x, u.y - 30, def.shout, def.color, true);
+    fxMoment(g, t.x, t.y, def.name, def.color);
     blink(g, u, p, 'flash');
     u.facing = Math.atan2(t.y - u.y, t.x - u.x);
     u.chakra -= def.chakra;

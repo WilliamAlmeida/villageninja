@@ -15,6 +15,7 @@ import { missionFocus } from '../game/missionView';
 import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
+import { plainTokens } from '../core/tokens';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
 import { fogVersion, isExplored, isExploredPx } from '../game/explore';
@@ -332,6 +333,14 @@ export class Renderer {
           ctx.ellipse(u.x, u.y + 7, 11, 5, 0, 0, Math.PI * 2);
           ctx.stroke();
         }
+        // inimigo lutando: anel vermelho no chão (na luta grande dá para ver quem é quem)
+        if (!tc && u.combatTimer > 0 && !u.cloak && (u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null))) {
+          ctx.strokeStyle = 'rgba(255,80,70,0.85)';
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          ctx.ellipse(u.x, u.y + 7, u.animal ? 13 : 9, u.animal ? 5.5 : 4, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
         drawUnit(ctx, u, time, selected, workAction(g, d.u));
         // inverno: bafo de frio de vez em quando
         if (SEASON_VIEW.season === 'winter' && !lightWeatherFx() && !u.animal && u.kind !== 'clone' && Math.random() < dt * 0.35) {
@@ -382,6 +391,7 @@ export class Renderer {
       this.lights(g, cam, night);
     }
     this.weatherOverlay(s, cam, time);
+    this.moment(s, cam);
     this.missionArrows(g, cam);
     if (ov.selectBox) {
       const b = ov.selectBox;
@@ -596,6 +606,36 @@ export class Renderer {
   }
 
   /** Destaque da unidade sob o mouse (no mapa ou na lista do painel): anel pulsante, seta e nome. */
+  /** Momento especial (`fx 'moment'`): o fundo escurece nas bordas e o nome da técnica aparece grande no centro. */
+  private moment(s: GameState, cam: Camera) {
+    const e = s.effects.find((o) => o.kind === 'moment');
+    if (!e) return;
+    const ctx = this.ctx;
+    const k = e.t / e.life;
+    const a = k < 0.15 ? k / 0.15 : k > 0.75 ? (1 - k) / 0.25 : 1;
+    const W = cam.viewW;
+    const H = cam.viewH;
+    const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.7);
+    gr.addColorStop(0, 'rgba(0,0,0,0)');
+    gr.addColorStop(1, `rgba(0,0,0,${0.55 * a})`);
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, W, H);
+    const size = Math.round(Math.min(34, Math.max(20, W / 28)));
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.font = `900 ${size}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const y = H * 0.3 - (1 - a) * 8;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    const text = plainTokens(e.text ?? '');
+    ctx.strokeText(text, W / 2, y);
+    ctx.fillStyle = e.color;
+    ctx.fillText(text, W / 2, y);
+    ctx.restore();
+  }
+
   /** Clima e estação em espaço de tela: tom da estação, chuva, neve e relâmpagos (congela com o jogo pausado). */
   private weatherOverlay(s: GameState, cam: Camera, time: number) {
     const ctx = this.ctx;

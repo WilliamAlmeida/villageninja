@@ -797,6 +797,9 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .lrow .ln { grid-column: 2 / -1; color: var(--c); min-width: 0; }
 .lrow .lsub { grid-column: 2; color: var(--muted); font-size: 0.74rem; }
 .lrow > .btn, .lrow > .mpill { grid-column: 3; grid-row: 2; justify-self: end; }
+.badge.role-tank { color: #9fc4ff; } .badge.role-striker { color: #ffb067; } .badge.role-ranged { color: #ff8a8a; } .badge.role-support { color: #7dff9a; }
+.ttactic { flex-wrap: wrap; }
+#battlebtn { position: fixed; top: 3.4rem; left: 50%; transform: translateX(-50%); z-index: 9; box-shadow: 0 0 0 2px rgba(255, 80, 70, 0.5), var(--shadow); }
 .khead { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .khead .bup-cost { margin: 4px 0 0 0; align-items: center; }
 .khead .bup-cost > small { color: var(--muted); }

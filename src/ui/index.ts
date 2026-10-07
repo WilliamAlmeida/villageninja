@@ -13,6 +13,7 @@ import { el } from './dom';
 import { Hud } from './hud';
 import { pxIco, rich } from './icons';
 import { Menu } from './menu';
+import { BattleCam } from './battle';
 import { Panel, type View } from './panel';
 
 const isOwnNinja = (u: Unit) => !u.dead && u.kind === 'ninja' && u.faction === 'village';
@@ -39,6 +40,8 @@ export function createUI(app: App, root: HTMLElement) {
   const menu = new Menu(app);
   const sceneBar = new SceneBar(app);
   root.appendChild(sceneBar.root);
+  const battle = new BattleCam(app);
+  root.appendChild(battle.root);
   bus.on('view', () => {
     win.show(null);
     panel.show(null);
@@ -384,6 +387,7 @@ export function createUI(app: App, root: HTMLElement) {
     btnWorld.classList.toggle('on', WORLD_VIEWS.includes(win.kind ?? ''));
     btnCrafts.classList.toggle('on', win.kind === 'crafts');
     sceneBar.update();
+    battle.update(dt);
     // dica do prédio: aparece depois de o mouse ficar parado sobre ele um instante
     const hb = tip.id != null ? app.game.building(tip.id) : undefined;
     if (hb && performance.now() - tip.since > 550 && win.root.hidden && !app.buildType) {

@@ -3,7 +3,7 @@ import { RANKS } from '../data/ninja';
 import { costLabel } from '../data/resources';
 import { HUNDRED, SAGE, SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { levelDef } from '../data/villageLevels';
-import { fx, fxText } from './fx';
+import { fx, fxMoment, fxText } from './fx';
 import { grantBlade } from './blades';
 import type { Game } from './game';
 import { leaveTeam } from './teams';
@@ -66,6 +66,7 @@ export function sanninTick(g: Game, u: Unit) {
     fx(g, 'ring', u.x, u.y, { r: 30, color: d.color, life: 0.8 });
     fx(g, 'burst', u.x, u.y - 6, { r: 26, color: d.color, life: 0.6, vfx: 'heat' }); // energia natural entrando
     fxText(g, u.x, u.y - 32, d.shout, d.color, true);
+    fxMoment(g, u.x, u.y, d.art, d.color);
   } else if (path === 'slug' && u.hp < u.maxHp * 0.5) {
     u.sanninCd = d.cooldown;
     for (const o of g.state.units) {
@@ -79,6 +80,7 @@ export function sanninTick(g: Game, u: Unit) {
     }
     fx(g, 'heal', u.x, u.y, { r: 24, color: d.color, life: 1 });
     fx(g, 'wave', u.x, u.y, { r: HUNDRED.range, color: d.color, life: 0.9 });
+    fxMoment(g, u.x, u.y, d.art, d.color);
     fx(g, 'ring', u.x, u.y, { r: HUNDRED.range, color: d.color, life: 0.8 });
     fxText(g, u.x, u.y - 32, d.shout, d.color, true);
   }
@@ -94,6 +96,7 @@ export function sanninSurvive(g: Game, u: Unit): boolean {
   fx(g, 'smoke', u.x, u.y - 4, { r: 20, life: 0.8, color: '#b9a0e8' });
   fx(g, 'log', u.x - 6, u.y + 2, { life: 1.6, color: '#c8b6e8' }); // a pele velha fica no chão
   fxText(g, u.x, u.y - 32, d.shout, d.color, true);
+  fxMoment(g, u.x, u.y, d.art, d.color);
   return true;
 }
 

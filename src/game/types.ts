@@ -163,6 +163,9 @@ export interface Unit {
   arenaSide?: number;
   /** Segundos desde que foi empurrado por um golpe (conta para baixo; ring-out no Exame). */
   knockT?: number;
+  /** Tática da equipe copiada para o membro (teamSystem) e o ponto de "segurar posição". */
+  tactic?: 'focus' | 'hold' | 'flank';
+  anchor?: { x: number; y: number };
   /** Visual de quem está atordoado/preso e de quem está com escudo (data/vfx.ts). Só desenho. */
   stunVfx?: Vfx;
   shieldVfx?: Vfx;
@@ -272,6 +275,9 @@ export interface Team {
   senseiId: number | null;
   /** Até 3 membros. */
   memberIds: number[];
+  /** Tática de luta (game/tactics.ts); sem = livre (duelos). `anchor`: ponto de "segurar posição". */
+  tactic?: 'focus' | 'hold' | 'flank';
+  anchor?: { x: number; y: number };
 }
 
 export interface Building {
@@ -428,7 +434,9 @@ export type EffectKind =
   | 'treasure'
   /** `hit`: impacto de golpe corpo a corpo; `beam`: feixe de x,y até x2,y2 (cura, dreno); `wave`: ondas que se
    *  abrem (som, miragem, repulsão; `vfx`); `gust`: rajada em leque do lançador até o alvo. */
-  | 'hit' | 'beam' | 'wave' | 'gust';
+  | 'hit' | 'beam' | 'wave' | 'gust'
+  /** Momento especial (Kage, Sannin, chefe, proibido): câmera lenta curta, fundo escuro e o nome no centro (main.ts). */
+  | 'moment';
 
 export interface Effect {
   kind: EffectKind;
@@ -564,7 +572,7 @@ export interface GameState {
   items: Record<string, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 

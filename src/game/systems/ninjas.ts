@@ -21,6 +21,7 @@ import { academyLearnMult } from '../upgrade';
 import { libraryLearnMult } from '../library';
 import { refillItem } from '../gear';
 import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits } from '../teams';
+import { pickFoe } from '../tactics';
 import { isNight } from '../time';
 import type { Building, Unit } from '../types';
 import { doorPos, tileCenter, toTile } from '../world';
@@ -192,8 +193,8 @@ function runCommand(g: Game, u: Unit, dt: number): boolean {
 function findThreat(g: Game, u: Unit): Unit | null {
   const current = g.unit(u.targetId);
   if (current && !current.dead && !current.hidden && Math.hypot(current.x - u.x, current.y - u.y) < DEFEND_RADIUS * 1.5) return current;
-  // equipe foca o mesmo alvo
-  const team = teamOf(g, u);
+  // tática "focar o mais forte": a equipe ataca o mesmo alvo
+  const team = u.tactic === 'focus' ? teamOf(g, u) : null;
   if (team) {
     for (const m of teamUnits(g, team)) {
       if (m.id === u.id || m.state !== 'fight') continue;
@@ -201,17 +202,8 @@ function findThreat(g: Game, u: Unit): Unit | null {
       if (t && !t.dead && !t.hidden && canHit(u.faction, undefined, t) && Math.hypot(t.x - u.x, t.y - u.y) < DEFEND_RADIUS * 1.5) return t;
     }
   }
-  let best: Unit | null = null;
-  let bd = Infinity;
-  for (const o of g.state.units) {
-    if (o.dead || o.hidden || !canHit(u.faction, undefined, o)) continue;
-    const d = Math.hypot(o.x - u.x, o.y - u.y);
-    if ((d < DEFEND_RADIUS || g.world.inVillage(o.x, o.y)) && d < bd) {
-      bd = d;
-      best = o;
-    }
-  }
-  return best;
+  // duelos: o mais perto, mas preferindo quem nenhum aliado está enfrentando (game/tactics.ts)
+  return pickFoe(g, u, DEFEND_RADIUS, (o, d) => d < DEFEND_RADIUS || g.world.inVillage(o.x, o.y));
 }
 
 function run(g: Game, u: Unit, dt: number, night: boolean) {

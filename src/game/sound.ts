@@ -6,7 +6,7 @@ import { costLabel } from '../data/resources';
 import { SOUND, SOUND_MEMBERS, SOUND_RAIDERS, type SoundId } from '../data/sound';
 import { applyDamage, engage, spawnProjectile } from './combat';
 import { createRogue, refreshDerived } from './entities';
-import { fx, fxText } from './fx';
+import { fx, fxMoment, fxText } from './fx';
 import type { Game } from './game';
 import { chase, followPath, setDestination } from './movement';
 import { edgePoint } from './systems/spawner';
@@ -345,7 +345,10 @@ export function soundArt(g: Game, u: Unit, t: Unit): boolean {
   const id = u.sound!;
   const d = SOUND_MEMBERS[id];
   const dist = Math.hypot(t.x - u.x, t.y - u.y);
-  const shout = () => fxText(g, u.x, u.y - 34, `${d.art}!`, '#c9a0ff', true);
+  const shout = () => {
+    fxText(g, u.x, u.y - 34, `${d.art}!`, '#c9a0ff', true);
+    fxMoment(g, u.x, u.y, `${d.name}: ${d.art}`, '#c9a0ff');
+  };
   switch (id) {
     case 'iwao':
       if (dist > 90) return false;

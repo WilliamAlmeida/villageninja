@@ -12,6 +12,7 @@ import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { RANKS } from '../data/ninja';
 import type { Building, Projectile, ResourceNode, Unit } from '../game/types';
+import { roleOf } from '../game/tactics';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -570,6 +571,39 @@ function drawShield(ctx: Ctx, u: Unit, t: number) {
   ctx.restore();
 }
 
+/** Marca do papel de luta (game/tactics.ts) acima da cabeça, pequena: escudo, punho, mira, cruz. */
+function drawRoleMark(ctx: Ctx, u: Unit) {
+  const r = roleOf(u);
+  if (!r) return;
+  const x = u.x + 11;
+  const y = u.y - 31;
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,14,10,0.75)';
+  circle(ctx, x, y, 3.6);
+  ctx.fillStyle = ctx.strokeStyle = r === 'tank' ? '#9fc4ff' : r === 'striker' ? '#ffb067' : r === 'ranged' ? '#ff8a8a' : '#7dff9a';
+  ctx.lineWidth = 1;
+  if (r === 'tank') {
+    ctx.beginPath();
+    ctx.moveTo(x - 2, y - 2);
+    ctx.lineTo(x + 2, y - 2);
+    ctx.lineTo(x + 2, y);
+    ctx.lineTo(x, y + 2.4);
+    ctx.lineTo(x - 2, y);
+    ctx.closePath();
+    ctx.fill();
+  } else if (r === 'striker') ctx.fillRect(x - 1.8, y - 1.8, 3.6, 3.6);
+  else if (r === 'ranged') {
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, TAU);
+    ctx.stroke();
+    circle(ctx, x, y, 0.8);
+  } else {
+    ctx.fillRect(x - 0.7, y - 2.2, 1.4, 4.4);
+    ctx.fillRect(x - 2.2, y - 0.7, 4.4, 1.4);
+  }
+  ctx.restore();
+}
+
 /** `bare`: só o corpo (vulto do Shunshin), sem barras, marcas nem status. */
 export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction, bare = false) {
   if (drawUnitArt(ctx, u, t, action)) {
@@ -602,9 +636,10 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
   }
   if (u.stun > 0) drawStunned(ctx, u, t);
   if (u.shield > 0) drawShield(ctx, u, t);
-  const hostile = u.faction !== 'village';
   if (u.cloak && u.faction !== 'village') return; // invisível: sem barra nem marca
-  if (selected || u.hp < u.maxHp || (hostile && u.kind !== 'animal')) drawBars(ctx, u, selected);
+  // barra só de quem está ferido (ou selecionado, ou chefe): na luta grande não vira um mar de barras
+  if (selected || u.hp < u.maxHp || u.boss) drawBars(ctx, u, selected);
+  if (u.faction === 'village' && u.ninja && u.combatTimer > 0 && u.kind !== 'clone') drawRoleMark(ctx, u);
   if (u.role || u.loot) drawMark(ctx, u, t);
 }
 

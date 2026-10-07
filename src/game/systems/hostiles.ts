@@ -20,6 +20,7 @@ import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
 import type { Building, Unit } from '../types';
 import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, tileCenter, toTile } from '../world';
+import { pickFoe } from '../tactics';
 
 /** Animais selvagens, ninjas renegados e clones das sombras. */
 export function hostileSystem(g: Game, dt: number) {
@@ -111,7 +112,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (u.state !== 'escape' && u.role === 'bomber' && bomber(g, u, dt)) return;
   if (u.state !== 'escape') {
     // espadachim da Névoa não rouba: caça o ninja da vila mais perto, onde estiver
-    const t = validTarget(g, u, 320) ?? g.nearestHostile(u, 220) ?? (u.swordsman ? swordsmanPrey(g, u) : null);
+    const t = validTarget(g, u, 320) ?? pickFoe(g, u, 220) ?? (u.swordsman ? swordsmanPrey(g, u) : null);
     if (t) {
       engage(g, u, t, dt);
       return;

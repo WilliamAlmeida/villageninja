@@ -27,6 +27,11 @@ export class Menu {
         else toggleFullscreen();
       }
       if (a === 'install') install().then(() => this.render());
+      if (a === 'spread') {
+        // aliados colados na luta se afastam devagar (game/tactics.ts); fica no save da vila
+        this.app.home.state.flags.spread = (e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1';
+        this.render();
+      }
       if (a === 'follow') {
         setFollowCam((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
         this.render();
@@ -113,6 +118,7 @@ export class Menu {
       <div class="setrow"><span class="sl">{swords} Combate</span>${seg('pace', [['fast', 'Rápido', s.pace !== 'tactical'], ['tactical', 'Tático', s.pace === 'tactical']])}</div>
       <p class="hint">${s.pace === 'tactical' ? 'Tático: antes de cada jutsu o ninja faz os selos; um golpe forte nessa hora interrompe.' : 'Rápido: os jutsus saem na hora, sem selos.'}</p>
       <div class="setrow"><span class="sl">{eye} Câmera segue o ninja</span>${seg('follow', [['1', 'Sim', followCam()], ['0', 'Não', !followCam()]])}</div>
+      <div class="setrow"><span class="sl">{users} Afastar aliados na luta</span>${seg('spread', [['1', 'Sim', s.flags.spread !== false], ['0', 'Não', s.flags.spread === false]])}</div>
       <div class="setrow"><span class="sl">{snow} Clima</span>${seg('wfx', [['full', 'Completo', !weatherFxLight()], ['light', 'Leve', weatherFxLight()]])}</div>
       <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
     </div>`);

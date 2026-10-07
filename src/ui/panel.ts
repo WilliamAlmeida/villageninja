@@ -26,6 +26,7 @@ import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineB
 import { guardiansOf, mineUses, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra, jutsuCooldown } from '../data/jutsus';
 import { NATURES } from '../data/natures';
+import { ROLE_INFO, roleOf, setTeamTactic, TACTIC_INFO, type Role, type Tactic } from '../game/tactics';
 import { isOpen, LIBRARY, LIBRARY_JUTSUS, libraryLevel, openBlock, openScroll, scrollCost, studyable } from '../game/library';
 import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
 import {
@@ -188,6 +189,10 @@ function perkArt(perk: string): string {
  */
 const togBtn = (act: string, on: boolean, label: string, title: string, tip: string, arg = '') =>
   `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${arg ? `data-arg="${arg}"` : ''} ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
+/** Papel de luta (game/tactics.ts): ícone e etiqueta com a explicação na dica. */
+const ROLE_ICON: Record<Role, string> = { tank: '{shield}', striker: '{fist}', ranged: '{target}', support: '{medic}' };
+const TACTIC_ICON: Record<Tactic, string> = { free: '{swords}', focus: '{target}', hold: '{flag}', flank: '{run}' };
+const roleBadge = (r: Role) => `<span class="badge role-${r}" ${tipAttr(ROLE_INFO[r].name, ROLE_INFO[r].desc, true)}>${ROLE_ICON[r]} ${ROLE_INFO[r].name}</span>`;
 const costTag = (cost: Partial<Record<ResKey, number>>) => `<small class="bcost">${costLabel(cost)}</small>`;
 /** "i" ao lado do título de uma seção: a explicação fica na dica (um toque ou o mouse em cima), não escrita no drawer. */
 const infoTip = (title: string, text: string) => `<span class="itip" ${tipAttr(title, text, true)}>{info}</span>`;
@@ -433,7 +438,7 @@ export class Panel {
       html += `<div class="fhead"><span class="fh-face">${pimg(pic)}</span><div class="fh-main">
         <div class="fh-name">${title}</div><div class="badges">
         ${u.faction === 'enemy' ? `<span class="badge enemy">${u.role ? ROGUE_ROLES[u.role].name : 'Renegado'} · ${RANKS[n.rank].name}</span>` : `<span class="rbadge r-${rank}">${RANK_BADGE_ICON[rank] ?? ''} ${n.sannin ? 'Sannin' : RANKS[n.rank].name}</span>`}
-        <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${this.lineageBadges(u)}</div>
+        <span class="badge nat" style="--c:${nat.color}">${nat.kanji} ${nat.name}</span>${u.faction === 'village' && roleOf(u) ? roleBadge(roleOf(u)!) : ''}${this.lineageBadges(u)}</div>
         <div class="fh-state">{eye} <span data-t="state"></span></div></div></div>
         <div class="fquick"><span ${tipAttr('Nível', 'Sobe enchendo a barra de XP; cada nível dá atributos.', true)}><small>Nível</small><b>${n.level}</b></span>
         <span ${tipAttr('Abates', 'Inimigos derrubados por este ninja.', true)}><small>{swords} Abates</small><b>${n.kills}</b></span>
@@ -2368,7 +2373,7 @@ export class Panel {
       b[`thp${u.id}`] = u.hp / u.maxHp;
       return `<div class="ttile"><button class="tt-x" data-act="team-remove" data-arg="${u.id}" ${tipAttr('Tirar da equipe', `${u.name} sai da equipe.`)}>{x}</button>
         <button class="tt-pick" data-act="pick" data-arg="${u.id}"><span class="tt-face">${pimg(pic)}</span>
-        <span class="tt-name">${esc(u.name.split(' ')[0]!)}</span><span class="tt-role ${role === 'Sensei' ? 'sensei' : ''}">${role} · Nv ${u.ninja!.level}</span>
+        <span class="tt-name">${esc(u.name.split(' ')[0]!)}</span><span class="tt-role ${role === 'Sensei' ? 'sensei' : ''}">${role} · Nv ${u.ninja!.level}${roleOf(u) ? ` · ${ROLE_ICON[roleOf(u)!]}` : ''}</span>
         <span class="nc-bar hp"><i data-b="thp${u.id}"></i></span></button></div>`;
     };
     html += `<div class="td-cols"><div><h4>Formação</h4><div class="tform"><div class="tf-top">${tile(sensei, 'Sensei')}</div><div class="tf-row">`;
@@ -2383,6 +2388,10 @@ export class Panel {
       html += `<h4>Rotina da equipe</h4><div class="seg troutine">`;
       for (const [k, label] of ROUTINES)
         html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${ROUTINE_ICON[k]} ${label}</button>`;
+      html += `</div><h4>Tática de luta ${infoTip('Tática de luta', 'Como a equipe luta quando encontra inimigos. Livre: duelos (cada um pega um adversário diferente). Os papéis (tanque, atacante, atirador, suporte) vêm dos atributos de cada um.')}</h4><div class="seg ttactic">`;
+      const cur: Tactic = tm.tactic ?? 'free';
+      for (const k of ['free', 'focus', 'hold', 'flank'] as Tactic[])
+        html += `<button data-act="team-tactic" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${tipAttr(TACTIC_INFO[k].name, TACTIC_INFO[k].desc)}>${TACTIC_ICON[k]} ${TACTIC_INFO[k].name}</button>`;
       html += `</div><h4>Ordens</h4><div class="tcmds">
         <button class="btn primary" data-act="cmd-mode" data-arg="team">{pin} Dar ordem</button>
         <button class="btn" data-act="cmd-retreat" data-arg="team">{run} Recuar</button>
@@ -2770,6 +2779,8 @@ export class Panel {
       switch (act) {
         case 'team-mode':
           return this.report(setTeamOrder(g, v.id, arg as NinjaOrder));
+        case 'team-tactic':
+          return this.report(setTeamTactic(g, v.id, arg as Tactic));
         case 'team-add':
           return this.report(joinAsMember(g, v.id, Number(arg)));
         case 'team-sensei':

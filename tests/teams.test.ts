@@ -79,9 +79,10 @@ describe('equipes', () => {
     expect(together).toBeGreaterThan(10);
   });
 
-  test('equipe foca o mesmo alvo', () => {
+  test('tática "focar": a equipe ataca o mesmo alvo', () => {
     const g = createNewGame(SYSTEMS, 5);
     const team = g.state.teams[0]!;
+    team.tactic = 'focus';
     const d = doorPos(g.hokage()!);
     const w1 = createAnimal(g, 'boar', d.x + 100, d.y + 40);
     const w2 = createAnimal(g, 'boar', d.x - 100, d.y + 40);

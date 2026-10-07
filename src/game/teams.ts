@@ -1,5 +1,6 @@
 // Equipes (time de até 3 ninjas + sensei) e ordens diretas do jogador.
 import { fx } from './fx';
+import { roleOffset } from './tactics';
 import type { Game } from './game';
 import type { NinjaOrder, Team, Unit } from './types';
 import { doorPos } from './world';
@@ -308,8 +309,12 @@ export const attackersOf = (g: Game, targetId: number) =>
 export function orderMove(g: Game, ids: number[], x: number, y: number): Result {
   const us = commandable(g, ids);
   if (!us.length) return fail('Nenhum ninja para receber a ordem.');
+  // formação pelo papel: tanque e atacante na frente, atirador atrás, suporte no meio (game/tactics.ts)
+  const cx = us.reduce((a, u) => a + u.x, 0) / us.length;
+  const cy = us.reduce((a, u) => a + u.y, 0) / us.length;
+  const dl = Math.hypot(x - cx, y - cy) || 1;
   us.forEach((u, i) => {
-    const o = i === 0 ? { x: 0, y: 0 } : formationOffset(i - 1);
+    const o = us.length === 1 ? { x: 0, y: 0 } : roleOffset(u, i, (x - cx) / dl, (y - cy) / dl);
     u.command = { kind: 'move', x: x + o.x, y: y + o.y, time: GUARD_TIME };
     u.state = 'idle';
     u.hidden = false;

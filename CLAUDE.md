@@ -171,10 +171,20 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   a máscara é escolhida ao nomear (`NinjaInfo.mask`, qualquer animal) e dá +1 no atributo que ela representa (`maskKey`). Invisíveis (`cloak`) só com inimigo à vista (`ANBU.alert`) e até atacar — emboscada (`anbuAmbush`) —, ficam na
   rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
   na Região: ação `covert` (`startCovert`, expedição com `teamId -1`): metade do saque sem infâmia se não forem descobertos.
-- **Arena do Exame redonda** (6×6, `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
+- **Arena do Exame redonda** (6×6, arte de coliseu com arquibancada atrás e muro baixo na frente; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
   só pousam dentro (`keepInRing`), a distância de luta cabe nele (`ringDesired`) e andar não tira ninguém; empurrado para
   fora por um golpe (`Unit.knockT`, setado em `push`) perde (ring-out, `systems/exam.ts`). Migração 23 desloca a arena que
   cresceu e encostou noutro prédio.
+- **Estratégia de luta** (`game/tactics.ts`): papel automático pelo atributo (`roleOf`: tanque, atacante, atirador,
+  suporte = quem tem cura), com etiqueta no drawer e marca pequena na cabeça durante a luta; **duelos**: `pickFoe` escolhe o
+  mais perto penalizando quem já está sendo enfrentado (o bolo vira lutas lado a lado) e o inimigo prefere o tanque
+  (provocação); **tática da equipe** (`Team.tactic`, painel da equipe): livre, focar o mais forte, segurar posição
+  (`anchor`), flanquear (`engageAdjust` no `engage`); formação pelo papel ao mover (`roleOffset`); afastamento leve entre
+  aliados colados (`spreadSystem`, menu "Afastar aliados na luta", `flags.spread`). Legibilidade: anel vermelho em inimigo
+  lutando, barra só de quem está ferido, dano somado no mesmo alvo (`fxDamage`, fonte menor). **Câmera de batalha**
+  (`ui/battle.ts`): luta com 6+ mostra "Ver luta" (segue o duelo principal sem abrir drawer) e, com a câmera seguindo e
+  nada selecionado, enquadra sozinha uma vez. **Momento especial** (`fxMoment`, efeito `moment`): técnica de Kage, Sannin,
+  Ordem/Som ou jutsu proibido dá câmera lenta curta (main.ts), fundo escuro e o nome no centro (no máximo a cada 8 s).
 - **Câmera segue o selecionado** (`followSelected` em main.ts, `Camera.track`/`trackId`): lerp suave; arrastar solta; se a
   unidade se perder (caiu, saiu do mapa) volta suave para a Residência. Menu "Câmera segue o ninja" (`followCam`, padrão sim).
   Menu de pausa numa coluna (ações, configurações, novo jogo) com botão "Guia" para as dicas.

@@ -147,14 +147,28 @@ function followSelected() {
   camera.track(u.x, u.y);
 }
 
+/** Câmera lenta dos momentos especiais: segundos reais e fator da simulação. */
+const SLOW_TIME = 0.8;
+const SLOW_FACTOR = 0.3;
+let slowT = 0;
+const moments = new WeakSet<object>();
+
 function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  // momento especial (técnica de Kage, Sannin, chefe, proibido): câmera lenta curta
+  for (const e of app.game.state.effects)
+    if (e.kind === 'moment' && !moments.has(e)) {
+      moments.add(e);
+      slowT = SLOW_TIME;
+    }
+  const slow = slowT > 0 ? SLOW_FACTOR : 1;
+  slowT -= dt;
   // relógio das animações: congela junto com a simulação quando o jogo está pausado
-  if (home.state.speed > 0) clock += dt;
+  if (home.state.speed > 0) clock += dt * slow;
   // a vila roda sempre (e puxa o mapa de missão junto: sceneRunSystem); a tela mostra o que o jogador olha
   const g = home;
-  acc += dt * g.state.speed;
+  acc += dt * g.state.speed * slow;
   let steps = 0;
   while (acc >= SIM_DT && steps < 12) {
     g.step(SIM_DT);

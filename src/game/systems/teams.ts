@@ -1,4 +1,6 @@
 import type { Game } from '../game';
+import { applyTeamTactic } from '../tactics';
+import { teamUnits } from '../teams';
 
 const alive = (g: Game, id: number | null) => {
   const u = g.unit(id);
@@ -14,4 +16,7 @@ export function teamSystem(g: Game, _dt: number) {
     }
     if (t.memberIds.some((id) => !alive(g, id))) t.memberIds = t.memberIds.filter((id) => alive(g, id));
   }
+  // tática da equipe nos membros (quem saiu da equipe volta a lutar livre)
+  for (const u of g.state.units) if (u.tactic && u.faction === 'village') u.tactic = undefined;
+  for (const t of g.state.teams) applyTeamTactic(g, t, teamUnits(g, t));
 }

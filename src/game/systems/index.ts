@@ -19,6 +19,7 @@ import { ninjaSystem } from './ninjas';
 import { populationSystem } from './population';
 import { projectileSystem } from './projectiles';
 import { techniqueSystem } from './techniques';
+import { spreadSystem } from '../tactics';
 import { spawnerSystem } from './spawner';
 import { statusSystem } from './status';
 import { teamSystem } from './teams';
@@ -46,6 +47,7 @@ export const SYSTEMS: System[] = [
   hostileSystem,
   towerSystem,
   techniqueSystem,
+  spreadSystem,
   projectileSystem,
   effectSystem,
   villageSystem,
@@ -69,6 +71,7 @@ export const SCENE_SYSTEMS: System[] = [
   hostileSystem,
   towerSystem,
   techniqueSystem,
+  spreadSystem,
   projectileSystem,
   effectSystem,
   exploreSystem,

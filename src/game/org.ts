@@ -5,7 +5,7 @@ import { ORG, ORG_LAIR, ORG_MEMBERS, ORG_PAIRS, type OrgMemberId } from '../data
 import { costLabel } from '../data/resources';
 import { applyDamage, areaDamage, engage } from './combat';
 import { createAnimal, createRogue, refreshDerived } from './entities';
-import { fx, fxText } from './fx';
+import { fx, fxMoment, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push, setDestination } from './movement';
 import type { GameState, Unit } from './types';
@@ -115,7 +115,10 @@ export function orgBrain(g: Game, u: Unit, dt: number): boolean {
 export function orgArt(g: Game, u: Unit, t: Unit): boolean {
   const id = u.org!;
   const d = ORG_MEMBERS[id];
-  const shout = () => fxText(g, u.x, u.y - 34, `${d.art}!`, '#ff5a6a', true);
+  const shout = () => {
+    fxText(g, u.x, u.y - 34, `${d.art}!`, '#ff5a6a', true);
+    fxMoment(g, u.x, u.y, `${d.name}: ${d.art}`, '#ff5a6a');
+  };
   switch (id) {
     case 'goen':
       shout();
