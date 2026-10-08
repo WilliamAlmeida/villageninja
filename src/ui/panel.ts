@@ -1431,11 +1431,11 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     const chip = (ic: string, text: string, cls = '') => `<span class="mchip ${cls}">${ic} ${text}</span>`;
-    if (group === 'ninjas') {
-      const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
-      const hurt = ninjas.filter((u) => u.hp < u.maxHp * 0.6).length;
-      return chip('{ninja}', `${ninjas.length}`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
-    }
+    // if (group === 'ninjas') {
+    //   const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
+    //   const hurt = ninjas.filter((u) => u.hp < u.maxHp * 0.6).length;
+    //   return chip('{ninja}', `${ninjas.length}`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
+    // }
     if (group === 'village')
       return chip('{star}', `Reputação ${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`);
     if (group === 'world') {
