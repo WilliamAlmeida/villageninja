@@ -355,6 +355,20 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   O painel recria HTML só quando a estrutura muda;
   valores dinâmicos usam `data-t` / `data-b`. Ações via `data-act` (delegação de eventos).
 
+## Desempenho (medido com o save do autor: ~190 unidades, 561 recursos)
+- Simulação ~0,9 ms por passo (era 8,6). Regras: nada de varrer `state.units` por unidade a cada passo — use as
+  listas por passo do `Game` (`foesOf(facção)`: quem dá para atacar; `engagedOn(facção, alvo)`: quantos lutam com
+  ele), refeitas no início do `step` e ao nascer alguém. Busca de caminho sem saída falha na hora (ilhas) e não se
+  repete por 1,5 s; `chase` não refaz a rota se o alvo quase não andou e, longe da câmera (`Game.view`, posto pelo
+  main), refaz a cada 2 s.
+- `main.ts`: a simulação tem orçamento de 8 ms por quadro (`SIM_BUDGET_MS`); o que não cabe fica para trás (o jogo
+  fica mais lento em vez de o FPS despencar). Console: `bench()` mede desenho, passo e interface; `window.renderer`.
+- **Qualidade** (Configurações; `ui/settings.ts`, `QUALITY_CFG`): Alta (resolução até 2×), Equilibrada (1,5×, 70% das
+  partículas; padrão no celular), Leve (1×, 45% das partículas, clima leve, até 30 qps). Zoom < 0,85: metade das
+  partículas e sem anéis no chão/marcas de missão (`far` no renderer). Retratos do Bingo/Kage feitos com o jogo ocioso
+  (`ui/warm.ts`). **Teto de população** pelo nível da vila (`popLimit` 60/100/150/200 em villageLevels; `popCap` =
+  casas até o teto).
+
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
   em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v27.

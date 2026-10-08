@@ -64,10 +64,8 @@ export function power(u: Unit) {
 
 /** Quantos da facção de `u` (fora ele) estão lutando com `t` agora. */
 function attackers(g: Game, u: Unit, t: Unit) {
-  let n = 0;
-  for (const o of g.state.units)
-    if (o !== u && !o.dead && o.faction === u.faction && o.targetId === t.id && (o.state === 'fight' || o.combatTimer > 0)) n++;
-  return n;
+  const self = u.targetId === t.id && (u.state === 'fight' || u.combatTimer > 0) ? 1 : 0;
+  return g.engagedOn(u.faction, t.id) - self;
 }
 
 /**
@@ -78,7 +76,7 @@ export function pickFoe(g: Game, u: Unit, radius: number, ok?: (o: Unit, d: numb
   let best: Unit | null = null;
   let bs = Infinity;
   const focus = u.tactic === 'focus';
-  for (const o of g.state.units) {
+  for (const o of g.foesOf(u.faction)) {
     if (o.dead || o.hidden || !canHit(u.faction, undefined, o)) continue;
     const d = Math.hypot(o.x - u.x, o.y - u.y);
     if (ok ? !ok(o, d) : d > radius) continue;

@@ -85,3 +85,18 @@ describe('níveis da vila', () => {
     expect(s.level).toBe(0);
   });
 });
+
+describe('teto de população pelo nível da vila', () => {
+  test('casas sobrando não passam do teto do nível', async () => {
+    const { createNewGame } = await import('../src/game/newGame');
+    const { SYSTEMS } = await import('../src/game/systems');
+    const { levelDef } = await import('../src/data/villageLevels');
+    const g = createNewGame(SYSTEMS, 61);
+    for (let i = 0; i < 30; i++) g.state.buildings.push({ id: g.newId(), type: 'house', tx: 2 + (i % 10) * 2, ty: 2 + Math.floor(i / 10) * 2, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    g.state.level = 0;
+    expect(g.housingCap()).toBeGreaterThan(levelDef(0).popLimit);
+    expect(g.popCap()).toBe(levelDef(0).popLimit);
+    g.state.level = 3;
+    expect(g.popCap()).toBe(Math.min(g.housingCap(), levelDef(3).popLimit));
+  });
+});

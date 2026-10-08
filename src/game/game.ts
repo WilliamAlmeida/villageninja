@@ -3,8 +3,9 @@ import { dist2 } from '../core/math';
 import type { BuildingType } from '../data/buildings';
 import { RES_KEYS } from '../data/resources';
 import type { Building, Cost, Faction, GameState, ResourceNode, Selection, Team, Unit } from './types';
-import { canHit } from './factions';
+import { canHit, isHostile } from './factions';
 import { housingOf } from './upgrade';
+import { levelDef } from '../data/villageLevels';
 import { World } from './world';
 
 export type System = (g: Game, dt: number) => void;
@@ -46,8 +47,41 @@ export class Game {
   }
 
   step(dt: number) {
+    this.foes.clear(); // listas de alvos refeitas a cada passo (unidades nascem, morrem, mudam de lado)
+    this.engaged = null;
     for (const s of this.systems) s(this, dt);
     this.cleanup();
+  }
+
+  private foes = new Map<Faction, Unit[]>();
+  private engaged: Map<string, number> | null = null;
+  /**
+   * Quantos da `faction` estão lutando com o alvo `targetId` (contado uma vez por passo; quem escolhe adversário
+   * consultava todas as unidades para cada inimigo).
+   */
+  engagedOn(faction: Faction, targetId: number): number {
+    if (!this.engaged) {
+      const m = new Map<string, number>();
+      for (const o of this.state.units)
+        if (!o.dead && o.targetId != null && (o.state === 'fight' || o.combatTimer > 0)) {
+          const k = `${o.faction}:${o.targetId}`;
+          m.set(k, (m.get(k) ?? 0) + 1);
+        }
+      this.engaged = m;
+    }
+    return this.engaged.get(`${faction}:${targetId}`) ?? 0;
+  }
+  /**
+   * Quem `faction` pode atacar (só pela facção; quem chama ainda confere morto, escondido e `canHit`). Feita uma vez
+   * por passo: a vila em paz procura inimigo entre poucos bichos em vez de varrer as centenas de moradores e ninjas.
+   */
+  foesOf(faction: Faction): Unit[] {
+    let list = this.foes.get(faction);
+    if (!list) {
+      list = this.state.units.filter((o) => !o.dead && isHostile(faction, o.faction));
+      this.foes.set(faction, list);
+    }
+    return list;
   }
 
   private cleanup() {
@@ -77,6 +111,7 @@ export class Game {
   addUnit(u: Unit) {
     this.state.units.push(u);
     this.unitMap.set(u.id, u);
+    this.foes.clear(); // quem nasceu já entra nas listas de alvo
     return u;
   }
   addBuilding(b: Building) {
@@ -124,11 +159,21 @@ export class Game {
     for (const u of this.state.units) if (!u.dead && u.faction === 'village' && (u.kind === 'villager' || u.kind === 'ninja')) n++;
     return n;
   }
+  /** Vagas: as casas, até o teto do nível da vila (`popLimit`). */
   popCap() {
+    return Math.min(this.housingCap(), levelDef(this.state.level).popLimit);
+  }
+  /** Vagas nas casas (sem o teto do nível). */
+  housingCap() {
     let n = 0;
     for (const b of this.state.buildings) if (b.built) n += housingOf(b);
     return n;
   }
+  /**
+   * Onde a câmera olha (px de mundo, raio da tela), posto pelo main a cada quadro; fora da simulação (não é salvo).
+   * Quem está longe disso e sem urgência refaz caminho com menos frequência.
+   */
+  view: { x: number; y: number; r: number } | null = null;
 
   /** Inimigo mais próximo de `u` (visível) dentro do raio. */
   nearestHostile(u: Unit, radius: number): Unit | null {
@@ -139,7 +184,7 @@ export class Game {
   nearestHostileAt(faction: Faction, x: number, y: number, radius: number): Unit | null {
     let best: Unit | null = null;
     let bd = radius * radius;
-    for (const o of this.state.units) {
+    for (const o of this.foesOf(faction)) {
       if (o.dead || o.hidden || !canHit(faction, undefined, o)) continue;
       const d = dist2(x, y, o.x, o.y);
       if (d < bd) {

@@ -11,7 +11,8 @@ import { doorPos } from './game/world';
 import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
-import { applySettings, followCam } from './ui/settings';
+import { applySettings, followCam, quality, QUALITY_CFG } from './ui/settings';
+import { warmPortraits } from './ui/warm';
 import { FpsMeter } from './ui/fps';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -156,11 +157,30 @@ const SLOW_FACTOR = 0.3;
 let slowT = 0;
 const moments = new WeakSet<object>();
 
+/** Qualidade do desenho: teto de resolução, partículas e limite de quadros (Configurações). */
+let fpsCap = 0;
+function applyQuality() {
+  const q = QUALITY_CFG[quality()];
+  renderer.maxDpr = q.dpr;
+  renderer.particleBase = q.particles;
+  fpsCap = q.fpsCap;
+  resize();
+}
+applyQuality();
+bus.on('quality', applyQuality);
+let lastDraw = 0;
+
 const fps = new FpsMeter();
 fps.sync();
 bus.on('fps', () => fps.sync());
 
 function frame(now: number) {
+  // Qualidade Leve: no máximo `fpsCap` quadros por segundo (o resto do tempo o aparelho descansa)
+  if (fpsCap && now - lastDraw < 1000 / fpsCap - 1) {
+    requestAnimationFrame(frame);
+    return;
+  }
+  lastDraw = now;
   fps.tick(now);
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -200,6 +220,12 @@ function frame(now: number) {
   if (app.viewScene && !home.state.scene) app.setView(false);
   followSelected();
   camera.update(dt);
+  // onde a câmera olha, para a simulação poupar quem está longe (Game.view)
+  {
+    const c = camera.screenToWorld(camera.viewW / 2, camera.viewH / 2);
+    const r = Math.hypot(camera.viewW, camera.viewH) / camera.zoom / 2;
+    home.view = app.viewScene ? null : { x: c.x, y: c.y, r };
+  }
   // janela de gestão aberta cobre quase todo o mapa: desenha o fundo a ~12 quadros/s (a simulação segue igual).
   // Poupa a GPU/CPU para a janela (num save grande, mapa a 60 quadros + janela por cima travava as abas).
   winEl ??= document.getElementById('win');
@@ -218,6 +244,7 @@ const bar = loading?.querySelector<HTMLElement>('.lbar i');
 preloadArt((k) => bar && (bar.style.width = `${Math.round(k * 100)}%`)).then(() => {
   last = performance.now();
   requestAnimationFrame(frame);
+  warmPortraits(() => app.home); // retratos do Bingo Book e do Kage, aos poucos, com o jogo ocioso
   loading?.classList.add('done');
   setTimeout(() => loading?.remove(), 400);
 });

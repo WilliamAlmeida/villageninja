@@ -359,7 +359,7 @@ export function regionDaily(g: Game) {
     g.toast(`{map} Tributos e postos avançados: ${costLabel(income)}.`, 'good');
   }
   // a honra atrai ninjas errantes que pedem para entrar na vila
-  if (s.honor >= FAME.wanderer && chance(0.35)) {
+  if (s.honor >= FAME.wanderer && chance(0.35) && g.population() < g.popCap()) {
     const p = edgePoint(g);
     const n = createNinja(g, p.x, p.y, chance(0.3) ? 'chunin' : 'genin');
     g.toast(`{ninja} A fama da vila atraiu um ninja errante: ${n.name} pediu para entrar e foi aceito!`, 'good', p);

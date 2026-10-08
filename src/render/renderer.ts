@@ -99,8 +99,13 @@ export class Renderer {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
   }
 
+  /** Teto da resolução (Configurações → Qualidade). */
+  maxDpr = MAX_DPR;
+  /** Fração das partículas pela qualidade (o zoom afastado corta mais pela metade). */
+  particleBase = 1;
+
   resize(w: number, h: number) {
-    this.dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
+    this.dpr = Math.min(MAX_DPR, this.maxDpr, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(w * this.dpr);
     this.canvas.height = Math.round(h * this.dpr);
     this.canvas.style.width = `${w}px`;
@@ -137,6 +142,9 @@ export class Renderer {
     this.frameDt = dt;
     this.seasonal.frame(s, dt);
     this.particles.snowy = s.snow > 0.15;
+    // mapa inteiro à vista: menos partículas (continuam aparecendo, só em menor número) e sem enfeites miúdos
+    const far = cam.zoom < 0.85;
+    this.particles.density = this.particleBase * (far ? 0.5 : 1);
     {
       // chuva: só gera gotas onde a câmera vê
       const l = cam.left - 60;
@@ -377,7 +385,7 @@ export class Renderer {
         const u = this.projected(d.u);
         const selected = (sel?.kind === 'unit' && sel.id === u.id) || group.has(u.id);
         const tc = teamColor.get(u.kind === 'clone' ? (u.ownerId ?? -1) : u.id);
-        if (tc) {
+        if (tc && (!far || focus.has(u.id))) {
           ctx.strokeStyle = tc;
           ctx.lineWidth = focus.has(u.id) ? 2.5 : 1.3;
           ctx.globalAlpha = focus.has(u.id) ? 1 : 0.75;
@@ -394,7 +402,7 @@ export class Renderer {
           ctx.stroke();
         }
         // inimigo lutando: anel vermelho no chão (na luta grande dá para ver quem é quem)
-        if (!tc && u.combatTimer > 0 && !u.cloak && (u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null))) {
+        if (!far && !tc && u.combatTimer > 0 && !u.cloak && (u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null))) {
           ctx.strokeStyle = 'rgba(255,80,70,0.85)';
           ctx.lineWidth = 1.3;
           ctx.beginPath();
@@ -407,7 +415,7 @@ export class Renderer {
           const dir = Math.cos(u.facing) >= 0 ? 1 : -1;
           this.particles.breath(u.x + dir * 4, u.y - 20, dir);
         }
-        if (u.missionId != null) this.missionBadge(u, time);
+        if (u.missionId != null && !far) this.missionBadge(u, time);
         if (selected && !group.has(u.id)) this.label(ctx, u.name, u.x, u.y - 34, cam.zoom);
       }
     }

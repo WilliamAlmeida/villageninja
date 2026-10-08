@@ -59,6 +59,8 @@ export class Particles {
   private seen = new WeakSet<object>();
   /** Chão com neve: o Shunshin levanta neve. */
   snowy = false;
+  /** Fração das partículas criadas (qualidade e zoom): 1 = todas; 0,5 = metade, sorteada. */
+  density = 1;
 
   /** Fumaça de chaminé: sobe devagar, levada pelo vento. */
   chimney(x: number, y: number) {
@@ -77,6 +79,7 @@ export class Particles {
   }
 
   private add(p: Partial<P> & { kind: Kind; x: number; y: number }) {
+    if (this.density < 1 && Math.random() > this.density) return;
     if (this.list.length >= MAX) this.list.shift();
     this.list.push({ vx: 0, vy: 0, z: 0, vz: 0, t: 0, life: 0.5, size: 2, color: '#fff', ...p });
   }

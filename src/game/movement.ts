@@ -104,9 +104,13 @@ export function chase(g: Game, u: Unit, x: number, y: number, dt: number, stop: 
     return false;
   }
   u.repath -= dt;
+  // o alvo quase não saiu do lugar desde a última rota: segue a mesma (seguir o líder parado, treinar junto)
+  const moved = !u.hasGoal || Math.hypot(u.goalX - x, u.goalY - y) > 20;
   if (u.repath <= 0 || !u.hasGoal) {
-    setDestination(g, u, x, y);
-    u.repath = 0.8;
+    if (moved) setDestination(g, u, x, y);
+    // longe da câmera: refaz a rota com menos frequência (ninguém está olhando de perto)
+    const v = g.view;
+    u.repath = v && Math.hypot(u.x - v.x, u.y - v.y) > v.r + 160 ? 2 : 0.8;
   }
   followPath(g, u, dt);
   return false;

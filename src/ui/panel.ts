@@ -1534,7 +1534,7 @@ export class Panel {
       `<div class="statcard" ${tipAttr(label, tip, true)}><span class="si ic-wrap">{${icon}}</span><span>${label}</span><b>${v}</b></div>`;
     let left = `<div class="bsec"><h4>{chart} Números da vila</h4><div class="statgrid">`;
     left += cell('calendar', 'Dia', s.day, 'Dias desde a fundação da vila.');
-    left += cell('users', 'População', `${g.population()} / ${g.popCap()}`, 'Moradores e ninjas / vagas nas casas. Construa ou melhore casas para crescer.');
+    left += cell('users', 'População', `${g.population()} / ${g.popCap()}`, `Moradores e ninjas / vagas nas casas, até o teto do nível da vila (${levelDef(g.state.level).popLimit}). Construa ou melhore casas, ou suba o nível da vila, para crescer.`);
     left += cell('shinobi', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
     left += cell('star', 'Reputação', s.reputation, 'Sobe com missões, exames, chefes vencidos e o Monte dos Kages; cai quando uma missão fracassa.');
     left += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');

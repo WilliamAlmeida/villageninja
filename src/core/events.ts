@@ -10,6 +10,8 @@ export interface GameEvents {
   newGame: void;
   /** Ligou/desligou o medidor de FPS (Configurações). */
   fps: void;
+  /** Trocou a qualidade do desenho (Configurações). */
+  quality: void;
 }
 
 type Handler<T> = (payload: T) => void;
