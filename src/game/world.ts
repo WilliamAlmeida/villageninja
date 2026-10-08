@@ -78,6 +78,17 @@ export class World {
   private baseFine = new Uint8Array(FINE_W * FINE_H);
   private baseBlocked = new Uint8Array(MAP_W * MAP_H);
   private nodeSig = '';
+  /**
+   * Células "macias" (rocha, árvore com terreno no Editor de cenário): o caminho desvia delas sempre que há volta
+   * razoável (custo alto no A*), mas atravessa se não houver outra saída — um aglomerado de rochas nunca prende ninguém.
+   */
+  readonly soft = new Uint8Array(FINE_W * FINE_H);
+  /**
+   * "Ilha" de cada célula livre (as que se alcançam andando; 0 = muro). Uma busca de caminho para outra ilha não
+   * varre o mapa: vai direto à célula alcançável mais perto do destino. Refeita quando a colisão muda.
+   */
+  readonly region = new Int32Array(FINE_W * FINE_H);
+  private regionStack = new Int32Array(FINE_W * FINE_H);
   readonly occupied = new Int32Array(MAP_W * MAP_H);
   private villageRects: { x0: number; y0: number; x1: number; y1: number }[] = [];
 
@@ -113,17 +124,49 @@ export class World {
     this.baseFine.set(this.fine);
     this.baseBlocked.set(this.blocked);
     this.stampNodes();
+    this.computeRegions();
   }
 
-  /** Rocha/árvore com terreno no Editor de cenário bloqueia as células dela (pelo estágio: rocha rachada, toco…). */
+  /** Pinta as ilhas (vizinhança de 4, como o A* que não corta quina). */
+  private computeRegions() {
+    const r = this.region;
+    r.fill(0);
+    const st = this.regionStack;
+    let id = 0;
+    for (let i = 0; i < r.length; i++) {
+      if (r[i] || this.fine[i]) continue;
+      id++;
+      let top = 0;
+      st[top++] = i;
+      r[i] = id;
+      while (top) {
+        const c = st[--top]!;
+        const x = c % FINE_W;
+        if (x > 0 && !r[c - 1] && !this.fine[c - 1]) (r[c - 1] = id), (st[top++] = c - 1);
+        if (x < FINE_W - 1 && !r[c + 1] && !this.fine[c + 1]) (r[c + 1] = id), (st[top++] = c + 1);
+        if (c >= FINE_W && !r[c - FINE_W] && !this.fine[c - FINE_W]) (r[c - FINE_W] = id), (st[top++] = c - FINE_W);
+        if (c + FINE_W < r.length && !r[c + FINE_W] && !this.fine[c + FINE_W]) (r[c + FINE_W] = id), (st[top++] = c + FINE_W);
+      }
+    }
+  }
+
+  /** Rocha/árvore com terreno no Editor de cenário marca as células dela como macias (pelo estágio: rocha rachada, toco…). */
   private stampNodes() {
     const sig: string[] = [];
+    this.soft.fill(0);
     for (const n of this.state.nodes) {
       const r = nodeTiles(n);
       if (!r) continue;
       sig.push(`${n.id}:${nodeArt(n)}`);
       for (let y = 0; y < r.rows.length; y++)
-        for (let x = 0; x < r.rows[y]!.length; x++) if (r.rows[y]![x] === '#') this.blockCell(r.x0 * SUB + x, r.y0 * SUB + y);
+        for (let x = 0; x < r.rows[y]!.length; x++) {
+          if (r.rows[y]![x] !== '#') continue;
+          const fx = r.x0 * SUB + x;
+          const fy = r.y0 * SUB + y;
+          if (!inFine(fx, fy)) continue;
+          this.soft[fidx(fx, fy)] = 1;
+          this.blocked[idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1; // ninguém nasce/trabalha em cima
+        }
     }
     this.nodeSig = sig.join(',');
   }
@@ -133,9 +176,8 @@ export class World {
     const sig: string[] = [];
     for (const n of this.state.nodes) if (typeLayout(nodeArt(n))?.tiles) sig.push(`${n.id}:${nodeArt(n)}`);
     if (sig.join(',') === this.nodeSig) return;
-    this.fine.set(this.baseFine);
     this.blocked.set(this.baseBlocked);
-    this.stampNodes();
+    this.stampNodes(); // só as células macias mudam: as ilhas (colisão dura) continuam as mesmas
   }
 
   private blockTile(tx: number, ty: number) {
@@ -169,6 +211,12 @@ export class World {
   }
   walkableCell(fx: number, fy: number) {
     return inFine(fx, fy) && this.fine[fidx(fx, fy)] === 0;
+  }
+  /** Livre e sem rocha/árvore (o que dá para andar em linha reta sem contornar nada). */
+  clearPx(x: number, y: number) {
+    const fx = toCell(x);
+    const fy = toCell(y);
+    return inFine(fx, fy) && this.fine[fidx(fx, fy)] === 0 && this.soft[fidx(fx, fy)] === 0;
   }
   buildingIdAt(tx: number, ty: number) {
     return inBounds(tx, ty) ? this.occupied[idx(tx, ty)]! : 0;

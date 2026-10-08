@@ -7,10 +7,21 @@ import { findPathPx } from './pathfinding';
 import type { Unit } from './types';
 import { cellCenter, fidx, toCell } from './world';
 
+/** Última busca que falhou por unidade (só memória): não repete a mesma busca sem saída a cada passo. */
+const failed = new WeakMap<Unit, { cell: number; until: number }>();
+
 /** Calcula rota até (x,y). Retorna false se não houver caminho. */
 export function setDestination(g: Game, u: Unit, x: number, y: number): boolean {
+  const goal = fidx(toCell(x), toCell(y));
+  const f = failed.get(u);
+  if (f && f.cell === goal && g.state.time < f.until) {
+    u.hasGoal = false;
+    u.path.length = 0;
+    return false;
+  }
   const p = findPathPx(g.world, u.x, u.y, x, y);
   if (!p) {
+    failed.set(u, { cell: goal, until: g.state.time + 1.5 });
     u.hasGoal = false;
     u.path.length = 0;
     return false;
@@ -69,7 +80,7 @@ function clearLine(g: Game, ax: number, ay: number, bx: number, by: number) {
   const n = Math.min(40, Math.ceil(d / (TILE * 0.4)));
   for (let i = 1; i <= n; i++) {
     const t = i / n;
-    if (!g.world.walkablePx(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+    if (!g.world.clearPx(ax + (bx - ax) * t, ay + (by - ay) * t)) return false; // rocha no meio: contorna pelo A*
   }
   return true;
 }

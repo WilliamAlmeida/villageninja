@@ -11,6 +11,8 @@ const closed = new Uint32Array(N);
 const heap: number[] = [];
 let gen = 0;
 const SQ2 = Math.SQRT2;
+/** Custo extra de pisar numa célula macia (rocha/árvore): desvia se a volta custar menos que isso por célula. */
+const SOFT_COST = 8;
 
 const DIRS: [number, number, number][] = [
   [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
@@ -72,15 +74,28 @@ export function nearestWalkable(w: World, tx: number, ty: number, maxR = 8): [nu
   return null;
 }
 
-/** Célula livre mais perto da célula (fx, fy), ou null. */
-export function nearestCell(w: World, fx: number, fy: number, maxR = 16): [number, number] | null {
-  if (w.walkableCell(fx, fy)) return [fx, fy];
+/**
+ * Célula livre mais perto da célula (fx, fy), ou null. Com `region`, só células dessa ilha (alcançáveis); com
+ * `firm`, prefere uma sem rocha/árvore (destino ao lado da rocha, não em cima).
+ */
+export function nearestCell(w: World, fx: number, fy: number, maxR = 16, region = 0, firm = false): [number, number] | null {
+  if (firm) {
+    const c = nearestCell(w, fx, fy, 3, region, false);
+    const near = c && !w.soft[fidx(c[0], c[1])] ? c : nearestCellWhere(w, fx, fy, 3, (x, y) => !w.soft[fidx(x, y)] && (!region || w.region[fidx(x, y)] === region));
+    if (near) return near;
+  }
+  return nearestCellWhere(w, fx, fy, maxR, (x, y) => !region || w.region[fidx(x, y)] === region);
+}
+
+function nearestCellWhere(w: World, fx: number, fy: number, maxR: number, extra: (x: number, y: number) => boolean): [number, number] | null {
+  const ok = (x: number, y: number) => w.walkableCell(x, y) && extra(x, y);
+  if (ok(fx, fy)) return [fx, fy];
   for (let r = 1; r <= maxR; r++) {
     let best: [number, number] | null = null;
     let bd = Infinity;
     for (let y = fy - r; y <= fy + r; y++)
       for (let x = fx - r; x <= fx + r; x++) {
-        if (Math.max(Math.abs(x - fx), Math.abs(y - fy)) !== r || !w.walkableCell(x, y)) continue;
+        if (Math.max(Math.abs(x - fx), Math.abs(y - fy)) !== r || !ok(x, y)) continue;
         const d = (x - fx) ** 2 + (y - fy) ** 2;
         if (d < bd) {
           bd = d;
@@ -106,9 +121,6 @@ export function findPathPx(w: World, ax: number, ay: number, bx: number, by: num
 
 /** A* nas células: lista de índices de célula (sem a inicial) ou null. Destino bloqueado vai para a célula livre mais perto. */
 export function findCells(w: World, sx: number, sy: number, gx: number, gy: number, maxIter: number): number[] | null {
-  const g = nearestCell(w, gx, gy);
-  if (!g) return null;
-  [gx, gy] = g;
   // começando dentro de um muro (empurrado, nasceu num prédio): sai pela célula livre mais perto
   let pre: number | null = null;
   if (!w.walkableCell(sx, sy)) {
@@ -117,6 +129,12 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
     [sx, sy] = s;
     pre = fidx(sx, sy);
   }
+  // destino: a célula livre mais perto (de preferência fora de rocha/árvore). Noutra ilha (cercado, outro lado do
+  // rio) não há caminho: falha NA HORA em vez de varrer o mapa inteiro (quem chamou tenta outra coisa: Shunshin…)
+  const g = nearestCell(w, gx, gy, 24, 0, true);
+  if (!g) return null;
+  [gx, gy] = g;
+  if (w.region[fidx(gx, gy)] !== w.region[fidx(sx, sy)]) return null;
   const start = fidx(sx, sy);
   const goal = fidx(gx, gy);
   if (start === goal) return pre != null ? [pre] : [];
@@ -149,7 +167,7 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
       const ni = fidx(nx, ny);
       if (closed[ni] === gen || !w.walkableCell(nx, ny)) continue;
       if (dx !== 0 && dy !== 0 && (!w.walkableCell(cx + dx, cy) || !w.walkableCell(cx, cy + dy))) continue;
-      const ng = gScore[cur]! + cost;
+      const ng = gScore[cur]! + cost + (w.soft[ni] ? SOFT_COST : 0);
       if (seen[ni] !== gen || ng < gScore[ni]!) {
         seen[ni] = gen;
         gScore[ni] = ng;

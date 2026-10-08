@@ -6,3 +6,4 @@ dist
 # arte gerada (originais grandes); o jogo usa src/art. Os gabaritos de poses ficam versionados.
 docs/arte/*
 !docs/arte/gabarito-*.png
+.perf/

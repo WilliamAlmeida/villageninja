@@ -33,10 +33,12 @@ describe('colisão dos objetos de cenário', () => {
     g.state.nodes.push(n);
     g.reindex();
     g.world.refreshNodes();
-    expect(g.world.walkablePx(tx * 32 + 16, 10 * 32 + 16)).toBe(false);
+    // macia: não dá para andar reto por cima, mas não prende ninguém
+    expect(g.world.clearPx(tx * 32 + 16, 10 * 32 + 16)).toBe(false);
+    expect(g.world.walkablePx(tx * 32 + 16, 10 * 32 + 16)).toBe(true);
     g.removeNode(n.id);
     g.world.refreshNodes();
-    expect(g.world.walkablePx(tx * 32 + 16, 10 * 32 + 16)).toBe(true);
+    expect(g.world.clearPx(tx * 32 + 16, 10 * 32 + 16)).toBe(true);
   });
 });
 
