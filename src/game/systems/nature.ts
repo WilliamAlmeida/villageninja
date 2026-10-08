@@ -15,4 +15,6 @@ export function natureSystem(g: Game, dt: number) {
     }
   }
   acc = 0;
+  // rocha que rachou, árvore que virou toco, recurso que sumiu: a colisão deles acompanha (Editor de cenário)
+  g.world.refreshNodes();
 }

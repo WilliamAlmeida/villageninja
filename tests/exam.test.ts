@@ -17,7 +17,12 @@ const run = (g: Game, seconds: number) => {
 function setup(seed: number, genins = 3) {
   const g = createNewGame(SYSTEMS, seed);
   g.state.level = 1;
-  g.addBuilding({ id: g.newId(), type: 'arena', tx: CENTER_TX + 5, ty: CENTER_TY + 3, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+  // como no jogo (não se constrói sobre rocha): nada de recurso dentro nem colado na arena
+  const tx = CENTER_TX + 5;
+  const ty = CENTER_TY + 3;
+  g.state.nodes = g.state.nodes.filter((n) => n.tx < tx - 1 || n.tx > tx + 6 || n.ty < ty - 1 || n.ty > ty + 6);
+  g.reindex();
+  g.addBuilding({ id: g.newId(), type: 'arena', tx, ty, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
   for (const u of g.state.units.filter((x) => x.kind === 'ninja')) u.ninja!.level = 2;
   for (let i = 2; i < genins; i++) createNinja(g, 1200, 800).ninja!.level = 3;
   return g;

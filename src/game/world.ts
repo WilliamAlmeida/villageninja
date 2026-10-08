@@ -36,6 +36,23 @@ export function doorPos(b: Building) {
   const t = doorTile(b);
   return { x: tileCenter(t.tx), y: t.ty * TILE + 10 };
 }
+/** Arte do recurso no estágio atual: árvore (tree0/tree1) vira toco quase no fim; rocha racha depois da metade. */
+export function nodeArt(n: ResourceNode): string {
+  const left = n.max ? n.amount / n.max : 1;
+  if (n.type === 'tree') return left < 0.25 ? 'stump' : `tree${n.variant % 2}`;
+  if (n.type === 'rock' && left < 0.5) return 'rock-cracked';
+  return n.type;
+}
+/** Canto (em tiles) da grade de colisão de um recurso pelo layout (arte do estágio), ou null = não bloqueia. */
+export function nodeTiles(n: ResourceNode) {
+  const L = typeLayout(nodeArt(n));
+  if (!L?.tiles) return null;
+  const h = Math.ceil(L.tiles.length / SUB);
+  const w = Math.ceil(Math.max(...L.tiles.map((r) => r.length)) / SUB);
+  const [ox, oy] = L.origin ?? [Math.floor(w / 2), Math.floor(h / 2)];
+  return { x0: n.tx - ox, y0: n.ty - oy, rows: L.tiles };
+}
+
 /** Tiles que um local (ruína, mina…) ocupa pelo layout: canto e grade. */
 export function siteTiles(site: Site) {
   const L = typeLayout(site.kind);
@@ -57,6 +74,10 @@ export class World {
   readonly blocked = new Uint8Array(MAP_W * MAP_H);
   /** Colisão de verdade, em meio tile (CELL px): caminhos, empurrões e `walkablePx`. */
   readonly fine = new Uint8Array(FINE_W * FINE_H);
+  /** Colisão sem os recursos (terreno, prédios, locais): base para refazer só a parte das rochas/árvores. */
+  private baseFine = new Uint8Array(FINE_W * FINE_H);
+  private baseBlocked = new Uint8Array(MAP_W * MAP_H);
+  private nodeSig = '';
   readonly occupied = new Int32Array(MAP_W * MAP_H);
   private villageRects: { x0: number; y0: number; x1: number; y1: number }[] = [];
 
@@ -87,6 +108,32 @@ export class World {
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
     }
     this.blockSites();
+    this.baseFine.set(this.fine);
+    this.baseBlocked.set(this.blocked);
+    this.stampNodes();
+  }
+
+  /** Rocha/árvore com terreno no Editor de cenário bloqueia as células dela (pelo estágio: rocha rachada, toco…). */
+  private stampNodes() {
+    const sig: string[] = [];
+    for (const n of this.state.nodes) {
+      const r = nodeTiles(n);
+      if (!r) continue;
+      sig.push(`${n.id}:${nodeArt(n)}`);
+      for (let y = 0; y < r.rows.length; y++)
+        for (let x = 0; x < r.rows[y]!.length; x++) if (r.rows[y]![x] === '#') this.blockCell(r.x0 * SUB + x, r.y0 * SUB + y);
+    }
+    this.nodeSig = sig.join(',');
+  }
+
+  /** Recursos mudaram (esgotou, rebrotou, sumiu, apareceu)? Refaz só a colisão deles. Barato: chame todo passo. */
+  refreshNodes() {
+    const sig: string[] = [];
+    for (const n of this.state.nodes) if (typeLayout(nodeArt(n))?.tiles) sig.push(`${n.id}:${nodeArt(n)}`);
+    if (sig.join(',') === this.nodeSig) return;
+    this.fine.set(this.baseFine);
+    this.blocked.set(this.baseBlocked);
+    this.stampNodes();
   }
 
   private blockTile(tx: number, ty: number) {

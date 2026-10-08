@@ -268,6 +268,14 @@ function gridInfo() {
     const d = BUILDINGS[building.type];
     return { x0: building.tx, y0: building.ty, w: d.w, h: d.h };
   }
+  if (item.kind === 'node' && s.nodes[0]) {
+    // objeto (rocha, árvore…): grade em volta do tile dele; sem terreno salvo = 1 tile livre (não bloqueia)
+    const t = typeL();
+    const h = t.tiles ? Math.ceil(t.tiles.length / SUB) : 1;
+    const w = t.tiles ? Math.ceil(Math.max(...t.tiles.map((r) => r.length)) / SUB) : 1;
+    const [ox, oy] = t.origin ?? [Math.floor(w / 2), Math.floor(h / 2)];
+    return { x0: s.nodes[0].tx - ox, y0: s.nodes[0].ty - oy, w, h };
+  }
   if (site) {
     const t = typeL();
     // linhas do layout em meio tile; o tamanho em tiles inteiros
@@ -364,12 +372,12 @@ function renderProps() {
     }
   } else if (mode === 'tiles') {
     const gi = gridInfo();
-    if (!gi) h += `<p class="hint">Objetos simples não ocupam tiles.</p>`;
+    if (!gi) h += `<p class="hint">Sem grade para este item.</p>`;
     else {
       h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span></div>`;
       h += `<div class="row"><label>Largura</label><input type="number" id="tw" min="1" max="10" value="${gi.w}"><label>Altura</label><input type="number" id="th" min="1" max="10" value="${gi.h}"></div>`;
       if (building) h += `<p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
-      if (site) h += `<p class="hint">Locais: Shift+clique escolhe o tile onde o local fica (origem).</p>`;
+      if (site || item.kind === 'node') h += `<p class="hint">${item.kind === 'node' ? 'Objetos: muro = não dá para atravessar (vale no estágio desta arte; toco e rocha rachada têm o seu). ' : ''}Shift+clique escolhe o tile onde ${item.kind === 'node' ? 'o objeto' : 'o local'} fica (origem).</p>`;
       h += `<div class="row"><button id="tilesreset">Voltar ao padrão</button></div>`;
     }
   } else if (mode === 'art') {
@@ -638,7 +646,7 @@ over.addEventListener('pointerdown', (e) => {
     const cy = Math.floor(w.y / CELL) - gi.y0 * SUB;
     if (cx < 0 || cy < 0 || cx >= gi.w * SUB || cy >= gi.h * SUB) return;
     snapshot();
-    if (site && e.shiftKey) {
+    if ((site || item.kind === 'node') && e.shiftKey) {
       typeL().origin = [Math.floor(cx / SUB), Math.floor(cy / SUB)];
       typeL().tiles = tileRows();
     } else {
@@ -780,7 +788,7 @@ function drawOverlay() {
           octx.strokeStyle = 'rgba(0,0,0,0.6)';
           octx.stroke();
         }
-      if (site) {
+      if (site || item.kind === 'node') {
         const [ox, oy] = typeL().origin ?? [Math.floor(gi.w / 2), Math.floor(gi.h / 2)];
         const q = worldToScreen((gi.x0 + ox + 0.5) * TILE, (gi.y0 + oy + 0.5) * TILE);
         octx.strokeStyle = '#fff';

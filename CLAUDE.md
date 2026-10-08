@@ -189,7 +189,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   **Colisão em meio tile** (`SUB`/`CELL`/`FINE_W` em config.ts): `World.fine` é a colisão de verdade (`walkablePx`,
   `walkableCell`), a busca de caminho anda nas células (`findPathPx`/`findCells`; `u.path` guarda índices de célula,
   `cellCenter`); `World.blocked`/`walkable(tx,ty)` seguem em tiles (bloqueado se qualquer pedaço for) para escolher
-  lugar de nascer/trabalhar. Caminho que começa dentro de muro sai pela célula livre mais perto. **Arte**: escala e deslocamento (`Renderer.artBox`/`siteBox`, `drawNode`). **Pontos**:
+  lugar de nascer/trabalhar. Caminho que começa dentro de muro sai pela célula livre mais perto. **Objetos de cenário**
+  também têm terreno, pela arte do estágio (`nodeArt`: tree0/tree1/stump/rock/rock-cracked/ore/herb; `nodeTiles`):
+  rocha, rocha rachada e veio vêm com 1 tile de muro; árvores livres. `World.refreshNodes` (sistema da natureza, a
+  cada 1 s) refaz só a colisão dos recursos quando um racha, vira toco, some ou rebrota. Bandeira de "defender ponto"
+  some quando o ninja chega nela. **Arte**: escala e deslocamento (`Renderer.artBox`/`siteBox`, `drawNode`). **Pontos**:
   porta (`doorPos`), Exame (`center`, `edge`, `left`, `right`, `seat1`…`seat8`), marcas na arte (`guard`, `chimney`). Bonecos de
   teste (vários; arrastar ou mandar andar pelo caminho de verdade). Salvar grava o JSON (cópia em docs/arte/backup-editor) e
   o jogo se refaz. A arena começou de `scripts/layout-arena.py` (rodar de novo sobrescreve a arena).

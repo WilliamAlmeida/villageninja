@@ -1192,12 +1192,13 @@ export class Renderer {
     }
   }
 
-  /** Bandeiras de "defender ponto" (em pé). */
+  /** Bandeiras de "defender ponto" (em pé); some quando o ninja chega nela (ficaria por cima dele). */
   private commandFlags(g: Game, teamColor: Map<number, string>, time: number) {
     const ctx = this.ctx;
     for (const u of g.state.units) {
       const c = u.command;
       if (!c || u.dead || c.kind !== 'move') continue;
+      if (!u.hidden && Math.hypot(c.x - u.x, c.y - u.y) < 20) continue;
       const p = project(c.x, c.y);
       ctx.strokeStyle = '#3b2a1a';
       ctx.lineWidth = 1.5;
