@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { layout, setLayout } from '../src/data/layout';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { createAnimal, createNinja } from '../src/game/entities';
 import { examStatus, setExamSize, startExam } from '../src/game/exam';
@@ -27,6 +28,24 @@ function setup(seed: number, genins = 3) {
   for (let i = 2; i < genins; i++) createNinja(g, 1200, 800).ninja!.level = 3;
   return g;
 }
+
+/**
+ * Terreno fixo da arena para os testes: muro em volta e portão de 2 tiles embaixo. Os testes conferem a MECÂNICA
+ * (muro segura, portão deixa passar, ring-out); o terreno de verdade é ajustado no Editor de cenário e muda.
+ */
+const TEST_ARENA = {
+  w: 6,
+  h: 6,
+  tiles: ['############', '############', '##........##', '##........##', '##........##', '##........##', '##........##', '##........##', '##........##', '##........##', '####gggg####', '####gggg####'],
+};
+let savedLayout: ReturnType<typeof layout>;
+beforeAll(() => {
+  savedLayout = layout();
+  const L = JSON.parse(JSON.stringify(savedLayout));
+  L.types.arena = { ...TEST_ARENA, points: {} };
+  setLayout(L);
+});
+afterAll(() => setLayout(savedLayout));
 
 describe('Exame Chunin', () => {
   test('arena redonda: os dois do duelo ficam dentro; empurrado para fora perde (ring-out)', () => {
