@@ -56,7 +56,7 @@ import { FIELD_FOCUS_BONUS, MARKET_GOOD_LIST, MARKET_GOODS, type MarketGood } fr
 import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHUNSHIN } from '../game/techniques';
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
-import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examStatus, startExam } from '../game/exam';
+import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
@@ -1979,6 +1979,11 @@ export class Panel {
     const st = examStatus(g);
     html += `<h4>Exame Chunin</h4><p class="hint">Genins de nível ${EXAM_MIN_LEVEL}+ lutam 1×1 contra colegas e convidados de outras vilas.
       O campeão e quem tiver bom desempenho (vitórias, dano, jutsus) viram Chunin de graça. Convidados trazem ryo e reputação.</p>`;
+    const size = examSize(g.state);
+    html += `<h4>Vagas</h4><div class="seg">`;
+    for (const n of [4, 8])
+      html += `<button data-act="exam-size" data-arg="${n}" class="${size === n ? 'on' : ''}" ${tipAttr(`${n} vagas`, `Até ${n} lutadores (genins da vila, completados com convidados). Cada um tem um lugar na arquibancada.`)}>${n}</button>`;
+    html += `</div>`;
     if (st.eligible.length) html += `<p class="hint">Inscritos possíveis: ${st.eligible.map((u) => esc(u.name.split(' ').pop()!)).join(', ')}</p>`;
     html += `<div class="actions"><button class="btn primary" data-act="exam-start" ${blocked(g, [!st.ready && st.reason])}>{megaphone} Convocar Exame Chunin</button></div>`;
     if (!st.ready) html += `<p class="why">${esc(st.reason)}</p>`;
@@ -2860,6 +2865,8 @@ export class Panel {
           return this.report(enqueueCraft(g, v.id, arg));
         case 'exam-start':
           return this.report(startExam(g));
+        case 'exam-size':
+          return this.report(setExamSize(g, Number(arg)));
         case 'watch': {
           const a = g.findBuilt('arena');
           if (a) {

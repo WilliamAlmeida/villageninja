@@ -184,15 +184,23 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `data/layout.ts`): ajuste fino de cada construção (e nível), local (ruína, mina, baú) e objeto (árvore, rocha). **Peças**:
   máscara pintada com pincel separa a arte em pedaços (`render/pieces.ts`); cada peça é desenhada na profundidade da sua
   âncora (onde toca o chão), o "resto" vai no chão (`ground`) ou em pé; transparência por peça (área própria ou o
-  contorno). **Terreno**: tamanho em tiles (sobrepõe `w`/`h` do prédio) e tiles muro `#` / portão `g` / livre `.`
-  (`World.rebuild` e `blockSites`). **Arte**: escala e deslocamento (`Renderer.artBox`/`siteBox`, `drawNode`). **Pontos**:
-  porta (`doorPos`), Exame (`center`, `edge`, `left`, `right`, `stands`), marcas na arte (`guard`, `chimney`). Bonecos de
+  contorno). **Terreno**: tamanho em tiles (sobrepõe `w`/`h` do prédio) e células de MEIO tile (16 px) muro `#` /
+  portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`).
+  **Colisão em meio tile** (`SUB`/`CELL`/`FINE_W` em config.ts): `World.fine` é a colisão de verdade (`walkablePx`,
+  `walkableCell`), a busca de caminho anda nas células (`findPathPx`/`findCells`; `u.path` guarda índices de célula,
+  `cellCenter`); `World.blocked`/`walkable(tx,ty)` seguem em tiles (bloqueado se qualquer pedaço for) para escolher
+  lugar de nascer/trabalhar. Caminho que começa dentro de muro sai pela célula livre mais perto. **Arte**: escala e deslocamento (`Renderer.artBox`/`siteBox`, `drawNode`). **Pontos**:
+  porta (`doorPos`), Exame (`center`, `edge`, `left`, `right`, `seat1`…`seat8`), marcas na arte (`guard`, `chimney`). Bonecos de
   teste (vários; arrastar ou mandar andar pelo caminho de verdade). Salvar grava o JSON (cópia em docs/arte/backup-editor) e
   o jogo se refaz. A arena começou de `scripts/layout-arena.py` (rodar de novo sobrescreve a arena).
 - **Arena do Exame redonda** (6×6, coliseu com portão na frente-esquerda; muro, portão e peças no layout.json; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
   só pousam dentro (`keepInRing`), a distância de luta cabe nele (`ringDesired`) e andar não tira ninguém; empurrado para
   fora por um golpe (`Unit.knockT`, setado em `push`) perde (ring-out, `systems/exam.ts`). Migração 23 desloca a arena que
-  cresceu e encostou noutro prédio.
+  cresceu e encostou noutro prédio. **Plateia na arquibancada**: quem não luta anda até o chão logo abaixo do seu lugar
+  (`arenaSpots.seat(i)`/`below`, pontos `seat1…8` do Editor de cenário ou um arco no fundo) e salta para ele (`takeSeat`,
+  `Unit.perch` = id da arena); o renderer o desenha logo depois da peça mais ao fundo (a arquibancada), sem deixá-la
+  transparente. Chamado para lutar ou fim do exame: desce (`leaveSeat`). **Vagas** 4 ou 8 no drawer da arena
+  (`flags.examSize`, `setExamSize`).
 - **Estratégia de luta** (`game/tactics.ts`): papel automático pelo atributo (`roleOf`: tanque, atacante, atirador,
   suporte = quem tem cura), com etiqueta no drawer e marca pequena na cabeça durante a luta; **duelos**: `pickFoe` escolhe o
   mais perto penalizando quem já está sendo enfrentado (o bolo vira lutas lado a lado) e o inimigo prefere o tanque
@@ -334,7 +342,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v26.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v27.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

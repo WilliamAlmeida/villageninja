@@ -319,6 +319,22 @@ export class Renderer {
         else if (!front && d.k! >= o.y) d.k = o.y - 0.01;
       }
     }
+    // sentado na arquibancada (Exame): desenhado logo depois da peça mais ao fundo do prédio (a arquibancada), por
+    // cima dela e sem deixá-la transparente; as outras peças (muros dos lados e da frente) seguem na frente
+    const perchY = new Map<number, number>();
+    for (const d of list) {
+      const id = d.u?.perch;
+      if (id == null) continue;
+      let y = perchY.get(id);
+      if (y === undefined) {
+        const b = g.building(id);
+        const box = b && this.artBox(b, s.level);
+        const L = box && artLayout(box.artName);
+        y = box && L?.pieces?.length ? Math.min(...L.pieces.map((p) => box.top + p.ay * box.h)) : -Infinity;
+        perchY.set(id, y);
+      }
+      if (d.k! <= y) d.k = y + 0.02 + d.y * 1e-5;
+    }
     list.sort((a, b) => a.k! - b.k!);
 
     this.drawCamps(g, time);

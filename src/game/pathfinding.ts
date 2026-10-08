@@ -1,8 +1,8 @@
-import { MAP_H, MAP_W } from '../config';
-import { idx, inBounds, type World } from './world';
+import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB } from '../config';
+import { fidx, inFine, type World } from './world';
 
-// A* em grade 8-direções com buffers reaproveitados (zero alocação por busca).
-const N = MAP_W * MAP_H;
+// A* em grade 8-direções, nas células de colisão (meio tile), com buffers reaproveitados (zero alocação por busca).
+const N = FINE_W * FINE_H;
 const gScore = new Float32Array(N);
 const fScore = new Float32Array(N);
 const came = new Int32Array(N);
@@ -72,16 +72,54 @@ export function nearestWalkable(w: World, tx: number, ty: number, maxR = 8): [nu
   return null;
 }
 
-/** Retorna a lista de índices de tiles (sem o tile inicial) ou null. */
+/** Célula livre mais perto da célula (fx, fy), ou null. */
+export function nearestCell(w: World, fx: number, fy: number, maxR = 16): [number, number] | null {
+  if (w.walkableCell(fx, fy)) return [fx, fy];
+  for (let r = 1; r <= maxR; r++) {
+    let best: [number, number] | null = null;
+    let bd = Infinity;
+    for (let y = fy - r; y <= fy + r; y++)
+      for (let x = fx - r; x <= fx + r; x++) {
+        if (Math.max(Math.abs(x - fx), Math.abs(y - fy)) !== r || !w.walkableCell(x, y)) continue;
+        const d = (x - fx) ** 2 + (y - fy) ** 2;
+        if (d < bd) {
+          bd = d;
+          best = [x, y];
+        }
+      }
+    if (best) return best;
+  }
+  return null;
+}
+
+/** Caminho entre tiles (do meio de um ao meio do outro): lista de células (sem a inicial) ou null. */
 export function findPath(w: World, sx: number, sy: number, gx: number, gy: number, maxIter = 6000): number[] | null {
-  sx = Math.max(0, Math.min(MAP_W - 1, sx));
-  sy = Math.max(0, Math.min(MAP_H - 1, sy));
-  const g = nearestWalkable(w, Math.max(0, Math.min(MAP_W - 1, gx)), Math.max(0, Math.min(MAP_H - 1, gy)));
+  const c = (t: number, max: number) => Math.max(0, Math.min(max - 1, t)) * SUB + (SUB >> 1);
+  return findCells(w, c(sx, MAP_W), c(sy, MAP_H), c(gx, MAP_W), c(gy, MAP_H), maxIter * SUB * SUB);
+}
+
+/** Caminho entre dois pontos (px). */
+export function findPathPx(w: World, ax: number, ay: number, bx: number, by: number, maxIter = 6000 * SUB * SUB): number[] | null {
+  const c = (v: number, max: number) => Math.max(0, Math.min(max - 1, Math.floor(v / CELL)));
+  return findCells(w, c(ax, FINE_W), c(ay, FINE_H), c(bx, FINE_W), c(by, FINE_H), maxIter);
+}
+
+/** A* nas células: lista de índices de célula (sem a inicial) ou null. Destino bloqueado vai para a célula livre mais perto. */
+export function findCells(w: World, sx: number, sy: number, gx: number, gy: number, maxIter: number): number[] | null {
+  const g = nearestCell(w, gx, gy);
   if (!g) return null;
   [gx, gy] = g;
-  const start = idx(sx, sy);
-  const goal = idx(gx, gy);
-  if (start === goal) return [];
+  // começando dentro de um muro (empurrado, nasceu num prédio): sai pela célula livre mais perto
+  let pre: number | null = null;
+  if (!w.walkableCell(sx, sy)) {
+    const s = nearestCell(w, sx, sy);
+    if (!s) return null;
+    [sx, sy] = s;
+    pre = fidx(sx, sy);
+  }
+  const start = fidx(sx, sy);
+  const goal = fidx(gx, gy);
+  if (start === goal) return pre != null ? [pre] : [];
 
   gen++;
   heap.length = 0;
@@ -99,17 +137,18 @@ export function findPath(w: World, sx: number, sy: number, gx: number, gy: numbe
     if (cur === goal) {
       const path: number[] = [];
       for (let c = goal; c !== start && c !== -1; c = came[c]!) path.push(c);
+      if (pre != null) path.push(pre);
       return path.reverse();
     }
-    const cx = cur % MAP_W;
-    const cy = (cur / MAP_W) | 0;
+    const cx = cur % FINE_W;
+    const cy = (cur / FINE_W) | 0;
     for (const [dx, dy, cost] of DIRS) {
       const nx = cx + dx;
       const ny = cy + dy;
-      if (!inBounds(nx, ny)) continue;
-      const ni = idx(nx, ny);
-      if (closed[ni] === gen || !w.walkable(nx, ny)) continue;
-      if (dx !== 0 && dy !== 0 && (!w.walkable(cx + dx, cy) || !w.walkable(cx, cy + dy))) continue;
+      if (!inFine(nx, ny)) continue;
+      const ni = fidx(nx, ny);
+      if (closed[ni] === gen || !w.walkableCell(nx, ny)) continue;
+      if (dx !== 0 && dy !== 0 && (!w.walkableCell(cx + dx, cy) || !w.walkableCell(cx, cy + dy))) continue;
       const ng = gScore[cur]! + cost;
       if (seen[ni] !== gen || ng < gScore[ni]!) {
         seen[ni] = gen;

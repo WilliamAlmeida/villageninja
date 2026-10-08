@@ -12,7 +12,7 @@ import type { Game } from './game';
 import { missionOfTeam } from './missions';
 import { gainXp } from './progression';
 import { teamOf } from './teams';
-import type { Building, Exam, ExamEntrant, Unit } from './types';
+import type { Building, Exam, ExamEntrant, GameState, Unit } from './types';
 import { BUILDINGS } from '../data/buildings';
 import { arenaRing } from './arena';
 
@@ -22,6 +22,13 @@ const fail = (error: string): Result => ({ ok: false, error });
 export const EXAM_MIN_LEVEL = 2;
 export const EXAM_COOLDOWN_DAYS = 4;
 export const MAX_ENTRANTS = 8;
+/** Vagas escolhidas no drawer da arena (4 ou 8). */
+export const examSize = (s: GameState) => (s.flags.examSize === 4 ? 4 : MAX_ENTRANTS);
+export function setExamSize(g: Game, n: number): Result {
+  if (g.state.exam) return fail('O Exame já começou.');
+  g.state.flags.examSize = n === 4 ? 4 : 8;
+  return { ok: true };
+}
 /** Pontuação mínima para promoção (o campeão é sempre promovido). */
 export const PROMOTE_SCORE = 4.5;
 
@@ -36,7 +43,7 @@ export function eligibleGenin(g: Game): Unit[] {
       return !(t && missionOfTeam(g, t.id));
     })
     .sort((a, b) => b.ninja!.level - a.ninja!.level)
-    .slice(0, MAX_ENTRANTS);
+    .slice(0, examSize(g.state));
 }
 
 export function examStatus(g: Game) {
@@ -64,22 +71,61 @@ export function arenaSpots(a: Building) {
   const y0 = a.ty * TILE;
   const w = BUILDINGS.arena.w * TILE;
   const ring = arenaRing(a);
-  // lugares ajustáveis no Editor de cenário: "left", "right" (os dois do duelo) e "stands" (começo da arquibancada)
+  // lugares ajustáveis no Editor de cenário: "left", "right" (os dois do duelo) e "seat1"…"seat8" (pés de cada lugar na arquibancada)
   const pt = (n: string, def: { x: number; y: number }) => {
     const p = layoutPoint('arena', n);
     return p ? { x: x0 + p[0], y: y0 + p[1] } : def;
   };
-  const st = pt('stands', { x: x0 + 10, y: y0 + w + 14 });
   return {
     left: pt('left', { x: ring.cx - ring.r * 0.5, y: ring.cy }),
     right: pt('right', { x: ring.cx + ring.r * 0.5, y: ring.cy }),
-    stand: (i: number) => ({ x: st.x + (i % 8) * ((w - 20) / 7), y: st.y + Math.floor(i / 8) * 14 }),
+    // lugares na arquibancada do fundo: pontos "seat1"…"seat8" do Editor de cenário; senão um arco atrás do chão de luta
+    seat: (i: number) => pt(`seat${(i % MAX_ENTRANTS) + 1}`, seatArc(ring, i % MAX_ENTRANTS)),
+    // ponto do chão (dentro do círculo) de onde se salta para o lugar e para onde se desce dele
+    below: (p: { x: number; y: number }) => {
+      const a = Math.atan2(p.y - ring.cy, p.x - ring.cx);
+      return { x: ring.cx + Math.cos(a) * (ring.r - 10), y: ring.cy + Math.sin(a) * (ring.r - 10) };
+    },
     center: { x: x0 + w / 2, y: y0 + w / 2 },
   };
 }
 
+/** Lugar padrão `i` na arquibancada: arco no fundo (−x −y, o alto da tela), logo além da borda do chão de luta. */
+function seatArc(ring: { cx: number; cy: number; r: number }, i: number) {
+  const a = ((195 + (i * 60) / (MAX_ENTRANTS - 1)) * Math.PI) / 180;
+  const d = ring.r + 30;
+  return { x: ring.cx + Math.cos(a) * d, y: ring.cy + Math.sin(a) * d };
+}
+
 function nextPow2(n: number) {
   return n <= 4 ? 4 : 8;
+}
+
+/** Senta na arquibancada (salto curto com fumaça). */
+export function takeSeat(g: Game, u: Unit, arena: Building, p: { x: number; y: number }) {
+  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd' });
+  u.x = p.x;
+  u.y = p.y;
+  u.perch = arena.id;
+  u.path = [];
+  u.hasGoal = false;
+  u.moving = false;
+  u.facing = Math.PI / 4; // olhando para o chão de luta (frente da tela)
+  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd' });
+}
+
+/** Desce da arquibancada para o chão de luta, logo abaixo do lugar. */
+export function leaveSeat(g: Game, u: Unit) {
+  const arena = g.building(u.perch);
+  u.perch = undefined;
+  if (!arena) return;
+  const p = arenaSpots(arena).below(u);
+  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd' });
+  u.x = p.x;
+  u.y = p.y;
+  u.path = [];
+  u.hasGoal = false;
+  u.landT = 0.18;
 }
 
 export function startExam(g: Game): Result {
@@ -93,8 +139,10 @@ export function startExam(g: Game): Result {
   // convidados de outras vilas, com força parecida com a dos nossos genins
   const avg = village.reduce((a, u) => a + STAT_KEYS.reduce((b, k) => b + u.ninja!.stats[k], 0) / STAT_KEYS.length, 0) / village.length;
   for (let i = village.length; i < total; i++) {
-    const p = spots.stand(i);
-    const gst = createNinja(g, p.x + rand(-4, 4), p.y, 'genin');
+    // convidados já aparecem sentados na arquibancada
+    const p = spots.seat(i);
+    const gst = createNinja(g, p.x, p.y, 'genin');
+    gst.perch = st.arena.id;
     gst.faction = 'guest';
     gst.name = `${randomName()} (convidado)`;
     for (const k of STAT_KEYS) gst.ninja!.stats[k] = Math.max(0.5, Math.min(RANKS.genin.statCap, avg + rand(-0.8, 0.8)));
@@ -173,6 +221,7 @@ export function finishExam(g: Game) {
       continue;
     }
     u.arenaSide = undefined;
+    if (u.perch != null) leaveSeat(g, u);
     u.stun = 0;
     u.state = 'idle';
     u.hp = Math.max(u.hp, u.maxHp * 0.5);

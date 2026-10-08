@@ -1,6 +1,6 @@
 // Execução do Exame Chunin na arena: arquibancada → caminhada → "VS" → luta → próximo duelo.
 import { engage } from '../combat';
-import { arenaOf, arenaSpots, finishExam } from '../exam';
+import { arenaOf, arenaSpots, finishExam, leaveSeat, takeSeat } from '../exam';
 import { ARENA_RING, arenaRing } from '../arena';
 import { fxText } from '../fx';
 import type { Game } from '../game';
@@ -11,7 +11,11 @@ const FIGHT_TIME = 40;
 
 export function examSystem(g: Game, dt: number) {
   const exam = g.state.exam;
-  if (!exam) return;
+  if (!exam) {
+    // save de exame encerrado com alguém ainda sentado na arquibancada
+    for (const u of g.state.units) if (u.perch != null && !u.dead) leaveSeat(g, u);
+    return;
+  }
   const arena = arenaOf(g);
   if (!arena) {
     finishExam(g); // a arena foi demolida: encerra com o que houver
@@ -21,16 +25,22 @@ export function examSystem(g: Game, dt: number) {
   exam.timer -= dt;
   const [a, b] = fighters(g, exam);
 
-  // quem não está lutando fica na arquibancada
+  // quem não está lutando assiste da arquibancada: anda até o chão logo abaixo do lugar e salta para ele
   exam.entrants.forEach((e, i) => {
     const u = g.unit(e.id);
     if (!u || u.dead || u.away != null || u === a || u === b) return;
-    walkTo(g, u, spots.stand(i), dt);
+    const seat = spots.seat(i);
+    if (u.perch != null) {
+      if (Math.hypot(u.x - seat.x, u.y - seat.y) > 2) takeSeat(g, u, arena, seat); // trocou de lugar (chaveamento)
+      return;
+    }
+    const below = spots.below(seat);
+    if (walkTo(g, u, below, dt) || (Math.hypot(u.x - below.x, u.y - below.y) < 28 && !u.moving)) takeSeat(g, u, arena, seat);
   });
 
   switch (exam.phase) {
     case 'gather':
-      if (exam.timer <= 0 || everyoneSeated(g, exam, spots)) startMatch(g, exam);
+      if (exam.timer <= 0 || everyoneSeated(g, exam)) startMatch(g, exam);
       break;
     case 'walk': {
       if (!a || !b) return nextMatch(g, exam, a ?? b ?? null);
@@ -108,11 +118,10 @@ function walkTo(g: Game, u: Unit, p: { x: number; y: number }, dt: number) {
   return false;
 }
 
-function everyoneSeated(g: Game, exam: Exam, spots: ReturnType<typeof arenaSpots>) {
-  return exam.entrants.every((e, i) => {
+function everyoneSeated(g: Game, exam: Exam) {
+  return exam.entrants.every((e) => {
     const u = g.unit(e.id);
-    const p = spots.stand(i);
-    return !u || Math.hypot(u.x - p.x, u.y - p.y) < 10;
+    return !u || u.dead || u.away != null || u.perch != null;
   });
 }
 
@@ -123,6 +132,7 @@ function startMatch(g: Game, exam: Exam) {
   a.arenaSide = 1;
   b.arenaSide = 2;
   for (const u of [a, b]) {
+    if (u.perch != null) leaveSeat(g, u); // desce da arquibancada para lutar
     u.state = 'duel';
     u.stun = 0;
     u.targetId = null;

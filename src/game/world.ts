@@ -1,4 +1,4 @@
-import { MAP_H, MAP_W, TILE, VILLAGE_MARGIN } from '../config';
+import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB, TILE, VILLAGE_MARGIN } from '../config';
 import { lerp } from '../core/math';
 import { mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
@@ -16,6 +16,12 @@ export const idx = (tx: number, ty: number) => ty * MAP_W + tx;
 export const inBounds = (tx: number, ty: number) => tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H;
 export const toTile = (v: number) => Math.floor(v / TILE);
 export const tileCenter = (t: number) => t * TILE + TILE / 2;
+/** Células de colisão (meio tile, CELL px). */
+export const fidx = (fx: number, fy: number) => fy * FINE_W + fx;
+export const inFine = (fx: number, fy: number) => fx >= 0 && fy >= 0 && fx < FINE_W && fy < FINE_H;
+export const toCell = (v: number) => Math.floor(v / CELL);
+/** Centro (px) da célula de índice `i`. */
+export const cellCenter = (i: number) => ({ x: (i % FINE_W) * CELL + CELL / 2, y: Math.floor(i / FINE_W) * CELL + CELL / 2 });
 
 export function doorTile(b: Building) {
   const p = layoutPoint(b.type, 'door'); // ajustado no Editor de cenário
@@ -34,8 +40,9 @@ export function doorPos(b: Building) {
 export function siteTiles(site: Site) {
   const L = typeLayout(site.kind);
   if (!L?.tiles) return null;
-  const h = L.tiles.length;
-  const w = Math.max(...L.tiles.map((r) => r.length));
+  // as linhas do layout são em meio tile: o retângulo é em tiles inteiros
+  const h = Math.ceil(L.tiles.length / SUB);
+  const w = Math.ceil(Math.max(...L.tiles.map((r) => r.length)) / SUB);
   const [ox, oy] = L.origin ?? [Math.floor(w / 2), Math.floor(h / 2)];
   return { x0: site.tx - ox, y0: site.ty - oy, w, h };
 }
@@ -46,7 +53,10 @@ export function buildingCenter(b: Building) {
 
 /** Dados derivados do estado (grade de colisão etc.). Não é salvo. */
 export class World {
+  /** Tile bloqueado se qualquer pedaço dele for (para escolher lugar de nascer, trabalhar etc.). */
   readonly blocked = new Uint8Array(MAP_W * MAP_H);
+  /** Colisão de verdade, em meio tile (CELL px): caminhos, empurrões e `walkablePx`. */
+  readonly fine = new Uint8Array(FINE_W * FINE_H);
   readonly occupied = new Int32Array(MAP_W * MAP_H);
   private villageRects: { x0: number; y0: number; x1: number; y1: number }[] = [];
 
@@ -57,23 +67,35 @@ export class World {
   rebuild() {
     const s = this.state;
     this.blocked.fill(0);
+    this.fine.fill(0);
     this.occupied.fill(0);
-    for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blocked[i] = 1;
+    for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blockTile(i % MAP_W, Math.floor(i / MAP_W));
     this.villageRects = [];
     for (const b of s.buildings) {
       const d = BUILDINGS[b.type];
+      // células ajustadas no Editor de cenário (muro/portão, em meio tile) valem com o prédio pronto; senão a regra do prédio
+      const custom = b.built && tileOf(b.type, 0, 0) !== undefined;
       for (let y = b.ty; y < b.ty + d.h; y++)
         for (let x = b.tx; x < b.tx + d.w; x++) {
-          const i = idx(x, y);
-          this.occupied[i] = b.id;
-          // tiles ajustados no Editor de cenário (muro/portão) valem com o prédio pronto; senão a regra do prédio
-          const t = b.built ? tileOf(b.type, x - b.tx, y - b.ty) : undefined;
-          if (t !== undefined) this.blocked[i] = t === '#' ? 1 : this.blocked[i]!;
-          else if (!d.walkable) this.blocked[i] = 1;
+          this.occupied[idx(x, y)] = b.id;
+          if (!custom && !d.walkable) this.blockTile(x, y);
         }
+      if (custom)
+        for (let fy = 0; fy < d.h * SUB; fy++)
+          for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(b.type, fx, fy) === '#') this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
       const m = VILLAGE_MARGIN * TILE;
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
-    }    this.blockSites();
+    }
+    this.blockSites();
+  }
+
+  private blockTile(tx: number, ty: number) {
+    for (let sy = 0; sy < SUB; sy++) for (let sx = 0; sx < SUB; sx++) this.blockCell(tx * SUB + sx, ty * SUB + sy);
+  }
+  private blockCell(fx: number, fy: number) {
+    if (!inFine(fx, fy)) return;
+    this.fine[fidx(fx, fy)] = 1;
+    this.blocked[idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1;
   }
 
   /** Locais à vista (ruína, entrada de mina…) com muro no layout bloqueiam esses tiles. */
@@ -85,8 +107,8 @@ export class World {
       const r = siteTiles(site);
       if (!r) continue;
       const rows = typeLayout(site.kind)!.tiles!;
-      for (let y = 0; y < r.h; y++)
-        for (let x = 0; x < r.w; x++) if (rows[y]?.[x] === '#' && inBounds(r.x0 + x, r.y0 + y)) this.blocked[idx(r.x0 + x, r.y0 + y)] = 1;
+      for (let y = 0; y < rows.length; y++)
+        for (let x = 0; x < rows[y]!.length; x++) if (rows[y]![x] === '#') this.blockCell(r.x0 * SUB + x, r.y0 * SUB + y);
     }
   }
 
@@ -94,7 +116,10 @@ export class World {
     return inBounds(tx, ty) && this.blocked[idx(tx, ty)] === 0;
   }
   walkablePx(x: number, y: number) {
-    return this.walkable(toTile(x), toTile(y));
+    return this.walkableCell(toCell(x), toCell(y));
+  }
+  walkableCell(fx: number, fy: number) {
+    return inFine(fx, fy) && this.fine[fidx(fx, fy)] === 0;
   }
   buildingIdAt(tx: number, ty: number) {
     return inBounds(tx, ty) ? this.occupied[idx(tx, ty)]! : 0;

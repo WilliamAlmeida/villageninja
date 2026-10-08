@@ -163,6 +163,8 @@ export interface Unit {
   arenaSide?: number;
   /** Segundos desde que foi empurrado por um golpe (conta para baixo; ring-out no Exame). */
   knockT?: number;
+  /** Sentado na arquibancada do prédio de id (Exame Chunin): fica no lugar e é desenhado por cima do fundo da arena. */
+  perch?: number;
   /** Acabou de pousar (Shunshin): tempo do "esmaga e estica" da aterrissagem. Só desenho. */
   landT?: number;
   /** Golpe corpo a corpo a caminho: o dano entra no auge do avanço do sprite (`resolveStrike`); dura até o avanço acabar. */
@@ -576,7 +578,7 @@ export interface GameState {
   items: Record<string, number>;
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean; /** Vagas do Exame Chunin (4 ou 8; padrão 8). */ examSize?: number };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 

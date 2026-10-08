@@ -198,6 +198,17 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   25: () => {
     // landT e strike (golpe com o dano no auge do avanço) são opcionais: nada a converter
   },
+  26: (s) => {
+    // colisão e caminhos passaram a meio tile: rotas guardadas (em tiles) são refeitas; perch (plateia do Exame) é opcional
+    const clear = (st: any) => {
+      for (const u of st?.units ?? []) {
+        u.path = [];
+        u.hasGoal = false;
+      }
+    };
+    clear(s);
+    clear(s.scene);
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -13,7 +13,7 @@ import { findPath, nearestWalkable } from './pathfinding';
 import { gainXp } from './progression';
 import { teamUnits } from './teams';
 import type { Cost, Mission, Team, Unit } from './types';
-import { CENTER_TX, CENTER_TY, doorTile, tileCenter, toTile } from './world';
+import { CENTER_TX, CENTER_TY, cellCenter, doorTile, tileCenter, toTile } from './world';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -267,9 +267,9 @@ function spawnObjective(g: Game, m: Mission) {
 
 /** Emboscada na escolta: bandidos saem da mata à frente do mercador. */
 export function spawnAmbush(g: Game, m: Mission, merchant: Unit) {
-  const ahead = merchant.path[Math.min(merchant.path.length - 1, 7)];
-  const ax = ahead != null ? tileCenter(ahead % MAP_W) : merchant.x;
-  const ay = ahead != null ? tileCenter(Math.floor(ahead / MAP_W)) : merchant.y;
+  const ahead = merchant.path[Math.min(merchant.path.length - 1, 14)];
+  const ax = ahead != null ? cellCenter(ahead).x : merchant.x;
+  const ay = ahead != null ? cellCenter(ahead).y : merchant.y;
   for (const e of templateOf(m).ambush ?? []) {
     const p = around(g, ax, ay, 2.5 * TILE);
     const u = spawnEnemy(g, m, e, p.x, p.y);

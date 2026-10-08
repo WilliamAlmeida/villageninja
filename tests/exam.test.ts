@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { createAnimal, createNinja } from '../src/game/entities';
-import { examStatus, startExam } from '../src/game/exam';
+import { examStatus, setExamSize, startExam } from '../src/game/exam';
 import { arenaRing, keepInRing } from '../src/game/arena';
 import { push } from '../src/game/movement';
 import type { Game } from '../src/game/game';
@@ -97,6 +97,27 @@ describe('Exame Chunin', () => {
     const x = u.x;
     run(g, 20);
     expect(u.x).toBe(x); // o Exame não o leva mais para lá e para cá
+  });
+
+  test('quem não luta assiste sentado na arquibancada; vagas 4 limitam os inscritos', () => {
+    const g = setup(13, 6);
+    expect(setExamSize(g, 4).ok).toBe(true);
+    expect(startExam(g).ok).toBe(true);
+    const ex = g.state.exam!;
+    expect(ex.entrants.length).toBe(4);
+    let guard = 0;
+    while (ex.phase === 'gather' && guard++ < 300) run(g, 0.1);
+    expect(ex.phase).not.toBe('gather');
+    const a = g.unit(ex.bracket[ex.match])!;
+    const b = g.unit(ex.bracket[ex.match + 1])!;
+    expect(a.perch).toBeUndefined(); // desceu para lutar
+    expect(b.perch).toBeUndefined();
+    const watching = ex.entrants.map((e) => g.unit(e.id)!).filter((u) => u !== a && u !== b);
+    expect(watching.every((u) => u.perch != null)).toBe(true);
+    // fim do exame: todo mundo desce
+    run(g, 400);
+    expect(g.state.exam).toBeNull();
+    expect(g.state.units.some((u) => !u.dead && u.perch != null)).toBe(false);
   });
 
   test('exige arena e genins de nível 2+', () => {

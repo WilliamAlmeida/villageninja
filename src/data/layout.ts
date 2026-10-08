@@ -47,11 +47,14 @@ export interface TypeLayout {
   /** Tamanho do terreno em tiles (sobrepõe o do prédio). */
   w?: number;
   h?: number;
-  /** Uma linha por fileira de tiles: "." livre, "#" muro (bloqueia), "g" portão (livre, por onde se entra). */
+  /**
+   * Colisão em MEIO tile (16 px): uma linha por fileira de células (2 por tile, então h×2 linhas de w×2 letras):
+   * "." livre, "#" muro (bloqueia), "g" portão (livre, por onde se entra).
+   */
   tiles?: string[];
   /** Locais (ruína…): tile do local dentro da grade (padrão: o meio). */
   origin?: [number, number];
-  /** Pontos especiais em px de mundo a partir do canto do terreno (ex.: door, left, right, stands, guard, chimney). */
+  /** Pontos especiais em px de mundo a partir do canto do terreno (ex.: door, left, right, seat1…seat8, guard, chimney). */
   points?: Record<string, [number, number]>;
 }
 
@@ -87,7 +90,7 @@ export function setLayout(l: Layout) {
 }
 export const touchLayout = () => layoutVersion++;
 
-/** Tile (x, y) do terreno: "." livre, "#" muro, "g" portão; undefined = sem ajuste (regra padrão do prédio). */
+/** Célula (x, y) do terreno, em meio tile: "." livre, "#" muro, "g" portão; undefined = sem ajuste (regra padrão do prédio). */
 export function tileOf(type: string, x: number, y: number): string | undefined {
   const t = LAYOUT.types[type]?.tiles;
   if (!t) return undefined;

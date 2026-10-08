@@ -26,6 +26,9 @@ describe('golpe comum com o dano no auge do avanço', () => {
     n.chakra = 0;
     const r = createRogue(g, x + 14, y, 1);
     r.hp = r.maxHp = 500;
+    r.stun = 99; // parado e sem revidar
+    if (r.ninja) r.ninja.stats.velocidade = 0; // sem esquiva
+    r.kawaCd = 999; // nem Kawarimi
     run(g, 5, () => !!n.strike);
     expect(n.strike).toBeDefined();
     expect(r.hp).toBe(500); // marcado, ainda sem dano

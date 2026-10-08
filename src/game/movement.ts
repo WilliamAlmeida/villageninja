@@ -1,28 +1,25 @@
-import { MAP_W, TILE } from '../config';
+import { TILE } from '../config';
 import { weatherSpeed } from './mood';
 import { sageSpeed } from './sannin';
 import { bladeMove } from './blades';
 import type { Game } from './game';
-import { findPath } from './pathfinding';
+import { findPathPx } from './pathfinding';
 import type { Unit } from './types';
-import { idx, tileCenter, toTile } from './world';
+import { cellCenter, fidx, toCell } from './world';
 
 /** Calcula rota até (x,y). Retorna false se não houver caminho. */
 export function setDestination(g: Game, u: Unit, x: number, y: number): boolean {
-  const sx = toTile(u.x);
-  const sy = toTile(u.y);
-  const p = findPath(g.world, sx, sy, toTile(x), toTile(y));
+  const p = findPathPx(g.world, u.x, u.y, x, y);
   if (!p) {
     u.hasGoal = false;
     u.path.length = 0;
     return false;
   }
   u.path = p;
-  const last = p.length ? p[p.length - 1]! : idx(sx, sy);
-  if (last !== idx(toTile(x), toTile(y))) {
-    // destino bloqueado: vai até o tile livre mais próximo
-    x = tileCenter(last % MAP_W);
-    y = tileCenter(Math.floor(last / MAP_W));
+  const last = p.length ? p[p.length - 1]! : fidx(toCell(u.x), toCell(u.y));
+  if (last !== fidx(toCell(x), toCell(y))) {
+    // destino bloqueado: vai até a célula livre mais próxima
+    ({ x, y } = cellCenter(last));
   }
   u.goalX = x;
   u.goalY = y;
@@ -39,9 +36,7 @@ export function followPath(g: Game, u: Unit, dt: number, mult = 1): boolean {
   let tx: number;
   let ty: number;
   if (u.path.length > 1) {
-    const i = u.path[0]!;
-    tx = tileCenter(i % MAP_W);
-    ty = tileCenter(Math.floor(i / MAP_W));
+    ({ x: tx, y: ty } = cellCenter(u.path[0]!));
   } else {
     tx = u.goalX;
     ty = u.goalY;

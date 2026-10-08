@@ -7,7 +7,7 @@
 // - Arte: escala e deslocamento do desenho;
 // - Pontos: porta, lugares do Exame, guarda da torre, chaminé;
 // - Bonecos: vários ninjas de teste para arrastar ou mandar andar (caminho de verdade, respeitando muros e portão).
-import { TILE } from '../../src/config';
+import { CELL, SUB, TILE } from '../../src/config';
 import { Camera } from '../../src/core/camera';
 import { project, unproject } from '../../src/core/iso';
 import { BUILDING_LIST, BUILDINGS, type BuildingType } from '../../src/data/buildings';
@@ -19,6 +19,7 @@ import { createNewGame } from '../../src/game/newGame';
 import { statusSystem } from '../../src/game/systems/status';
 import type { Building, ResourceNode, Site, Unit } from '../../src/game/types';
 import { CENTER_TX, CENTER_TY, doorPos, T } from '../../src/game/world';
+import { arenaSpots } from '../../src/game/exam';
 import { art, preloadArt } from '../../src/render/art';
 import { maskOf } from '../../src/render/pieces';
 import { Renderer } from '../../src/render/renderer';
@@ -269,18 +270,20 @@ function gridInfo() {
   }
   if (site) {
     const t = typeL();
-    const h = t.tiles?.length ?? 3;
-    const w = t.tiles ? Math.max(...t.tiles.map((r) => r.length)) : 3;
+    // linhas do layout em meio tile; o tamanho em tiles inteiros
+    const h = t.tiles ? Math.ceil(t.tiles.length / SUB) : 3;
+    const w = t.tiles ? Math.ceil(Math.max(...t.tiles.map((r) => r.length)) / SUB) : 3;
     const [ox, oy] = t.origin ?? [Math.floor(w / 2), Math.floor(h / 2)];
     return { x0: site.tx - ox, y0: site.ty - oy, w, h };
   }
   return null;
 }
+/** Células do terreno (meio tile): gi.h×SUB linhas de gi.w×SUB letras. */
 function tileRows(): string[] {
   const gi = gridInfo()!;
   const t = typeL().tiles;
   const def = building && !BUILDINGS[building.type].walkable ? '#' : '.';
-  return Array.from({ length: gi.h }, (_, y) => Array.from({ length: gi.w }, (_, x) => t?.[y]?.[x] ?? def).join(''));
+  return Array.from({ length: gi.h * SUB }, (_, y) => Array.from({ length: gi.w * SUB }, (_, x) => t?.[y]?.[x] ?? def).join(''));
 }
 
 // ------------------------------------------------------------------ pontos
@@ -289,7 +292,10 @@ function pointDefs(): PointDef[] {
   if (!building) return [];
   const out: PointDef[] = [{ name: 'door', label: 'Porta (onde entram e saem)' }];
   if (building.type === 'arena')
-    out.push({ name: 'center', label: 'Centro do chão de luta' }, { name: 'edge', label: 'Borda do chão de luta (raio)' }, { name: 'left', label: 'Lutador 1' }, { name: 'right', label: 'Lutador 2' }, { name: 'stands', label: 'Começo da plateia' });
+    out.push(
+      { name: 'center', label: 'Centro do chão de luta' }, { name: 'edge', label: 'Borda do chão de luta (raio)' }, { name: 'left', label: 'Lutador 1' }, { name: 'right', label: 'Lutador 2' },
+      ...Array.from({ length: 8 }, (_, i) => ({ name: `seat${i + 1}`, label: `Lugar ${i + 1} na arquibancada (pés)` })),
+    );
   if (building.type === 'tower') out.push({ name: 'guard', label: 'Guarda (no alto, nesta arte)', scene: true });
   if (building.type === 'house') out.push({ name: 'chimney', label: 'Chaminé (nesta arte)', scene: true });
   return out;
@@ -307,6 +313,13 @@ function pointPos(pd: PointDef): { x: number; y: number } | null {
     const d = doorPos(building);
     return worldToScreen(d.x, d.y);
   }
+  if (building.type === 'arena') {
+    // sem ponto salvo: mostra onde o jogo usa (lutadores e lugares da arquibancada)
+    const sp = arenaSpots(building);
+    const m = /^seat(\d)$/.exec(pd.name);
+    const q = m ? sp.seat(Number(m[1]) - 1) : pd.name === 'left' ? sp.left : pd.name === 'right' ? sp.right : null;
+    if (q) return worldToScreen(q.x, q.y);
+  }
   return null;
 }
 
@@ -320,7 +333,7 @@ function changed() {
 }
 const HELP: Record<Mode, string> = {
   pieces: 'Pinte arrastando com o botão esquerdo · Borracha devolve ao "resto" · "Âncora": clique onde a peça toca o chão · roda do mouse: zoom · Alt+arrastar ou botão do meio: mover a vista',
-  tiles: 'Clique num tile para trocar: livre → muro → portão. Muro bloqueia todo mundo; portão é por onde se entra.',
+  tiles: 'Células de meio tile (16 px): clique troca livre → muro → portão; arrastar pinta as outras com o mesmo valor. Muro bloqueia todo mundo; portão é por onde se entra.',
   art: 'Ajuste a escala e o deslocamento do desenho (também dá para arrastar a arte com o botão esquerdo).',
   points: 'Escolha o ponto à direita e clique no lugar dele na cena.',
   dummies: 'Botão esquerdo: escolher/arrastar boneco · Botão direito: o boneco escolhido anda até lá pelo caminho de verdade.',
@@ -505,7 +518,7 @@ props.addEventListener('input', (e) => {
     const h = t.id === 'th' ? Math.max(1, Number(t.value)) : gi.h;
     const rows = tileRows();
     const def = building && !BUILDINGS[building.type].walkable ? '#' : '.';
-    typeL().tiles = Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => rows[y]?.[x] ?? def).join(''));
+    typeL().tiles = Array.from({ length: h * SUB }, (_, y) => Array.from({ length: w * SUB }, (_, x) => rows[y]?.[x] ?? def).join(''));
     if (building) {
       typeL().w = w;
       typeL().h = h;
@@ -517,7 +530,9 @@ props.addEventListener('input', (e) => {
 });
 
 // ------------------------------------------------------------------ cena: mouse
-let drag: { kind: 'paint' | 'pan' | 'art' | 'dummy' | 'fade'; x: number; y: number; ox?: number; oy?: number; u0?: number; v0?: number } | null = null;
+/** Valor que o arrasto no Terreno pinta (o da 1ª célula clicada). */
+let cellPaint = '#';
+let drag: { kind: 'paint' | 'pan' | 'art' | 'dummy' | 'fade' | 'cells'; x: number; y: number; ox?: number; oy?: number; u0?: number; v0?: number } | null = null;
 let mouse = { x: 0, y: 0 };
 
 function paintAt(sx: number, sy: number) {
@@ -619,18 +634,21 @@ over.addEventListener('pointerdown', (e) => {
     const gi = gridInfo();
     if (!gi) return;
     const w = screenToWorld(x, y);
-    const tx = Math.floor(w.x / TILE) - gi.x0;
-    const ty = Math.floor(w.y / TILE) - gi.y0;
-    if (tx < 0 || ty < 0 || tx >= gi.w || ty >= gi.h) return;
+    const cx = Math.floor(w.x / CELL) - gi.x0 * SUB;
+    const cy = Math.floor(w.y / CELL) - gi.y0 * SUB;
+    if (cx < 0 || cy < 0 || cx >= gi.w * SUB || cy >= gi.h * SUB) return;
     snapshot();
     if (site && e.shiftKey) {
-      typeL().origin = [tx, ty];
+      typeL().origin = [Math.floor(cx / SUB), Math.floor(cy / SUB)];
       typeL().tiles = tileRows();
     } else {
+      // clique troca a célula; arrastando, pinta as outras com o mesmo valor
       const rows = tileRows().map((r) => r.split(''));
-      const cur = rows[ty]![tx]!;
-      rows[ty]![tx] = cur === '.' ? '#' : cur === '#' ? 'g' : '.';
+      const cur = rows[cy]![cx]!;
+      cellPaint = cur === '.' ? '#' : cur === '#' ? 'g' : '.';
+      rows[cy]![cx] = cellPaint;
       typeL().tiles = rows.map((r) => r.join(''));
+      drag = { kind: 'cells', x, y };
     }
     place();
     changed();
@@ -650,7 +668,19 @@ over.addEventListener('pointermove', (e) => {
     drag.x = e.offsetX;
     drag.y = e.offsetY;
   } else if (drag.kind === 'paint') paintAt(e.offsetX, e.offsetY);
-  else if (drag.kind === 'art') {
+  else if (drag.kind === 'cells') {
+    const gi = gridInfo();
+    if (!gi) return;
+    const w = screenToWorld(e.offsetX, e.offsetY);
+    const cx = Math.floor(w.x / CELL) - gi.x0 * SUB;
+    const cy = Math.floor(w.y / CELL) - gi.y0 * SUB;
+    const rows = tileRows().map((r) => r.split(''));
+    if (cx < 0 || cy < 0 || cy >= rows.length || cx >= rows[0]!.length || rows[cy]![cx] === cellPaint) return;
+    rows[cy]![cx] = cellPaint;
+    typeL().tiles = rows.map((r) => r.join(''));
+    place();
+    changed();
+  } else if (drag.kind === 'art') {
     const a = artL();
     a.dx = Math.round(drag.ox! + (e.offsetX - drag.x) / camera.zoom);
     a.dy = Math.round(drag.oy! + (e.offsetY - drag.y) / camera.zoom);
@@ -723,19 +753,31 @@ function drawOverlay() {
     const gi = gridInfo();
     if (gi) {
       const rows = tileRows();
+      // células de meio tile (16 px), com a borda de cada tile inteiro mais forte
+      for (let y = 0; y < gi.h * SUB; y++)
+        for (let x = 0; x < gi.w * SUB; x++) {
+          const c = rows[y]![x]!;
+          const cx = gi.x0 * SUB + x;
+          const cy = gi.y0 * SUB + y;
+          const p = [worldToScreen(cx * CELL, cy * CELL), worldToScreen((cx + 1) * CELL, cy * CELL), worldToScreen((cx + 1) * CELL, (cy + 1) * CELL), worldToScreen(cx * CELL, (cy + 1) * CELL)];
+          octx.beginPath();
+          p.forEach((q, i) => (i ? octx.lineTo(q.x, q.y) : octx.moveTo(q.x, q.y)));
+          octx.closePath();
+          octx.fillStyle = c === '#' ? 'rgba(255,90,90,0.45)' : c === 'g' ? 'rgba(255,211,77,0.55)' : 'rgba(125,220,107,0.25)';
+          octx.fill();
+          octx.strokeStyle = 'rgba(0,0,0,0.25)';
+          octx.lineWidth = 1;
+          octx.stroke();
+        }
       for (let y = 0; y < gi.h; y++)
         for (let x = 0; x < gi.w; x++) {
-          const c = rows[y]![x]!;
           const tx = gi.x0 + x;
           const ty = gi.y0 + y;
           const p = [worldToScreen(tx * TILE, ty * TILE), worldToScreen((tx + 1) * TILE, ty * TILE), worldToScreen((tx + 1) * TILE, (ty + 1) * TILE), worldToScreen(tx * TILE, (ty + 1) * TILE)];
           octx.beginPath();
           p.forEach((q, i) => (i ? octx.lineTo(q.x, q.y) : octx.moveTo(q.x, q.y)));
           octx.closePath();
-          octx.fillStyle = c === '#' ? 'rgba(255,90,90,0.45)' : c === 'g' ? 'rgba(255,211,77,0.55)' : 'rgba(125,220,107,0.25)';
-          octx.fill();
-          octx.strokeStyle = 'rgba(0,0,0,0.5)';
-          octx.lineWidth = 1;
+          octx.strokeStyle = 'rgba(0,0,0,0.6)';
           octx.stroke();
         }
       if (site) {
