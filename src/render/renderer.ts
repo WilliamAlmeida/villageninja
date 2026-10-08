@@ -25,7 +25,7 @@ import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
 import { buildingCenter, doorPos, nodeArt } from '../game/world';
-import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
+import { art, artFoot, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
@@ -915,7 +915,8 @@ export class Renderer {
     const h = (w / pic.naturalWidth) * pic.naturalHeight;
     const cx = x + (L?.dx ?? 0);
     const top = y + (L?.dy ?? 0) + w * 0.18 - h;
-    return { name, pic, w, h, left: cx - w / 2, top, x: cx, y: y + (L?.dy ?? 0) };
+    const f = artFoot(pic); // onde o desenho toca o chão (anel e brilho centrados aí)
+    return { name, pic, w, h, left: cx - w / 2, top, x: cx, y: y + (L?.dy ?? 0), fx: cx - w / 2 + f.cx * w, fy: top + f.by * h, fr: f.hw * w };
   }
 
   /** Peça pintada de um local (0 = resto, com o brilho de "ainda não investigado" e a seleção). */
@@ -929,14 +930,14 @@ export class Renderer {
       if (!site.done) {
         ctx.fillStyle = `rgba(255,211,77,${0.25 + 0.2 * Math.sin(time * 3 + site.id)})`;
         ctx.beginPath();
-        ctx.ellipse(box.x, box.y + 4, box.w * 0.45, box.w * 0.18, 0, 0, Math.PI * 2);
+        ctx.ellipse(box.fx, box.fy - box.fr * 0.45, box.fr * 1.08, box.fr * 0.5, 0, 0, Math.PI * 2);
         ctx.fill();
       }
       if (selected) {
         ctx.strokeStyle = '#ffd34d';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(box.x, box.y + 4, box.w * 0.5, box.w * 0.21, 0, 0, Math.PI * 2);
+        ctx.ellipse(box.fx, box.fy - box.fr * 0.45, box.fr * 1.18, box.fr * 0.56, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
@@ -956,38 +957,47 @@ export class Renderer {
     const w = (site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90) * (L?.scale ?? 1);
     x += L?.dx ?? 0;
     y += L?.dy ?? 0;
+    // retângulo da arte (baú: mesma escala aberto ou fechado) e onde ela toca o chão: anel, brilho e sombra ficam aí
+    // (a base isométrica 2:1 tem o centro meia largura/2 acima da ponta de baixo)
+    const chest = site.kind === 'chest';
+    const pw = pic ? (chest ? (w * pic.naturalWidth) / 96 : w) : 0;
+    const ph = pic ? (pw / pic.naturalWidth) * pic.naturalHeight : 0;
+    const left = x - pw / 2 + (chest && site.done ? -w * 0.06 : 0);
+    const top = (chest ? y + w * 0.12 : y + w * 0.18) - ph;
+    const f = pic ? artFoot(pic) : { cx: 0.5, by: 1, hw: 0.4 };
+    const fx = pic ? left + f.cx * pw : x;
+    const fy = pic ? top + f.by * ph : y + 4;
+    const fr = pic ? f.hw * pw : w * 0.4;
+    const fade = chest && site.done ? Math.max(0, Math.min(1, (CHEST_LINGER - doneFor(site)) / 1.2)) : 1; // baú aberto some aos poucos
     if (!site.done) {
       const a = 0.25 + 0.2 * Math.sin(time * 3 + site.id);
       ctx.fillStyle = `rgba(255,211,77,${a})`;
       ctx.beginPath();
-      ctx.ellipse(x, y + 4, w * 0.45, w * 0.18, 0, 0, Math.PI * 2);
+      ctx.ellipse(fx, fy - fr * 0.45, fr * 1.08, fr * 0.5, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     if (selected) {
       ctx.strokeStyle = '#ffd34d';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(x, y + 4, w * 0.5, w * 0.21, 0, 0, Math.PI * 2);
+      ctx.ellipse(fx, fy - fr * 0.45, fr * 1.18, fr * 0.56, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    if (pic && site.kind === 'chest') {
-      // baú sem chão na arte: sombra própria (encaixa em qualquer piso) e a mesma escala aberto ou fechado
+    if (pic && chest) {
+      // baú sem chão na arte: sombra própria (encaixa em qualquer piso)
+      ctx.save();
+      ctx.globalAlpha *= fade;
       ctx.fillStyle = 'rgba(0,0,0,0.32)';
       ctx.beginPath();
-      ctx.ellipse(x, y + 2, w * 0.46, w * 0.17, 0, 0, Math.PI * 2);
+      ctx.ellipse(fx, fy - fr * 0.45, fr * 1.0, fr * 0.42, 0, 0, Math.PI * 2);
       ctx.fill();
-      const pw = (w * pic.naturalWidth) / 96;
-      const ph = (pw / pic.naturalWidth) * pic.naturalHeight;
       smoothIfShrunk(ctx, pw, pic.naturalWidth);
-      ctx.save();
-      if (site.done) ctx.globalAlpha *= Math.max(0, Math.min(1, (CHEST_LINGER - doneFor(site)) / 1.2)); // some aos poucos
-      ctx.drawImage(pic, x - pw / 2 + (site.done ? -w * 0.06 : 0), y + w * 0.12 - ph, pw, ph);
+      ctx.drawImage(pic, left, top, pw, ph);
       ctx.restore();
       ctx.imageSmoothingEnabled = true;
     } else if (pic) {
-      const h = (w / pic.naturalWidth) * pic.naturalHeight;
-      smoothIfShrunk(ctx, w, pic.naturalWidth);
-      ctx.drawImage(pic, x - w / 2, y + w * 0.18 - h, w, h);
+      smoothIfShrunk(ctx, pw, pic.naturalWidth);
+      ctx.drawImage(pic, left, top, pw, ph);
       ctx.imageSmoothingEnabled = true;
     } else {
       ctx.fillStyle = site.kind === 'chest' ? '#8a5a2b' : '#777';

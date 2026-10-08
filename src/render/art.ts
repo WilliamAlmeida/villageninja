@@ -300,6 +300,36 @@ export function artRect(img: Pic, x: number, baseY: number, height: number) {
   return { left: x - w / 2, top: baseY - height, w, h: height, fw, fh, frames: sheet.frames };
 }
 
+const feet = new WeakMap<object, { cx: number; by: number; hw: number }>();
+/**
+ * Onde a arte toca o chão, em fração da imagem: centro (`cx`) e meia largura (`hw`) do corpo principal (as colunas
+ * com bastante pixel, ignorando moedas e pedrinhas soltas) e a linha de baixo dele (`by`). O anel de seleção, o brilho
+ * de "ainda não investigado" e a sombra se centram aí, e não no meio do quadrado da imagem.
+ */
+export function artFoot(pic: Pic) {
+  const hit = feet.get(pic);
+  if (hit) return hit;
+  const { w, h } = size(pic);
+  if (!w || !h) return { cx: 0.5, by: 1, hw: 0.4 };
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(pic, 0, 0);
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const cols = new Array<number>(w).fill(0);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]! > 128) cols[x]!++;
+  const max = Math.max(...cols);
+  let x0 = cols.findIndex((n) => n >= max * 0.35);
+  let x1 = w - 1 - [...cols].reverse().findIndex((n) => n >= max * 0.35);
+  if (x0 < 0) [x0, x1] = [0, w - 1];
+  let by = h - 1;
+  outer: for (; by > 0; by--) for (let x = x0; x <= x1; x++) if (d[(by * w + x) * 4 + 3]! > 128) break outer;
+  const foot = { cx: (x0 + x1 + 1) / 2 / w, by: (by + 1) / h, hw: (x1 - x0 + 1) / 2 / w };
+  feet.set(pic, foot);
+  return foot;
+}
+
 const whites = new WeakMap<object, HTMLCanvasElement>();
 /** A arte toda branca (mesmo alfa), para o clarão de quem levou dano. */
 export function whiteArt(pic: Pic): HTMLCanvasElement {
