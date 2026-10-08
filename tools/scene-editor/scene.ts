@@ -21,7 +21,7 @@ import type { Building, ResourceNode, Site, Unit } from '../../src/game/types';
 import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, T, tileCenter } from '../../src/game/world';
 import { arenaSpots } from '../../src/game/exam';
 import { art, preloadArt } from '../../src/render/art';
-import { fillPoly, hullOf, maskOf } from '../../src/render/pieces';
+import { applyPolys, hullOf, maskOf } from '../../src/render/pieces';
 import { Renderer } from '../../src/render/renderer';
 
 // ------------------------------------------------------------------ itens
@@ -154,12 +154,12 @@ function buildOverlay() {
   for (let i = 0; i < W * H; i++) paintPx(i, shown[i]!);
   cx.putImageData(img, 0, 0);
 }
-/** O que vale de verdade: a pintura com os polígonos das peças por cima (igual ao jogo, render/pieces.ts). */
+/** O que vale de verdade: peça com polígono = o polígono; sem, a pintura (igual ao jogo, render/pieces.ts). */
 function composite(): Uint8Array {
   const m = mask()!;
   const p = pic()!;
   const out = new Uint8Array(m);
-  (artL().pieces ?? []).forEach((pc, i) => pc.poly && pc.poly.length >= 3 && fillPoly(out, p.naturalWidth, p.naturalHeight, pc.poly, i + 1));
+  applyPolys(out, p.naturalWidth, p.naturalHeight, artL().pieces ?? []);
   return out;
 }
 function paintPx(i: number, v: number) {
@@ -380,7 +380,7 @@ function renderProps() {
       });
       h += `<div class="row"><button id="addpiece">+ Nova peça</button></div>`;
       h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" title="Pincel (B)">Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" title="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">Lata</button><button id="polytool" class="${paintTool === 'poly' ? 'on' : ''}" title="Polígono (P): pontos arrastáveis que definem a peça ativa">Polígono</button><button id="brusherase" class="${erase ? 'on' : ''}" title="Borracha (E): pincel ou lata devolvem ao resto">Borracha</button></div>
-        ${paintTool === 'poly' ? `<p class="hint">Peça ativa: arraste os pontos; clique numa aresta cria ponto; botão direito num ponto apaga. Sem polígono, um clique cria um retângulo. O polígono vale por cima da pintura.</p>
+        ${paintTool === 'poly' ? `<p class="hint">Peça ativa: arraste os pontos; clique numa aresta cria ponto; botão direito num ponto apaga. Sem polígono, um clique cria um retângulo. Com polígono, a peça é exatamente ele (a pintura dela deixa de valer).</p>
           <div class="row"><button id="polyguess" title="Contorno convexo do que já está pintado nesta peça">Adivinhar forma</button><button id="polybox" title="Retângulo em volta do que está pintado nesta peça">Retângulo do contorno</button><button id="polydel">Apagar polígono</button></div>` : paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<p class="hint">Clique numa área pintada (ou no resto) para trocá-la inteira pela peça ativa; com a Borracha, ela volta ao resto.</p>`}
         <div class="row"><button id="clearmask">Limpar pintura</button></div>`;
     }
@@ -484,7 +484,8 @@ props.addEventListener('click', (e) => {
     const H = p.naturalHeight;
     if (id === 'polydel') delete pc.poly;
     else {
-      const hull = hullOf(composite(), overlay.alpha, W, H, activePiece);
+      // a partir do que está PINTADO nesta peça (sem o polígono atual)
+      const hull = hullOf(mask()!, overlay.alpha, W, H, activePiece);
       if (hull.length >= 3) {
         if (id === 'polyguess') pc.poly = hull;
         else {

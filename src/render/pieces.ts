@@ -26,8 +26,9 @@ export function pieceCovers(set: PieceSet, p: number, fx: number, fy: number): b
 const cache = new Map<string, { v: number; pic: CanvasImageSource; set: PieceSet | null }>();
 
 /**
- * Máscara da arte (índice da peça por pixel), ou null. Junta a pintura com os polígonos das peças (cada polígono
- * vale por cima da pintura, na ordem das peças). `raw`: só a pintura (o Editor de cenário pinta nela).
+ * Máscara da arte (índice da peça por pixel), ou null. Peça com polígono = exatamente o polígono (a pintura dela
+ * fora dele volta ao resto e o que estiver dentro passa a ser dela); sem polígono, vale a pintura.
+ * `raw`: só a pintura (o Editor de cenário pinta nela).
  */
 export function maskOf(name: string, w: number, h: number, raw = false): Uint8Array | null {
   const L = artLayout(name);
@@ -45,8 +46,17 @@ export function maskOf(name: string, w: number, h: number, raw = false): Uint8Ar
       m = out;
     }
   }
-  if (!raw) L.pieces.forEach((p, i) => p.poly && p.poly.length >= 3 && fillPoly(m, w, h, p.poly, i + 1));
+  if (!raw) applyPolys(m, w, h, L.pieces);
   return m;
+}
+
+/** Peças com polígono: some a pintura delas e entra o polígono (na ordem das peças). */
+export function applyPolys(m: Uint8Array, w: number, h: number, pieces: { poly?: [number, number][] }[]) {
+  const withPoly = new Set<number>();
+  pieces.forEach((p, i) => p.poly && p.poly.length >= 3 && withPoly.add(i + 1));
+  if (!withPoly.size) return;
+  for (let i = 0; i < m.length; i++) if (withPoly.has(m[i]!)) m[i] = 0;
+  pieces.forEach((p, i) => withPoly.has(i + 1) && fillPoly(m, w, h, p.poly!, i + 1));
 }
 
 /** Pinta `v` nos pixels cujo centro fica dentro do polígono (pontos 0–1), linha a linha (par-ímpar). */
