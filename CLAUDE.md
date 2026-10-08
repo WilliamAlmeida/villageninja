@@ -198,7 +198,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   cada 1 s) refaz só a colisão dos recursos quando um racha, vira toco, some ou rebrota. Bandeira de "defender ponto"
   some quando o ninja chega nela. **Arte**: escala e deslocamento (`Renderer.artBox`/`siteBox`, `drawNode`). **Pontos**:
   porta (`doorPos`), Exame (`center`, `edge`, `left`, `right`, `seat1`…`seat8`), marcas na arte (`guard`, `chimney`). Bonecos de
-  teste (vários; arrastar ou mandar andar pelo caminho de verdade). Salvar grava o JSON (cópia em docs/arte/backup-editor) e
+  teste (vários; arrastar ou mandar andar pelo caminho de verdade), com "Mostrar" para ver junto as peças, o terreno,
+  os pontos e a linha do chão (lembrado no navegador). Salvar grava o JSON (cópia em docs/arte/backup-editor) e
   o jogo se refaz. A arena começou de `scripts/layout-arena.py` (rodar de novo sobrescreve a arena).
 - **Arena do Exame redonda** (6×6, coliseu com portão na frente-esquerda; muro, portão e peças no layout.json; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
   só pousam dentro (`keepInRing`), a distância de luta cabe nele (`ringDesired`) e andar não tira ninguém; empurrado para

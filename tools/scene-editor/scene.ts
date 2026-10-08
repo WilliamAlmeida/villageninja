@@ -72,6 +72,17 @@ let brush = 12;
 let erase = false;
 /** Pincel ou lata de tinta (troca a área contínua da máscara). */
 let paintTool: 'brush' | 'fill' | 'poly' = 'brush';
+/** Camadas visíveis no modo Bonecos (lembradas neste navegador): peças (máscara + âncoras), terreno, pontos, chão. */
+type Layer = 'pieces' | 'tiles' | 'points' | 'base';
+const showLayers = new Set<Layer>((() => {
+  try {
+    return JSON.parse(localStorage.getItem('cenario.layers') ?? '["pieces"]') as Layer[];
+  } catch {
+    return ['pieces'] as Layer[];
+  }
+})());
+/** A camada aparece: no modo dela, ou no modo Bonecos se estiver marcada. */
+const shows = (l: Layer) => (l === 'base' ? mode === 'art' : mode === l) || (mode === 'dummies' && showLayers.has(l));
 /** Ponto do polígono sendo arrastado (peça ativa). */
 let polyDrag: number | null = null;
 let pending: { kind: 'anchor' | 'fade' | 'point'; piece?: number; name?: string } | null = null;
@@ -410,10 +421,25 @@ function renderProps() {
     }
   } else {
     h += `<h3>Bonecos de teste</h3><p class="hint">${dummies.length} boneco(s). Eles não são salvos.</p><div class="row"><button id="adddummy">+ Boneco</button><button id="cleardummy">Tirar todos</button></div>`;
+    h += `<h3>Mostrar</h3>${([['pieces', 'Peças (máscara, âncoras, polígonos)'], ['tiles', 'Terreno (muro/portão)'], ['points', 'Pontos'], ['base', 'Linha do chão (profundidade)']] as const)
+      .map(([k, label]) => `<div class="row"><label><input type="checkbox" data-layer="${k}" ${showLayers.has(k) ? 'checked' : ''}> ${label}</label></div>`)
+      .join('')}`;
   }
   props.innerHTML = h;
 }
 
+props.addEventListener('change', (e) => {
+  const l = (e.target as HTMLElement).dataset.layer as Layer | undefined;
+  if (!l) return;
+  if ((e.target as HTMLInputElement).checked) showLayers.add(l);
+  else showLayers.delete(l);
+  try {
+    localStorage.setItem('cenario.layers', JSON.stringify([...showLayers]));
+  } catch {
+    /* sem armazenamento: vale só agora */
+  }
+  if (l === 'pieces' && !overlay) buildOverlay();
+});
 props.addEventListener('click', (e) => {
   const t = e.target as HTMLElement;
   const a = artL();
@@ -894,7 +920,7 @@ function drawOverlay() {
   octx.clearRect(0, 0, over.width, over.height);
   const b = box();
   // Arte: a linha onde o desenho toca o chão (profundidade): pés abaixo dela = na frente; acima = atrás
-  if (mode === 'art') {
+  if (shows('base')) {
     const n = s.nodes[0];
     const c = building ? buildingCenter(building) : site ? { x: tileCenter(site.tx), y: tileCenter(site.ty) } : n ? { x: tileCenter(n.tx), y: tileCenter(n.ty) } : null;
     if (c && !(building && artL().pieces?.length)) {
@@ -913,13 +939,13 @@ function drawOverlay() {
     }
   }
   // máscara pintada
-  if (mode === 'pieces' && b && overlay) {
+  if (shows('pieces') && b && overlay) {
     const tl = sceneToScreen(b.left, b.top);
     octx.imageSmoothingEnabled = false;
     octx.drawImage(overlay.canvas, tl.x, tl.y, b.w * camera.zoom, b.h * camera.zoom);
   }
   // âncoras e áreas de transparência
-  if (mode === 'pieces' && b) {
+  if (shows('pieces') && b) {
     const a = artL();
     (a.pieces ?? []).forEach((p, i) => {
       const c = PIECE_COLORS[i % PIECE_COLORS.length]!;
@@ -959,7 +985,7 @@ function drawOverlay() {
     if (a.fade) rect01(a.fade, '#ffffff');
   }
   // tiles
-  if (mode === 'tiles') {
+  if (shows('tiles')) {
     const gi = gridInfo();
     if (gi) {
       const rows = tileRows();
@@ -1000,7 +1026,7 @@ function drawOverlay() {
     }
   }
   // pontos
-  if (mode === 'points') {
+  if (shows('points')) {
     for (const pd of pointDefs()) {
       const q = pointPos(pd);
       if (!q) continue;
