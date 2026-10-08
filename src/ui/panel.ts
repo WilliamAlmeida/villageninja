@@ -371,7 +371,7 @@ export class Panel {
     else if (this.view.kind === 'group') built = this.groupView();
     else if (this.view.kind === 'village') built = this.villageView();
     else if (this.view.kind === 'kage') built = { html: this.tabs('kage') + this.kageSection(), t: {}, b: {} };
-    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill bingo"><div class="kgrid bgrid">${this.orgSection()}${this.swordsmenSection()}</div>${this.soundSection()}</div>`, t: {}, b: {} };
+    else if (this.view.kind === 'bingo') built = { html: this.tabs('bingo') + `<div class="kfill bingo">${this.orgSection()}${this.swordsmenSection()}${this.soundSection()}</div>`, t: {}, b: {} };
     else if (this.view.kind === 'stats') built = this.statsView();
     else if (this.view.kind === 'missions') built = this.missionsView();
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
