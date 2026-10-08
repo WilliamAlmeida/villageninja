@@ -21,6 +21,7 @@ import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
 import { CHEST_LINGER, doneFor, fogVersion, isExplored, isExploredPx } from '../game/explore';
+import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
@@ -52,6 +53,8 @@ const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 const FOG_PAD = 3;
 
 type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco;
+  /** Muralha de terra (Doryuuheki) parada no chão: entra na ordem de profundidade como um objeto. */
+  wall?: Effect;
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
   piece?: number };
 
@@ -316,6 +319,11 @@ export class Renderer {
       const p = project(u.x, u.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, u });
     }
+    for (const e of s.effects) {
+      if (e.kind !== 'wall') continue;
+      const p = project(e.x, e.y);
+      if (seen(p)) list.push({ x: p.x, y: p.y + 3, wall: e });
+    }
     // Prédios ocupam vários tiles: o centro não basta para saber quem fica na frente. Uma unidade (ou árvore)
     // diante de uma face frontal do prédio (x além da direita ou y além do fundo do retângulo) vem depois dele;
     // as outras próximas vêm antes.
@@ -326,8 +334,8 @@ export class Renderer {
     const blocks = list.filter((d) => d.b && d.piece == null);
     for (const d of list) {
       if (d.b) continue;
-      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
+      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.wall ? d.wall.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.wall ? d.wall.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       for (const o of blocks) {
         const b = o.b!;
         const def = BUILDINGS[b.type];
@@ -380,6 +388,7 @@ export class Renderer {
       else if (d.site && d.piece != null) this.drawSitePiece(d.site, d.piece, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
+      else if (d.wall) drawWall(ctx, d.wall);
       else if (d.n) {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
         ctx.save();
@@ -441,6 +450,7 @@ export class Renderer {
       drawProjectile(ctx, pp, time);
     }
     for (const e of s.effects) {
+      if (e.kind === 'wall') continue; // em pé, na ordem de profundidade
       if (e.kind === 'afterimage') {
         this.afterimage(g, e, time);
         continue;
@@ -1377,3 +1387,89 @@ function hexA(hex: string) {
   const n = parseInt(hex.slice(1, 7), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},A)`;
 }
+
+/**
+ * Muralha de terra (Doryuuheki): bloco de pedra de pé no chão, perpendicular a para onde foi levantada. Brota do chão
+ * (0,25 s), fica, e no fim afunda se esfarelando. As pontas vêm do mundo e são projetadas (casa com a vista isométrica).
+ */
+function drawWall(ctx: CanvasRenderingContext2D, e: Effect) {
+  const [wa, wb] = wallEnds(e);
+  const a = project(wa.x, wa.y);
+  const b = project(wb.x, wb.y);
+  const rise = Math.min(1, e.t / 0.25);
+  const end = e.life - e.t < 0.45 ? (e.life - e.t) / 0.45 : 1;
+  const H = 24 * rise * (0.4 + 0.6 * end);
+  // espessura: o topo recua um pouco "para dentro" da tela
+  const nx = -(b.y - a.y);
+  const ny = b.x - a.x;
+  const nl = Math.hypot(nx, ny) || 1;
+  const th = 4;
+  let tx = (nx / nl) * th;
+  let ty = (ny / nl) * th * 0.5;
+  if (ty > 0) [tx, ty] = [-tx, -ty];
+  ctx.save();
+  ctx.globalAlpha *= Math.max(0, Math.min(1, end * 1.5));
+  // sombra no chão
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y + 1);
+  ctx.lineTo(b.x, b.y + 1);
+  ctx.lineTo(b.x + tx * 1.5, b.y + ty * 1.5 + 2);
+  ctx.lineTo(a.x + tx * 1.5, a.y + ty * 1.5 + 2);
+  ctx.fill();
+  // face da frente (com blocos de pedra) e topo
+  const g = ctx.createLinearGradient(0, Math.min(a.y, b.y) - H, 0, Math.max(a.y, b.y));
+  g.addColorStop(0, '#b0814c');
+  g.addColorStop(1, '#7a5532');
+  ctx.fillStyle = g;
+  ctx.strokeStyle = '#3e2a16';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.lineTo(b.x, b.y - H);
+  ctx.lineTo(a.x, a.y - H);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#c99a62';
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y - H);
+  ctx.lineTo(b.x, b.y - H);
+  ctx.lineTo(b.x + tx, b.y - H + ty);
+  ctx.lineTo(a.x + tx, a.y - H + ty);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // juntas dos blocos: três fiadas, com as juntas verticais alternadas
+  ctx.strokeStyle = 'rgba(62,42,22,0.55)';
+  ctx.lineWidth = 0.8;
+  const rows = 3;
+  for (let r = 1; r < rows; r++) {
+    const k = r / rows;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y - H * k);
+    ctx.lineTo(b.x, b.y - H * k);
+    ctx.stroke();
+  }
+  for (let r = 0; r < rows; r++) {
+    const k0 = r / rows;
+    const k1 = (r + 1) / rows;
+    for (const f of r % 2 ? [0.5] : [0.3, 0.7]) {
+      const x = a.x + (b.x - a.x) * f;
+      const y = a.y + (b.y - a.y) * f;
+      ctx.beginPath();
+      ctx.moveTo(x, y - H * k0);
+      ctx.lineTo(x, y - H * k1);
+      ctx.stroke();
+    }
+  }
+  // brilho na borda de cima
+  ctx.strokeStyle = 'rgba(255,230,190,0.45)';
+  ctx.beginPath();
+  ctx.moveTo(a.x + 1, a.y - H + 1);
+  ctx.lineTo(b.x - 1, b.y - H + 1);
+  ctx.stroke();
+  ctx.restore();
+}
+

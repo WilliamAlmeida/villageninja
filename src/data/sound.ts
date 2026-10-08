@@ -60,5 +60,5 @@ export const SOUND_MEMBERS: Record<SoundId, SoundDef> = {
   kumomaru: { name: 'Kumomaru', title: 'o Arqueiro de Seis Braços', nature: 'fuuton', art: 'Flecha Dourada', cd: 9, hpMult: 1.2, desc: 'Flecha de longe que fere muito e prende na teia.' },
   kanade: { name: 'Kanade', title: 'a Flautista', nature: 'fuuton', art: 'Melodia Demoníaca', cd: 15, hpMult: 1.2, desc: 'A flauta paralisa quem está por perto e chama dois ogros.' },
   sokon: { name: 'Sōkon', title: 'os Gêmeos', nature: 'katon', art: 'Separação', cd: 999, hpMult: 1.3, desc: 'Ferido, o irmão sai do corpo dele e luta junto.' },
-  hakkotsu: { name: 'Hakkotsu', title: 'o Último do Clã dos Ossos', nature: 'doton', art: 'Dança dos Ossos', cd: 8, hpMult: 3, desc: 'Lâminas de osso que cortam fundo e o protegem dos golpes.' },
+  hakkotsu: { name: 'Hakkotsu', title: 'o Último do Clã dos Ossos', nature: 'doton', art: 'Sawarabi no Mai', cd: 8, hpMult: 3, desc: 'Uma floresta de ossos brota do chão em volta do alvo: fere e prende quem estiver ali.' },
 };

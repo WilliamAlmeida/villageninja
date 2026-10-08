@@ -4,7 +4,7 @@ import { rand, randi } from '../core/rng';
 import { STAT_KEYS } from '../data/ninja';
 import { costLabel } from '../data/resources';
 import { SOUND, SOUND_MEMBERS, SOUND_RAIDERS, type SoundId } from '../data/sound';
-import { applyDamage, engage, spawnProjectile } from './combat';
+import { areaDamage, engage, spawnProjectile } from './combat';
 import { createRogue, refreshDerived } from './entities';
 import { fx, fxMoment, fxText } from './fx';
 import type { Game } from './game';
@@ -395,13 +395,11 @@ export function soundArt(g: Game, u: Unit, t: Unit): boolean {
       return true;
     }
     case 'hakkotsu':
-      if (dist > 50) return false;
+      // Sawarabi no Mai: uma floresta de ossos brota do chão em volta do alvo, fere e prende quem estiver ali
+      if (dist > 130) return false;
       shout();
-      u.shield = 5;
-      u.shieldVfx = 'bone';
-      fx(g, 'slash', t.x, t.y, { r: 28, color: '#f0ece0', life: 0.4 });
-      fx(g, 'burst', t.x, t.y, { r: 20, color: '#f0ece0', life: 0.4, vfx: 'bone' });
-      applyDamage(g, u, t, 45, null, { knock: 30 });
+      fx(g, 'bones', t.x, t.y, { r: 46, color: '#f1ead6', life: 1.2 });
+      areaDamage(g, u, u.faction, t.x, t.y, 46, 36, 'doton', 0, 0.9);
       return true;
     default:
       return false;

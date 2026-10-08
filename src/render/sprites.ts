@@ -575,14 +575,7 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       break;
     }
     case 'earth':
-      // cúpula de terra (Iwao)
-      ctx.fillStyle = 'rgba(138,98,56,0.55)';
-      ctx.beginPath();
-      ctx.ellipse(u.x, u.y + 6, 17, 22, 0, Math.PI, TAU);
-      ctx.fill();
-      ctx.strokeStyle = '#5a3d20';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      drawDome(ctx, u);
       break;
     case 'web':
       ctx.strokeStyle = 'rgba(255,255,255,0.8)';
@@ -636,32 +629,101 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
   ctx.restore();
 }
 
-/** Escudo pelo estilo: muralha de terra na frente (Doryuuheki), teia (Ninho), costelas de osso, brilho de ferro. */
+/**
+ * Cúpula de Terra (Iwao): domo de blocos de pedra fechado sobre quem foi preso (a pessoa some lá dentro). No último
+ * terço de segundo racha e afunda.
+ */
+function drawDome(ctx: Ctx, u: Unit) {
+  const end = Math.min(1, u.stun / 0.35);
+  const bx = u.x;
+  const by = u.y + 9;
+  const rx = 17;
+  const H = 32 * (0.55 + 0.45 * end);
+  ctx.save();
+  ctx.globalAlpha *= 0.35 + 0.6 * end;
+  // sombra e anel de terra revirada no chão
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ellipse(ctx, bx, by + 1, rx + 3, 6.5);
+  ctx.fillStyle = '#6e4a28';
+  ellipse(ctx, bx, by, rx + 1.5, 5.5);
+  // corpo do domo
+  const g = ctx.createLinearGradient(bx - rx, by - H, bx + rx, by);
+  g.addColorStop(0, '#c4935a');
+  g.addColorStop(0.55, '#9a6b3c');
+  g.addColorStop(1, '#6a4526');
+  ctx.fillStyle = g;
+  ctx.strokeStyle = '#3e2a16';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(bx - rx, by);
+  ctx.bezierCurveTo(bx - rx, by - H * 0.75, bx - rx * 0.55, by - H, bx, by - H);
+  ctx.bezierCurveTo(bx + rx * 0.55, by - H, bx + rx, by - H * 0.75, bx + rx, by);
+  ctx.ellipse(bx, by, rx, 5, 0, 0, Math.PI);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // fiadas de blocos (arcos que acompanham a curva) e juntas alternadas
+  ctx.strokeStyle = 'rgba(62,42,22,0.4)';
+  ctx.lineWidth = 0.8;
+  const rows = [0.3, 0.58, 0.82];
+  rows.forEach((f, i) => {
+    const w = rx * Math.sqrt(1 - f * f) * 0.98;
+    const y = by - H * f;
+    ctx.beginPath();
+    ctx.ellipse(bx, y, w, 3.5 * (1 - f * 0.6), 0, 0, Math.PI);
+    ctx.stroke();
+    const below = i === 0 ? 0 : rows[i - 1]!;
+    for (const s of i % 2 ? [-0.5, 0.5] : [-0.7, 0, 0.7]) {
+      const x = bx + s * w;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 3.5 * (1 - f * 0.6) * Math.sqrt(1 - s * s));
+      ctx.lineTo(x, by - H * below + (i === 0 ? 4 : 3) * Math.sqrt(1 - s * s));
+      ctx.stroke();
+    }
+  });
+  // pedras de tons diferentes na superfície (não fica com cara de cesto trançado)
+  const stones: [number, number, number, string][] = [[-0.45, 0.2, 3.2, '#b88752'], [0.35, 0.42, 2.8, '#7d5530'], [-0.15, 0.68, 2.6, '#c99a62'], [0.5, 0.15, 2.4, '#8a6238'], [0.05, 0.9, 2.2, '#b88752']];
+  for (const [sx, sy, sr, c] of stones) {
+    ctx.fillStyle = c;
+    ellipse(ctx, bx + sx * rx * Math.sqrt(1 - sy * sy), by - H * sy, sr, sr * 0.7);
+  }
+  // brilho no alto à esquerda
+  ctx.strokeStyle = 'rgba(255,230,190,0.5)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(bx - 2, by - H * 0.55, H * 0.42, Math.PI * 1.15, Math.PI * 1.45);
+  ctx.stroke();
+  // entulho em volta da base
+  for (const [dx, dy, r] of [[-rx - 1, 1, 2.6], [-rx + 5, 4, 2], [rx - 2, 3.5, 2.4], [rx + 2, 0, 2], [3, 5.5, 1.8]] as const) {
+    ctx.fillStyle = '#7a5532';
+    ctx.strokeStyle = '#3e2a16';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.ellipse(bx + dx, by + dy, r, r * 0.7, 0, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+  }
+  // racha quando está acabando
+  if (end < 1) {
+    ctx.strokeStyle = '#2a1a0c';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx + 1, by - H);
+    ctx.lineTo(bx - 2, by - H * 0.6);
+    ctx.lineTo(bx + 3, by - H * 0.35);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Escudo pelo estilo: teia (Ninho), costelas de osso, brilho de ferro. A muralha do Doryuuheki é um objeto no chão
+ *  (game/walls.ts, desenhada pelo renderer), não anda com o ninja. */
 function drawShield(ctx: Ctx, u: Unit, t: number) {
   ctx.save();
   switch (u.shieldVfx) {
-    case 'earth': {
-      // muralha de pedra entre o ninja e para onde ele olha
-      const a = u.facing;
-      const cx = u.x + Math.cos(a) * 12;
-      const cy = u.y + Math.sin(a) * 6 + 4;
-      ctx.translate(cx, cy);
-      ctx.fillStyle = '#8a6238';
-      ctx.fillRect(-11, -20, 22, 20);
-      ctx.fillStyle = '#a87b45';
-      ctx.fillRect(-11, -20, 22, 4);
-      ctx.strokeStyle = '#4a3220';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(-11, -20, 22, 20);
-      ctx.beginPath();
-      ctx.moveTo(-4, -16);
-      ctx.lineTo(-1, -9);
-      ctx.lineTo(-5, -3);
-      ctx.moveTo(5, -14);
-      ctx.lineTo(3, -6);
-      ctx.stroke();
+    case 'earth':
       break;
-    }
     case 'web':
       ctx.strokeStyle = 'rgba(255,255,255,0.75)';
       ctx.lineWidth = 0.8;

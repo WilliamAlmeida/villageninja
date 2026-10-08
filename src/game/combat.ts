@@ -1,4 +1,5 @@
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
+import { raiseWall, wallCovers } from './walls';
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
 import { BREEDS } from '../data/breeds';
@@ -334,8 +335,12 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'shield':
       u.shield = def.duration ?? 6;
       u.shieldVfx = vfx;
-      fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx });
-      fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });
+      // terra (Doryuuheki): a muralha brota do chão e fica parada ali, entre ele e o inimigo
+      if (vfx === 'earth') raiseWall(g, u, def.duration ?? 6, def.color);
+      else {
+        fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx });
+        fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });
+      }
       break;
     case 'heal':
       break;
@@ -452,7 +457,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   // ANBU invisível: o primeiro golpe é uma emboscada
   dmg *= anbuAmbush(src);
   if (t.ninja) dmg *= 1 - Math.min(0.6, derive(t.ninja.stats).defense + gearBonus(t).defense) * (blade ? bladeDefense(src) : 1);
-  if (t.shield > 0) dmg *= 0.4;
+  if (t.shield > 0 && (t.shieldVfx !== 'earth' || wallCovers(g, t))) dmg *= 0.4; // muralha: só quem ficou perto dela
   if (t.org === 'tetsuo') {
     dmg *= 0.5; // Corpo de Ferro: o golpe tine no metal
     fx(g, 'burst', t.x, t.y - 10, { r: 8, color: '#c8d0d8', life: 0.2, vfx: 'metal' });

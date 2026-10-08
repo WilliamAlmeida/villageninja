@@ -3,6 +3,7 @@ import { canHit } from '../factions';
 import { fx } from '../fx';
 import type { Game } from '../game';
 import type { Projectile, Unit } from '../types';
+import { wallHit } from '../walls';
 
 export function projectileSystem(g: Game, dt: number) {
   for (const p of g.state.projectiles) {
@@ -20,6 +21,14 @@ export function projectileSystem(g: Game, dt: number) {
         hit = u;
         break;
       }
+    }
+    // bateu numa muralha de terra (Doryuuheki) do alvo: para ali, sem ferir ninguém
+    const wall = wallHit(g, p);
+    if (wall) {
+      p.dead = true;
+      fx(g, 'burst', p.x, p.y, { r: 12, color: '#a87b45', life: 0.35, vfx: 'earth' });
+      fx(g, 'chips', p.x, p.y, { color: '#8a6238', life: 0.5 });
+      continue;
     }
     const reached = Math.hypot(p.tx - p.x, p.ty - p.y) <= step;
     if (hit || (p.radius > 0 && reached) || p.life <= 0) {

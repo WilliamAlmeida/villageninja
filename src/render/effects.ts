@@ -69,6 +69,50 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       }
       break;
     }
+    case 'bones': {
+      // Sawarabi no Mai: ossos pontudos brotam do chão em volta do ponto (os de trás primeiro), ficam e afundam
+      const n = 11;
+      const spikes = Array.from({ length: n }, (_, i) => {
+        const a = prand(e.x * 3 + i * 7.1) * TAU;
+        const d = Math.sqrt(prand(e.y * 5 + i * 3.3)) * r * 0.85;
+        return { x: e.x + Math.cos(a) * d, y: e.y + Math.sin(a) * d * 0.5, h: 14 + prand(i * 9.7 + e.x) * 12, lean: (prand(i * 4.1 + e.y) - 0.5) * 0.5, delay: (i / n) * 0.18 };
+      }).sort((p, q) => p.y - q.y);
+      const sink = k > 0.75 ? (1 - k) / 0.25 : 1;
+      for (const s of spikes) {
+        const grow = Math.max(0, Math.min(1, (e.t - s.delay) / 0.12)) * sink;
+        if (grow <= 0) continue;
+        const h = s.h * grow;
+        // buraco no chão
+        ctx.globalAlpha = 0.5 * sink;
+        ctx.fillStyle = '#3a2a1a';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, 4, 1.8, 0, 0, TAU);
+        ctx.fill();
+        // osso: base larga, ponta fina, um pouco curvado
+        ctx.globalAlpha = 1;
+        const tipX = s.x + s.lean * h;
+        const tipY = s.y - h;
+        ctx.fillStyle = '#f1ead6';
+        ctx.strokeStyle = '#5a4a3a';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(s.x - 2.6, s.y);
+        ctx.quadraticCurveTo(s.x - 1.8 + s.lean * h * 0.4, s.y - h * 0.55, tipX, tipY);
+        ctx.quadraticCurveTo(s.x + 1.8 + s.lean * h * 0.4, s.y - h * 0.55, s.x + 2.6, s.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // lado na sombra
+        ctx.fillStyle = 'rgba(160,140,110,0.6)';
+        ctx.beginPath();
+        ctx.moveTo(s.x + 0.4, s.y);
+        ctx.quadraticCurveTo(s.x + 1.2 + s.lean * h * 0.4, s.y - h * 0.5, tipX, tipY);
+        ctx.quadraticCurveTo(s.x + 1.8 + s.lean * h * 0.4, s.y - h * 0.55, s.x + 2.4, s.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
     case 'log': {
       // tronco do Kawarimi: cai no lugar do ninja, fica um instante e some
       const drop = Math.max(0, 1 - e.t / 0.18) * 10;

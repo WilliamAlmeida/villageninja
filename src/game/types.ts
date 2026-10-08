@@ -443,6 +443,9 @@ export type EffectKind =
   /** `hit`: impacto de golpe corpo a corpo; `beam`: feixe de x,y até x2,y2 (cura, dreno); `wave`: ondas que se
    *  abrem (som, miragem, repulsão; `vfx`); `gust`: rajada em leque do lançador até o alvo. */
   | 'hit' | 'beam' | 'wave' | 'gust'
+  /** `wall`: muralha do Doryuuheki parada no chão (`facing` = para onde foi levantada, `uid` = dono; game/walls.ts).
+   *  `bones`: ossos brotando do chão em volta do ponto (Sawarabi no Mai, raio `r`). */
+  | 'wall' | 'bones'
   /** Momento especial (Kage, Sannin, chefe, proibido): câmera lenta curta, fundo escuro e o nome no centro (main.ts). */
   | 'moment';
 
