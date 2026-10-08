@@ -442,6 +442,8 @@ props.addEventListener('change', (e) => {
 });
 props.addEventListener('click', (e) => {
   const t = e.target as HTMLElement;
+  // caixas do "Mostrar" (modo Bonecos): quem cuida é o 'change'; redesenhar o painel aqui trocava a caixa antes dela marcar
+  if (t.closest('[data-layer]') || t.querySelector?.('[data-layer]')) return;
   const a = artL();
   const id = t.id;
   const num = (k: string) => Number(t.dataset[k]);
@@ -742,6 +744,11 @@ over.addEventListener('pointerdown', (e) => {
     return;
   }
   if (e.button === 2) {
+    // Polígono: botão direito num ponto da peça ativa apaga o ponto
+    if (mode === 'pieces' && paintTool === 'poly' && canPaint()) {
+      polyDown(x, y, 2);
+      return;
+    }
     if (selDummy) {
       const w = screenToWorld(x, y);
       setDestination(g, selDummy, w.x, w.y);
