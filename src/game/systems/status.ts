@@ -31,6 +31,8 @@ export function statusSystem(g: Game, dt: number) {
     u.hitFlash = Math.max(0, u.hitFlash - dt);
     u.anim = Math.max(0, u.anim - dt);
     if (u.landT) u.landT = Math.max(0, u.landT - dt) || undefined;
+    // empurrão recente (ring-out do Exame e o "esmaga e estica" do desenho): corre para todos, não só na arena
+    if (u.knockT) u.knockT = Math.max(0, u.knockT - dt) || undefined;
     if (u.strike) {
       if (!u.strike.hit && (u.strike.t -= dt) <= 0) resolveStrike(g, u);
       if (u.anim <= 0) u.strike = undefined; // o avanço acabou: a espada volta às costas

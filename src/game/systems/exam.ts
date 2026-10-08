@@ -75,17 +75,16 @@ export function examSystem(g: Game, dt: number) {
       // dentro da arena: andar não tira ninguém; jogado para fora por um golpe = derrota (ring-out)
       const ring = arenaRing(arena);
       for (const [f, o] of [[a, b], [b, a]] as const) {
-        f.knockT = Math.max(0, (f.knockT ?? 0) - dt);
         const dx = f.x - ring.cx;
         const dy = f.y - ring.cy;
         const d = Math.hypot(dx, dy);
         if (d <= ring.r) continue;
-        if (d > ring.r + ARENA_RING.out && f.knockT > 0) {
+        if (d > ring.r + ARENA_RING.out && (f.knockT ?? 0) > 0) {
           fxText(g, f.x, f.y - 30, 'Fora da arena!', '#ff8a2b', true);
           fxText(g, spots.center.x, spots.center.y - 20, `${short(o)} vence!`, '#ffd34d', true);
           return nextMatch(g, exam, o);
         }
-        if (f.knockT <= 0) {
+        if (!f.knockT) {
           f.x = ring.cx + (dx / d) * (ring.r - 2);
           f.y = ring.cy + (dy / d) * (ring.r - 2);
         }

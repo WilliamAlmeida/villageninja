@@ -7,6 +7,7 @@ import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import { blink } from '../src/game/techniques';
+import { push } from '../src/game/movement';
 import { CENTER_TX, CENTER_TY } from '../src/game/world';
 
 const run = (g: Game, seconds: number, until?: () => boolean) => {
@@ -52,5 +53,16 @@ describe('golpe comum com o dano no auge do avanço', () => {
     old.version = 25;
     const s = migrate(old)!;
     expect(s.version).toBe(SAVE_VERSION);
+  });
+});
+
+describe('empurrão', () => {
+  test('fora do Exame o "esmaga e estica" acaba (knockT volta a zero)', () => {
+    const g = createNewGame(SYSTEMS, 78);
+    const n = createNinja(g, (CENTER_TX + 8) * 32, (CENTER_TY + 8) * 32, 'jounin', 0);
+    push(g, n, 10, 0);
+    expect(n.knockT).toBe(0.5);
+    run(g, 0.6);
+    expect(n.knockT ?? 0).toBe(0);
   });
 });
