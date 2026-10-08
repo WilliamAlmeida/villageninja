@@ -322,10 +322,10 @@ const duelActs: Act[] = [
 ];
 
 const GROUPS: [string, Act[], string?][] = [
+  ['Técnicas', techActs],
   ['Jutsus', jutsuActs, 'Ninja (Jounin, atributos 8) → boneco. A cura aparece num aliado ferido.'],
   ['Golpes', strikeActs],
   ['Lâminas lendárias', bladeActs, 'Equipa a lâmina e golpeia o boneco por uns segundos.'],
-  ['Técnicas', techActs],
   ['Sannin', sanninActs],
   ['Ordem do Eclipse', orgActs, 'O membro usa a técnica num aliado da vila.'],
   ['Quinteto do Som', soundActs],
