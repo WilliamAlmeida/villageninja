@@ -188,7 +188,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   máscara pintada com pincel ou lata de tinta (troca a área contínua da máscara clicada pela peça ativa) ou POLÍGONO por peça (pontos arrastáveis em 0–1 da imagem, `LayoutPiece.poly`, peça com polígono = exatamente o polígono, `applyPolys`; clique na aresta cria ponto, botão direito apaga, "Adivinhar forma" = contorno convexo, `fillPoly`/`hullOf` em render/pieces.ts; atalhos B/G/P/E) separa a arte em pedaços (`render/pieces.ts`); cada peça é desenhada na profundidade da sua
   âncora (onde toca o chão), o "resto" vai no chão (`ground`) ou em pé; transparência por peça (área própria ou o
   contorno). **Terreno**: tamanho em tiles (sobrepõe `w`/`h` do prédio) e células de MEIO tile (16 px) muro `#` /
-  portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`).
+  portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`) e **bloqueios
+  avulsos** numa margem de 3 tiles em volta do prédio (`TypeLayout.extra`, células relativas ao canto, podem ser
+  negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
   **Colisão em meio tile** (`SUB`/`CELL`/`FINE_W` em config.ts): `World.fine` é a colisão de verdade (`walkablePx`,
   `walkableCell`), a busca de caminho anda nas células (`findPathPx`/`findCells`; `u.path` guarda índices de célula,
   `cellCenter`); `World.blocked`/`walkable(tx,ty)` seguem em tiles (bloqueado se qualquer pedaço for) para escolher

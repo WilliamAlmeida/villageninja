@@ -104,6 +104,8 @@ export class World {
       if (custom)
         for (let fy = 0; fy < d.h * SUB; fy++)
           for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(b.type, fx, fy) === '#') this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
+      // bloqueios avulsos em volta (arte maior que o terreno)
+      if (b.built) for (const [fx, fy] of typeLayout(b.type)?.extra ?? []) this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
       const m = VILLAGE_MARGIN * TILE;
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
     }

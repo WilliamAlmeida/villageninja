@@ -56,6 +56,11 @@ export interface TypeLayout {
    * "." livre, "#" muro (bloqueia), "g" portão (livre, por onde se entra).
    */
   tiles?: string[];
+  /**
+   * Células extras de bloqueio FORA do terreno do prédio (meio tile, relativas ao canto do terreno; podem ser negativas
+   * ou passar de w×2/h×2): a arte que vai além do terreno (muro da arena) bloqueia sem aumentar o prédio.
+   */
+  extra?: [number, number][];
   /** Locais (ruína…): tile do local dentro da grade (padrão: o meio). */
   origin?: [number, number];
   /** Pontos especiais em px de mundo a partir do canto do terreno (ex.: door, left, right, seat1…seat8, guard, chimney). */

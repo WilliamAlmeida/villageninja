@@ -51,3 +51,23 @@ describe('polígono das peças', () => {
     expect([...m].filter((v) => v === 3).length).toBe(36); // 6×6 pixels
   });
 });
+
+describe('bloqueios avulsos do prédio', () => {
+  test('células extras fora do terreno bloqueiam com o prédio pronto', async () => {
+    const { createNewGame } = await import('../src/game/newGame');
+    const { SYSTEMS } = await import('../src/game/systems');
+    const saved = layout();
+    const L = JSON.parse(JSON.stringify(saved));
+    L.types.arena = { ...(L.types.arena ?? {}), extra: [[-1, 0], [-2, 0]] };
+    setLayout(L);
+    const g = createNewGame(SYSTEMS, 32);
+    const b = { id: g.newId(), type: 'arena' as const, tx: 10, ty: 10, built: true, progress: 99, desired: 0, workers: [], cd: 0 };
+    g.state.nodes = [];
+    g.reindex();
+    g.addBuilding(b);
+    // célula (-1, 0) = meio tile à esquerda do canto do terreno
+    expect(g.world.walkablePx(10 * 32 - 8, 10 * 32 + 8)).toBe(false);
+    expect(g.world.walkablePx(10 * 32 - 40, 10 * 32 + 8)).toBe(true);
+    setLayout(saved);
+  });
+});

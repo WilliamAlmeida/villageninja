@@ -310,6 +310,26 @@ function gridInfo() {
   }
   return null;
 }
+/** Margem (tiles) em volta do terreno do prédio onde dá para marcar bloqueios avulsos. */
+const EXTRA_MARGIN = 3;
+const hasExtra = (cx: number, cy: number) => (typeL().extra ?? []).some(([x, y]) => x === cx && y === cy);
+/** Marca/tira um bloqueio avulso (fora do terreno do prédio). */
+function setExtra(cx: number, cy: number, on: boolean) {
+  const t = typeL();
+  const list = (t.extra ?? []).filter(([x, y]) => x !== cx || y !== cy);
+  if (on) list.push([cx, cy]);
+  if (list.length) t.extra = list;
+  else delete t.extra;
+}
+/** Célula (relativa ao canto do terreno) dentro da margem de bloqueios avulsos, mas fora do terreno? */
+function inExtraRing(cx: number, cy: number) {
+  const gi = gridInfo();
+  if (!building || !gi) return false;
+  const m = EXTRA_MARGIN * SUB;
+  const inside = cx >= 0 && cy >= 0 && cx < gi.w * SUB && cy < gi.h * SUB;
+  return !inside && cx >= -m && cy >= -m && cx < gi.w * SUB + m && cy < gi.h * SUB + m;
+}
+
 /** Células do terreno (meio tile): gi.h×SUB linhas de gi.w×SUB letras. */
 function tileRows(): string[] {
   const gi = gridInfo()!;
@@ -401,7 +421,7 @@ function renderProps() {
     else {
       h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span></div>`;
       h += `<div class="row"><label>Largura</label><input type="number" id="tw" min="1" max="10" value="${gi.w}"><label>Altura</label><input type="number" id="th" min="1" max="10" value="${gi.h}"></div>`;
-      if (building) h += `<p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
+      if (building) h += `<p class="hint">Em volta do terreno há uma margem: clique ou arraste nela para marcar <b>bloqueios avulsos</b> (a arte que passa do terreno, como o muro da arena), sem aumentar o prédio.</p><p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
       if (site || item.kind === 'node') h += `<p class="hint">${item.kind === 'node' ? 'Objetos: muro = não dá para atravessar (vale no estágio desta arte; toco e rocha rachada têm o seu). ' : ''}Shift+clique escolhe o tile onde ${item.kind === 'node' ? 'o objeto' : 'o local'} fica (origem).</p>`;
       h += `<div class="row"><button id="tilesreset">Voltar ao padrão</button></div>`;
     }
@@ -537,6 +557,7 @@ props.addEventListener('click', (e) => {
     const tl = typeL();
     delete tl.tiles;
     delete tl.origin;
+    delete tl.extra;
     if (building) {
       delete tl.w;
       delete tl.h;
@@ -826,6 +847,16 @@ over.addEventListener('pointerdown', (e) => {
     const w = screenToWorld(x, y);
     const cx = Math.floor(w.x / CELL) - gi.x0 * SUB;
     const cy = Math.floor(w.y / CELL) - gi.y0 * SUB;
+    if (inExtraRing(cx, cy)) {
+      // fora do terreno: bloqueio avulso liga/desliga; arrastando, faz o mesmo nas outras
+      snapshot();
+      cellPaint = hasExtra(cx, cy) ? '.' : '#';
+      setExtra(cx, cy, cellPaint === '#');
+      drag = { kind: 'cells', x, y };
+      place();
+      changed();
+      return;
+    }
     if (cx < 0 || cy < 0 || cx >= gi.w * SUB || cy >= gi.h * SUB) return;
     snapshot();
     if ((site || item.kind === 'node') && e.shiftKey) {
@@ -873,6 +904,13 @@ over.addEventListener('pointermove', (e) => {
     const w = screenToWorld(e.offsetX, e.offsetY);
     const cx = Math.floor(w.x / CELL) - gi.x0 * SUB;
     const cy = Math.floor(w.y / CELL) - gi.y0 * SUB;
+    if (inExtraRing(cx, cy)) {
+      if (hasExtra(cx, cy) === (cellPaint === '#')) return;
+      setExtra(cx, cy, cellPaint === '#');
+      place();
+      changed();
+      return;
+    }
     const rows = tileRows().map((r) => r.split(''));
     if (cx < 0 || cy < 0 || cy >= rows.length || cx >= rows[0]!.length || rows[cy]![cx] === cellPaint) return;
     rows[cy]![cx] = cellPaint;
@@ -1012,6 +1050,28 @@ function drawOverlay() {
           octx.lineWidth = 1;
           octx.stroke();
         }
+      // margem de bloqueios avulsos (só prédios): contorno fraco nas livres, vermelho nas marcadas
+      if (building) {
+        const m = EXTRA_MARGIN * SUB;
+        for (let y = -m; y < gi.h * SUB + m; y++)
+          for (let x = -m; x < gi.w * SUB + m; x++) {
+            if (!inExtraRing(x, y)) continue;
+            const on = hasExtra(x, y);
+            const cx = gi.x0 * SUB + x;
+            const cy = gi.y0 * SUB + y;
+            const p = [worldToScreen(cx * CELL, cy * CELL), worldToScreen((cx + 1) * CELL, cy * CELL), worldToScreen((cx + 1) * CELL, (cy + 1) * CELL), worldToScreen(cx * CELL, (cy + 1) * CELL)];
+            octx.beginPath();
+            p.forEach((q, i) => (i ? octx.lineTo(q.x, q.y) : octx.moveTo(q.x, q.y)));
+            octx.closePath();
+            if (on) {
+              octx.fillStyle = 'rgba(255,90,90,0.5)';
+              octx.fill();
+            }
+            octx.strokeStyle = on ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.08)';
+            octx.lineWidth = 1;
+            octx.stroke();
+          }
+      }
       for (let y = 0; y < gi.h; y++)
         for (let x = 0; x < gi.w; x++) {
           const tx = gi.x0 + x;
