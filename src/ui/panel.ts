@@ -1434,7 +1434,7 @@ export class Panel {
     if (group === 'ninjas') {
       const ninjas = s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village');
       const hurt = ninjas.filter((u) => u.hp < u.maxHp * 0.6).length;
-      return chip('{ninja}', `${ninjas.length} ninjas`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
+      return chip('{ninja}', `${ninjas.length}`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
     }
     if (group === 'village')
       return chip('{star}', `Reputação ${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`);
@@ -2207,7 +2207,7 @@ export class Panel {
       if (!n && k !== this.rosterFilter && k !== 'all' && !RANK_FILTERS.includes(k)) continue;
       html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''} ${k === 'hurt' ? 'bad' : ''}">${label} <small>${n}</small></button>`;
     }
-    html += `</div><div class="fchips rsort"><span class="lbl">{refresh} Ordenar</span>`;
+    html += `</div><div class="fchips rsort"><span class="lbl">Ordenar</span>`;
     for (const [k, label, tip] of ROSTER_SORTS)
       html += `<button data-act="r-sort" data-arg="${k}" class="${this.rosterSort === k ? 'on' : ''}" ${tipAttr(label, tip)}>${label}</button>`;
     html += `</div></div>`;
@@ -2371,39 +2371,41 @@ export class Panel {
       ${sensei ? `<span class="mchip" ${tipAttr('Sensei', 'Com um sensei Chunin+ a equipe treina 50% mais rápido.', true)}>{up} +50% treino</span>` : ''}</div>`;
     if (!sensei && !tm.memberIds.length)
       html += `<div class="warnbox">Monte a equipe aqui: escolha até ${MAX_MEMBERS} membros e, se quiser, um sensei Chunin ou Jounin (treinam 50% mais rápido).</div>`;
-    // formação: o sensei em cima, os membros embaixo, cada um com retrato
+    // formação: o sensei e os membros numa linha (o sensei primeiro, com borda dourada), cada um com retrato
     const tile = (u: Unit | undefined, role: string) => {
-      if (!u) return `<div class="ttile empty"><span class="tt-face">{plus}</span><span class="tt-role">${role}</span></div>`;
+      const sen = role === 'Sensei' ? ' sensei' : '';
+      if (!u) return `<div class="ttile empty${sen}"><span class="tt-face">{plus}</span><span class="tt-role">${role}</span></div>`;
       const pic = unitPortrait(u, true);
       b[`thp${u.id}`] = u.hp / u.maxHp;
-      return `<div class="ttile"><button class="tt-x" data-act="team-remove" data-arg="${u.id}" ${tipAttr('Tirar da equipe', `${u.name} sai da equipe.`)}>{x}</button>
+      return `<div class="ttile${sen}"><button class="tt-x" data-act="team-remove" data-arg="${u.id}" ${tipAttr('Tirar da equipe', `${u.name} sai da equipe.`)}>{x}</button>
         <button class="tt-pick" data-act="pick" data-arg="${u.id}"><span class="tt-face">${pimg(pic)}</span>
-        <span class="tt-name">${esc(u.name.split(' ')[0]!)}</span><span class="tt-role ${role === 'Sensei' ? 'sensei' : ''}">${role} · Nv ${u.ninja!.level}${roleOf(u) ? ` · ${ROLE_ICON[roleOf(u)!]}` : ''}</span>
+        <span class="tt-name">${esc(u.name.split(' ')[0]!)}</span><span class="tt-role${sen}">${sen ? 'Sensei · ' : ''}Nv ${u.ninja!.level}${roleOf(u) ? ` ${ROLE_ICON[roleOf(u)!]}` : ''}</span>
         <span class="nc-bar hp"><i data-b="thp${u.id}"></i></span></button></div>`;
     };
-    html += `<div class="td-cols"><div><h4>Formação</h4><div class="tform"><div class="tf-top">${tile(sensei, 'Sensei')}</div><div class="tf-row">`;
+    html += `<h4>Formação</h4><div class="tform">${tile(sensei, 'Sensei')}`;
     for (let i = 0; i < MAX_MEMBERS; i++) html += tile(g.unit(tm.memberIds[i]), 'Membro');
-    html += `</div></div></div><div>`;
+    html += `</div>`;
+    // controles: missão e ordens na largura toda, rotina e tática lado a lado (uma coluna se o painel for estreito)
     const mission = missionOfTeam(g, tm.id);
-    html += `<h4>Missão atual</h4><p class="td-mission">${mission
+    html += `<div class="td-ctl"><div class="full"><h4>Missão atual</h4><p class="td-mission">${mission
       ? `{clipboard} ${esc(mission.title)} (rank ${MISSION_RANKS[mission.rank]!.label}) · ${this.missionPhase(mission)}`
-      : `Livre · envie pela {clipboard} Mesa de Missões.`}</p>`;
+      : `Livre · envie pela {clipboard} Mesa de Missões.`}</p></div>`;
     if (units.length) {
       const n0 = units[0]!.ninja!;
-      html += `<h4>Rotina da equipe</h4><div class="seg troutine">`;
+      html += `<div><h4>Rotina da equipe</h4><div class="seg troutine">`;
       for (const [k, label] of ROUTINES)
         html += `<button data-act="team-mode" data-arg="${k}" class="${n0.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${ROUTINE_ICON[k]} ${label}</button>`;
-      html += `</div><h4>Tática de luta ${infoTip('Tática de luta', 'Como a equipe luta quando encontra inimigos. Livre: duelos (cada um pega um adversário diferente). Os papéis (tanque, atacante, atirador, suporte) vêm dos atributos de cada um.')}</h4><div class="seg ttactic">`;
+      html += `</div></div><div><h4>Tática de luta ${infoTip('Tática de luta', 'Como a equipe luta quando encontra inimigos. Livre: duelos (cada um pega um adversário diferente). Os papéis (tanque, atacante, atirador, suporte) vêm dos atributos de cada um.')}</h4><div class="seg ttactic">`;
       const cur: Tactic = tm.tactic ?? 'free';
       for (const k of ['free', 'focus', 'hold', 'flank'] as Tactic[])
         html += `<button data-act="team-tactic" data-arg="${k}" class="${cur === k ? 'on' : ''}" ${tipAttr(TACTIC_INFO[k].name, TACTIC_INFO[k].desc)}>${TACTIC_ICON[k]} ${TACTIC_INFO[k].name}</button>`;
-      html += `</div><h4>Ordens</h4><div class="tcmds">
+      html += `</div></div><div class="full"><h4>Ordens</h4><div class="tcmds">
         <button class="btn primary" data-act="cmd-mode" data-arg="team">{pin} Dar ordem</button>
         <button class="btn" data-act="cmd-retreat" data-arg="team">{run} Recuar</button>
         <button class="btn" data-act="cmd-clear" data-arg="team">{x} Cancelar</button>
-        <button class="btn" data-act="team-autoequip">{kunai} Equipar equipe</button></div>`;
+        <button class="btn" data-act="team-autoequip">{kunai} Equipar equipe</button></div></div>`;
     }
-    html += `</div></div>` + this.teamCandidates(tm);
+    html += `</div>` + this.teamCandidates(tm);
     html += `<div class="actions"><button class="btn danger" data-act="team-disband">${this.armedDemolish ? 'Toque de novo para confirmar' : '{trash} Desfazer equipe'}</button></div>`;
     return html;
   }
