@@ -137,10 +137,14 @@ function runCommand(g: Game, u: Unit, dt: number): boolean {
         return true;
       }
       const p = sitePos(site);
+      // baú: abre de pertinho, parado na frente dele (abaixo na tela: +x +y no mundo), se o lugar estiver livre
+      const front = site.kind === 'chest' ? { x: p.x + 13, y: p.y + 13 } : null;
+      const spot = front && g.world.walkablePx(front.x, front.y) ? front : null;
       // com muro no layout (Editor de cenário) o tile do local pode estar bloqueado: basta chegar ao lado
-      if (Math.hypot(p.x - u.x, p.y - u.y) > (siteTiles(site) ? 48 : 22)) {
+      const far = spot ? Math.hypot(spot.x - u.x, spot.y - u.y) > 5 : Math.hypot(p.x - u.x, p.y - u.y) > (siteTiles(site) ? 48 : 22);
+      if (far) {
         if (u.state !== 'cmdMove' || !u.hasGoal) {
-          if (!setDestination(g, u, p.x, p.y + 14)) {
+          if (!setDestination(g, u, spot?.x ?? p.x, spot?.y ?? p.y + 14)) {
             u.command = null;
             g.toast(`${u.name} não acha caminho até o local.`, 'warn', u);
             return false;
@@ -153,6 +157,7 @@ function runCommand(g: Game, u: Unit, dt: number): boolean {
       if (guardiansOf(g, site).length) return true; // espera os guardiões caírem (a luta acima cuida deles)
       u.moving = false;
       u.state = 'investigate';
+      u.facing = Math.atan2(p.y - u.y, p.x - u.x); // olhando para o local (no baú, de costas para a câmera)
       u.anim = 0.2;
       c.t += dt;
       if (c.t >= SITES[site.kind].work) {

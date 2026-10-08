@@ -42,6 +42,24 @@ describe('exploração', () => {
     expect(g.state.flags.raidActive).toBe(false);
   });
 
+  test('baú: o ninja abre parado na frente dele, olhando para ele', () => {
+    const g = createNewGame(SYSTEMS, 74);
+    const chest = g.state.sites.find((x) => x.kind === 'chest')!;
+    const cp = sitePos(chest);
+    const a = createNinja(g, cp.x - 90, cp.y + 30, 'jounin', 0);
+    a.hp = a.maxHp = 9999;
+    a.command = { kind: 'investigate', siteId: chest.id, t: 0 };
+    let seen = false;
+    for (let t = 0; t < 20 && !chest.done; t += SIM_DT) {
+      g.step(SIM_DT);
+      if (a.state === 'investigate') seen = true;
+    }
+    expect(chest.done).toBe(true);
+    expect(seen).toBe(true);
+    expect(Math.hypot(a.x - cp.x, a.y - cp.y)).toBeLessThan(26); // de pertinho (antes abria a até 48 px)
+    expect(a.x + a.y).toBeGreaterThan(cp.x + cp.y); // na frente (abaixo na tela)
+  });
+
   test('investigar baú dá recursos; ruína dá pergaminho proibido depois dos guardiões', () => {
     const g = createNewGame(SYSTEMS, 73);
     const chest = g.state.sites.find((x) => x.kind === 'chest')!;
