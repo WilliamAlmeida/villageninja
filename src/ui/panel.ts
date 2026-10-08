@@ -72,7 +72,7 @@ import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamFit, teamOf, teamUnits,
 } from '../game/teams';
-import type { Building, Expedition, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
+import type { Building, Cost, Expedition, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
 import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
@@ -815,7 +815,7 @@ export class Panel {
       <span class="lg s-protected"><i></i>Protegido</span><span class="lg s-vassal"><i></i>Vassalo</span><span class="lg s-hostile"><i></i>Hostil</span>${how}</div>
       <div class="rzoom"><button data-act="r-zoom" data-arg="in" ${tipAttr('Aproximar', 'Também com a roda do mouse ou pinçando.')}>{plus}</button><button data-act="r-zoom" data-arg="out" ${tipAttr('Afastar', 'Também com a roda do mouse ou pinçando.')}>{minus}</button><button data-act="r-zoom" data-arg="home" ${tipAttr('Sua vila', 'Volta o mapa para a sua vila.')}>{castle}</button></div>`;
     const def = this.regionNode ? REGION[this.regionNode] : undefined;
-    if (def) html += `<aside class="rsheet"><button class="rsheet-x" data-act="r-node" data-arg="" ${tipAttr('Fechar', 'Volta para o mapa inteiro.')}>{x}</button>${this.regionNodeSection(def)}</aside>`;
+    if (def) html += `<aside class="rsheet"><button class="rsheet-x" data-act="r-node" data-arg="" title="Fechar">{x}</button>${this.regionNodeSection(def)}</aside>`;
     html += `</div></div>`;
     return { html, t: {}, b: {} };
   }
@@ -830,15 +830,19 @@ export class Panel {
     const kindIcon = { village: '{houses}', island: '{ship}', sacred: '{scroll}', hideout: '{skull}' }[def.kind];
     const stCls = { neutral: 'info', protected: 'safe', vassal: 'good', hostile: 'danger' }[st.status];
     let html = `<div class="rhead"><span class="rh-ic k-${def.kind}">${kindIcon}</span><div><div class="rh-name">${def.name}</div><div class="td-chips">
-      <span class="mchip">${kindIcon} ${kindLabel}</span>${def.kind === 'village' ? `<span class="mpill ${stCls}">${statusLabel}</span>` : ''}<span class="mchip">{shield} Defesas ${nodePower(s, def)}</span></div></div></div>
+      <span class="mchip">${kindLabel}</span>${def.kind === 'village' ? `<span class="mpill ${stCls}">${statusLabel}</span>` : ''}<span class="mchip">{shield} Defesas ${nodePower(s, def)}</span></div></div></div>
       <p class="bh-desc">${esc(def.desc)}</p>`;
+    // ganhos por dia: cada recurso numa etiqueta (ícone e quantia)
+    const gains = (c: Cost) => (Object.entries(c) as [ResKey, number][]).filter(([, v]) => v).map(([k, v]) => `<span class="lchip">${RES_INFO[k].icon} ${v}</span>`).join('');
     if (def.kind === 'village') {
       const pct = (st.rel + 100) / 2;
-      html += `<div class="bsec rrel"><div class="rrel-top"><b>Relação ${st.rel}</b>${def.tribute ? `<span class="mchip" ${tipAttr('Tributo diário', 'Protegido manda isto todo dia; vassalo manda o dobro.', true)}>{ryo} Tributo: ${costLabel(def.tribute)}/dia</span>` : ''}</div>
+      html += `<div class="bsec rrel"><div class="rrel-top"><b>Relação ${st.rel}</b></div>
         <div class="relbar" ${tipAttr('Relação', `De -100 (inimigos) a 100 (aliados). Protegido a partir de ${REL.protected}; anexar em paz com ${REL.annexPeace}+ ou à força com ${REL.annexForce} ou menos.`)}><i style="left:calc(${pct}% - 1px)"></i></div>
-        <div class="rrel-lbl"><span>Hostil</span><span>Neutra</span><span>Aliada</span></div>`;
+        <div class="rrel-lbl"><span>Hostil</span><span>Neutra</span><span>Aliada</span></div>
+        ${def.tribute ? `<div class="rgain" ${tipAttr('Tributo diário', 'Protegido manda isto todo dia; vassalo manda o dobro.', true)}><small>{ryo} Tributo por dia${st.status === 'vassal' ? ' (×2)' : ''}</small>${gains(def.tribute)}</div>` : ''}`;
     } else if (def.kind === 'island') {
-      html += `<p class="hint">${st.explored ? '{check} Explorada' : '{todo} Ainda não explorada'} · ${st.outpost ? `{flag} Posto avançado: ${costLabel(def.outpost ?? {})}/dia` : `Posto avançado renderia ${costLabel(def.outpost ?? {})} por dia`}</p>`;
+      html += `<div class="bsec"><div class="rrel-top"><b>${st.outpost ? '{flag} Posto avançado' : 'Posto avançado'}</b><span class="mpill ${st.explored ? 'safe' : 'info'}">${st.explored ? '{check} Explorada' : '{todo} Não explorada'}</span></div>
+        <div class="rgain"><small>${st.outpost ? 'Rende por dia' : 'Renderia por dia'}</small>${gains(def.outpost ?? {})}</div></div>`;
     } else if (def.id === 'som') {
       const c = s.sound.captive ? g.unit(s.sound.captive.id) : null;
       html += `<p class="hint">${c ? `{alert} Preso lá: <b>${esc(c.name)}</b>. Prazo: fim do dia ${s.sound.captive!.until}; depois ele recebe o selo amaldiçoado.` : 'Ninguém da vila está preso lá.'} Guardam o lugar: <b>${SOUND_MEMBERS.hakkotsu.name}</b>, ${esc(SOUND_MEMBERS.hakkotsu.title)}, e dois membros.</p>`;
@@ -859,7 +863,7 @@ export class Panel {
             : st.rel <= REL.annexForce
               ? 'Relação péssima: só dá para <b>anexar à força</b> (invasão jogável) ou saquear de novo.'
               : `Para anexar em paz: <b>proteja</b> e <b>comercie</b> até a relação chegar a ${REL.annexPeace}.`;
-      html += `<p class="bnote">{info} ${next}</p></div>`;
+      html += `<p class="bnote">{info} <span>${next}</span></p></div>`;
     }
     // equipe que vai
     // livres primeiro (as ocupadas em missão/expedição vão para o fim da lista)
