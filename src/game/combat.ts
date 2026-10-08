@@ -112,14 +112,30 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
     u.facing = Math.atan2(t.y - u.y, t.x - u.x);
     if (d <= ms.range + 6 && u.attackCd <= 0) {
       u.attackCd = ms.cd;
-      u.anim = 0.25;
-      // impacto do golpe: estrela branca; com lâmina, o risco na cor dela
-      const blade = bladeOf(u);
-      if (blade) fx(g, 'slash', t.x, t.y - 6, { r: 16, color: BLADES[blade].color, life: 0.25 });
-      fx(g, 'hit', t.x + Math.cos(u.facing) * -4, t.y - 8, { r: 9, color: '#ffffff', life: 0.22, vfx: blade ? 'metal' : 'impact' });
-      applyDamage(g, u, t, ms.dmg, null, { melee: true });
+      u.anim = STRIKE_ANIM;
+      // o dano entra no auge do avanço (resolveStrike, pelo statusSystem): o número bate com o movimento do sprite
+      u.strike = { id: t.id, t: STRIKE_ANIM / 2 };
     }
   }
+}
+
+/** Duração do golpe comum: o sprite avança e volta; com lâmina, a espada sai das costas e gira em volta da mão. */
+export const STRIKE_ANIM = 0.25;
+
+/** Golpe marcado por `engage`: no auge do avanço acerta o alvo, se ainda estiver ao alcance (senão errou). */
+export function resolveStrike(g: Game, u: Unit) {
+  const s = u.strike;
+  if (!s || s.hit) return;
+  s.hit = true;
+  const t = g.unit(s.id);
+  if (!t || t.dead || u.dead || u.stun > 0 || t.away != null) return;
+  const ms = meleeStats(u);
+  if (Math.hypot(t.x - u.x, t.y - u.y) > ms.range + 14) return;
+  // impacto do golpe: estrela branca; com lâmina, o risco na cor dela
+  const blade = bladeOf(u);
+  if (blade) fx(g, 'slash', t.x, t.y - 6, { r: 16, color: BLADES[blade].color, life: 0.25 });
+  fx(g, 'hit', t.x + Math.cos(u.facing) * -4, t.y - 8, { r: 9, color: '#ffffff', life: 0.22, vfx: blade ? 'metal' : 'impact' });
+  applyDamage(g, u, t, ms.dmg, null, { melee: true });
 }
 
 /** Usa o consumível carregado na hora certa (pílula quase caindo, bomba no alcance). */

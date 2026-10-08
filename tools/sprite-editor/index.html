@@ -64,7 +64,14 @@
             <button data-tool="picker" title="Conta-gotas (I)">Conta-gotas</button>
             <button data-tool="select" title="Seleção (S): arraste um retângulo; arrastar dentro dele ou as setas movem só o selecionado. Delete apaga, Ctrl+C/Ctrl+V copia e cola, Esc tira, Ctrl+A seleciona o quadro">Seleção</button>
             <button data-tool="move" title="Mover (M): move a seleção ou, sem seleção, a camada inteira no quadro; setas movem 1 px">Mover</button>
+            <button data-tool="point" title="Ponto (P): clique marca o ponto nomeado neste quadro (mão no corpo do ninja, cabo nas espadas soltas); vai para src/data/layout.json">Ponto</button>
           </div>
+          <span id="pointBox" hidden>
+            <input id="pointKey" value="hand" title="Nome do ponto: hand (mão que segura a arma, no corpo-base) · grip (onde a mão pega, nas espadas soltas sword-*)" />
+            <button id="pointRow" title="Copia o ponto deste quadro para os outros quadros da mesma vista">Aplicar à vista</button>
+            <button id="pointAll" title="Copia o ponto deste quadro para todos os quadros">Aplicar a todos</button>
+            <button id="pointDel" title="Tira o ponto deste quadro">Tirar</button>
+          </span>
           <label class="check" title="Lápis, linha e balde apagam em vez de pintar (X). O botão direito também apaga."><input type="checkbox" id="eraseMode" /> apagar</label>
           <label class="check"><input type="checkbox" id="moveRow" /> mover a vista toda (4 quadros)</label>
           <span class="grow"></span>
@@ -72,6 +79,7 @@
           <label class="check"><input type="checkbox" id="focus" /> destacar camada</label>
           <label class="check"><input type="checkbox" id="onion" /> quadro anterior</label>
           <label class="check"><input type="checkbox" id="raw" /> cores-chave</label>
+          <label class="check" title="Mostra o ponto nomeado do quadro (mão / cabo) mesmo fora da ferramenta Ponto"><input type="checkbox" id="showPoints" checked /> pontos</label>
         </div>
         <div class="frames">
           <div class="seg" id="rows"></div>
@@ -80,7 +88,7 @@
         </div>
         <div class="stage" id="stageWrap"><canvas id="stage"></canvas></div>
         <div class="palette" id="palette"></div>
-        <p class="hint">Roda do mouse: zoom · botão do meio/espaço+arrastar: rolar · 1/2/3: vista · ,/.: quadro anterior/próximo · Alt+clique: conta-gotas · L: linha (Shift reta) · G: balde · X ou botão direito: apagar com lápis/linha/balde · S: seleção (arraste dentro dela para mover, Delete apaga, Ctrl+C/V copia e cola, inclusive do/para o Photoshop; Esc tira)</p>
+        <p class="hint">Roda do mouse: zoom · botão do meio/espaço+arrastar: rolar · 1/2/3: vista · ,/.: quadro anterior/próximo · Alt+clique: conta-gotas · L: linha (Shift reta) · G: balde · X ou botão direito: apagar com lápis/linha/balde · S: seleção (arraste dentro dela para mover, Delete apaga, Ctrl+C/V copia e cola, inclusive do/para o Photoshop; Esc tira) · P: ponto (mão do ninja / cabo da espada; o golpe com lâmina gira a espada em volta da mão)</p>
       </section>
 
       <aside class="side" id="right">

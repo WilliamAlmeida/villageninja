@@ -78,6 +78,7 @@ export function blink(g: Game, u: Unit, p: { x: number; y: number }, style: Flic
   u.facing = Math.atan2(p.y - u.y, p.x - u.x);
   u.x = p.x;
   u.y = p.y;
+  u.landT = 0.18; // pousa "esmagando" (só desenho)
   stopMoving(u);
   fx(g, 'flicker', u.x, u.y, { variant: style, r: 14, life: 0.45, color });
 }

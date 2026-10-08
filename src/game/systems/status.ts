@@ -4,6 +4,7 @@ import { foodMult } from '../mood';
 import { BUILDINGS } from '../../data/buildings';
 import { derive } from '../../data/ninja';
 import { interruptCast } from '../techniques';
+import { resolveStrike } from '../combat';
 import type { Game } from '../game';
 import { doorPos } from '../world';
 
@@ -29,6 +30,11 @@ export function statusSystem(g: Game, dt: number) {
     u.shield = Math.max(0, u.shield - dt);
     u.hitFlash = Math.max(0, u.hitFlash - dt);
     u.anim = Math.max(0, u.anim - dt);
+    if (u.landT) u.landT = Math.max(0, u.landT - dt) || undefined;
+    if (u.strike) {
+      if (!u.strike.hit && (u.strike.t -= dt) <= 0) resolveStrike(g, u);
+      if (u.anim <= 0) u.strike = undefined; // o avanço acabou: a espada volta às costas
+    }
     u.combatTimer = Math.max(0, u.combatTimer - dt);
     if (u.flickerCd) u.flickerCd = Math.max(0, u.flickerCd - dt);
     if (u.kawaCd) u.kawaCd = Math.max(0, u.kawaCd - dt);

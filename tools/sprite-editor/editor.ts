@@ -2,9 +2,10 @@
 // pixel a pixel (lápis, borracha, conta-gotas) e mover uma camada num quadro ou na vista inteira. Também abre qualquer
 // PNG de src/art. Salvar grava em src/art pelo servidor local (scripts/editor.ts).
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
+import type { Layout } from '../../src/data/layout';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
-type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move';
+type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move' | 'point';
 type Rect = { x: number; y: number; w: number; h: number };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -58,6 +59,34 @@ let clip: ImageData | null = null;
 const recent: string[] = [];
 const undoStack: { name: string; data: ImageData }[] = [];
 const redoStack: { name: string; data: ImageData }[] = [];
+/** Pontos nomeados por quadro (src/data/layout.json, `arts[nome].points`): mão do ninja, cabo das espadas soltas. */
+let layoutData: Layout = { arts: {}, types: {} };
+let layoutDirty = false;
+
+// ------------------------------------------------------------------ pontos (layout.json)
+/** Arte que recebe os pontos: no ninja montado é sempre o corpo-base (a mão); no modo arquivo, o próprio arquivo. */
+const pointArt = () => (mode === 'doll' ? 'ninja-body' : fileName);
+const frameIndex = () => row * grid().cols + col;
+function pointsOf(key: string, create = false): ([number, number] | null)[] | null {
+  const name = pointArt();
+  if (!name) return null;
+  const a = (layoutData.arts[name] ??= {});
+  if (!a.points?.[key] && !create) return null;
+  a.points ??= {};
+  return (a.points[key] ??= []);
+}
+const pointKey = () => ($<HTMLInputElement>('pointKey').value.trim() || 'hand').toLowerCase();
+function setPoint(p: [number, number] | null, at = frameIndex()) {
+  const pts = pointsOf(pointKey(), true)!;
+  while (pts.length <= at) pts.push(null);
+  pts[at] = p;
+  layoutDirty = true;
+  updateStatus();
+  redraw();
+}
+function currentPoint(): [number, number] | null {
+  return pointsOf(pointKey())?.[frameIndex()] ?? null;
+}
 
 // ------------------------------------------------------------------ arquivos
 async function loadLayer(name: string): Promise<Layer | null> {
@@ -205,6 +234,26 @@ function drawStage() {
     sctx.strokeRect(...r);
     sctx.setLineDash([]);
     sctx.lineDashOffset = 0;
+  }
+  const pt = currentPoint();
+  if (pt && (tool === 'point' || $<HTMLInputElement>('showPoints').checked)) {
+    // ponto nomeado do quadro (mão / cabo): cruz com o nome
+    const px = ox + (pt[0] + 0.5) * zoom;
+    const py = oy + (pt[1] + 0.5) * zoom;
+    sctx.strokeStyle = '#000';
+    sctx.lineWidth = 3;
+    sctx.beginPath();
+    sctx.moveTo(px - 8, py);
+    sctx.lineTo(px + 8, py);
+    sctx.moveTo(px, py - 8);
+    sctx.lineTo(px, py + 8);
+    sctx.stroke();
+    sctx.strokeStyle = '#7dff9a';
+    sctx.lineWidth = 1.5;
+    sctx.stroke();
+    sctx.fillStyle = '#7dff9a';
+    sctx.font = 'bold 11px system-ui';
+    sctx.fillText(pointKey(), px + 10, py - 6);
   }
   if (mode === 'doll') {
     // altura do corpo (o que o jogo considera os 56 px do boneco) e a linha dos pés
@@ -402,6 +451,11 @@ stage.addEventListener('pointerdown', (e) => {
     pick(p.x, p.y);
     return;
   }
+  if (tool === 'point') {
+    const { fw, fh } = grid();
+    if (p.x >= 0 && p.y >= 0 && p.x < fw && p.y < fh) setPoint(e.button === 2 ? null : [p.x, p.y]);
+    return;
+  }
   if (tool === 'select' && !inSel(p)) {
     drag = { kind: 'select', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     sel = rectOf(p, p);
@@ -569,8 +623,14 @@ function undo(from: typeof undoStack, to: typeof undoStack) {
 
 async function save() {
   const dirty = [...layers.values()].filter((l) => l.dirty);
-  if (!dirty.length) return setStatus('Nada para salvar');
+  if (!dirty.length && !layoutDirty) return setStatus('Nada para salvar');
   setStatus('Salvando…');
+  if (layoutDirty) {
+    const r = await fetch('/api/layout', { method: 'PUT', body: JSON.stringify(layoutData) });
+    if (!r.ok) return setStatus(`Erro ao salvar os pontos: ${await r.text()}`);
+    layoutDirty = false;
+    if (!dirty.length) return setStatus('Pontos salvos em src/data/layout.json');
+  }
   for (const l of dirty) {
     const blob = await new Promise<Blob | null>((ok) => l.canvas.toBlob(ok, 'image/png'));
     if (!blob) continue;
@@ -591,8 +651,8 @@ function setStatus(t: string) {
 function updateStatus() {
   const n = [...layers.values()].filter((l) => l.dirty).length;
   const s = $('status');
-  s.textContent = n ? `${n} camada(s) não salva(s)` : '';
-  s.classList.toggle('dirty', n > 0);
+  s.textContent = n ? `${n} camada(s) não salva(s)` : layoutDirty ? 'pontos não salvos' : '';
+  s.classList.toggle('dirty', n > 0 || layoutDirty);
   renderLayerList();
 }
 
@@ -727,6 +787,10 @@ function setTool(t: Tool) {
   tool = t;
   for (const b of $('tools').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tool === t);
   stage.style.cursor = t === 'move' ? 'move' : t === 'picker' ? 'copy' : t === 'select' ? 'cell' : 'crosshair';
+  $('pointBox').hidden = t !== 'point';
+  if (t === 'point' && mode === 'file' && fileName?.startsWith('sword-') && $<HTMLInputElement>('pointKey').value === 'hand') $<HTMLInputElement>('pointKey').value = 'grip';
+  if (t === 'point' && mode === 'doll') $<HTMLInputElement>('pointKey').value = 'hand';
+  redraw();
 }
 
 function renderFrames() {
@@ -914,6 +978,7 @@ window.addEventListener('keydown', (e) => {
   }
   else if (k === 'i') setTool('picker');
   else if (k === 'm') setTool('move');
+  else if (k === 'p') setTool('point');
   else if (k === 's' && !e.ctrlKey) setTool('select');
   else if (k === ' ') {
     spaceDown = true;
@@ -936,8 +1001,23 @@ window.addEventListener('keyup', (e) => {
   if (e.key === ' ') spaceDown = false;
 });
 window.addEventListener('beforeunload', (e) => {
-  if ([...layers.values()].some((l) => l.dirty)) e.preventDefault();
+  if ([...layers.values()].some((l) => l.dirty) || layoutDirty) e.preventDefault();
 });
+$('pointKey').addEventListener('input', redraw);
+$('showPoints').addEventListener('change', redraw);
+$('pointDel').onclick = () => setPoint(null);
+$('pointRow').onclick = () => {
+  const p = currentPoint();
+  if (!p) return setStatus('Marque o ponto neste quadro primeiro');
+  const { cols } = grid();
+  for (let c = 0; c < cols; c++) setPoint([p[0], p[1]], row * cols + c);
+};
+$('pointAll').onclick = () => {
+  const p = currentPoint();
+  if (!p) return setStatus('Marque o ponto neste quadro primeiro');
+  const { cols, rows } = grid();
+  for (let i = 0; i < cols * rows; i++) setPoint([p[0], p[1]], i);
+};
 window.addEventListener('resize', redraw);
 
 for (const b of $('tools').querySelectorAll<HTMLButtonElement>('button')) b.onclick = () => setTool(b.dataset.tool as Tool);
@@ -990,6 +1070,11 @@ for (const id of ['fCols', 'fRows'])
 
 // ------------------------------------------------------------------ início
 await refreshList();
+try {
+  layoutData = await fetch('/api/layout').then((r) => r.json());
+} catch {
+  setStatus('Não carregou src/data/layout.json (pontos desligados)');
+}
 for (const f of files) if (f.startsWith('layer-') || f === 'ninja-body.png') await loadLayer(f.replace(/\.png$/, ''));
 zoom = fitZoom();
 await afterDollChange();

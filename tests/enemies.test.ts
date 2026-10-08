@@ -148,7 +148,7 @@ describe('inimigos novos', () => {
     tiger.abilityCd = 0;
     const hp0 = n.hp;
     g.state.time = 0; // noite
-    g.step(1 / 60);
+    run(g, 0.3); // o dano entra no auge do avanço do golpe
     expect(n.hp).toBeLessThan(hp0);
     expect(Math.hypot(tiger.x - n.x, tiger.y - n.y)).toBeLessThan(40);
     // de dia ele desiste

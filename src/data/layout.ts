@@ -32,6 +32,11 @@ export interface ArtLayout {
   pieces?: LayoutPiece[];
   /** Marcas na arte (px da cena no tamanho 1×, a partir do meio da base): guarda da torre, chaminé. */
   marks?: Record<string, [number, number]>;
+  /**
+   * Pontos nomeados em px da imagem, um por quadro da folha (índice = linha × quadros por linha + coluna; imagem simples:
+   * só o 0): `hand` no corpo do ninja (onde a arma é segurada), `grip` nas espadas soltas (onde a mão pega). null = sem.
+   */
+  points?: Record<string, ([number, number] | null)[]>;
   /** Máscara das peças (0 = resto, 1… = peça), do tamanho da imagem, comprimida em RLE (`encodeMask`). */
   mask?: string;
   maskW?: number;
@@ -55,7 +60,7 @@ export interface Layout {
   types: Record<string, TypeLayout>;
 }
 
-let LAYOUT: Layout = RAW as Layout;
+let LAYOUT: Layout = RAW as unknown as Layout;
 /** Muda a cada edição (o renderer refaz as peças em cache). */
 export let layoutVersion = 0;
 
@@ -64,6 +69,16 @@ export const artLayout = (name: string): ArtLayout | undefined => LAYOUT.arts[na
 export const typeLayout = (type: string): TypeLayout | undefined => LAYOUT.types[type];
 /** Ponto especial do tipo (px de mundo a partir do canto), ou undefined. */
 export const layoutPoint = (type: string, name: string) => LAYOUT.types[type]?.points?.[name];
+
+/** Ponto nomeado da arte no quadro `i`; faltando, o primeiro definido na mesma linha (de `perRow` quadros), senão qualquer um. */
+export function artPoint(name: string, key: string, i = 0, perRow = 1): [number, number] | undefined {
+  const pts = LAYOUT.arts[name]?.points?.[key];
+  if (!pts?.length) return undefined;
+  if (pts[i]) return pts[i]!;
+  const row0 = Math.floor(i / perRow) * perRow;
+  for (let k = row0; k < row0 + perRow; k++) if (pts[k]) return pts[k]!;
+  return pts.find((p) => !!p) ?? undefined;
+}
 
 /** Editor: troca o layout inteiro (ou avisa que mudou por dentro). */
 export function setLayout(l: Layout) {

@@ -24,6 +24,8 @@ h3 { margin: 14px 0 6px; font-size: 13px; color: var(--accent); }
 h3 small, .hint { color: var(--muted); font-weight: 400; }
 .hint { font-size: 12px; margin: 6px 0; }
 label { display: block; color: var(--muted); margin: 6px 0 3px; }
+#pointBox:not([hidden]) { display: inline-flex; gap: 4px; align-items: center; margin-right: 8px; }
+#pointBox input { width: 5rem; }
 label.check { display: inline-flex; gap: 4px; align-items: center; margin: 0 8px 0 0; color: var(--text); }
 .grow { flex: 1; }
 

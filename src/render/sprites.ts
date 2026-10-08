@@ -1,13 +1,14 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
-import { art, artFrames, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt } from './art';
+import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, SWORDS, tintPixels } from './doll';
 import { bladeOf } from '../game/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import type { MistBlade } from '../data/blades';
 import { ANIMALS } from '../data/animals';
-import { artLayout } from '../data/layout';
+import { artLayout, artPoint } from '../data/layout';
+import { STRIKE_ANIM } from '../game/combat';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -163,7 +164,7 @@ const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'ha
  * Folha da unidade. Ninjas da vila (e convidados do Exame) são "paper doll": penteado escolhido pelo id
  * e cabelo/roupa/pele do `look` dele, recoloridos sobre a base. Clones copiam o dono.
  */
-function unitPic(u: Unit) {
+function unitPic(u: Unit, noSword = false) {
   if (u.animal === 'dog') return art(breedArt(u.breed)) ?? art('dog');
   if (u.animal) return art(u.animal);
   if (u.org) return art(`org-${u.org}`) ?? art('rogue'); // Ordem do Eclipse: arte própria de cada membro
@@ -173,13 +174,13 @@ function unitPic(u: Unit) {
   if (u.swordsman && u.look) {
     // Espadachim da Névoa: montado como os ninjas, com o colete e a lâmina dele
     const d = SWORDSMEN[u.swordsman];
-    const doll = dollParts({ style: d.style, rank: 'chunin', sword: u.swordsman, look: u.look });
+    const doll = dollParts({ style: d.style, rank: 'chunin', sword: noSword ? null : u.swordsman, look: u.look });
     return (doll && dollArt(doll, u.look.skin)) ?? art('rogue');
   }
   if (u.faction === 'enemy' && !u.cursed) return art('rogue'); // o ninja com o selo amaldiçoado segue com a cara dele
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
-  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, mask: u.ninja?.mask, stats: u.ninja?.stats, sword: bladeOf(u), look: u.look }) : null;
+  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, mask: u.ninja?.mask, stats: u.ninja?.stats, sword: noSword ? null : bladeOf(u), look: u.look }) : null;
   return (doll && dollArt(doll, u.look.skin)) ?? tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
 }
 
@@ -322,8 +323,67 @@ function picPortrait(pic: HTMLImageElement | HTMLCanvasElement, full: boolean, t
 }
 
 /** Arte em pixel art da unidade (se houver): linha da folha conforme a direção (já projetada) em que anda. */
+/** Tamanho de cada espada solta (× 22 px, no ninja de 30 px). */
+const SWORD_LEN: Record<string, number> = {
+  zabuza: 1.5, samehada: 1.4, kabutowari: 1.2, nuibari: 1.5, hiramekarei: 1.3, shibuki: 1.2, kiba: 0.85, kusanagi: 1.0, sakumo: 0.7, asuma: 0.5, raijin: 1.0, bee: 1.0, tanto: 0.65,
+};
+const swordPics = new Map<string, HTMLCanvasElement | null>();
+/** A espada solta (`sword-<id>`, vertical com a lâmina para cima) recolorida como a camada nas costas. */
+function swordPic(id: string): HTMLCanvasElement | null {
+  if (swordPics.has(id)) return swordPics.get(id)!;
+  const pic = art(`sword-${id}`);
+  const colors = SWORDS[id];
+  if (!pic || !pic.naturalWidth || !colors) return null; // ainda carregando: tenta de novo no próximo quadro
+  const c = document.createElement('canvas');
+  c.width = pic.naturalWidth;
+  c.height = pic.naturalHeight;
+  const cx = c.getContext('2d', { willReadFrequently: true })!;
+  cx.drawImage(pic, 0, 0);
+  const data = cx.getImageData(0, 0, c.width, c.height);
+  tintPixels(data.data, { name: id, color: colors[0], color2: colors[1] }, false, '#000000');
+  cx.putImageData(data, 0, 0);
+  swordPics.set(id, c);
+  return c;
+}
+
+/**
+ * Golpe com lâmina: a espada sai das costas e gira em volta da mão (ponto `hand` do corpo, Editor de sprites), do alto
+ * atrás até a frente embaixo, deixando dois vultos atrás. `k` = 0–1 do avanço.
+ */
+function drawSlash(ctx: Ctx, u: Unit, pic: HTMLImageElement | HTMLCanvasElement, blade: string, k: number, x: number, base: number, height: number, flip: boolean, frame: number, row: number) {
+  const sw = swordPic(blade);
+  const r = artRect(pic, x, base, height);
+  const hp = artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
+  if (!sw || !hp) return;
+  const hx = r.left + ((flip ? r.fw - hp[0] - 1 : hp[0]) + 0.5) * (r.w / r.fw);
+  const hy = r.top + (hp[1] + 0.5) * (r.h / r.fh);
+  const grip = artPoint(`sword-${blade}`, 'grip') ?? [sw.width / 2, sw.height * 0.86];
+  const len = 22 * (SWORD_LEN[blade] ?? 1) * (height / 30);
+  const s = len / sw.height;
+  // arco: começa erguida atrás e termina na frente embaixo; a "ida" é lenta e o corte rápido
+  const ease = (q: number) => (q < 0.3 ? 0.12 * (q / 0.3) : 0.12 + 0.88 * ((q - 0.3) / 0.7) ** 0.75);
+  const a0 = u.facing - Math.PI * 0.62;
+  const a1 = u.facing + Math.PI * 0.33;
+  const at = (q: number) => a0 + (a1 - a0) * ease(Math.max(0, Math.min(1, q)));
+  ctx.save();
+  ctx.imageSmoothingEnabled = s < 0.98;
+  for (const [dq, alpha] of [[0.22, 0.18], [0.11, 0.35], [0, 1]] as const) {
+    if (k - dq < 0.02) continue;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(hx, hy);
+    ctx.rotate(at(k - dq) + Math.PI / 2);
+    ctx.drawImage(sw, -grip[0] * s, -grip[1] * s, sw.width * s, sw.height * s);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean {
-  const pic = action ? art(`villager-${action}`) : unitPic(u);
+  // golpe com lâmina em andamento: a espada sai das costas (boneco sem ela) e gira na mão
+  const slash = !action && u.strike && u.anim > 0 ? bladeOf(u) : null;
+  const slashK = slash ? 1 - u.anim / STRIKE_ANIM : 0;
+  const pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash));
   if (!pic) return false;
   const dx = Math.cos(u.facing);
   const dy = Math.sin(u.facing);
@@ -342,12 +402,34 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   if (u.animal && ANIMALS[u.animal].night && u.combatTimer <= 0) ctx.globalAlpha = 0.45;
   // espião invisível: só um vulto tremulando
   if (u.cloak) ctx.globalAlpha = u.faction === 'village' ? 0.45 : 0.14 + Math.sin(t * 6 + u.id) * 0.05; // ANBU da vila: meio transparente
-  if (u.hitFlash > 0) ctx.globalAlpha *= 0.55;
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
   const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
   // golpe: avança um passo curto na direção do alvo e volta (sem quadro de ataque na folha)
   const lunge = !action && u.anim > 0 && !u.moving ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
-  drawArt(ctx, pic, u.x + dx * lunge, base + dy * lunge * 0.5, (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale, row === SHEET_ROWS.side && dx < 0, frame, row);
+  const ux = u.x + dx * lunge;
+  const uy = base + dy * lunge * 0.5;
+  const height = (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale;
+  const flip = row === SHEET_ROWS.side && dx < 0;
+  // "esmaga e estica": logo depois de um empurrão e ao pousar do Shunshin (largo e baixo, voltando ao normal)
+  const knock = u.knockT ? Math.max(0, (u.knockT - 0.38) / 0.12) : 0;
+  const land = u.landT && u.ninja ? Math.min(1, u.landT / 0.18) : 0;
+  const sq = Math.max(knock, land);
+  if (sq > 0) {
+    ctx.translate(ux, uy);
+    ctx.scale(1 + 0.25 * sq, 1 - 0.2 * sq);
+    ctx.translate(-ux, -uy);
+  }
+  if (slash && row === SHEET_ROWS.back) drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
+  drawArt(ctx, pic, ux, uy, height, flip, frame, row);
+  // clarão branco de quem levou dano
+  if (u.hitFlash > 0) {
+    ctx.globalAlpha *= Math.min(1, u.hitFlash / 0.15) * 0.85;
+    drawArt(ctx, whiteArt(pic), ux, uy, height, flip, frame, row);
+  }
+  if (slash && row !== SHEET_ROWS.back) {
+    ctx.globalAlpha = 1;
+    drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
+  }
   ctx.restore();
   return true;
 }

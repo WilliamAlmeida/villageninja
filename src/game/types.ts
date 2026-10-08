@@ -163,6 +163,10 @@ export interface Unit {
   arenaSide?: number;
   /** Segundos desde que foi empurrado por um golpe (conta para baixo; ring-out no Exame). */
   knockT?: number;
+  /** Acabou de pousar (Shunshin): tempo do "esmaga e estica" da aterrissagem. Só desenho. */
+  landT?: number;
+  /** Golpe corpo a corpo a caminho: o dano entra no auge do avanço do sprite (`resolveStrike`); dura até o avanço acabar. */
+  strike?: { id: number; t: number; hit?: boolean };
   /** Tática da equipe copiada para o membro (teamSystem) e o ponto de "segurar posição". */
   tactic?: 'focus' | 'hold' | 'flank';
   anchor?: { x: number; y: number };
