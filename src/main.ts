@@ -150,6 +150,8 @@ function followSelected() {
 
 /** Câmera lenta dos momentos especiais: segundos reais e fator da simulação. */
 const SLOW_TIME = 0.8;
+/** Tempo máximo (ms) da simulação por quadro; o resto é do desenho e da interface. */
+const SIM_BUDGET_MS = 8;
 const SLOW_FACTOR = 0.3;
 let slowT = 0;
 const moments = new WeakSet<object>();
@@ -175,13 +177,18 @@ function frame(now: number) {
   // a vila roda sempre (e puxa o mapa de missão junto: sceneRunSystem); a tela mostra o que o jogador olha
   const g = home;
   acc += dt * g.state.speed * slow;
+  // orçamento de tempo para a simulação neste quadro: se o aparelho não dá conta (3x num celular fraco, batalha
+  // grande), o jogo anda um pouco mais devagar em vez de tentar alcançar o atraso — que fazia cada quadro rodar
+  // ainda mais passos e o FPS despencar (bola de neve)
+  const budget = performance.now() + SIM_BUDGET_MS;
   let steps = 0;
   while (acc >= SIM_DT && steps < 12) {
     g.step(SIM_DT);
     acc -= SIM_DT;
     steps++;
+    if (performance.now() > budget) break;
   }
-  if (steps >= 12) acc = 0;
+  if (acc >= SIM_DT) acc = Math.min(acc, SIM_DT); // o que não coube fica para trás (não acumula)
 
   saveTimer += dt;
   if (saveTimer >= AUTOSAVE_INTERVAL) {
@@ -227,3 +234,20 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw-v1.js').
 
 // útil para depurar no console do navegador
 (window as unknown as { vila: App }).vila = app;
+/**
+ * Medição no console: `bench()` mede quanto custa (ms) desenhar o mapa, um passo da simulação (numa CÓPIA do estado,
+ * sem mexer no jogo) e atualizar a interface aberta; `bench(n)` repete n vezes (padrão 30).
+ */
+(window as unknown as { renderer: Renderer }).renderer = renderer; // inspeção no console
+(window as unknown as { bench: (n?: number) => object }).bench = (n = 30) => {
+  const time = (f: () => void) => {
+    const t = performance.now();
+    for (let i = 0; i < n; i++) f();
+    return +((performance.now() - t) / n).toFixed(2);
+  };
+  const render = time(() => renderer.render(app.game, camera, app.ghost, clock, app));
+  const ui1 = time(() => ui.update(1 / 60, clock));
+  const copy = new (home.constructor as new (s: unknown, sys: unknown) => typeof home)(JSON.parse(JSON.stringify(home.state)), SYSTEMS);
+  const sim = time(() => copy.step(SIM_DT));
+  return { render, sim, ui: ui1, frameAt3x: +(render + sim * 3 + ui1).toFixed(2), units: home.state.units.length, nodes: home.state.nodes.length };
+};
