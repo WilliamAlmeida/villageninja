@@ -1621,7 +1621,7 @@ export class Panel {
     if (!isShinobi(u)) return '';
     const n = u.ninja!;
     const ready = (cd = 0) => (cd > 0 ? `${Math.ceil(cd)}s` : 'pronto');
-    const style = { leaf: 'folhas', mist: 'névoa', water: 'água', sand: 'areia', smoke: 'fumaça', flash: 'clarão' }[flickerStyle(u)];
+    const style = { leaf: 'folhas', mist: 'névoa', water: 'água', sand: 'areia', smoke: 'fumaça', flash: 'clarão', fire: 'chamas', spark: 'faíscas', wind: 'vento' }[flickerStyle(u)];
     t.flick = ready(u.flickerCd);
     t.kawa = ready(u.kawaCd);
     let html = `<h4>Técnicas básicas <small>(automáticas)</small></h4><div class="ftechs">

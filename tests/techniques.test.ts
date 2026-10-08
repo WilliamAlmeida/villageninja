@@ -37,7 +37,7 @@ describe('técnicas ninja', () => {
     expect(dist(n, wolf)).toBeLessThan(40);
     expect(n.flickerCd).toBeGreaterThan(0);
     expect(n.chakra).toBeLessThan(200);
-    expect(g.state.effects.some((e) => e.kind === 'flicker' && e.variant === 'leaf')).toBe(true);
+    expect(g.state.effects.some((e) => e.kind === 'flicker' && e.variant === flickerStyle(n))).toBe(true);
     expect(g.state.effects.some((e) => e.kind === 'afterimage' && e.uid === n.id)).toBe(true);
     // em recarga: o próximo salto não acontece
     n.x -= 200;
@@ -48,12 +48,18 @@ describe('técnicas ninja', () => {
   test('visual do Shunshin por vila e natureza', () => {
     const { n } = duel(202, 100);
     n.ninja!.nature = 'katon';
-    expect(flickerStyle(n)).toBe('leaf');
+    expect(flickerStyle(n)).toBe('fire');
+    n.ninja!.nature = 'raiton';
+    expect(flickerStyle(n)).toBe('spark');
+    n.ninja!.nature = 'fuuton';
+    expect(flickerStyle(n)).toBe('wind');
     n.ninja!.nature = 'suiton';
     expect(flickerStyle(n)).toBe('water');
     n.ninja!.nature = 'doton';
     expect(flickerStyle(n)).toBe('sand');
-    n.ninja!.nature = 'fuuton';
+    // sem natureza: o jeito da vila (folhas) ou dos renegados (névoa)
+    n.ninja!.nature = undefined as never;
+    expect(flickerStyle(n)).toBe('leaf');
     n.faction = 'enemy';
     expect(flickerStyle(n)).toBe('mist');
   });

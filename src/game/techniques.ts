@@ -48,10 +48,14 @@ export function flickerStyle(u: Unit): FlickerStyle {
   const nat = u.ninja?.nature;
   if (nat === 'suiton') return 'water';
   if (nat === 'doton') return 'sand';
+  if (nat === 'katon') return 'fire';
+  if (nat === 'raiton') return 'spark';
+  if (nat === 'fuuton') return 'wind';
   return u.faction === 'village' ? 'leaf' : u.faction === 'enemy' ? 'mist' : 'smoke';
 }
 export const FLICKER_COLOR: Record<FlickerStyle, string> = {
   leaf: '#d8f27a', mist: '#c9d3dc', water: '#4da6ff', sand: '#d9b77a', smoke: '#e8e8e8', flash: '#ffd34d',
+  fire: '#ff8a2b', spark: '#fff6a8', wind: '#b6f2cc',
 };
 
 export const canFlicker = (u: Unit, d: number) =>

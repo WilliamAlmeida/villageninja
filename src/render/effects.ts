@@ -33,6 +33,28 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
         ctx.fillRect(e.x - 1, e.y - 34 * (1 - k), 2, 34 * (1 - k)); // risco vertical do clarão
         break;
       }
+      if (e.variant === 'spark') {
+        // Raiton: raios em zigue-zague estalando em volta do corpo (sorteio estável por efeito, troca a cada 0,05 s)
+        ctx.globalAlpha = (1 - k) * 0.95;
+        ctx.lineCap = 'round';
+        const tick = Math.floor(e.t / 0.05);
+        for (let j = 0; j < 3; j++) {
+          const seed = e.x * 7 + e.y * 13 + j * 31 + tick * 17;
+          const a0 = prand(seed) * TAU;
+          for (const [w, c] of [[2.6, '#7fb8ff'], [1.1, '#ffffff']] as const) {
+            ctx.strokeStyle = c;
+            ctx.lineWidth = w;
+            ctx.beginPath();
+            for (let i = 0; i <= 5; i++) {
+              const a = a0 + i * 0.55;
+              const rr = r * (0.55 + prand(seed + i) * 0.5);
+              ctx.lineTo(e.x + Math.cos(a) * rr, e.y - 10 + Math.sin(a) * rr * 0.75);
+            }
+            ctx.stroke();
+          }
+        }
+        break;
+      }
       ctx.globalAlpha = (1 - k) * 0.7;
       ctx.strokeStyle = e.color;
       ctx.lineWidth = 2;

@@ -28,7 +28,7 @@ export type Cost = Partial<Record<ResKey, number>>;
 export type Faction = 'village' | 'wild' | 'enemy' | 'guest';
 export type UnitKind = 'villager' | 'ninja' | 'animal' | 'rogue' | 'clone';
 /** Visual do Shunshin por vila/natureza; `flash` é o clarão amarelo do Hiraishin. */
-export type FlickerStyle = 'leaf' | 'mist' | 'water' | 'sand' | 'smoke' | 'flash';
+export type FlickerStyle = 'leaf' | 'mist' | 'water' | 'sand' | 'smoke' | 'flash' | 'fire' | 'spark' | 'wind';
 /** Ritmo do combate (menu): rápido = jutsu sai na hora; tático = selos antes, que um golpe interrompe. */
 export type CombatPace = 'fast' | 'tactical';
 export type NinjaOrder = 'auto' | 'train' | 'patrol' | 'scout';

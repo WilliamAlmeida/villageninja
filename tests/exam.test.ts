@@ -66,6 +66,7 @@ describe('Exame Chunin', () => {
     a.x = ring.cx + ring.r + 30;
     a.y = ring.cy;
     a.knockT = 0;
+    b.stun = 0.2; // sem um golpe de verdade empurrando `a` neste mesmo passo
     run(g, SIM_DT);
     expect(Math.hypot(a.x - ring.cx, a.y - ring.cy)).toBeLessThanOrEqual(ring.r);
     // o muro segura o empurrão (ninguém atravessa a parede)

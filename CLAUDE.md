@@ -296,8 +296,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Equipamento automático** (`autoEquipAll`/`setAutoGear` em gear.ts, `systems/gear.ts`, `state.flags.autoGear`): botões
   na lista de ninjas e nas oficinas. Promovido a Chunin numa equipe sem sensei vira o sensei (`promoteToSensei`).
 - **Técnicas ninja** (`game/techniques.ts`, `systems/techniques.ts`, tudo automático): **Shunshin** (some num redemoinho e
-  aparece adiante: chegar na luta, recuar quem luta de longe, fugir ferido; visual por vila/natureza em `flickerStyle`:
-  folhas, névoa, água, areia, fumaça; deixa um vulto `afterimage`), **Kawarimi** (golpe forte/fatal vira tronco, chance por
+  aparece adiante: chegar na luta, recuar quem luta de longe, fugir ferido; visual pela natureza em `flickerStyle`:
+  água, areia (Terra), brasas (Fogo), raios em zigue-zague (Raio), riscos de vento (Vento); sem natureza, folhas (vila) / névoa (renegados); deixa um vulto `afterimage`), **Kawarimi** (golpe forte/fatal vira tronco, chance por
   Velocidade+Inteligência). **Ritmo do combate** (`state.pace`, menu): rápido = jutsu na hora; tático = selos antes
   (`Unit.cast`, `sealTime`), golpe ≥ `SEAL_BREAK` da vida ou atordoamento interrompe (taijutsu e cura sem selos).
   Investidas (Chidori) correm até o alvo (`Unit.dash`, `dashTick`). **Artes do Kage** (`data/kageArts.ts`,

@@ -186,6 +186,23 @@ export class Particles {
         else if (e.variant === 'water') {
           for (let i = 0; i < 14; i++) this.add({ ...swirl(i, 14, rnd(30, 60)), kind: 'drop', z: 6, vz: rnd(40, 90), life: rnd(0.4, 0.8), size: rnd(1.4, 2.4), color: pick(WATER) });
           this.add({ kind: 'mist', x: e.x, y: e.y - 6, life: 0.5, size: r * 1.2, color: '#9fd8ff' });
+        } else if (e.variant === 'fire') {
+          // Katon: redemoinho de chamas subindo, brasas pulando e um puf de fumaça escura
+          for (let i = 0; i < 5; i++) this.add({ ...swirl(i, 5, rnd(30, 50)), kind: 'flame', life: rnd(0.3, 0.5), size: rnd(1.4, 2.2), color: pick(FIRE.slice(1)) });
+          for (let i = 0; i < 14; i++) this.add({ ...swirl(i, 14, rnd(40, 70)), kind: 'ember', life: rnd(0.4, 0.7), size: rnd(1.6, 2.6), color: pick(['#ffd24d', '#ff8a2b', '#ff5a1f', '#ff3a1a']) });
+          for (let i = 0; i < 8; i++) this.add({ ...swirl(i, 8, rnd(20, 50)), kind: 'ember', z: 4, vz: rnd(40, 90), life: rnd(0.5, 0.9), size: rnd(1.3, 2.2), color: pick(LAVA) });
+          for (let i = 0; i < 3; i++) this.add({ kind: 'smoke', x: e.x + rnd(-r, r) * 0.3, y: e.y - 10, vx: rnd(-8, 8), vy: rnd(-20, -10), life: rnd(0.5, 0.8), size: r * rnd(0.2, 0.3), color: '#4a3c38' });
+        } else if (e.variant === 'spark') {
+          // Raiton: estalo de faíscas em volta do corpo e um clarão curto, sem fumaça
+          this.add({ kind: 'flash', x: e.x, y: e.y - 10, life: 0.1, size: r * 1.1, color: '#e6f4ff' });
+          for (let i = 0; i < 16; i++) {
+            const a = rnd(0, TAU);
+            this.add({ kind: 'spark', x: e.x + Math.cos(a) * r * 0.3, y: e.y - 10 + Math.sin(a) * r * 0.5, vx: Math.cos(a) * rnd(60, 120), vy: Math.sin(a) * rnd(40, 90), life: rnd(0.08, 0.2), size: rnd(3, 7), color: pick(BOLT) });
+          }
+        } else if (e.variant === 'wind') {
+          // Fuuton: riscos de vento girando em volta (o redemoinho do desenho) e poeira levantada no chão
+          for (let i = 0; i < 14; i++) this.add({ ...swirl(i, 14, rnd(70, 110)), kind: 'streak', life: rnd(0.25, 0.4), size: rnd(5, 9), color: pick(WIND) });
+          for (let i = 0; i < 6; i++) this.add({ ...swirl(i, 6, rnd(25, 45)), y: e.y + rnd(-2, 2), kind: 'dust', life: rnd(0.4, 0.7), size: rnd(1.8, 2.8), color: '#d8cdb0' });
         } else if (e.variant === 'sand') for (let i = 0; i < 16; i++) this.add({ ...swirl(i, 16, rnd(40, 80)), kind: 'dust', life: rnd(0.5, 0.9), size: rnd(1.8, 3.2), color: pick(SAND) });
         else if (e.variant === 'flash') {
           this.add({ kind: 'flash', x: e.x, y: e.y - 10, life: 0.15, size: r * 1.4, color: '#ffd34d' });
