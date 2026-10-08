@@ -39,3 +39,15 @@ describe('colisão dos objetos de cenário', () => {
     expect(g.world.walkablePx(tx * 32 + 16, 10 * 32 + 16)).toBe(true);
   });
 });
+
+describe('polígono das peças', () => {
+  test('pinta os pixels dentro do polígono', async () => {
+    const { fillPoly } = await import('../src/render/pieces');
+    const m = new Uint8Array(10 * 10);
+    fillPoly(m, 10, 10, [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]], 3);
+    expect(m[5 * 10 + 5]).toBe(3); // meio
+    expect(m[0]).toBe(0); // canto de fora
+    expect(m[5 * 10 + 9]).toBe(0);
+    expect([...m].filter((v) => v === 3).length).toBe(36); // 6×6 pixels
+  });
+});

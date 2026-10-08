@@ -21,7 +21,7 @@ import type { Building, ResourceNode, Site, Unit } from '../../src/game/types';
 import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, T, tileCenter } from '../../src/game/world';
 import { arenaSpots } from '../../src/game/exam';
 import { art, preloadArt } from '../../src/render/art';
-import { maskOf } from '../../src/render/pieces';
+import { fillPoly, hullOf, maskOf } from '../../src/render/pieces';
 import { Renderer } from '../../src/render/renderer';
 
 // ------------------------------------------------------------------ itens
@@ -71,7 +71,9 @@ let activePiece = 1;
 let brush = 12;
 let erase = false;
 /** Pincel ou lata de tinta (troca a área contínua da máscara). */
-let paintTool: 'brush' | 'fill' = 'brush';
+let paintTool: 'brush' | 'fill' | 'poly' = 'brush';
+/** Ponto do polígono sendo arrastado (peça ativa). */
+let polyDrag: number | null = null;
 let pending: { kind: 'anchor' | 'fade' | 'point'; piece?: number; name?: string } | null = null;
 let selDummy: Unit | null = null;
 let dirty = false;
@@ -127,7 +129,7 @@ function mask(): Uint8Array | null {
   if (!p?.naturalWidth) return null;
   let m = masks.get(item.artName);
   if (!m) {
-    m = maskOf(item.artName, p.naturalWidth, p.naturalHeight) ?? new Uint8Array(p.naturalWidth * p.naturalHeight);
+    m = maskOf(item.artName, p.naturalWidth, p.naturalHeight, true) ?? new Uint8Array(p.naturalWidth * p.naturalHeight);
     masks.set(item.artName, m);
   }
   return m;
@@ -148,8 +150,17 @@ function buildOverlay() {
   for (let i = 0; i < W * H; i++) alpha[i] = src[i * 4 + 3]!;
   const img = cx.createImageData(W, H);
   overlay = { canvas: c, img, alpha };
-  for (let i = 0; i < W * H; i++) paintPx(i, m[i]!);
+  const shown = composite();
+  for (let i = 0; i < W * H; i++) paintPx(i, shown[i]!);
   cx.putImageData(img, 0, 0);
+}
+/** O que vale de verdade: a pintura com os polígonos das peças por cima (igual ao jogo, render/pieces.ts). */
+function composite(): Uint8Array {
+  const m = mask()!;
+  const p = pic()!;
+  const out = new Uint8Array(m);
+  (artL().pieces ?? []).forEach((pc, i) => pc.poly && pc.poly.length >= 3 && fillPoly(out, p.naturalWidth, p.naturalHeight, pc.poly, i + 1));
+  return out;
 }
 function paintPx(i: number, v: number) {
   const o = overlay!;
@@ -368,8 +379,9 @@ function renderProps() {
           <div class="row"><button data-anchor="${n}" class="${pending?.kind === 'anchor' && pending.piece === n ? 'on' : ''}">Âncora</button><button data-fade="${n}" class="${pending?.kind === 'fade' && pending.piece === n ? 'on' : ''}">Transparência</button>${p.fade ? `<button data-fadeclr="${n}">sem área</button>` : ''}</div></div>`;
       });
       h += `<div class="row"><button id="addpiece">+ Nova peça</button></div>`;
-      h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" title="Pincel (B)">Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" title="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">Lata</button><button id="brusherase" class="${erase ? 'on' : ''}" title="Borracha (E): pincel ou lata devolvem ao resto">Borracha</button></div>
-        ${paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<p class="hint">Clique numa área pintada (ou no resto) para trocá-la inteira pela peça ativa; com a Borracha, ela volta ao resto.</p>`}
+      h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" title="Pincel (B)">Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" title="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">Lata</button><button id="polytool" class="${paintTool === 'poly' ? 'on' : ''}" title="Polígono (P): pontos arrastáveis que definem a peça ativa">Polígono</button><button id="brusherase" class="${erase ? 'on' : ''}" title="Borracha (E): pincel ou lata devolvem ao resto">Borracha</button></div>
+        ${paintTool === 'poly' ? `<p class="hint">Peça ativa: arraste os pontos; clique numa aresta cria ponto; botão direito num ponto apaga. Sem polígono, um clique cria um retângulo. O polígono vale por cima da pintura.</p>
+          <div class="row"><button id="polyguess" title="Contorno convexo do que já está pintado nesta peça">Adivinhar forma</button><button id="polybox" title="Retângulo em volta do que está pintado nesta peça">Retângulo do contorno</button><button id="polydel">Apagar polígono</button></div>` : paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<p class="hint">Clique numa área pintada (ou no resto) para trocá-la inteira pela peça ativa; com a Borracha, ela volta ao resto.</p>`}
         <div class="row"><button id="clearmask">Limpar pintura</button></div>`;
     }
   } else if (mode === 'tiles') {
@@ -459,7 +471,32 @@ props.addEventListener('click', (e) => {
     paintTool = 'fill';
   }
   if (id === 'brusherase') erase = true;
-  if (id === 'brushpaint' || id === 'bucket' || id === 'brusherase') renderProps();
+  if (id === 'polytool') {
+    erase = false;
+    paintTool = 'poly';
+  }
+  if (id === 'brushpaint' || id === 'bucket' || id === 'brusherase' || id === 'polytool') renderProps();
+  const pc = artL().pieces?.[activePiece - 1];
+  if ((id === 'polyguess' || id === 'polybox' || id === 'polydel') && pc && overlay) {
+    snapshot();
+    const p = pic()!;
+    const W = p.naturalWidth;
+    const H = p.naturalHeight;
+    if (id === 'polydel') delete pc.poly;
+    else {
+      const hull = hullOf(composite(), overlay.alpha, W, H, activePiece);
+      if (hull.length >= 3) {
+        if (id === 'polyguess') pc.poly = hull;
+        else {
+          const xs = hull.map((q) => q[0]);
+          const ys = hull.map((q) => q[1]);
+          const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+          pc.poly = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+        }
+      }
+    }
+    polyChanged();
+  }
   if (id === 'clearmask') {
     snapshot();
     mask()!.fill(0);
@@ -612,6 +649,58 @@ function fillAt(sx: number, sy: number) {
   overlay.canvas.getContext('2d')!.putImageData(overlay.img, 0, 0);
 }
 
+/** Polígono mudou: o jogo refaz as peças e a sobreposição mostra o resultado. */
+function polyChanged() {
+  touchLayout();
+  buildOverlay();
+  changed();
+}
+
+/** Clique do Polígono: arrasta ponto, apaga ponto (botão direito), cria ponto numa aresta ou cria o retângulo inicial. */
+function polyDown(x: number, y: number, button: number): boolean {
+  const pc = artL().pieces?.[activePiece - 1];
+  if (!pc) return false;
+  const pts = (pc.poly ?? []).map(([u, v]) => imgToScreen(u, v));
+  const hit = pts.findIndex((q) => Math.hypot(q.x - x, q.y - y) < 8);
+  if (hit >= 0) {
+    snapshot();
+    if (button === 2) {
+      if (pc.poly!.length > 3) pc.poly!.splice(hit, 1);
+      polyChanged();
+      return true;
+    }
+    polyDrag = hit;
+    return true;
+  }
+  if (button === 2) return true;
+  const im = toImage(x, y);
+  if (!im) return true;
+  if (!pc.poly || pc.poly.length < 3) {
+    snapshot();
+    const b = box()!;
+    const du = 40 / (b.w * camera.zoom);
+    const dv = 40 / (b.h * camera.zoom);
+    pc.poly = [[im.u - du, im.v - dv], [im.u + du, im.v - dv], [im.u + du, im.v + dv], [im.u - du, im.v + dv]].map(([u, v]) => [+u.toFixed(4), +v.toFixed(4)]);
+    polyChanged();
+    return true;
+  }
+  // perto de uma aresta: novo ponto ali, já arrastando
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i]!;
+    const c = pts[(i + 1) % pts.length]!;
+    const len2 = (c.x - a.x) ** 2 + (c.y - a.y) ** 2 || 1;
+    const t = Math.max(0, Math.min(1, ((x - a.x) * (c.x - a.x) + (y - a.y) * (c.y - a.y)) / len2));
+    if (Math.hypot(a.x + t * (c.x - a.x) - x, a.y + t * (c.y - a.y) - y) < 6) {
+      snapshot();
+      pc.poly.splice(i + 1, 0, [+im.u.toFixed(4), +im.v.toFixed(4)]);
+      polyDrag = i + 1;
+      polyChanged();
+      return true;
+    }
+  }
+  return true;
+}
+
 over.addEventListener('contextmenu', (e) => e.preventDefault());
 over.addEventListener('wheel', (e) => {
   e.preventDefault();
@@ -683,7 +772,11 @@ over.addEventListener('pointerdown', (e) => {
       artL().pieces = [{ name: 'Peça 1', ax: 0.5, ay: 0.9 }];
       activePiece = 1;
       renderProps();
-    } else snapshot();
+    } else if (paintTool !== 'poly') snapshot();
+    if (paintTool === 'poly') {
+      polyDown(x, y, e.button);
+      return;
+    }
     if (paintTool === 'fill') {
       fillAt(x, y);
       commitMask();
@@ -724,6 +817,15 @@ over.addEventListener('pointerdown', (e) => {
 });
 over.addEventListener('pointermove', (e) => {
   mouse = { x: e.offsetX, y: e.offsetY };
+  if (polyDrag != null) {
+    const pc = artL().pieces?.[activePiece - 1];
+    const im = toImage(e.offsetX, e.offsetY);
+    if (pc?.poly && im) {
+      pc.poly[polyDrag] = [+Math.max(0, Math.min(1, im.u)).toFixed(4), +Math.max(0, Math.min(1, im.v)).toFixed(4)];
+      touchLayout(); // o jogo redesenha a peça; a sobreposição refaz ao soltar
+    }
+    return;
+  }
   if (!drag) return;
   if (drag.kind === 'pan') {
     camera.x -= (e.offsetX - drag.x) / camera.zoom;
@@ -757,6 +859,10 @@ over.addEventListener('pointermove', (e) => {
   }
 });
 over.addEventListener('pointerup', (e) => {
+  if (polyDrag != null) {
+    polyDrag = null;
+    polyChanged();
+  }
   if (drag?.kind === 'paint') commitMask();
   if (drag?.kind === 'art') renderProps();
   if (drag?.kind === 'fade' && pending) {
@@ -827,6 +933,27 @@ function drawOverlay() {
       octx.font = 'bold 11px system-ui';
       octx.fillText(p.name, q.x + 8, q.y - 6);
       if (p.fade) rect01(p.fade, c);
+      // polígono: linha na cor da peça; pontos maiores na peça ativa (com a ferramenta Polígono)
+      if (p.poly && p.poly.length >= 3) {
+        const pts = p.poly.map(([u, v]) => imgToScreen(u, v));
+        const active = paintTool === 'poly' && i + 1 === activePiece;
+        octx.beginPath();
+        pts.forEach((s2, k) => (k ? octx.lineTo(s2.x, s2.y) : octx.moveTo(s2.x, s2.y)));
+        octx.closePath();
+        octx.strokeStyle = '#000';
+        octx.lineWidth = active ? 4 : 3;
+        octx.stroke();
+        octx.strokeStyle = c;
+        octx.lineWidth = active ? 2 : 1.5;
+        octx.stroke();
+        if (active)
+          for (const s2 of pts) {
+            octx.fillStyle = '#000';
+            octx.fillRect(s2.x - 5, s2.y - 5, 10, 10);
+            octx.fillStyle = c;
+            octx.fillRect(s2.x - 4, s2.y - 4, 8, 8);
+          }
+      }
     });
     if (a.fade) rect01(a.fade, '#ffffff');
   }
@@ -1001,8 +1128,8 @@ window.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement).tagName;
   if (mode === 'pieces' && tag !== 'INPUT' && !e.ctrlKey && !e.metaKey) {
     const k = e.key.toLowerCase();
-    if (k === 'b' || k === 'g') {
-      paintTool = k === 'b' ? 'brush' : 'fill';
+    if (k === 'b' || k === 'g' || k === 'p') {
+      paintTool = k === 'b' ? 'brush' : k === 'g' ? 'fill' : 'poly';
       erase = false;
       renderProps();
     } else if (k === 'e') {

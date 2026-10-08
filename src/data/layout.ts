@@ -18,6 +18,8 @@ export interface LayoutPiece {
   ax: number;
   ay: number;
   fade?: Rect01;
+  /** Polígono da peça (pontos 0–1 da imagem): os pixels da arte dentro dele são desta peça, por cima da pintura. */
+  poly?: [number, number][];
 }
 
 export interface ArtLayout {

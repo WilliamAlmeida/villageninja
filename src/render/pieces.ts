@@ -25,18 +25,86 @@ export function pieceCovers(set: PieceSet, p: number, fx: number, fy: number): b
 
 const cache = new Map<string, { v: number; pic: CanvasImageSource; set: PieceSet | null }>();
 
-/** Máscara da arte (índice da peça por pixel), ou null. */
-export function maskOf(name: string, w: number, h: number): Uint8Array | null {
+/**
+ * Máscara da arte (índice da peça por pixel), ou null. Junta a pintura com os polígonos das peças (cada polígono
+ * vale por cima da pintura, na ordem das peças). `raw`: só a pintura (o Editor de cenário pinta nela).
+ */
+export function maskOf(name: string, w: number, h: number, raw = false): Uint8Array | null {
   const L = artLayout(name);
-  if (!L?.mask || !L.pieces?.length) return null;
-  const mw = L.maskW ?? w;
-  const mh = L.maskH ?? h;
-  const m = decodeMask(L.mask, mw * mh);
-  if (mw === w && mh === h) return m;
-  // a arte mudou de tamanho: amostra a máscara pelo mais próximo
-  const out = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = m[Math.floor((y * mh) / h) * mw + Math.floor((x * mw) / w)]!;
-  return out;
+  if (!L?.pieces?.length) return null;
+  let m: Uint8Array;
+  if (!L.mask) m = new Uint8Array(w * h);
+  else {
+    const mw = L.maskW ?? w;
+    const mh = L.maskH ?? h;
+    m = decodeMask(L.mask, mw * mh);
+    if (mw !== w || mh !== h) {
+      // a arte mudou de tamanho: amostra a máscara pelo mais próximo
+      const out = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = m[Math.floor((y * mh) / h) * mw + Math.floor((x * mw) / w)]!;
+      m = out;
+    }
+  }
+  if (!raw) L.pieces.forEach((p, i) => p.poly && p.poly.length >= 3 && fillPoly(m, w, h, p.poly, i + 1));
+  return m;
+}
+
+/** Pinta `v` nos pixels cujo centro fica dentro do polígono (pontos 0–1), linha a linha (par-ímpar). */
+export function fillPoly(m: Uint8Array, w: number, h: number, poly: [number, number][], v: number) {
+  const pts = poly.map(([u, t]) => [u * w, t * h] as const);
+  const ys = pts.map((p) => p[1]);
+  const y0 = Math.max(0, Math.floor(Math.min(...ys)));
+  const y1 = Math.min(h - 1, Math.ceil(Math.max(...ys)));
+  for (let y = y0; y <= y1; y++) {
+    const cy = y + 0.5;
+    const xs: number[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const [ax, ay] = pts[i]!;
+      const [bx, by] = pts[(i + 1) % pts.length]!;
+      if (ay <= cy !== by <= cy) xs.push(ax + ((cy - ay) / (by - ay)) * (bx - ax));
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const a = Math.max(0, Math.ceil(xs[k]! - 0.5));
+      const b = Math.min(w - 1, Math.floor(xs[k + 1]! - 0.5));
+      for (let x = a; x <= b; x++) m[y * w + x] = v;
+    }
+  }
+}
+
+/** Contorno convexo dos pixels `v` da máscara (opacos), simplificado até `max` pontos; 0–1 da imagem. */
+export function hullOf(m: Uint8Array, alpha: Uint8ClampedArray, w: number, h: number, v: number, max = 10): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let y = 0; y < h; y += 2)
+    for (let x = 0; x < w; x += 2) if (m[y * w + x] === v && alpha[y * w + x]) pts.push([x, y]);
+  if (pts.length < 3) return [];
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: number[], a: number[], b: number[]) => (a[0]! - o[0]!) * (b[1]! - o[1]!) - (a[1]! - o[1]!) * (b[0]! - o[0]!);
+  const lower: [number, number][] = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2]!, lower[lower.length - 1]!, p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper: [number, number][] = [];
+  for (const p of pts.reverse()) {
+    while (upper.length >= 2 && cross(upper[upper.length - 2]!, upper[upper.length - 1]!, p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  const hull = lower.slice(0, -1).concat(upper.slice(0, -1));
+  // tira o ponto que menos muda a forma (menor triângulo com os vizinhos) até sobrar `max`
+  while (hull.length > max) {
+    let best = 0;
+    let ba = Infinity;
+    for (let i = 0; i < hull.length; i++) {
+      const a = Math.abs(cross(hull[(i + hull.length - 1) % hull.length]!, hull[i]!, hull[(i + 1) % hull.length]!));
+      if (a < ba) {
+        ba = a;
+        best = i;
+      }
+    }
+    hull.splice(best, 1);
+  }
+  return hull.map(([x, y]) => [+(x / w).toFixed(4), +(y / h).toFixed(4)]);
 }
 
 /** Peças da arte `name` (desenhada por `pic`), em cache até o layout mudar. null = sem peças. */
