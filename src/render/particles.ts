@@ -74,6 +74,14 @@ export class Particles {
       this.add({ kind: 'dust', x: x + rnd(-14, 14), y: y + rnd(-4, 4), vx: rnd(-18, 18), vy: rnd(-6, 2), life: rnd(0.5, 0.9), size: rnd(3, 5), color: pick(EARTH) });
   }
 
+  /** Puf de fumaça clara subindo, com umas faíscas douradas (baú aberto que some). */
+  puff(x: number, y: number) {
+    for (let i = 0; i < 7; i++)
+      this.add({ kind: 'smoke', x: x + rnd(-9, 9), y: y + rnd(-6, 2), vx: rnd(-10, 10), vy: rnd(-18, -8), life: rnd(0.5, 0.8), size: rnd(5, 8), color: '#f2efe6' });
+    for (let i = 0; i < 5; i++)
+      this.add({ kind: 'spark', x: x + rnd(-10, 10), y: y - rnd(4, 16), vx: 0, vy: rnd(-14, -6), life: rnd(0.25, 0.45), size: rnd(2.5, 4), color: '#fff3b0' });
+  }
+
   breath(x: number, y: number, dir: number) {
     this.add({ kind: 'mist', x, y, vx: dir * rnd(8, 14), vy: rnd(-4, -1), life: rnd(0.5, 0.8), size: rnd(2.5, 3.5), color: '#ffffff' });
   }

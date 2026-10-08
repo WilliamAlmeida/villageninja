@@ -289,7 +289,7 @@ export class Renderer {
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
       // baú aberto: fica uns segundos no chão e some numa nuvem de poeira até reaparecer noutro lugar
       if (site.done && doneFor(site) > CHEST_LINGER) {
-        if (!this.chestGone.has(site.id) && doneFor(site) < CHEST_LINGER + 2) this.particles.dust(p.x, p.y - 4, 12);
+        if (!this.chestGone.has(site.id) && doneFor(site) < CHEST_LINGER + 2) this.particles.puff(p.x, p.y - 8);
         this.chestGone.add(site.id);
         continue;
       }
