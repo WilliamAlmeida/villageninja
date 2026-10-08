@@ -2243,7 +2243,11 @@ export class Panel {
     </div>`;
   }
 
-  /** Cartão de ninja da janela: retrato, graduação, nível, vida e chakra, equipe, jutsus e o que está fazendo. */
+  /**
+   * Cartão de ninja da janela: retrato, graduação, nível, vida, equipe, jutsus e, só quando é exceção (ferido, em
+   * missão, fora, estudando, raptado), o selo do estado. A rotina (patrulha, treino, luta) muda o tempo todo e já
+   * aparece na equipe: fora do cartão, a lista não se refaz a cada troca.
+   */
   private ninjaCard(u: Unit, t: Record<string, string>, b: Record<string, number>, onMission: Set<number | null>) {
     const g = this.app.game;
     const n = u.ninja!;
@@ -2251,36 +2255,33 @@ export class Panel {
     const team = teamOf(g, u);
     const js = n.jutsu.filter(Boolean).map((id) => JUTSUS[id!]!.shout.replace('!', '')).join(', ') || 'sem jutsu';
     b[`hp${u.id}`] = u.hp / u.maxHp;
-    b[`ck${u.id}`] = u.chakra / Math.max(1, u.maxChakra);
     t[`hpt${u.id}`] = `${Math.ceil(u.hp)}/${u.maxHp}`;
-    t[`ckt${u.id}`] = `${Math.floor(u.chakra)}/${u.maxChakra}`;
     const rank = n.sannin ? 'sannin' : n.rank;
     const rankLabel = n.sannin ? 'Sannin' : RANKS[n.rank].name;
-    const [stLabel, stIc, stCls] = this.ninjaStatus(u, team && onMission.has(team.id));
+    const [stLabel, stIc, stCls, notable] = this.ninjaStatus(u, team && onMission.has(team.id));
     const pic = unitPortrait(u, true);
     return `<button class="ncard" data-act="pick" data-arg="${u.id}" ${team ? `style="--c:${team.color}"` : ''}>
       <span class="nc-face">${pimg(pic)}</span>
       <span class="nc-main"><span class="nc-name">${esc(u.name)}</span>
         <span class="nc-badges"><span class="rbadge r-${rank}">${RANK_BADGE_ICON[rank] ?? ''} ${rankLabel}</span><span class="lvbadge">Nv ${n.level}</span><span class="badge nat" style="--c:${nat.color}">${nat.kanji}</span></span>
-        <span class="nc-bar hp"><i data-b="hp${u.id}"></i></span><span class="nc-num" data-t="hpt${u.id}"></span>
-        <span class="nc-bar ck"><i data-b="ck${u.id}"></i></span><span class="nc-num" data-t="ckt${u.id}"></span></span>
+        <span class="nc-bar hp"><i data-b="hp${u.id}"></i></span><span class="nc-num" data-t="hpt${u.id}"></span></span>
       <span class="nc-line">${team ? `<span class="dot"></span>${esc(team.name)}` : `<span class="dot" style="--c:#666"></span>Sem equipe`}</span>
       <span class="nc-line">{kunai} ${esc(js)}</span>
-      <span class="mpill ${stCls}">${stIc} ${stLabel}</span></button>`;
+      ${notable ? `<span class="mpill ${stCls}">${stIc} ${stLabel}</span>` : ''}</button>`;
   }
 
-  /** O que o ninja está fazendo, com ícone e cor (para o selo do cartão). */
-  private ninjaStatus(u: Unit, mission: boolean | undefined): [string, string, string] {
-    if (u.away === WITH_SOUND) return ['Raptado', '{skull}', 'danger'];
-    if (u.captiveOf != null) return ['Sendo levado', '{alert}', 'danger'];
-    if (u.away != null) return ['Fora da vila', '{map}', 'good'];
-    if (mission) return ['Em missão', '{clipboard}', 'good'];
-    if (u.hp < u.maxHp * 0.6) return ['Ferido', '{medic}', 'danger'];
-    if (u.ninja?.learning) return ['Estudando', '{books}', 'info'];
+  /** O que o ninja está fazendo, com ícone e cor (para o selo do cartão); o 4º valor diz se é exceção (não a rotina). */
+  private ninjaStatus(u: Unit, mission: boolean | undefined): [string, string, string, boolean] {
+    if (u.away === WITH_SOUND) return ['Raptado', '{skull}', 'danger', true];
+    if (u.captiveOf != null) return ['Sendo levado', '{alert}', 'danger', true];
+    if (u.away != null) return ['Fora da vila', '{map}', 'good', true];
+    if (mission) return ['Em missão', '{clipboard}', 'good', true];
+    if (u.hp < u.maxHp * 0.6) return ['Ferido', '{medic}', 'danger', true];
+    if (u.ninja?.learning) return ['Estudando', '{books}', 'info', true];
     const label = STATE_LABEL[u.state] ?? u.state;
-    if (u.state === 'train') return [label, '{dummy}', 'safe'];
-    if (u.state === 'fight' || u.state === 'attack' || u.state === 'engage') return [label, '{swords}', 'risky'];
-    return [label, '{house}', 'info'];
+    if (u.state === 'train') return [label, '{dummy}', 'safe', false];
+    if (u.state === 'fight' || u.state === 'attack' || u.state === 'engage') return [label, '{swords}', 'risky', false];
+    return [label, '{house}', 'info', false];
   }
 
   private ninjaRow(u: Unit, t: Record<string, string>, b: Record<string, number>, extra = '') {
