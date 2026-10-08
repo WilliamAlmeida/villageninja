@@ -20,7 +20,7 @@ import { artLayout } from '../data/layout';
 import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
-import { fogVersion, isExplored, isExploredPx } from '../game/explore';
+import { CHEST_LINGER, doneFor, fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
@@ -285,8 +285,15 @@ export class Renderer {
       if (seen(p)) list.push({ x: p.x, y: p.y, n });
     }
     for (const site of s.sites) {
-      if (!site.found || (site.done && site.kind !== 'chest')) continue; // baú aberto fica no chão (aberto) até reaparecer noutro lugar
+      if (!site.found || (site.done && site.kind !== 'chest')) continue;
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
+      // baú aberto: fica uns segundos no chão e some numa nuvem de poeira até reaparecer noutro lugar
+      if (site.done && doneFor(site) > CHEST_LINGER) {
+        if (!this.chestGone.has(site.id) && doneFor(site) < CHEST_LINGER + 2) this.particles.dust(p.x, p.y - 4, 12);
+        this.chestGone.add(site.id);
+        continue;
+      }
+      this.chestGone.delete(site.id);
       if (!seen(p)) continue;
       // peças pintadas (ruína, mina): cada uma na profundidade da âncora; o resto em pé no ponto do local
       const box = this.siteBox(site, p.x, p.y);
@@ -938,6 +945,9 @@ export class Renderer {
     ctx.imageSmoothingEnabled = true;
   }
 
+  /** Baús abertos que já sumiram (a poeira sai uma vez só). */
+  private chestGone = new Set<number>();
+
   private drawSite(site: Site, x: number, y: number, time: number, selected: boolean) {
     const ctx = this.ctx;
     const name = site.kind === 'chest' && site.done && art('chest-open') ? 'chest-open' : site.kind;
@@ -969,7 +979,10 @@ export class Renderer {
       const pw = (w * pic.naturalWidth) / 96;
       const ph = (pw / pic.naturalWidth) * pic.naturalHeight;
       smoothIfShrunk(ctx, pw, pic.naturalWidth);
+      ctx.save();
+      if (site.done) ctx.globalAlpha *= Math.max(0, Math.min(1, (CHEST_LINGER - doneFor(site)) / 1.2)); // some aos poucos
       ctx.drawImage(pic, x - pw / 2 + (site.done ? -w * 0.06 : 0), y + w * 0.12 - ph, pw, ph);
+      ctx.restore();
       ctx.imageSmoothingEnabled = true;
     } else if (pic) {
       const h = (w / pic.naturalWidth) * pic.naturalHeight;

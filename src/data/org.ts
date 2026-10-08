@@ -27,6 +27,10 @@ export const ORG = {
   every: [4, 6] as [number, number],
   /** Quanto tempo (s) uma dupla caça antes de recuar (se ninguém a derrubar). */
   hunt: 150,
+  /** Vida a mais por vez que a Ordem se reergueu (+30% a cada ciclo). */
+  cycleHp: 0.3,
+  /** Dias de sossego depois que o covil cai, até ela se reerguer. */
+  restDays: 10,
   /** Recompensa por membro derrotado e pela destruição da Ordem. */
   memberReward: { ryo: 800 },
   finalReward: { ryo: 4000, darksteel: 12, crystal: 12 },

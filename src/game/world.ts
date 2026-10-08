@@ -39,8 +39,12 @@ export function doorPos(b: Building) {
 /** Arte do recurso no estágio atual: árvore (tree0/tree1) vira toco quase no fim; rocha racha depois da metade. */
 export function nodeArt(n: ResourceNode): string {
   const left = n.max ? n.amount / n.max : 1;
-  if (n.type === 'tree') return left < 0.25 ? 'stump' : `tree${n.variant % 2}`;
-  if (n.type === 'rock' && left < 0.5) return 'rock-cracked';
+  // cada árvore tem o toco dela (folhosa / pinheiro)
+  if (n.type === 'tree') return left < 0.25 ? `stump${n.variant % 2}` : `tree${n.variant % 2}`;
+  // rocha: racha depois da metade; esgotada some numa nuvem e deixa só pedrinhas no chão (dá para andar) até voltar
+  if (n.type === 'rock') return n.amount <= 0 ? 'rock-pebbles' : left < 0.5 ? 'rock-cracked' : 'rock';
+  // veio: esgotado fica a rocha sem os cristais
+  if (n.type === 'ore' && n.amount <= 0) return 'ore-empty';
   return n.type;
 }
 /** Canto (em tiles) da grade de colisão de um recurso pelo layout (arte do estágio), ou null = não bloqueia. */

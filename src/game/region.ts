@@ -293,6 +293,8 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
     case 'assault':
       if (outcome === 'win') {
         s.org.done = true;
+        s.org.wins = (s.org.wins ?? 0) + 1;
+        s.org.nextDay = s.day + ORG.restDays; // some por um tempo e depois se reergue
         for (const id of ORG_LAIR) if (!s.org.down.includes(id)) s.org.down.push(id);
         add(e.loot, ORG.finalReward);
         s.honor += 20;

@@ -161,12 +161,22 @@ export function soundBrain(g: Game, u: Unit, dt: number): boolean {
       setDestination(g, u, p.x, p.y);
     }
     const arrived = followPath(g, u, dt, SOUND.carrySpeed);
-    // a vila corre atrás: ninjas por perto (sem ordem do jogador) perseguem quem carrega
+    // a vila corre atrás: os mais perto (sem ordem do jogador) perseguem quem carrega, até `SOUND.chasers` ao mesmo
+    // tempo (antes ia todo mundo no raio, e a vila inteira virava uma enxurrada atrás dele)
     if (u.timer <= 0) {
       u.timer = 3; // o `timer` já desce no passo do renegado
-      for (const o of g.state.units)
-        if (!o.dead && !o.hidden && o.faction === 'village' && o.kind === 'ninja' && o.id !== t.id && !o.command && Math.hypot(o.x - u.x, o.y - u.y) < SOUND.chaseRange)
-          o.command = { kind: 'attack', targetId: u.id };
+      let on = 0;
+      const free: [Unit, number][] = [];
+      for (const o of g.state.units) {
+        if (o.dead || o.hidden || o.faction !== 'village' || o.kind !== 'ninja' || o.id === t.id) continue;
+        if (o.command?.kind === 'attack' && o.command.targetId === u.id) on++;
+        else if (!o.command) {
+          const d = Math.hypot(o.x - u.x, o.y - u.y);
+          if (d < SOUND.chaseRange) free.push([o, d]);
+        }
+      }
+      free.sort((a, b) => a[1] - b[1]);
+      for (const [o] of free.slice(0, Math.max(0, SOUND.chasers - on))) o.command = { kind: 'attack', targetId: u.id };
     }
     t.x = u.x - Math.cos(u.facing) * 10;
     t.y = u.y - 2;

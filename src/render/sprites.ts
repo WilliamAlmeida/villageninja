@@ -15,6 +15,7 @@ import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { RANKS } from '../data/ninja';
 import type { Building, Projectile, ResourceNode, Unit } from '../game/types';
 import { roleOf } from '../game/tactics';
+import { nodeArt } from '../game/world';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -121,17 +122,22 @@ const NODE_ART_H: Record<ResourceNode['type'], number> = { tree: 48, rock: 22, o
 /** Árvore já virou toco? (estágio do desenho: quase no fim) */
 export const isStump = (n: ResourceNode) => n.type === 'tree' && n.amount / n.max < 0.25;
 
+/** Altura (px) de cada estágio que não é o recurso inteiro. */
+const STAGE_H: Record<string, number> = { stump0: 20, stump1: 20, stump: 20, 'rock-cracked': 22, 'rock-pebbles': 11, 'ore-empty': 22 };
+/** Estágio sem arte ainda (carregando, save antigo): o desenho que existia antes. */
+const STAGE_FALLBACK: Record<string, string> = { stump0: 'stump', stump1: 'stump', 'ore-empty': 'rock-cracked', 'rock-pebbles': 'rock-cracked' };
+
 /** `whole`: desenha a árvore inteira mesmo já sendo toco (a queda, no renderer). */
 export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
   const s = 0.65 + 0.35 * (n.amount / n.max);
-  // estágios: árvore vira toco quando está quase no fim; rocha racha depois da metade
-  const left = n.amount / n.max;
-  const stage = n.type === 'tree' && left < 0.25 && !whole ? 'stump' : n.type === 'rock' && left < 0.5 ? 'rock-cracked' : null;
-  const name = stage ?? (n.type === 'tree' ? `tree${n.variant % 2}` : n.type);
+  // estágios (nodeArt, o mesmo da colisão): toco de cada árvore, rocha rachada, pedrinhas, veio sem cristais
+  let name = whole && n.type === 'tree' ? `tree${n.variant % 2}` : nodeArt(n);
+  if (!art(name) && STAGE_FALLBACK[name]) name = STAGE_FALLBACK[name]!;
+  const stage = STAGE_H[name];
   const base = art(name);
   if (base) {
     const L = artLayout(name); // escala e deslocamento do Editor de cenário
-    const h = (stage === 'stump' ? 20 : stage ? NODE_ART_H.rock : NODE_ART_H[n.type] * (n.type === 'tree' ? 1 : s)) * (L?.scale ?? 1);
+    const h = (stage ?? NODE_ART_H[n.type] * (n.type === 'tree' ? 1 : s)) * (L?.scale ?? 1);
     // árvore folhosa (tree0) muda com a estação; o pinheiro (tree1) fica verde
     const leafy = name === 'tree0';
     const pic = leafy ? seasonalTree(base, name, SEASON_VIEW.season) : base;

@@ -27,9 +27,46 @@ describe('Ordem do Eclipse', () => {
     g.state.level = 2;
     g.state.org.nextDay = g.state.day;
     orgTick(g);
+    expect(orgOnMap(g).length).toBe(0); // os Espadachins ainda não vieram (ordem da história: Som, Névoa, Eclipse)
+    g.state.swordsmen.raids = 1;
+    orgTick(g);
     const on = orgOnMap(g);
     expect(on.map((u) => u.org).sort()).toEqual([...ORG_PAIRS[0]!].sort());
     expect(on.every((u) => u.boss)).toBe(true);
+  });
+
+  test('caídas as três duplas, a Ordem volta com membros novos e mais fortes', () => {
+    const g = createNewGame(SYSTEMS, 1003);
+    g.state.level = 2;
+    g.state.swordsmen.raids = 1;
+    g.state.org.down = ORG_PAIRS.flat();
+    g.state.org.lairKnown = true;
+    g.state.org.nextDay = g.state.day;
+    const ref = createOrgMember(g, 'goen', 100, 100);
+    const plain = ref.maxHp;
+    ref.dead = true;
+    orgTick(g);
+    expect(g.state.org.cycle).toBe(1);
+    expect(g.state.org.lairKnown).toBe(true); // o covil continua lá
+    const on = orgOnMap(g);
+    expect(on.map((u) => u.org).sort()).toEqual([...ORG_PAIRS[0]!].sort());
+    expect(on.find((u) => u.org === 'goen')!.maxHp).toBeGreaterThan(plain);
+  });
+
+  test('covil destruído: some uns dias e depois se reergue do zero', () => {
+    const g = createNewGame(SYSTEMS, 1004);
+    g.state.level = 2;
+    g.state.swordsmen.raids = 1;
+    g.state.org.down = [...ORG_PAIRS.flat()];
+    g.state.org.done = true;
+    g.state.org.nextDay = g.state.day + 5;
+    orgTick(g);
+    expect(orgOnMap(g).length).toBe(0);
+    g.state.org.nextDay = g.state.day;
+    orgTick(g);
+    expect(g.state.org.done).toBe(false);
+    expect(g.state.org.lairKnown).toBe(false);
+    expect(orgOnMap(g).length).toBe(2);
   });
 
   test('Tetsuo recebe metade do dano; quem cai não volta; caídas as duplas, o covil aparece', () => {

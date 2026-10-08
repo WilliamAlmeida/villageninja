@@ -36,6 +36,10 @@ import mine from '../art/villager-mine.png';
 import hoe from '../art/villager-farm.png';
 import stump from '../art/stump.png';
 import rockCracked from '../art/rock-cracked.png';
+import stump0 from '../art/stump0.png';
+import stump1 from '../art/stump1.png';
+import rockPebbles from '../art/rock-pebbles.png';
+import oreEmpty from '../art/ore-empty.png';
 import house2 from '../art/house-2.png';
 import house3 from '../art/house-3.png';
 import lumber2 from '../art/lumber-2.png';
@@ -173,7 +177,7 @@ import toad from '../art/toad.png';
 import slug from '../art/slug.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, ninja, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
-  'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, 'rock-cracked': rockCracked,
+  'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
   'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,

@@ -1685,8 +1685,8 @@ export class Panel {
     const g = this.app.game;
     const o = g.state.org;
     const emblem = atlasCell(ICONS, 'eclipse', 'o-emb') ?? '{skull}';
-    let html = `<section class="kpanel ocard"><div class="o-head">${emblem}<div><b>${ORG.name}</b><small>8 lendários · atacam em duplas · quem cai não volta</small></div></div>`;
-    if (o.done) return html + `<p class="hint">{check} Destruída. A vila é lendária.</p></section>`;
+    let html = `<section class="kpanel ocard"><div class="o-head">${emblem}<div><b>${ORG.name}</b><small>8 lendários · atacam em duplas · caídas as três, voltam com membros novos${(o.cycle ?? 0) ? ` (${o.cycle}ª volta, mais fortes)` : ''}</small></div></div>`;
+    if (o.done) return html + `<p class="hint">{check} Destruída${(o.wins ?? 0) > 1 ? ` ${o.wins} vezes` : ''}. Vai se reerguer com membros novos (dia ${o.nextDay}).</p></section>`;
     const known = g.state.level >= ORG.minVillage;
     html += `<div class="o-prog"><div class="o-count"><b>${o.down.length}/8 derrotados</b><div class="nc-bar"><i style="width:${(o.down.length / 8) * 100}%"></i></div></div>
       <span class="o-next">{clock} ${known ? (o.nextDay ? `Próxima aparição: dia ${o.nextDay}` : 'Logo') : 'Não sabem da vila'}</span></div><div class="ogrid">`;
@@ -1802,8 +1802,8 @@ export class Panel {
     const taken = MIST_BLADES.filter((b) => s.blades.includes(b)).length;
     const onMap = new Set(s.units.filter((u) => !u.dead && u.swordsman).map((u) => u.swordsman));
     const known = s.level >= SWORDSMEN_ORG.minVillage;
-    let html = `<section class="kpanel ocard"><div class="kp-head">{swords}<b ${tipAttr(SWORDSMEN_ORG.name, 'Invadem a vila em dupla com escolta. Cada invasão rende no máximo UMA espada: o primeiro espadachim derrubado cai e deixa a espada; os outros somem na névoa e voltam.', true)}>${SWORDSMEN_ORG.name}</b><small>${taken}/7 espadas</small></div>`;
-    html += `<div class="o-prog"><div class="o-count"><b>${taken}/7 derrotados</b><div class="nc-bar"><i style="width:${(taken / 7) * 100}%"></i></div></div><span class="o-next">{clock} ${st.done ? 'Acabaram' : known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div><div class="ogrid">`;
+    let html = `<section class="kpanel ocard"><div class="kp-head">{swords}<b ${tipAttr(SWORDSMEN_ORG.name, 'Começam depois da primeira invasão do Quinteto do Som. Invadem a vila em dupla com escolta. Cada invasão rende no máximo UMA espada: o primeiro espadachim derrubado cai e deixa a espada; os outros somem na névoa e voltam. Com as sete na vila, continuam vindo atrás delas.', true)}>${SWORDSMEN_ORG.name}</b><small>${taken}/7 espadas</small></div>`;
+    html += `<div class="o-prog"><div class="o-count"><b>${taken}/7 derrotados</b><div class="nc-bar"><i style="width:${(taken / 7) * 100}%"></i></div></div><span class="o-next">{clock} ${known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div><div class="ogrid">`;
     for (const id of MIST_BLADES) {
       const d = SWORDSMEN[id];
       const got = s.blades.includes(id);
@@ -1872,7 +1872,7 @@ export class Panel {
     const marks: [string, string, number, number][] = [
       ['{kage}', 'Kage eleito', s.kageHistory.length ? 1 : 0, 1],
       ['{scroll}', 'Os Três Sannin', sannins(g).length, 3],
-      ['{moon}', 'Ordem do Eclipse destruída', s.org.done ? 8 : s.org.down.length, 8],
+      ['{moon}', 'Ordem do Eclipse destruída', s.org.done || (s.org.wins ?? 0) > 0 ? 8 : s.org.down.length, 8],
       ['{shield}', 'Invasões repelidas', s.stats.raidsRepelled, 100],
       ['{clipboard}', 'Missões cumpridas', s.stats.missionsDone, 100],
       ['{swords}', 'Abates', s.stats.kills, 2000],

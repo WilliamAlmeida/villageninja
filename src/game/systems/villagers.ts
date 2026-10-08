@@ -187,6 +187,8 @@ function work(g: Game, u: Unit, dt: number) {
         if (n.amount <= 0) {
           n.amount = 0;
           n.regrow = REGROW[n.type] ?? 0;
+          // a rocha some numa nuvem de poeira (ficam as pedrinhas); o veio perde os cristais
+          if (n.type === 'rock' || n.type === 'ore') fx(g, 'smoke', tileCenter(n.tx), tileCenter(n.ty), { r: 22, life: 0.9, color: '#b8b4ac' });
           if (!n.regrow) g.removeNode(n.id);
         }
         u.carry = { res: yieldOf.res, amount };

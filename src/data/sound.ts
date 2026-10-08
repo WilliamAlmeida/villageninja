@@ -33,6 +33,8 @@ export const SOUND = {
   /** Quem carrega está com as mãos ocupadas: recebe mais dano. */
   carryHurt: 2,
   chaseRange: 420,
+  /** Quantos ninjas da vila (os mais perto) são chamados ao mesmo tempo para perseguir quem carrega. */
+  chasers: 6,
   /** Força: multiplicador dos renegados e atributo base de cada membro (Jounins fortes, não lendários como a Ordem). */
   stats: 2,
   attr: 3.5,

@@ -1,6 +1,7 @@
 // Os Espadachins da Névoa (data/swordsmen.ts): invasões de tempos em tempos com dois espadachins (dos que ainda têm a
 // espada) e uma escolta de renegados. O primeiro espadachim derrubado na invasão cai de vez e a espada dele fica com a
-// vila; os outros, derrubados, somem na névoa e voltam numa próxima. Tomadas as sete, a organização acaba.
+// vila; os outros, derrubados, somem na névoa e voltam numa próxima. Tomadas as sete, continuam vindo atrás delas (o
+// primeiro derrubado cai e dá ryo). Só começam depois da primeira invasão do Quinteto do Som (ordem da história).
 import { rand, randi } from '../core/rng';
 import { bladeItem, BLADES, MIST_BLADES, type MistBlade } from '../data/blades';
 import { STAT_KEYS } from '../data/ninja';
@@ -12,7 +13,7 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { setDestination } from './movement';
 import { edgePoint } from './systems/spawner';
-import type { Unit } from './types';
+import type { GameState, Unit } from './types';
 
 /** Espadachins que ainda têm a espada (os que podem invadir). */
 export const swordsmenLeft = (g: Game) => MIST_BLADES.filter((b) => !g.state.blades.includes(b));
@@ -39,18 +40,20 @@ export function createSwordsman(g: Game, id: MistBlade, x: number, y: number): U
   return u;
 }
 
-/** Na vila: agenda e manda a próxima invasão (Vila Oculta em diante, fora de quando a Ordem do Eclipse está no mapa). */
+/** Já começaram? Só depois da primeira invasão do Quinteto do Som (a ordem da história: Som, Névoa, Eclipse). */
+export const swordsmenAwake = (s: GameState) =>
+  s.sound.stopped + s.sound.lost > 0 || (s.swordsmen.raids ?? 0) > 0 || s.blades.some((b) => (MIST_BLADES as readonly string[]).includes(b));
+
+/** Na vila: agenda e manda a próxima invasão (Vila Oculta em diante, uma organização por vez no mapa). */
 export function swordsmenTick(g: Game) {
   const s = g.state;
   const st = s.swordsmen;
-  if (st.done || s.level < SWORDSMEN_ORG.minVillage || s.sceneInfo) return;
+  if (s.level < SWORDSMEN_ORG.minVillage || s.sceneInfo || !swordsmenAwake(s)) return;
   if (!st.nextDay) st.nextDay = s.day + 3;
-  if (s.day < st.nextDay || swordsmenOnMap(g).length || s.units.some((u) => !u.dead && u.org)) return;
-  const left = swordsmenLeft(g);
-  if (!left.length) {
-    st.done = true;
-    return;
-  }
+  if (s.day < st.nextDay || swordsmenOnMap(g).length || s.units.some((u) => !u.dead && (u.org || u.sound))) return;
+  // com as sete espadas na vila, vêm quaisquer dois (atrás das espadas)
+  const left = swordsmenLeft(g).length ? swordsmenLeft(g) : [...MIST_BLADES];
+  st.raids = (st.raids ?? 0) + 1;
   st.nextDay = s.day + randi(SWORDSMEN_ORG.every[0], SWORDSMEN_ORG.every[1]);
   st.taken = false;
   const p = edgePoint(g);
@@ -85,6 +88,13 @@ export function swordsmanFall(g: Game, u: Unit): boolean {
   const s = g.state;
   const id = u.swordsman!;
   const d = SWORDSMEN[id];
+  // as sete já são da vila: o primeiro derrubado cai de vez (ryo no lugar da espada), os outros somem na névoa
+  if (!s.swordsmen.taken && s.blades.includes(id)) {
+    s.swordsmen.taken = true;
+    g.give(SWORDSMEN_ORG.bladeReward);
+    g.toast(`{crown} ${d.name} caiu tentando retomar a ${BLADES[id].name}! +${costLabel(SWORDSMEN_ORG.bladeReward)}.`, 'good', u);
+    return false;
+  }
   if (!s.swordsmen.taken && !s.blades.includes(id)) {
     s.swordsmen.taken = true;
     g.give(SWORDSMEN_ORG.bladeReward);
@@ -92,7 +102,7 @@ export function swordsmanFall(g: Game, u: Unit): boolean {
     fxText(g, u.x, u.y - 40, BLADES[id].name, BLADES[id].color, true);
     if (!swordsmenLeft(g).length) {
       s.swordsmen.done = true;
-      g.toast(`{crown} As sete espadas são da vila: os ${SWORDSMEN_ORG.name} acabaram!`, 'good');
+      g.toast(`{crown} As sete espadas são da vila! Os ${SWORDSMEN_ORG.name} vão continuar vindo atrás delas.`, 'good');
     }
     return false;
   }

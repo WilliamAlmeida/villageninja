@@ -27,6 +27,14 @@ import type { Building, Unit } from '../types';
 import { doorPos, siteTiles, tileCenter, toTile } from '../world';
 
 const DEFEND_RADIUS = 240;
+/**
+ * Defesa proporcional: um inimigo atrai no máximo isto de ninjas da vila (chefe e membros das organizações: 6); quem
+ * está colado nele (`DEFEND_CLOSE`) ou é o alvo dele sempre reage. Sem isso, toda invasão puxava a vila inteira para o
+ * mesmo ponto.
+ */
+export const DEFEND_CAP = 4;
+const DEFEND_CLOSE = 90;
+export const defendCap = (o: Unit) => (o.boss ? 6 : DEFEND_CAP);
 
 /** Ninjas da vila: defendem, estudam, treinam, patrulham e descansam. */
 export function ninjaSystem(g: Game, dt: number) {
@@ -204,7 +212,12 @@ function findThreat(g: Game, u: Unit): Unit | null {
     }
   }
   // duelos: o mais perto, mas preferindo quem nenhum aliado está enfrentando (game/tactics.ts)
-  return pickFoe(g, u, DEFEND_RADIUS, (o, d) => d < DEFEND_RADIUS || g.world.inVillage(o.x, o.y));
+  // quem já luta com ele não conta contra si mesmo (senão larga o alvo, a contagem cai e ele volta, sem parar)
+  const mine = (o: Unit) => (u.targetId === o.id && (u.state === 'fight' || u.combatTimer > 0) ? 1 : 0);
+  const t = pickFoe(g, u, DEFEND_RADIUS, (o, d) =>
+    d < DEFEND_CLOSE || o.targetId === u.id || ((d < DEFEND_RADIUS || g.world.inVillage(o.x, o.y)) && g.engagedOn(u.faction, o.id) - mine(o) < defendCap(o)));
+  if (t && !mine(t)) g.noteEngaged(u.faction, t.id);
+  return t;
 }
 
 function run(g: Game, u: Unit, dt: number, night: boolean) {

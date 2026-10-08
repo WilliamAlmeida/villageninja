@@ -26,16 +26,37 @@ function makeKage(g: Game) {
 }
 
 describe('Espadachins da Névoa', () => {
-  test('invadem da Vila Oculta em diante: dois espadachins com escolta', () => {
+  test('invadem da Vila Oculta em diante, depois da 1ª invasão do Som: dois espadachins com escolta', () => {
     const g = createNewGame(SYSTEMS, 2101);
     swordsmenTick(g);
     expect(swordsmenOnMap(g).length).toBe(0);
     g.state.level = 2;
     g.state.swordsmen.nextDay = g.state.day;
     swordsmenTick(g);
+    expect(swordsmenOnMap(g).length).toBe(0); // o Som ainda não veio (ordem da história)
+    g.state.sound.stopped = 1;
+    swordsmenTick(g);
     const on = swordsmenOnMap(g);
     expect(on.length).toBe(2);
     expect(on.every((u) => u.ninja!.equip.weapon === bladeItem(u.swordsman!))).toBe(true);
+  });
+
+  test('com as sete espadas na vila continuam vindo; o primeiro derrubado cai e dá ryo', () => {
+    const g = createNewGame(SYSTEMS, 2103);
+    g.state.level = 2;
+    g.state.sound.stopped = 1;
+    g.state.blades = [...MIST_BLADES];
+    g.state.swordsmen.done = true;
+    g.state.swordsmen.nextDay = g.state.day;
+    swordsmenTick(g);
+    const on = swordsmenOnMap(g);
+    expect(on.length).toBe(2);
+    const ryo = g.state.res.ryo;
+    killUnit(g, on[0]!, null);
+    expect(on[0]!.dead).toBe(true);
+    expect(g.state.res.ryo).toBeGreaterThan(ryo);
+    killUnit(g, on[1]!, null);
+    expect(on[1]!.dead).toBe(false); // some na névoa
   });
 
   test('só uma espada por invasão: o primeiro cai e deixa a espada, o segundo some na névoa', () => {

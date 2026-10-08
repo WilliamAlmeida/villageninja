@@ -100,6 +100,14 @@ export function spendMine(g: Game, siteId: number | undefined) {
 }
 
 /** Locais feitos/esgotados contam o tempo e reaparecem noutro lugar (fora dos mapas de missão). */
+/** Segundos que o baú aberto fica no chão antes de sumir (com uma nuvem de poeira, como a ruína feita some). */
+export const CHEST_LINGER = 10;
+/** Há quantos segundos o local foi feito (baú aberto, ruína vencida). */
+export const doneFor = (site: Site) => {
+  const full = SITE_RESPAWN_DAYS[site.kind] * DAY_LENGTH;
+  return site.done ? full - (site.respawn ?? full) : 0;
+};
+
 export function siteTick(g: Game, dt: number) {
   const s = g.state;
   if (s.sceneInfo) return;

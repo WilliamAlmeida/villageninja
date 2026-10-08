@@ -52,7 +52,7 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
 TRUST_FACING = {'spider', 'slug', 'dog-white'}
 SAME_SCALE = {'chest-open': 'chest'}
-SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'rock': 56, 'rock-cracked': 56, 'ore': 56, 'herb': 48}
+SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3
 problems: list[str] = []
 

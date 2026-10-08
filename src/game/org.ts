@@ -18,8 +18,12 @@ export interface OrgState {
   nextDay: number;
   /** O covil já apareceu no mapa da região. */
   lairKnown: boolean;
-  /** A Ordem foi destruída. */
+  /** A Ordem foi destruída (o covil caiu); depois de um tempo ela se reergue. */
   done: boolean;
+  /** Vezes que se reergueu (membros novos, mais fortes a cada vez). */
+  cycle?: number;
+  /** Vezes que o covil caiu. */
+  wins?: number;
 }
 
 export const newOrg = (): OrgState => ({ down: [], nextDay: 0, lairKnown: false, done: false });
@@ -44,18 +48,24 @@ export function createOrgMember(g: Game, id: OrgMemberId, x: number, y: number):
   for (const k of STAT_KEYS) u.ninja!.stats[k] = Math.min(10, d.stats * 2.5 + rand(0, 1.5));
   refreshDerived(u);
   const elite = g.state.units.filter((o) => !o.dead && o.faction === 'village' && o.ninja && (o.ninja.rank === 'jounin' || o.ninja.rank === 'kage')).length;
-  u.maxHp = Math.round(u.maxHp * d.hpMult * Math.min(3, 1 + elite * 0.12));
+  u.maxHp = Math.round(u.maxHp * d.hpMult * Math.min(3, 1 + elite * 0.12) * (1 + ORG.cycleHp * (g.state.org.cycle ?? 0)));
   u.hp = u.maxHp;
   u.chakra = u.maxChakra;
   return u;
 }
 
-/** Na vila: agenda e manda a próxima dupla (Vila Oculta em diante). */
+/**
+ * Na vila: agenda e manda a próxima dupla (Vila Oculta em diante, depois da primeira invasão dos Espadachins: a ordem da
+ * história é Som, Névoa, Eclipse; uma organização por vez no mapa). Caídas as três duplas, ou destruído o covil, a
+ * Ordem recruta membros novos e volta mais forte (`cycle`).
+ */
 export function orgTick(g: Game) {
   const s = g.state;
-  if (s.org.done || s.level < ORG.minVillage || s.sceneInfo) return;
+  if (s.level < ORG.minVillage || s.sceneInfo) return;
+  if (!(s.swordsmen.raids ?? 0) && !s.org.down.length && !s.swordsmen.done) return;
   if (!s.org.nextDay) s.org.nextDay = s.day + 2;
-  if (s.day < s.org.nextDay || orgOnMap(g).length) return;
+  if (s.day < s.org.nextDay || orgOnMap(g).length || s.units.some((u) => !u.dead && (u.swordsman || u.sound))) return;
+  if (s.org.done || !nextPair(s)) regroup(g);
   const pair = nextPair(s);
   if (!pair) return;
   s.org.nextDay = s.day + randi(ORG.every[0], ORG.every[1]);
@@ -70,6 +80,18 @@ export function orgTick(g: Game) {
   });
   s.flags.raidActive = true;
   g.toast(`{skull} A ${ORG.name} chegou: ${names.join(' e ')}! Eles caçam os seus ninjas mais fortes.`, 'danger', p);
+}
+
+/** A Ordem se reergue: as duplas voltam com membros novos (mais fortes); destruído o covil, ele some até cair de novo. */
+function regroup(g: Game) {
+  const o = g.state.org;
+  if (o.done) {
+    o.done = false;
+    o.lairKnown = false;
+    o.down = [];
+  } else o.down = o.down.filter((id) => ORG_LAIR.includes(id)); // os guardiões do covil seguem como estão
+  o.cycle = (o.cycle ?? 0) + 1;
+  g.toast(`{skull} A ${ORG.name} recrutou novos membros e voltou mais forte!`, 'danger');
 }
 
 /** Alvo da caça: o ninja da vila de nível mais alto à vista. */
@@ -203,7 +225,7 @@ export function orgMemberDown(g: Game, u: Unit) {
   if (!s.org.down.includes(id)) s.org.down.push(id);
   if (s.sceneInfo) return; // no covil o resultado vem pela invasão
   g.give(ORG.memberReward);
-  g.toast(`{crown} ${ORG_MEMBERS[id].name} da ${ORG.name} caiu! +${costLabel(ORG.memberReward)}. Ele não volta mais.`, 'good', u);
+  g.toast(`{crown} ${ORG_MEMBERS[id].name} da ${ORG.name} caiu! +${costLabel(ORG.memberReward)}.`, 'good', u);
   if (!nextPair(s) && !s.org.lairKnown) {
     s.org.lairKnown = true;
     g.toast(`{map} Seguindo o rastro das duplas, a vila descobriu o covil da ${ORG.name}! Veja no mapa da região (Mundo).`, 'good');

@@ -164,7 +164,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Espadachins da Névoa** (`data/swordsmen.ts`, `game/swordsmen.ts`, `state.swordsmen`): da Vila Oculta em diante invadem
   em dupla com escolta (`swordsmenTick`), caçam ninjas em vez de roubar (`swordsmanPrey`). Só UMA espada por invasão: o
   primeiro derrubado cai e deixa a lâmina (`swordsmanFall` em `killUnit`); os outros somem na névoa (cloak + fuga) e voltam.
-  Tomadas as sete, acabam. Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
+  Tomadas as sete, continuam vindo atrás delas (o primeiro derrubado cai e dá ryo). Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
   Quinteto do Som ficam na aba **Bingo Book** da janela Vila (`View 'bingo'`); a aba Kage tem o Kage, a ANBU e os Sannin
   No Bingo Book todos aparecem pelo sprite (`artPortrait(org-<id>, true)` / `swordsmanPortrait`), num padrão só (os bustos
   pintados da Ordem saíram do atlas `cards.png`, que ficou só com os selos de rank); `.bingo` deixa todos os cartões com a mesma altura).
@@ -196,7 +196,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `cellCenter`); `World.blocked`/`walkable(tx,ty)` seguem em tiles (bloqueado se qualquer pedaço for) para escolher
   lugar de nascer/trabalhar. Caminho que começa dentro de muro sai pela célula livre mais perto. **Objetos de cenário**
   também têm terreno, pela arte do estágio (`nodeArt`: tree0/tree1/stump/rock/rock-cracked/ore/herb; `nodeTiles`):
-  rocha, rocha rachada e veio vêm com 1 tile; árvores livres. Recurso é obstáculo MACIO (`World.soft`): o A* desvia
+  rocha, rocha rachada e veio vêm com 1 tile; árvores livres. Estágios (`nodeArt`, o mesmo para colisão e desenho): toco de
+  cada árvore (`stump0` folhosa, `stump1` pinheiro), rocha rachada depois da metade, rocha esgotada some numa nuvem e deixa
+  `rock-pebbles` (sem colisão) até voltar, veio esgotado vira `ore-empty` (sem os cristais). Recurso é obstáculo MACIO (`World.soft`): o A* desvia
   (custo `SOFT_COST`) e a linha reta do `chase` não passa (`clearPx`), mas atravessa se não houver saída (aglomerado de
   rochas nunca prende ninguém). `World.refreshNodes` (sistema da natureza, a cada 1 s) refaz só as células macias.
   **Ilhas** (`World.region`, refeitas na colisão dura): destino noutra ilha falha na hora em vez de varrer o mapa; e
@@ -245,7 +247,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   noutro lugar depois de `SITE_RESPAWN_DAYS` (de preferência na névoa). A mina aguenta `MINE_USES` expedições
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).
   Baús sem chão na arte (`scripts/strip-ground.py` → `<nome>-nograss.png`, usado pelo prepare-art; `SAME_SCALE`) e com
-  sombra desenhada pelo jogo, para encaixar em qualquer piso. Baú aberto fica no chão com a arte `chest-open` até reaparecer, e abrir dispara o efeito `treasure` (luz dourada,
+  sombra desenhada pelo jogo, para encaixar em qualquer piso. Baú aberto fica `CHEST_LINGER` (10 s) no chão com a arte `chest-open` e some numa nuvem de poeira (`doneFor`), e abrir dispara o efeito `treasure` (luz dourada,
   moedas, confete). Barra das cenas (`ui/scene.ts`): título com uma marca por andar, etiquetas (inimigos, equipe, saque),
   ações à direita e o objetivo numa linha embaixo; recolhida na vila. Cartão de melhoria mostra o nível de vila exigido
   como etiqueta (ex.: Biblioteca nível 3 = Vila Oculta).
@@ -341,11 +343,18 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   baús; recolhidas todas, `explored`) e **lugares sagrados** (Contrato: `createTrialScene`, clareira com o guardião, o
   animal do contrato enorme; vencido, dá o contrato). **Covil da Ordem** (`createHideoutScene`, caverna com os
   guardiões e o líder; vencendo, `org.done`).
+- **Ordem das organizações (história)**: Som (Vila Oculta) → Espadachins (depois da 1ª invasão do Som, `swordsmenAwake`) →
+  Eclipse (depois da 1ª dos Espadachins, `swordsmen.raids`); uma organização por vez no mapa; todas voltam sempre.
+- **Defesa proporcional** (`findThreat` em systems/ninjas.ts): um inimigo atrai no máximo `DEFEND_CAP` (4; chefe/organização 6)
+  ninjas da vila; quem está colado nele (90 px) ou é o alvo dele sempre reage. Quem escolhe alvo conta na hora
+  (`Game.noteEngaged`; a contagem é por passo). O Som chama só os `SOUND.chasers` (6) mais perto para perseguir quem carrega.
+  Com o save do autor, ninjas atrás do Som: 78 → 14.
 - **Ordem do Eclipse** (`data/org.ts`, `game/org.ts`, `systems/org.ts`, arte `org-<membro>`): 8 membros com técnica
   própria (`useArt`: Inferno, Corpo de Ferro –50% dano, Prisão d'Água, Trovão Veloz, Miragem, Mortos-vivos, Ninho,
   Repulsão). Da Vila Oculta em diante as 3 duplas atacam a cada 4–6 dias e caçam o ninja mais forte (`orgBrain`; caça
-  em `Unit.life`, depois recuam). Quem cai entra em `state.org.down` e não volta; caídas as duplas, o covil aparece na
-  Região (nó `covil`, ação `assault`). Vida cresce com a quantidade de Jounins da vila. Seção na aba Kage.
+  em `Unit.life`, depois recuam). Quem cai entra em `state.org.down`; caídas as duplas, o covil aparece na
+  Região (nó `covil`, ação `assault`) e a Ordem recruta membros novos (`regroup`, `org.cycle`: +30% de vida por volta);
+  covil destruído (`org.wins`), ela some `ORG.restDays` e se reergue do zero. Vida cresce com a quantidade de Jounins da vila. Seção na aba Kage.
 - Ninjas descansando (`rest`) ficam dentro do prédio (escondidos) e só saem para lutar com 60% de vida.
 - Prédios podem ser movidos de graça (`canMove`/`moveBuilding` em commands.ts; o Hokage só se ninguém sair do território).
 - `src/ui/` DOM sobre o canvas. `Panel` (`panel.ts`) tem dois modos: **drawer** (lateral, para o que foi tocado no mapa:

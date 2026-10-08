@@ -72,6 +72,15 @@ export class Game {
     return this.engaged.get(`${faction}:${targetId}`) ?? 0;
   }
   /**
+   * Alguém de `faction` acabou de escolher `targetId` neste passo: conta já (a contagem é feita uma vez por passo, e
+   * sem isso todos que decidem no mesmo passo veem zero e vão juntos).
+   */
+  noteEngaged(faction: Faction, targetId: number) {
+    this.engagedOn(faction, targetId);
+    const k = `${faction}:${targetId}`;
+    this.engaged!.set(k, (this.engaged!.get(k) ?? 0) + 1);
+  }
+  /**
    * Quem `faction` pode atacar (só pela facção; quem chama ainda confere morto, escondido e `canHit`). Feita uma vez
    * por passo: a vila em paz procura inimigo entre poucos bichos em vez de varrer as centenas de moradores e ninjas.
    */

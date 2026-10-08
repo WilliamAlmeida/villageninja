@@ -357,8 +357,10 @@ export interface SwordsmenState {
   nextDay: number;
   /** Na invasão em andamento já caiu um espadachim (a espada dele ficou com a vila): os outros fogem na névoa. */
   taken: boolean;
-  /** As sete espadas foram tomadas. */
+  /** As sete espadas foram tomadas (eles continuam vindo, atrás delas). */
   done: boolean;
+  /** Invasões feitas (a Ordem do Eclipse só aparece depois da primeira, como na história). */
+  raids?: number;
 }
 
 /** Situação de um lugar do mapa da região (ver data/region.ts). */
