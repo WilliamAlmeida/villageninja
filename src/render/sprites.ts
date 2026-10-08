@@ -1,7 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
-import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, tintedArt, whiteArt } from './art';
+import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, SWORDS, tintPixels } from './doll';
 import { bladeOf } from '../game/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
@@ -385,6 +385,51 @@ function drawSlash(ctx: Ctx, u: Unit, pic: HTMLImageElement | HTMLCanvasElement,
   ctx.restore();
 }
 
+/**
+ * Modo Sábio, atrás do boneco: a silhueta dele em laranja, um pouco maior em volta (contorno de energia que pulsa) e
+ * um brilho amarelo mais justo. Segue o desenho (pose, quadro, direção) em vez de um aro geométrico.
+ */
+function sageGlow(ctx: Ctx, pic: HTMLImageElement | HTMLCanvasElement, x: number, y: number, h: number, flip: boolean, frame: number, row: number, t: number) {
+  const pulse = 0.5 + Math.sin(t * 6) * 0.5;
+  const outer = solidArt(pic, '#ff7a1a');
+  const inner = solidArt(pic, '#ffd34d');
+  ctx.save();
+  ctx.globalAlpha *= 0.35 + pulse * 0.25;
+  const r = 1.6 + pulse * 0.6;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU;
+    drawArt(ctx, outer, x + Math.cos(a) * r, y + Math.sin(a) * r * 0.8, h, flip, frame, row);
+  }
+  ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.6);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * TAU + Math.PI / 4;
+    drawArt(ctx, inner, x + Math.cos(a) * 0.8, y + Math.sin(a) * 0.8, h, flip, frame, row);
+  }
+  ctx.restore();
+}
+
+/** Modo Sábio, atrás do boneco: chamas de energia natural subindo pelas bordas do corpo (laranja → amarelo, somem no alto). */
+function sageWisps(ctx: Ctx, u: Unit, t: number) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 7; i++) {
+    const k = (t * 0.9 + i / 7 + u.id * 0.13) % 1; // 0 = nasce embaixo, 1 = some no alto
+    const side = (i % 2 ? 1 : -1) * (7 + (i % 3) * 1.8); // pelas bordas, não pelo meio do corpo
+    const x = u.x + side * (1 - k * 0.4) + Math.sin(t * 5 + i) * 1.5;
+    const y = u.y + 4 - k * 30;
+    const s = (1 - k) * 2.6 + 0.6;
+    ctx.globalAlpha = (1 - k) * 0.85;
+    ctx.fillStyle = k < 0.4 ? '#ff8a2b' : '#ffd34d';
+    // gota de chama: redonda embaixo, ponta para cima
+    ctx.beginPath();
+    ctx.moveTo(x, y - s * 2.2);
+    ctx.quadraticCurveTo(x + s, y - s * 0.4, x, y + s * 0.6);
+    ctx.quadraticCurveTo(x - s, y - s * 0.4, x, y - s * 2.2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean {
   // golpe com lâmina em andamento: a espada sai das costas (boneco sem ela) e gira na mão
   const slash = !action && u.strike && u.anim > 0 ? bladeOf(u) : null;
@@ -426,6 +471,10 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     ctx.translate(-ux, -uy);
   }
   if (slash && row === SHEET_ROWS.back) drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
+  if (u.sage) {
+    sageWisps(ctx, u, t);
+    sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t);
+  }
   drawArt(ctx, pic, ux, uy, height, flip, frame, row);
   // clarão branco de quem levou dano
   if (u.hitFlash > 0) {
@@ -701,17 +750,6 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
   } else if (u.animal) drawAnimal(ctx, u, t);
   else drawHuman(ctx, u, t);
   if (bare) return;
-  // Modo Sábio: aura laranja pulsando em volta do Sannin dos Sapos
-  if (u.sage) {
-    ctx.save();
-    ctx.globalAlpha = 0.45 + Math.sin(t * 8) * 0.15;
-    ctx.strokeStyle = '#ff9a3b';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(u.x, u.y - 8, 12, 17, 0, 0, TAU);
-    ctx.stroke();
-    ctx.restore();
-  }
   // fórmula do Hiraishin: selo amarelo girando no chão de quem foi marcado
   if (u.mark) {
     ctx.save();

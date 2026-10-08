@@ -332,8 +332,14 @@ export function artFoot(pic: Pic) {
 
 const whites = new WeakMap<object, HTMLCanvasElement>();
 /** A arte toda branca (mesmo alfa), para o clarão de quem levou dano. */
-export function whiteArt(pic: Pic): HTMLCanvasElement {
-  const hit = whites.get(pic);
+export const whiteArt = (pic: Pic) => solidArt(pic, '#fff');
+
+const solids = new Map<string, WeakMap<object, HTMLCanvasElement>>([['#fff', whites]]);
+/** A arte toda numa cor só (mesmo alfa): clarão de dano (branco), silhueta da aura do Modo Sábio (laranja). */
+export function solidArt(pic: Pic, color: string): HTMLCanvasElement {
+  let cache = solids.get(color);
+  if (!cache) solids.set(color, (cache = new WeakMap()));
+  const hit = cache.get(pic);
   if (hit) return hit;
   const { w, h } = size(pic);
   const c = document.createElement('canvas');
@@ -343,9 +349,9 @@ export function whiteArt(pic: Pic): HTMLCanvasElement {
   const ctx = c.getContext('2d')!;
   ctx.drawImage(pic, 0, 0);
   ctx.globalCompositeOperation = 'source-in';
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = color;
   ctx.fillRect(0, 0, w, h);
-  whites.set(pic, c);
+  cache.set(pic, c);
   return c;
 }
 

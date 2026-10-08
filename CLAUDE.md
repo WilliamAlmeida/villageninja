@@ -328,7 +328,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   A lista de construção (`#buildbar`) é uma faixa logo acima dos botões de baixo.
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
-  lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade), Troca de Pele (`sanninSurvive`), Selo da Força de Cem.
+  lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em
+  `sageGlow`, e chamas subindo pelas bordas, `sageWisps`), Troca de Pele (`sanninSurvive`), Selo da Força de Cem.
 - **Mapas de missão jogáveis** (`game/scene.ts`, `ui/scene.ts`): saquear ou anexar à força um vilarejo abre um mapa
   próprio (`state.scene`, um `GameState` dentro do save da vila, com `sceneInfo`). A vila o roda junto no mesmo passo
   (`sceneRunSystem`; o mapa usa `SCENE_SYSTEMS`), a equipe é copiada para lá (`Unit.origin`) e `closeScene` devolve vida/
