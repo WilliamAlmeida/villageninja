@@ -1,5 +1,7 @@
 // Exploração: névoa (tiles explorados num bitset), locais especiais escondidos e o que acontece ao investigá-los.
-import { DAY_LENGTH, MAP_H, MAP_W, TILE } from '../config';
+import { DAY_LENGTH, MAP_H, MAP_W, SUB, TILE } from '../config';
+import { BUILDINGS } from '../data/buildings';
+import { typeLayout } from '../data/layout';
 import { chance, mulberry32, pick } from '../core/rng';
 import { JUTSU_LIST } from '../data/jutsus';
 import { MINE_USES, SIGHT, SITE_MIN_DIST, SITE_RESPAWN_DAYS, SITES, type SiteKind } from '../data/sites';
@@ -61,13 +63,35 @@ export function generateSites(s: GameState, nextId: () => number, kinds: SiteKin
   return out;
 }
 
+/**
+ * O tile (tx, ty) está em cima ou colado num prédio? Usa o tamanho de verdade (terreno do Editor de cenário e os
+ * bloqueios avulsos em volta, onde a arte passa do terreno) mais `BUILD_PAD` tiles de folga. Antes era uma caixa fixa a
+ * partir do canto, e na arena (6×6 + muro avulso) um baú nascia encostado no muro.
+ */
+export function nearBuilding(s: GameState, tx: number, ty: number) {
+  return s.buildings.some((b) => {
+    const d = BUILDINGS[b.type];
+    let x0 = b.tx;
+    let y0 = b.ty;
+    let x1 = b.tx + d.w - 1;
+    let y1 = b.ty + d.h - 1;
+    for (const [fx, fy] of typeLayout(b.type)?.extra ?? []) {
+      x0 = Math.min(x0, b.tx + Math.floor(fx / SUB));
+      y0 = Math.min(y0, b.ty + Math.floor(fy / SUB));
+      x1 = Math.max(x1, b.tx + Math.floor(fx / SUB));
+      y1 = Math.max(y1, b.ty + Math.floor(fy / SUB));
+    }
+    return tx >= x0 - BUILD_PAD && tx <= x1 + BUILD_PAD && ty >= y0 - BUILD_PAD && ty <= y1 + BUILD_PAD;
+  });
+}
+
 /** Lugar para um local especial: longe da vila, em terra firme, sem prédio e sem se amontoar com os outros. */
 function siteSpot(s: GameState, rng: () => number, extra: Site[] = [], wantFog = false) {
   const taken = (tx: number, ty: number) =>
     // o próprio local que vai mudar também conta: o lugar novo fica longe do antigo
     [...s.sites, ...extra].some((o) => Math.abs(o.tx - tx) < 6 && Math.abs(o.ty - ty) < 6) ||
     s.nodes.some((n) => n.tx === tx && n.ty === ty) ||
-    s.buildings.some((b) => tx >= b.tx - 1 && tx <= b.tx + BUILD_PAD + 2 && ty >= b.ty - 1 && ty <= b.ty + BUILD_PAD + 2);
+    nearBuilding(s, tx, ty);
   for (let tries = 0; tries < 800; tries++) {
     const tx = 2 + Math.floor(rng() * (MAP_W - 4));
     const ty = 2 + Math.floor(rng() * (MAP_H - 5));
@@ -81,7 +105,8 @@ function siteSpot(s: GameState, rng: () => number, extra: Site[] = [], wantFog =
   }
   return null;
 }
-const BUILD_PAD = 3;
+/** Folga (tiles) entre um local especial e qualquer prédio. */
+const BUILD_PAD = 2;
 
 /** Expedições que a entrada de mina ainda aguenta. */
 export const mineUses = (site: Site) => site.uses ?? MINE_USES;
@@ -100,6 +125,8 @@ export function spendMine(g: Game, siteId: number | undefined) {
 }
 
 /** Locais feitos/esgotados contam o tempo e reaparecem noutro lugar (fora dos mapas de missão). */
+let relocateAcc = 0;
+
 /** Segundos que o baú aberto fica no chão antes de sumir (com uma nuvem de poeira, como a ruína feita some). */
 export const CHEST_LINGER = 10;
 /** Há quantos segundos o local foi feito (baú aberto, ruína vencida). */
@@ -111,6 +138,19 @@ export const doneFor = (site: Site) => {
 export function siteTick(g: Game, dt: number) {
   const s = g.state;
   if (s.sceneInfo) return;
+  // local que ficou em cima/colado num prédio (construído ou movido depois, ou de save antigo): muda de lugar
+  if ((relocateAcc += dt) >= 2) {
+    relocateAcc = 0;
+    for (const site of s.sites) {
+      if (site.done || !nearBuilding(s, site.tx, site.ty)) continue;
+      const p = siteSpot(s, Math.random, [], !site.found);
+      if (!p) continue;
+      site.tx = p.tx;
+      site.ty = p.ty;
+      site.found = isExplored(s, p.tx, p.ty);
+      g.world.rebuild();
+    }
+  }
   for (const site of s.sites) {
     if (!site.done) continue;
     site.respawn = (site.respawn ?? SITE_RESPAWN_DAYS[site.kind] * DAY_LENGTH) - dt;

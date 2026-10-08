@@ -131,5 +131,6 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 
 - Ninja abre o baú **de perto, na frente, olhando para ele** (de costas para a câmera).
 - Baú aberto some depois de uns segundos (como a ruína).
+- Baú, ruína e mina **nunca colados num prédio** (nem na arte que passa do terreno, como o muro da arena).
 - Invasão não pode virar "enxurrada": poucos defensores por inimigo, o resto segue a rotina.
 - Mapa com zoom e arrastar: marcadores mantêm o tamanho; um toque rápido continua abrindo o item.

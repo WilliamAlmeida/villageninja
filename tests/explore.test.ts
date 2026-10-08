@@ -3,7 +3,8 @@ import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { jutsuOptions } from '../src/game/commands';
 import { killUnit } from '../src/game/combat';
 import { createNinja } from '../src/game/entities';
-import { discover, exploredPercent, guardiansOf, isExplored, sitePos } from '../src/game/explore';
+import { discover, exploredPercent, guardiansOf, isExplored, nearBuilding, siteTick, sitePos } from '../src/game/explore';
+import { BUILDINGS } from '../src/data/buildings';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
@@ -40,6 +41,19 @@ describe('exploração', () => {
     expect(guardiansOf(g, ruin).length).toBe(2);
     // guardiões não contam como invasão (a vila não fica em alerta de raid)
     expect(g.state.flags.raidActive).toBe(false);
+  });
+
+  test('local colado num prédio (canto de baixo, onde a arte passa) muda de lugar; os novos nunca nascem colados', () => {
+    const g = createNewGame(SYSTEMS, 75);
+    const b = g.state.buildings[0]!;
+    const d = BUILDINGS[b.type];
+    const chest = g.state.sites.find((x) => x.kind === 'chest')!;
+    chest.tx = b.tx + d.w;
+    chest.ty = b.ty + d.h;
+    expect(nearBuilding(g.state, chest.tx, chest.ty)).toBe(true);
+    siteTick(g, 2.1);
+    expect(nearBuilding(g.state, chest.tx, chest.ty)).toBe(false);
+    for (const x of g.state.sites) expect(nearBuilding(g.state, x.tx, x.ty)).toBe(false);
   });
 
   test('baú: o ninja abre parado na frente dele, olhando para ele', () => {
