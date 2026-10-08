@@ -24,7 +24,7 @@ import { fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
-import { buildingCenter, doorPos } from '../game/world';
+import { buildingCenter, doorPos, nodeArt } from '../game/world';
 import { art, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
@@ -304,7 +304,10 @@ export class Renderer {
     // Prédios ocupam vários tiles: o centro não basta para saber quem fica na frente. Uma unidade (ou árvore)
     // diante de uma face frontal do prédio (x além da direita ou y além do fundo do retângulo) vem depois dele;
     // as outras próximas vêm antes.
-    for (const d of list) d.k = d.y;
+    // profundidade = a linha onde o desenho toca o chão (os pés do boneco, a base da rocha/baú), não o ponto lógico:
+    // o sprite do ninja é desenhado 9 px abaixo do ponto dele, a rocha ~6 px, o baú ~5 px; comparar os pontos lógicos
+    // fazia quem estava logo à frente de um baú ficar atrás dele. `depth` do Editor de cenário ajusta à mão.
+    for (const d of list) d.k = this.baseLine(d);
     const blocks = list.filter((d) => d.b && d.piece == null);
     for (const d of list) {
       if (d.b) continue;
@@ -1190,6 +1193,24 @@ export class Renderer {
         ctx.stroke();
       }
     }
+  }
+
+  /** Linha (y da cena) em que o desenho de `d` toca o chão, mais o ajuste `depth` da arte. */
+  baseLine(d: Drawable): number {
+    if (d.u) return d.y + (d.u.animal ? ANIMALS[d.u.animal].size * 0.7 : 9);
+    if (d.n) {
+      const L = artLayout(nodeArt(d.n));
+      return d.y + TILE * 0.2 + (L?.dy ?? 0) + (L?.depth ?? 0);
+    }
+    if (d.site && d.piece == null) {
+      const box = this.siteBox(d.site, d.x, d.y);
+      return box ? box.y + box.w * (d.site.kind === 'chest' && d.site.done ? 0.12 : 0.18) + (artLayout(box.name)?.depth ?? 0) : d.y;
+    }
+    if (d.b && d.piece == null) {
+      const box = this.artBox(d.b, this.level);
+      return d.y + ((box && artLayout(box.artName)?.depth) ?? 0);
+    }
+    return d.y;
   }
 
   /** Bandeiras de "defender ponto" (em pé); some quando o ninja chega nela (ficaria por cima dele). */

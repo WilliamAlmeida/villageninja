@@ -18,7 +18,7 @@ import { followPath, setDestination } from '../../src/game/movement';
 import { createNewGame } from '../../src/game/newGame';
 import { statusSystem } from '../../src/game/systems/status';
 import type { Building, ResourceNode, Site, Unit } from '../../src/game/types';
-import { CENTER_TX, CENTER_TY, doorPos, T } from '../../src/game/world';
+import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, T, tileCenter } from '../../src/game/world';
 import { arenaSpots } from '../../src/game/exam';
 import { art, preloadArt } from '../../src/render/art';
 import { maskOf } from '../../src/render/pieces';
@@ -384,6 +384,8 @@ function renderProps() {
     const a = artL();
     h += `<h3>Arte</h3><div class="row"><label>Escala</label><input type="range" id="scale" min="0.4" max="2" step="0.01" value="${a.scale ?? 1}"><span>${(a.scale ?? 1).toFixed(2)}</span></div>
       <div class="row"><label>X</label><input type="number" id="dx" step="1" value="${a.dx ?? 0}"><label>Y</label><input type="number" id="dy" step="1" value="${a.dy ?? 0}"></div>
+      <div class="row"><label ${''}>Profundidade</label><input type="number" id="depth" step="1" value="${a.depth ?? 0}"><span class="hint">+ fica na frente de quem está perto; − atrás</span></div>
+      <p class="hint">A linha laranja é onde a arte "toca o chão": quem tem os pés abaixo dela aparece na frente; acima, atrás.</p>
       <div class="row"><button id="artreset">Voltar ao padrão</button></div>`;
   } else if (mode === 'points') {
     const defs = pointDefs();
@@ -511,11 +513,11 @@ props.addEventListener('input', (e) => {
     brush = Number(t.value);
     (t.nextElementSibling as HTMLElement).textContent = `${brush}px`;
   }
-  if (t.id === 'scale' || t.id === 'dx' || t.id === 'dy') {
+  if (t.id === 'scale' || t.id === 'dx' || t.id === 'dy' || t.id === 'depth') {
     if (t.id === 'scale') {
       a.scale = Number(t.value);
       (t.nextElementSibling as HTMLElement).textContent = a.scale.toFixed(2);
-    } else a[t.id as 'dx' | 'dy'] = Number(t.value);
+    } else a[t.id as 'dx' | 'dy' | 'depth'] = Number(t.value) || undefined;
     touchLayout();
     changed();
   }
@@ -731,6 +733,25 @@ function drawOverlay() {
   octx.setTransform(dpr, 0, 0, dpr, 0, 0);
   octx.clearRect(0, 0, over.width, over.height);
   const b = box();
+  // Arte: a linha onde o desenho toca o chão (profundidade): pés abaixo dela = na frente; acima = atrás
+  if (mode === 'art') {
+    const n = s.nodes[0];
+    const c = building ? buildingCenter(building) : site ? { x: tileCenter(site.tx), y: tileCenter(site.ty) } : n ? { x: tileCenter(n.tx), y: tileCenter(n.ty) } : null;
+    if (c && !(building && artL().pieces?.length)) {
+      const p = project(c.x, c.y);
+      const y = renderer.baseLine({ x: p.x, y: p.y, b: building ?? undefined, site: site ?? undefined, n: building || site ? undefined : n });
+      const l = sceneToScreen(p.x - 60, y);
+      const r = sceneToScreen(p.x + 60, y);
+      octx.strokeStyle = '#ff8a2b';
+      octx.lineWidth = 2;
+      octx.setLineDash([6, 4]);
+      octx.beginPath();
+      octx.moveTo(l.x, l.y);
+      octx.lineTo(r.x, r.y);
+      octx.stroke();
+      octx.setLineDash([]);
+    }
+  }
   // máscara pintada
   if (mode === 'pieces' && b && overlay) {
     const tl = sceneToScreen(b.left, b.top);

@@ -26,6 +26,8 @@ export interface ArtLayout {
   /** Deslocamento do desenho (px da cena no tamanho 1×). */
   dx?: number;
   dy?: number;
+  /** Ajuste da profundidade (px da cena): + = desenhado mais à frente (por cima de quem está perto), − = mais atrás. */
+  depth?: number;
   /** O que não foi pintado vai no chão (sob todo mundo). Padrão: sim nos prédios andáveis, não nos outros. */
   ground?: boolean;
   fade?: Rect01;
