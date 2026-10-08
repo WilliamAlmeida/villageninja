@@ -1054,6 +1054,50 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .xc-prog .nc-bar { flex: 1; height: 0.5rem; }
 .xc-loot { font-size: 0.8rem; color: var(--muted); display: flex; gap: 0.3rem; align-items: center; }
 .xcard .explog { margin: 0; }
+/* aba Expedições: em andamento (cartões grandes), minas conhecidas e concluídas (lista compacta) */
+.xlive { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 0.6rem; }
+.xlcard { padding: 0.6rem 0.7rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); border-left: 0.25rem solid var(--c); display: flex; flex-direction: column; gap: 0.45rem; }
+.xlcard.want { border-color: rgba(255, 170, 70, 0.6); box-shadow: 0 0 0 1px rgba(255, 170, 70, 0.35), 0 0 14px rgba(255, 138, 43, 0.18); }
+.xlcard .explog { margin: 0; }
+.xlcard { container-type: inline-size; }
+.xl-body, .xl-a, .xl-b { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
+/* cartão largo: andares, equipe e saque à esquerda; diário e a decisão à direita */
+@container (min-width: 34rem) {
+  .xl-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 0.45rem 1rem; }
+  .xl-b { justify-content: space-between; }
+}
+.xfloors { display: flex; align-items: center; }
+.xfloors > i { flex: 1; height: 2px; background: var(--line); }
+.xf { width: 1.55rem; height: 1.55rem; border-radius: 50%; display: grid; place-items: center; font-size: 0.78rem; font-weight: 800; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); color: var(--muted); }
+.xf .ic { width: 0.85rem; height: 0.85rem; margin: 0; }
+.xf.done { background: var(--good); border-color: var(--good); color: #10200f; }
+.xf.now { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 138, 43, 0.25); }
+.xteam { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.xmem { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; width: 2.4rem; }
+.xmem .face { width: 2.2rem; height: 2.2rem; }
+.xmem .nc-bar { width: 100%; height: 0.28rem; }
+.xloot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+.xloot > small { color: var(--muted); margin-right: 0.15rem; }
+.lchip { display: inline-flex; align-items: center; padding: 0.08rem 0.4rem; border-radius: 0.45rem; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--line); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.xchoice { display: grid; grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr)); gap: 0.4rem; margin: 0; }
+.xchoice .btn { white-space: nowrap; justify-content: center; }
+.xmines { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.45rem; }
+.xmine { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.xmine:hover { background: var(--card-hi); }
+.xm-ic { width: 1.9rem; height: 1.9rem; border-radius: 0.5rem; display: grid; place-items: center; background: rgba(0, 0, 0, 0.25); color: var(--accent); }
+.xm-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.xm-t small { color: var(--muted); font-size: 0.78rem; }
+.xdone { display: flex; flex-direction: column; gap: 0.3rem; }
+.xrow { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "dot team where pill" "dot loot loot loot"; align-items: center; gap: 0.15rem 0.5rem; padding: 0.4rem 0.6rem; border-radius: var(--r); background: rgba(0, 0, 0, 0.18); border: 1px solid var(--line); border-left: 0.25rem solid var(--c); }
+.xrow .dot { grid-area: dot; }
+.xr-team { grid-area: team; }
+.xr-where { grid-area: where; color: var(--muted); font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xrow .mpill { grid-area: pill; }
+.xr-loot { grid-area: loot; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.xr-loot small { color: var(--muted); }
+@media (min-width: 900px) {
+  .xrow { grid-template-columns: auto auto minmax(8rem, 0.6fr) minmax(0, 1fr) auto; grid-template-areas: "dot team where loot pill"; }
+}
 
 /* ---------- janela Oficinas ---------- */
 #win .wtop.notabs { padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }

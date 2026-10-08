@@ -689,7 +689,7 @@ export class Panel {
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
     const live = g.state.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost');
-    if (live.length) html += `<h4>{flag} Expedições ativas</h4><div class="xstrip">${live.map((e) => this.expCard(e, t, b, false)).join('')}</div>`;
+    if (live.length) html += `<h4>{flag} Expedições ativas</h4><div class="xstrip">${live.map((e) => this.expCard(e, t, b)).join('')}</div>`;
     return { html, t, b };
   }
 
@@ -759,12 +759,8 @@ export class Panel {
     return html + `</div></div>`;
   }
 
-  /** Janela Mundo → Expedições: andamento, diário e decisões de cada expedição. */
-  /**
-   * Cartão de expedição: equipe, lugar e ação, o que está fazendo (selo), retratos com a vida, barra e tempo, e o saque.
-   * `full` (aba Expedições) mostra também o diário e as escolhas da mina.
-   */
-  private expCard(e: Expedition, t: Record<string, string>, b: Record<string, number>, full: boolean) {
+  /** Cartão curto de expedição (aba Região): equipe, lugar e ação, o que está fazendo, retratos, barra e o saque. */
+  private expCard(e: Expedition, t: Record<string, string>, b: Record<string, number>) {
     const g = this.app.game;
     const tm = g.team(e.teamId);
     const live = e.status !== 'done' && e.status !== 'lost';
@@ -786,12 +782,7 @@ export class Panel {
       t[`ex${e.id}`] = `${Math.ceil(Math.max(0, e.timer))}s`;
     } else if (e.status === 'scene') html += `<button class="btn danger mini" data-act="view-scene">{flag} Ver invasão</button>`;
     html += `</div>`;
-    if (full && us.length) {
-      html += `<div class="jm">${us.map((u) => `${esc(u.name.split(' ').pop()!)} <span data-t="exh${u.id}"></span>`).join(' · ')}</div>`;
-      for (const u of us) t[`exh${u.id}`] = `${Math.round((u.hp / u.maxHp) * 100)}%`;
-    }
     html += `<div class="xc-loot">{luggage} Saque: ${Object.keys(e.loot).length ? costLabel(e.loot) : '—'}</div>`;
-    if (full) html += `<ul class="explog">${e.log.slice(-5).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
     if (e.status === 'choice') {
       const next = e.floor + 1;
       html += `<div class="btnrow"><button class="btn primary" data-act="exp-deeper" data-arg="${e.id}">{pickaxe} Descer ao andar ${next} <small>{swords}${floorPower(next)}</small></button>
@@ -800,21 +791,102 @@ export class Panel {
     return html + `</div>`;
   }
 
+  /**
+   * Janela Mundo → Expedições: em andamento (cartões grandes: andares, equipe com vida, saque, diário e a decisão),
+   * minas conhecidas (usos e abrir) e as concluídas numa lista compacta (uma linha por expedição).
+   */
   private expeditionsView(): Built {
     const g = this.app.game;
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
     let html = this.tabs('expeditions');
-    const caves = g.state.sites.filter((x) => x.kind === 'cave' && x.found);
-    const list = [...g.state.expeditions].reverse();
-    if (!list.length)
+    const caves = g.state.sites.filter((x) => x.kind === 'cave' && x.found && !x.done);
+    const all = [...g.state.expeditions].reverse();
+    const live = all.filter((e) => e.status !== 'done' && e.status !== 'lost');
+    const ended = all.filter((e) => e.status === 'done' || e.status === 'lost');
+    // decisão pendente primeiro (andar concluído), depois o resto
+    live.sort((a, z) => Number(z.status === 'choice') - Number(a.status === 'choice'));
+    if (!all.length)
       html += `<div class="warnbox">{map} Nenhuma expedição ainda. ${
         caves.length ? 'Toque numa entrada de mina no mapa para mandar uma equipe.' : 'Explore o mapa (rotina Explorar dos ninjas) para achar entradas de mina.'
       }</div>`;
-    if (caves.length)
-      html += `<p class="hint">Minas conhecidas: ${caves.map((c) => `<button class="btn mini" data-act="site-open" data-arg="${c.id}">{pickaxe} Ver mina</button>`).join(' ')}</p>`;
-    html += `<div class="xlist">${list.map((e) => this.expCard(e, t, b, true)).join('')}</div>`;
+    if (live.length) html += `<h4>{flag} Em andamento <small>${live.length}</small></h4><div class="xlive">${live.map((e) => this.expLive(e, t, b)).join('')}</div>`;
+    if (caves.length) {
+      html += `<h4>{pickaxe} Minas conhecidas ${infoTip('Minas', 'Toque numa mina para ver os andares e mandar uma equipe. Cada expedição gasta um uso; no último os túneis desabam e outra entrada aparece noutro lugar.')}</h4><div class="xmines">`;
+      caves.forEach((c, i) => {
+        const uses = mineUses(c);
+        const busy = live.some((e) => e.siteId === c.id);
+        html += `<button class="xmine" data-act="site-open" data-arg="${c.id}"><span class="xm-ic">{pickaxe}</span><span class="xm-t"><b>Mina ${i + 1}</b>
+          <small>${busy ? '{flag} Equipe lá dentro' : `${uses} de ${MINE_USES} usos`}</small></span><span class="wpips">${Array.from({ length: MINE_USES }, (_, k) => `<i class="${k < uses ? 'on' : ''}"></i>`).join('')}</span></button>`;
+      });
+      html += `</div>`;
+    }
+    if (ended.length) {
+      html += `<h4>{clock} Concluídas <small>${ended.length}</small></h4><div class="xdone">`;
+      for (const e of ended) {
+        const tm = g.team(e.teamId);
+        const lost = e.status === 'lost';
+        const loot = Object.entries(e.loot).filter(([, v]) => v);
+        html += `<div class="xrow" style="--c:${tm?.color ?? '#888'}" ${tipAttr(this.expWhere(e), e.log.slice(-4).join(' '))}>
+          <span class="dot"></span><b class="xr-team">${esc(tm?.name ?? 'Equipe')}</b><span class="xr-where">${esc(this.expWhere(e))}</span>
+          <span class="mpill ${lost ? 'danger' : 'good'}">${lost ? '{skull} Perdida' : '{check} Voltou'}</span>
+          <span class="xr-loot">${loot.length ? loot.map(([k, v]) => `<span class="lchip">${costLabel({ [k]: v })}</span>`).join('') : '<small>sem saque</small>'}</span></div>`;
+      }
+      html += `</div>`;
+    }
     return { html, t, b };
+  }
+
+  /** Onde a expedição foi: "Mina · andar 2/5" ou "Ação · lugar da região". */
+  private expWhere(e: Expedition) {
+    return e.kind === 'mine' ? `Mina · andar ${e.floor}/${MINE.floors}` : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
+  }
+
+  /** Expedição em andamento (aba Expedições): andares, equipe com vida, barra, saque, diário curto e a decisão. */
+  private expLive(e: Expedition, t: Record<string, string>, b: Record<string, number>) {
+    const g = this.app.game;
+    const tm = g.team(e.teamId);
+    const mine = e.kind === 'mine';
+    const label: Record<Expedition['status'], [string, string, string]> = {
+      going: ['A caminho', '{run}', 'good'], explore: [mine ? 'Explorando' : 'No serviço', mine ? '{pickaxe}' : '{shield}', 'safe'],
+      choice: ['Decida: descer ou voltar', '{alert}', 'risky'], return: ['Voltando', '{back}', 'info'], done: ['Terminou', '{check}', 'info'],
+      lost: ['Perdida', '{skull}', 'danger'], scene: [mine ? 'Jogando o andar' : 'Invasão jogável', '{swords}', 'danger'],
+    };
+    const [st, ic, cls] = label[e.status];
+    let html = `<div class="xlcard ${e.status === 'choice' ? 'want' : ''}" style="--c:${tm?.color ?? '#888'}">
+      <div class="xc-top"><span class="dot"></span><div class="xc-t"><b>${esc(tm?.name ?? 'Equipe')}</b><span>${esc(mine ? 'Mina' : this.expWhere(e))}</span></div><span class="mpill ${cls}">${ic} ${st}</span></div>
+      <div class="xl-body"><div class="xl-a">`;
+    // trilha dos andares: feitos, o atual e os que faltam (o último é o do guardião)
+    if (mine)
+      html += `<div class="xfloors">${Array.from({ length: MINE.floors }, (_, i) => {
+        const n = i + 1;
+        const c = n < e.floor || (n === e.floor && e.status === 'choice') ? 'done' : n === e.floor ? 'now' : '';
+        return `<span class="xf ${c}" ${tipAttr(`Andar ${n}`, n === MINE.floors ? 'O fundo: guardião e os minérios mais raros.' : `Força recomendada ${floorPower(n)}.`)}>${n === MINE.floors ? '{skull}' : n}</span>`;
+      }).join('<i></i>')}</div>`;
+    // equipe: retrato com a barra de vida embaixo
+    const us = expeditionUnits(g, e);
+    html += `<div class="xteam">${us
+      .map((u) => {
+        b[`exh${u.id}`] = u.hp / u.maxHp;
+        return `<span class="xmem" ${tipAttr(u.name, `${Math.round((u.hp / u.maxHp) * 100)}% de vida`)}>${this.face(u)}<span class="nc-bar hp"><i data-b="exh${u.id}"></i></span></span>`;
+      })
+      .join('')}</div>`;
+    if (e.status === 'going' || e.status === 'explore' || e.status === 'return') {
+      const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
+      html += `<div class="xc-prog"><div class="nc-bar xp"><i data-b="ex${e.id}"></i></div><span>{hourglass} <span data-t="ex${e.id}"></span></span></div>`;
+      b[`ex${e.id}`] = 1 - Math.max(0, e.timer) / total;
+      t[`ex${e.id}`] = `${Math.ceil(Math.max(0, e.timer))}s`;
+    }
+    const loot = Object.entries(e.loot).filter(([, v]) => v);
+    html += `<div class="xloot"><small>{luggage} Saque</small>${loot.length ? loot.map(([k, v]) => `<span class="lchip">${costLabel({ [k]: v })}</span>`).join('') : '<small>ainda nada</small>'}</div>`;
+    html += `</div><div class="xl-b"><ul class="explog">${e.log.slice(-3).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+    if (e.status === 'scene') html += `<div class="btnrow"><button class="btn danger" data-act="view-scene">{flag} Ver a luta</button></div>`;
+    if (e.status === 'choice') {
+      const next = e.floor + 1;
+      html += `<div class="btnrow xchoice"><button class="btn primary" data-act="exp-deeper" data-arg="${e.id}">{pickaxe} Descer ao andar ${next} <small>{swords}${floorPower(next)}</small></button>
+        <button class="btn" data-act="exp-back" data-arg="${e.id}">{run} Voltar com o saque</button></div>`;
+    }
+    return html + `</div></div></div>`;
   }
 
 
