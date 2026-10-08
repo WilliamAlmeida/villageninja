@@ -11,7 +11,7 @@ export const FONT_SIZES: { id: FontSize; label: string }[] = [
 ];
 
 /** Desktop (mouse + tela larga) começa no médio; celular, no pequeno. */
-function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown } {
+function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown; fps?: unknown; fpsPos?: unknown } {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? '{}') ?? {};
   } catch {
@@ -33,6 +33,15 @@ export function setFollowCam(v: boolean) {
   follow = v;
   store({ follow: v });
 }
+
+/** Medidor de FPS flutuante (ui/fps.ts), desligado por padrão; e onde ele fica na tela. */
+export const showFps = () => load().fps === true;
+export const setShowFps = (v: boolean) => store({ fps: v });
+export function fpsPos(): { x: number; y: number } {
+  const p = load().fpsPos as { x?: unknown; y?: unknown } | undefined;
+  return typeof p?.x === 'number' && typeof p?.y === 'number' ? { x: p.x, y: p.y } : { x: 12, y: 64 };
+}
+export const setFpsPos = (p: { x: number; y: number }) => store({ fpsPos: p });
 
 /** Efeitos de clima leves: sem pegadas, bafo, fumaça das chaminés e névoa da nevasca (poupa bateria). */
 export const weatherFxLight = () => load().weatherFx === 'light';

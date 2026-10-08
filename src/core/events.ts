@@ -8,6 +8,8 @@ export interface GameEvents {
   view: boolean;
   select: Selection | null;
   newGame: void;
+  /** Ligou/desligou o medidor de FPS (Configurações). */
+  fps: void;
 }
 
 type Handler<T> = (payload: T) => void;

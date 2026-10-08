@@ -70,9 +70,8 @@ let site: Site | null = null;
 let activePiece = 1;
 let brush = 12;
 let erase = false;
-/** Pincel ou lata de tinta (preenche a área contínua de cor parecida na arte). */
+/** Pincel ou lata de tinta (troca a área contínua da máscara). */
 let paintTool: 'brush' | 'fill' = 'brush';
-let tolerance = 40;
 let pending: { kind: 'anchor' | 'fade' | 'point'; piece?: number; name?: string } | null = null;
 let selDummy: Unit | null = null;
 let dirty = false;
@@ -114,7 +113,7 @@ function place() {
 
 // ------------------------------------------------------------------ máscara (peças)
 const masks = new Map<string, Uint8Array>();
-let overlay: { canvas: HTMLCanvasElement; img: ImageData; alpha: Uint8ClampedArray; rgba: Uint8ClampedArray } | null = null;
+let overlay: { canvas: HTMLCanvasElement; img: ImageData; alpha: Uint8ClampedArray } | null = null;
 
 function pic() {
   return art(item.artName);
@@ -148,7 +147,7 @@ function buildOverlay() {
   const src = cx.getImageData(0, 0, W, H).data;
   for (let i = 0; i < W * H; i++) alpha[i] = src[i * 4 + 3]!;
   const img = cx.createImageData(W, H);
-  overlay = { canvas: c, img, alpha, rgba: new Uint8ClampedArray(src) };
+  overlay = { canvas: c, img, alpha };
   for (let i = 0; i < W * H; i++) paintPx(i, m[i]!);
   cx.putImageData(img, 0, 0);
 }
@@ -343,7 +342,7 @@ function changed() {
   statusEl.textContent = 'Alterado (não salvo)';
 }
 const HELP: Record<Mode, string> = {
-  pieces: 'Pincel: pinte arrastando · Lata: um clique preenche a área de cor parecida · Borracha devolve ao "resto" · "Âncora": clique onde a peça toca o chão · roda do mouse: zoom · Alt+arrastar ou botão do meio: mover a vista',
+  pieces: 'Pincel: pinte arrastando · Lata: um clique troca a área da máscara pela peça ativa · Borracha devolve ao "resto" · "Âncora": clique onde a peça toca o chão · roda do mouse: zoom · Alt+arrastar ou botão do meio: mover a vista',
   tiles: 'Células de meio tile (16 px): clique troca livre → muro → portão; arrastar pinta as outras com o mesmo valor. Muro bloqueia todo mundo; portão é por onde se entra.',
   art: 'Ajuste a escala e o deslocamento do desenho (também dá para arrastar a arte com o botão esquerdo).',
   points: 'Escolha o ponto à direita e clique no lugar dele na cena.',
@@ -369,8 +368,8 @@ function renderProps() {
           <div class="row"><button data-anchor="${n}" class="${pending?.kind === 'anchor' && pending.piece === n ? 'on' : ''}">Âncora</button><button data-fade="${n}" class="${pending?.kind === 'fade' && pending.piece === n ? 'on' : ''}">Transparência</button>${p.fade ? `<button data-fadeclr="${n}">sem área</button>` : ''}</div></div>`;
       });
       h += `<div class="row"><button id="addpiece">+ Nova peça</button></div>`;
-      h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" title="Pincel (B)">Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" title="Lata de tinta (G): preenche a área contínua de cor parecida">Lata</button><button id="brusherase" class="${erase ? 'on' : ''}" title="Borracha (E): pincel ou lata devolvem ao resto">Borracha</button></div>
-        ${paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<div class="row"><label>Tolerância</label><input type="range" id="tolerance" min="0" max="160" value="${tolerance}"><span>${tolerance}</span></div><p class="hint">Mais tolerância pega tons mais diferentes (sombra e luz da mesma parede).</p>`}
+      h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" title="Pincel (B)">Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" title="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">Lata</button><button id="brusherase" class="${erase ? 'on' : ''}" title="Borracha (E): pincel ou lata devolvem ao resto">Borracha</button></div>
+        ${paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<p class="hint">Clique numa área pintada (ou no resto) para trocá-la inteira pela peça ativa; com a Borracha, ela volta ao resto.</p>`}
         <div class="row"><button id="clearmask">Limpar pintura</button></div>`;
     }
   } else if (mode === 'tiles') {
@@ -524,10 +523,7 @@ props.addEventListener('input', (e) => {
     brush = Number(t.value);
     (t.nextElementSibling as HTMLElement).textContent = `${brush}px`;
   }
-  if (t.id === 'tolerance') {
-    tolerance = Number(t.value);
-    (t.nextElementSibling as HTMLElement).textContent = `${tolerance}`;
-  }
+
   if (t.id === 'scale' || t.id === 'dx' || t.id === 'dy' || t.id === 'depth') {
     if (t.id === 'scale') {
       a.scale = Number(t.value);
@@ -580,8 +576,8 @@ function paintAt(sx: number, sy: number) {
 }
 
 /**
- * Lata de tinta: a partir do pixel clicado, pinta todos os pixels vizinhos (4 direções) da arte com cor parecida
- * (diferença ≤ tolerância em cada canal), sem atravessar o transparente. Ignora a pintura que já havia ali.
+ * Lata de tinta: troca a área da MÁSCARA clicada — todos os pixels vizinhos (4 direções) com a mesma peça do pixel
+ * clicado (ex.: a área amarela inteira vira rosa), sem atravessar o transparente da arte.
  */
 function fillAt(sx: number, sy: number) {
   const im = toImage(sx, sy);
@@ -591,11 +587,11 @@ function fillAt(sx: number, sy: number) {
   const W = p.naturalWidth;
   const H = p.naturalHeight;
   if (im.ix < 0 || im.iy < 0 || im.ix >= W || im.iy >= H) return;
-  const px = overlay.rgba;
   const s0 = im.iy * W + im.ix;
   if (!overlay.alpha[s0]) return;
-  const [r0, g0, b0] = [px[s0 * 4]!, px[s0 * 4 + 1]!, px[s0 * 4 + 2]!];
+  const from = m[s0]!;
   const v = erase ? 0 : activePiece;
+  if (from === v) return;
   const seen = new Uint8Array(W * H);
   const stack = [s0];
   seen[s0] = 1;
@@ -610,8 +606,7 @@ function fillAt(sx: number, sy: number) {
       const j = ny * W + nx;
       if (seen[j] || !overlay.alpha[j]) continue;
       seen[j] = 1;
-      if (Math.abs(px[j * 4]! - r0) > tolerance || Math.abs(px[j * 4 + 1]! - g0) > tolerance || Math.abs(px[j * 4 + 2]! - b0) > tolerance) continue;
-      stack.push(j);
+      if (m[j] === from) stack.push(j);
     }
   }
   overlay.canvas.getContext('2d')!.putImageData(overlay.img, 0, 0);

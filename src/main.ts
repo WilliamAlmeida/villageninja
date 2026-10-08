@@ -12,6 +12,7 @@ import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
 import { applySettings, followCam } from './ui/settings';
+import { FpsMeter } from './ui/fps';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui')!;
@@ -153,7 +154,12 @@ const SLOW_FACTOR = 0.3;
 let slowT = 0;
 const moments = new WeakSet<object>();
 
+const fps = new FpsMeter();
+fps.sync();
+bus.on('fps', () => fps.sync());
+
 function frame(now: number) {
+  fps.tick(now);
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   // momento especial (técnica de Kage, Sannin, chefe, proibido): câmera lenta curta

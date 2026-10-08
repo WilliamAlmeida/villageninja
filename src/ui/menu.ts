@@ -2,7 +2,8 @@ import type { App } from '../app';
 import { el } from './dom';
 import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 import { rich } from './icons';
-import { FONT_SIZES, followCam, fontSize, setFollowCam, setFontSize, setWeatherFxLight, weatherFxLight, type FontSize } from './settings';
+import { FONT_SIZES, followCam, fontSize, setFollowCam, setFontSize, setShowFps, setWeatherFxLight, showFps, weatherFxLight, type FontSize } from './settings';
+import { bus } from '../core/events';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
 export class Menu {
@@ -30,6 +31,11 @@ export class Menu {
       if (a === 'spread') {
         // aliados colados na luta se afastam devagar (game/tactics.ts); fica no save da vila
         this.app.home.state.flags.spread = (e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1';
+        this.render();
+      }
+      if (a === 'fps') {
+        setShowFps((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
+        bus.emit('fps', undefined);
         this.render();
       }
       if (a === 'follow') {
@@ -120,6 +126,7 @@ export class Menu {
       <div class="setrow"><span class="sl">{eye} Câmera segue o ninja</span>${seg('follow', [['1', 'Sim', followCam()], ['0', 'Não', !followCam()]])}</div>
       <div class="setrow"><span class="sl">{users} Afastar aliados na luta</span>${seg('spread', [['1', 'Sim', s.flags.spread !== false], ['0', 'Não', s.flags.spread === false]])}</div>
       <div class="setrow"><span class="sl">{snow} Clima</span>${seg('wfx', [['full', 'Completo', !weatherFxLight()], ['light', 'Leve', weatherFxLight()]])}</div>
+      <div class="setrow"><span class="sl">{chart} Medidor de FPS</span>${seg('fps', [['1', 'Mostrar', showFps()], ['0', 'Esconder', !showFps()]])}</div>
       <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
     </div>`);
   }
