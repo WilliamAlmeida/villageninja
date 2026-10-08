@@ -258,7 +258,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`Unit.away`, ignorada pelos sistemas), desce andares com eventos sorteados e o jogador decide descer ou voltar; o saque
   (recursos raros `crystal`, `gold`, `darksteel`) só entra na volta. Itens lendários na forja/farmácia; ouro vende no mercado.
   Janela "Mundo" (botão e tecla R).
-- **Mapa da região** (`data/region.ts`, `game/region.ts`, `systems/region.ts`; janela Mundo → Região, fundo `src/art/region.jpg`):
+- **Mapa da região** (`data/region.ts`, `game/region.ts`, `systems/region.ts`; janela Mundo → Região, fundo `src/art/region.jpg`).
+  A aba é o mapa ocupando a janela: zoom (roda, pinça, botões; até `MAP_ZOOM_MAX`) e arrastar (`Panel.map`, `applyMap`/
+  `zoomMap`; a camada `.rlayer` cobre a vista em 3:2 e os marcadores não crescem com o zoom, `--z`); tocar num lugar abre o
+  painel dele por cima (`.rsheet`, `focusNode` tira o lugar de baixo dele); equipes em viagem andam no mapa pela trilha
+  tracejada (`.rtoken`/`.rroute`); legenda e "como funciona" no canto. Quadro de missões numa tela só (disponíveis e
+  recentes; as ativas na coluna da direita ou no alto na estreita).
   vilarejos (comerciar, proteger, saquear, anexar), ilhas (explorar, posto avançado, treinar no templo) e lugares sagrados
   (contrato de invocação). Cada ação é uma expedição `kind: 'region'`. Ilhas e lugares sagrados exigem o prédio Porto.
   Virada do dia: tributos, postos, vingança dos saqueados e ninjas errantes. Honra/infâmia em `state.honor/infamy`

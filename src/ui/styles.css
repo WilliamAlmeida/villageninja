@@ -1022,6 +1022,40 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .rnode.on span { border-color: var(--accent); color: var(--accent); }
 .rnode.on .ic { box-shadow: 0 0 0 3px var(--accent), 0 0 14px rgba(255, 138, 43, 0.7); }
 .rnode.k-hideout .ic { border-color: var(--bad); color: #ff8a8a; }
+/* Região: o mapa ocupa a janela (zoom e arrastar); o lugar escolhido abre num painel por cima */
+#win .body:has(> .rview) { display: flex; flex-direction: column; }
+.rview { position: relative; flex: 1 1 auto; min-height: 18rem; }
+.rmapview { position: absolute; inset: 0; overflow: hidden; border-radius: 0.8rem; border: 1px solid var(--line); background: #1f4f8a; touch-action: none; cursor: grab; user-select: none; container-type: size; }
+.rmapview.drag { cursor: grabbing; }
+.rmapview.drag .rnode, .rmapview.drag .rtoken { pointer-events: none; }
+/* camada do mapa: cobre a vista (3:2, o maior entre a largura e 1,5× a altura) e é ela que leva o zoom */
+.rlayer { position: absolute; left: 0; top: 0; width: max(100cqw, 150cqh); aspect-ratio: 3 / 2; transform-origin: 0 0; will-change: transform; }
+.rlayer img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+/* marcadores não crescem com o zoom (só o mapa) */
+.rlayer .rnode { transform: translate(-50%, -50%) scale(calc(1 / var(--z, 1))); }
+.rroute { position: absolute; height: 0; transform-origin: 0 0; border-top: calc(4px / var(--z, 1)) dashed var(--c); filter: drop-shadow(0 0 2px #000); opacity: 0.9; pointer-events: none; }
+.rtoken { position: absolute; z-index: 2; width: 1.7rem; height: 1.7rem; padding: 0; display: grid; place-items: center; border-radius: 50%; background: var(--c); color: #1a120c; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); transform: translate(-50%, -50%) scale(calc(1 / var(--z, 1))); transition: left 0.6s linear, top 0.6s linear; }
+.rtoken .ic { width: 0.95rem; height: 0.95rem; margin: 0; }
+.rtoken.at { transform: translate(-50%, -165%) scale(calc(1 / var(--z, 1))); animation: rbob 1.4s ease-in-out infinite; }
+@keyframes rbob { 50% { margin-top: -0.2rem; } }
+.rlegend { position: absolute; left: 0.6rem; bottom: 0.6rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.6rem; max-width: calc(100% - 9rem); padding: 0.35rem 0.6rem; border-radius: 0.6rem; background: rgba(20, 14, 10, 0.82); border: 1px solid rgba(255, 214, 150, 0.25); font-size: 0.74rem; color: var(--muted); }
+.rlegend > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+.rlegend .k-island .ic { color: #7fd8ff; } .rlegend .k-sacred .ic { color: #c9a0ff; }
+.rlegend .lg i { width: 0.6rem; height: 0.6rem; border-radius: 50%; border: 2px solid; }
+.rlegend .s-protected i { border-color: var(--good); } .rlegend .s-vassal i { border-color: #ffd34d; background: #4a3a10; } .rlegend .s-hostile i { border-color: var(--bad); }
+.rzoom { position: absolute; right: 0.6rem; bottom: 0.6rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.rzoom button { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; border-radius: 0.6rem; background: rgba(20, 14, 10, 0.85); border: 1px solid rgba(255, 214, 150, 0.3); color: var(--text); }
+.rzoom button:hover { border-color: var(--accent); color: var(--accent); }
+.rsheet { position: absolute; top: 0.6rem; right: 0.6rem; bottom: 0.6rem; width: min(23rem, 48%); overflow-y: auto; overscroll-behavior: contain; padding: 0.7rem 0.75rem; border-radius: var(--r); background: rgba(30, 21, 14, 0.95); border: 1px solid var(--line); box-shadow: 0 0.6rem 2rem rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px); cursor: auto; user-select: text; z-index: 3; }
+.rsheet-x { position: sticky; top: 0; float: right; width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); color: var(--text); z-index: 1; }
+.rsheet .rhead { padding-right: 2rem; }
+.rsheet .rteams { max-height: 7.2rem; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.2rem; }
+.rmapview:has(.rsheet) .rzoom { right: calc(min(23rem, 48%) + 1.2rem); }
+@media (max-width: 760px), (max-height: 520px) {
+  .rsheet { width: min(21rem, 62%); top: 0.4rem; right: 0.4rem; bottom: 0.4rem; }
+  .rlegend .lg { display: none; }
+  .rmapview:has(.rsheet) .rzoom { right: calc(min(21rem, 62%) + 0.9rem); }
+}
 .rhead { display: flex; gap: 0.6rem; align-items: center; }
 .rh-ic { flex: 0 0 auto; width: 3rem; height: 3rem; border-radius: 0.7rem; display: grid; place-items: center; background: var(--card-hi); border: 1px solid var(--line); color: var(--accent); }
 .rh-ic .ic { width: 1.6rem; height: 1.6rem; }
@@ -1483,6 +1517,10 @@ h4::after { background: var(--line); opacity: 0.6; }
 .wtabs button.on { color: #1f1208; font-weight: 900; border-color: #ffc45d; background: linear-gradient(180deg, var(--accent-hi), var(--accent) 55%, var(--accent-low)); box-shadow: var(--shadow-btn); }
 .wtabs button:not(.on):hover { border-color: var(--line-hi); color: var(--text); }
 .wright { margin-left: auto; display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+/* o título nunca quebra em várias linhas (as etiquetas é que descem); botões de ação numa linha */
+.whead .mh-title { white-space: nowrap; flex-shrink: 0; }
+.wright .btn, .wright .mchip { white-space: nowrap; }
+.mrecents { display: flex; flex-direction: column; gap: 0.3rem; }
 .wright .mchip { font-size: 1rem; min-height: 2.5rem; padding: 0.35rem 0.85rem; }
 .wright .mchip .ic { width: 1.3rem; height: 1.3rem; }
 #win .close { top: 0.85rem; right: 0.9rem; width: 2.5rem; height: 2.5rem; border-color: #8a5b25; }

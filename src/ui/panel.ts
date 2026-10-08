@@ -145,7 +145,8 @@ const ACTION_TIP: Record<RegionAction, string> = {
   assault: 'A invasão final: a equipe entra no covil (mapa jogável) e enfrenta os guardiões e o líder da Ordem do Eclipse. Vencendo, a Ordem acaba.',
 };
 
-type MissionTab = 'active' | 'offered' | 'recent';
+/** Zoom máximo do mapa da região (a imagem tem 1152 px de largura: mais que isso borra). */
+const MAP_ZOOM_MAX = 2.6;
 /** Janela larga o bastante para os contratos ativos numa coluna ao lado das missões. */
 const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
 /**
@@ -258,7 +259,6 @@ export class Panel {
   private rosterFilter: RosterFilter = 'all';
   private rosterSort: RosterSort = 'level';
   /** Quadro de missões: aba e missão com a lista de equipes aberta ("Trocar equipe"). */
-  private missionTab: MissionTab = 'offered';
   private missionPick: number | null = null;
   /** Candidato escolhido em cada caminho Sannin (o "Nomear" usa este). */
   private sanninSel: Record<string, number> = {};
@@ -268,6 +268,12 @@ export class Panel {
   private dogPick: number | null = null;
   /** Região: lugar aberto e equipe escolhida para as ações. */
   private regionNode: string | null = null;
+  /** Mapa da região: zoom e deslocamento (px da vista); `ready` = já centrado uma vez. Só interface. */
+  private map = { z: 1, x: 0, y: 0, ready: false };
+  /** Arrastando o mapa (ponteiros na tela, para arrastar com um e pinçar com dois). */
+  private mapPtrs = new Map<number, { x: number; y: number }>();
+  private mapMoved = false;
+  private mapMovedBy = 0;
   private regionTeam: number | null = null;
   /** Aba do painel do prédio (geral × lá dentro). */
   private buildingTab: BuildingTab = 'main';
@@ -294,6 +300,11 @@ export class Panel {
     this.body = this.root.querySelector('.body')!;
     this.root.addEventListener('click', (e) => {
       if (e.target === this.root) return this.show(null); // clique fora da janela fecha
+      // soltou depois de arrastar o mapa: não é um toque num lugar
+      if (this.mapMoved && (e.target as HTMLElement).closest('.rmapview')) {
+        this.mapMoved = false;
+        return;
+      }
       this.onClick(e);
     });
     // passar o mouse numa linha de ninja destaca o ninja no mapa
@@ -306,8 +317,56 @@ export class Panel {
     this.root.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.pressing = true;
+      // mapa da região: arrastar (um dedo/mouse) e pinçar (dois); o painel do lugar e os botões de zoom ficam fora
+      const t = e.target as HTMLElement;
+      if (t.closest('.rmapview') && !t.closest('.rsheet, .rzoom, .rlegend')) {
+        this.mapPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        this.mapMoved = false;
+      }
     });
-    const release = () => {
+    window.addEventListener('pointermove', (e) => {
+      const prev = this.mapPtrs.get(e.pointerId);
+      if (!prev) return;
+      const view = this.body.querySelector<HTMLElement>('.rmapview');
+      if (!view) return this.mapPtrs.clear();
+      const pts = [...this.mapPtrs.entries()];
+      if (pts.length >= 2) {
+        // pinça: zoom pela razão das distâncias, em volta do meio dos dois dedos
+        const other = pts.find(([id]) => id !== e.pointerId)![1];
+        const d0 = Math.hypot(prev.x - other.x, prev.y - other.y);
+        const d1 = Math.hypot(e.clientX - other.x, e.clientY - other.y);
+        const r = view.getBoundingClientRect();
+        if (d0 > 0) this.zoomMap(d1 / d0, (e.clientX + other.x) / 2 - r.left, (e.clientY + other.y) / 2 - r.top);
+      } else {
+        this.map.x += e.clientX - prev.x;
+        this.map.y += e.clientY - prev.y;
+        this.applyMap();
+      }
+      prev.x = e.clientX;
+      prev.y = e.clientY;
+      // só vira "arrastar" depois de uns pixels (senão um toque num lugar seria engolido)
+      this.mapMovedBy += Math.abs(e.movementX) + Math.abs(e.movementY);
+      if (!this.mapMoved && this.mapMovedBy > 6) {
+        this.mapMoved = true;
+        view.classList.add('drag');
+      }
+    });
+    this.root.addEventListener(
+      'wheel',
+      (e) => {
+        const view = (e.target as HTMLElement).closest<HTMLElement>('.rmapview');
+        if (!view || (e.target as HTMLElement).closest('.rsheet')) return;
+        e.preventDefault();
+        const r = view.getBoundingClientRect();
+        this.zoomMap(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top);
+      },
+      { passive: false },
+    );
+    const release = (e: PointerEvent) => {
+      if (this.mapPtrs.delete(e.pointerId) && !this.mapPtrs.size) {
+        this.mapMovedBy = 0;
+        this.body.querySelector('.rmapview')?.classList.remove('drag');
+      }
       if (!this.pressing) return;
       // solta um instante depois: o click (que vem depois do pointerup) ainda acha o mesmo botão
       setTimeout(() => (this.pressing = false), 60);
@@ -403,6 +462,7 @@ export class Panel {
       else morph(this.body, rich(built.html));
       this.lastHtml = built.html;
       this.frame(this.lastTime); // o canvas do interior pode ter sido recriado: redesenha já
+      if (this.view.kind === 'region') this.applyMap();
     }
     for (const [k, v] of Object.entries(built.t)) {
       const e = this.body.querySelector<HTMLElement>(`[data-t="${k}"]`);
@@ -656,41 +716,108 @@ export class Panel {
     return html + `</div>`;
   }
 
-  /** Janela Mundo → Região: mapa com vilarejos, ilhas e lugares sagrados; à direita, o lugar escolhido e as ações. */
+  /** Transformação do mapa da região (zoom e deslocamento) como estilo inline (o morph mantém o que o arrastar pôs). */
+  private mapStyle() {
+    const m = this.map;
+    return m.ready ? `transform:translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px) scale(${m.z.toFixed(3)});--z:${m.z.toFixed(3)}` : '--z:1';
+  }
+
+  /** Limita o mapa à vista (sem mostrar borda vazia), centra na primeira vez e aplica no DOM. */
+  private applyMap() {
+    const view = this.body.querySelector<HTMLElement>('.rmapview');
+    const layer = view?.querySelector<HTMLElement>('.rlayer');
+    if (!view || !layer) return;
+    const m = this.map;
+    const W = view.clientWidth;
+    const H = view.clientHeight;
+    const lw = layer.offsetWidth * m.z;
+    const lh = layer.offsetHeight * m.z;
+    if (!m.ready) {
+      // começa centrado na sua vila
+      m.x = W / 2 - (HOME_POS.x / 100) * lw;
+      m.y = H / 2 - (HOME_POS.y / 100) * lh;
+      m.ready = true;
+    }
+    m.x = lw <= W ? (W - lw) / 2 : Math.min(0, Math.max(W - lw, m.x));
+    m.y = lh <= H ? (H - lh) / 2 : Math.min(0, Math.max(H - lh, m.y));
+    layer.style.transform = `translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px) scale(${m.z.toFixed(3)})`;
+    layer.style.setProperty('--z', m.z.toFixed(3));
+  }
+
+  /** Leva o lugar escolhido para o meio da parte do mapa que o painel dele não cobre. */
+  private focusNode(id: string) {
+    const def = REGION[id];
+    const view = this.body.querySelector<HTMLElement>('.rmapview');
+    const layer = view?.querySelector<HTMLElement>('.rlayer');
+    if (!def || !view || !layer) return;
+    const sheet = view.querySelector<HTMLElement>('.rsheet');
+    const free = view.clientWidth - (sheet ? sheet.offsetWidth + 16 : 0);
+    const m = this.map;
+    m.x = free / 2 - (def.x / 100) * layer.offsetWidth * m.z;
+    m.y = view.clientHeight / 2 - (def.y / 100) * layer.offsetHeight * m.z;
+    this.applyMap();
+  }
+
+  /** Zoom do mapa em volta de um ponto da vista (px). */
+  private zoomMap(f: number, px: number, py: number) {
+    const m = this.map;
+    const z = Math.max(1, Math.min(MAP_ZOOM_MAX, m.z * f));
+    m.x = px - ((px - m.x) * z) / m.z;
+    m.y = py - ((py - m.y) * z) / m.z;
+    m.z = z;
+    this.applyMap();
+  }
+
+  /**
+   * Janela Mundo → Região: o mapa ocupa a janela (zoom com a roda/pinça/botões, arrastar para mover). Tocar num lugar
+   * abre o painel dele por cima do mapa. As equipes em viagem aparecem no mapa, indo e voltando pela trilha.
+   */
   private regionView(): Built {
     const g = this.app.game;
     const s = g.state;
     let html = this.tabs('region');
-    const busyAt = new Map<string, string[]>();
-    for (const e of activeExpeditions(g))
-      if (e.node) busyAt.set(e.node, [...(busyAt.get(e.node) ?? []), g.team(e.teamId)?.color ?? '#fff']);
-    html += `<div class="regionwrap"><div class="rmap"><img src="${regionMap}" alt="" draggable="false">
-      <span class="rnode home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">{castle}<span>Sua vila</span></span>`;
+    html += `<div class="rview"><div class="rmapview"><div class="rlayer" style="${this.mapStyle()}"><img src="${regionMap}" alt="" draggable="false">`;
+    // trilhas e equipes em viagem: da vila até o lugar (ida), no lugar (serviço) e de volta
+    let routes = '';
+    let tokens = '';
+    for (const e of activeExpeditions(g)) {
+      const def = e.node ? REGION[e.node] : undefined;
+      if (!def) continue;
+      const tm = g.team(e.teamId);
+      const c = tm?.color ?? '#fff';
+      const travel = ACTION_TIME[e.action!].travel;
+      const k = e.status === 'going' ? 1 - Math.max(0, e.timer) / travel : e.status === 'return' ? Math.max(0, e.timer) / travel : 1;
+      const x = HOME_POS.x + (def.x - HOME_POS.x) * k;
+      const y = HOME_POS.y + (def.y - HOME_POS.y) * k;
+      // trilha tracejada da vila até o lugar (uma barra girada: a camada é 3:2, então a altura vale 2/3 da largura)
+      const dx = def.x - HOME_POS.x;
+      const dy = ((def.y - HOME_POS.y) * 2) / 3;
+      routes += `<i class="rroute" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%;width:${Math.hypot(dx, dy).toFixed(2)}%;transform:rotate(${Math.atan2(dy, dx).toFixed(4)}rad);--c:${c}"></i>`;
+      const st = e.status === 'going' ? 'a caminho' : e.status === 'return' ? 'voltando' : e.status === 'scene' ? 'invasão jogável' : 'no serviço';
+      tokens += `<button class="rtoken ${k >= 1 ? 'at' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;--c:${c}" ${tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`)}>${e.status === 'return' ? '{back}' : e.status === 'going' ? '{run}' : ACTION_ICON[e.action!] ?? '{flag}'}</button>`;
+    }
+    html += routes;
+    html += `<span class="rnode home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">{castle}<span>Sua vila</span></span>`;
     for (const def of REGION_NODES) {
       if (def.kind === 'hideout' && (def.id === 'som' ? !s.sound.captive : !s.org.lairKnown)) continue; // covil: só descoberto; Som: só com raptado
       const st = regionOf(s, def.id);
       const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : def.kind === 'hideout' ? '{skull}' : '{scroll}';
       const flags = st.outpost ? ' {flag}' : '';
-      const dots = (busyAt.get(def.id) ?? []).map((c) => `<i class="tdot" style="--c:${c}"></i>`).join('');
-      html += `<button class="rnode k-${def.kind} s-${st.status} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${icon}<span>${def.name}${flags}</span>${dots}</button>`;
+      html += `<button class="rnode k-${def.kind} s-${st.status} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${icon}<span>${def.name}${flags}</span></button>`;
     }
-    html += `</div><div class="rside">`;
+    html += tokens + `</div>`;
+    // legenda e ajuda (o "como funciona" virou a dica do i), e o zoom
+    const how = infoTip(
+      'Como funciona',
+      'Toque num lugar do mapa, escolha a equipe (compare a força dela com as defesas do lugar) e a ação. A equipe viaja e aparece andando aqui; acompanhe também em Expedições. Saquear, anexar à força, explorar ilha, prova sagrada e o covil viram um mapa jogável. Vilarejos: proteja e comercie para ganhar tributo diário e anexar (traz moradores), ou saqueie. Ilhas e lugares sagrados precisam do Porto: postos que rendem recursos, treino no templo e contratos de invocação.',
+    );
+    html += `<div class="rlegend"><span class="k-village">{houses} Vilarejo</span><span class="k-island">{ship} Ilha</span><span class="k-sacred">{scroll} Sagrado</span>
+      <span class="lg s-protected"><i></i>Protegido</span><span class="lg s-vassal"><i></i>Vassalo</span><span class="lg s-hostile"><i></i>Hostil</span>${how}</div>
+      <div class="rzoom"><button data-act="r-zoom" data-arg="in" ${tipAttr('Aproximar', 'Também com a roda do mouse ou pinçando.')}>{plus}</button><button data-act="r-zoom" data-arg="out" ${tipAttr('Afastar', 'Também com a roda do mouse ou pinçando.')}>{minus}</button><button data-act="r-zoom" data-arg="home" ${tipAttr('Sua vila', 'Volta o mapa para a sua vila.')}>{castle}</button></div>`;
     const def = this.regionNode ? REGION[this.regionNode] : undefined;
-    if (!def)
-      html += `<div class="howto"><b>Como funciona</b><ol>
-        <li><b>Toque num lugar</b> do mapa: {houses} vilarejos, {ship} ilhas ou {scroll} lugares sagrados.</li>
-        <li><b>Escolha a equipe</b>: compare a força dela {swords} com as defesas do lugar.</li>
-        <li><b>Escolha a ação</b>. A equipe viaja e some da vila; acompanhe em Expedições. Saquear e anexar à força viram uma <b>invasão jogável</b>: aparece "Ver invasão" no alto da tela.</li></ol>
-        <b>Para que serve</b><ul><li>{houses} Vilarejos: proteja e comercie para ganhar <b>tributo diário</b> e anexar (traz <b>moradores</b>); ou saqueie.</li>
-        <li>{ship} Ilhas (precisa de Porto): explore, monte <b>postos</b> que rendem recursos todo dia, e <b>treine no templo</b> (muito XP).</li>
-        <li>{scroll} Lugares sagrados (precisa de Porto): vença a prova e ganhe um <b>contrato de invocação</b> (sapo, serpente, lesma).</li></ul></div>`;
-    else html += this.regionNodeSection(def);
+    if (def) html += `<aside class="rsheet"><button class="rsheet-x" data-act="r-node" data-arg="" ${tipAttr('Fechar', 'Volta para o mapa inteiro.')}>{x}</button>${this.regionNodeSection(def)}</aside>`;
     html += `</div></div>`;
-    const t: Record<string, string> = {};
-    const b: Record<string, number> = {};
-    const live = g.state.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost');
-    if (live.length) html += `<h4>{flag} Expedições ativas</h4><div class="xstrip">${live.map((e) => this.expCard(e, t, b)).join('')}</div>`;
-    return { html, t, b };
+    return { html, t: {}, b: {} };
   }
 
   /** Detalhe de um lugar da região: situação, escolha da equipe e ações. */
@@ -735,7 +862,8 @@ export class Panel {
       html += `<p class="bnote">{info} ${next}</p></div>`;
     }
     // equipe que vai
-    const teams = s.teams.filter((tm) => teamUnits(g, tm).length);
+    // livres primeiro (as ocupadas em missão/expedição vão para o fim da lista)
+    const teams = s.teams.filter((tm) => teamUnits(g, tm).length).sort((a, z) => Number(!!teamBusy(g, a.id)) - Number(!!teamBusy(g, z.id)));
     if (!teams.length) return html + `<p class="why">Forme uma equipe em {ninja} Ninjas → Equipes.</p>`;
     if (this.regionTeam == null || !teams.some((tm) => tm.id === this.regionTeam)) this.regionTeam = teams[0]!.id;
     html += `<div class="bsec"><h4>{users} Equipe</h4><div class="fchips rteams">`;
@@ -757,38 +885,6 @@ export class Panel {
         <b>${ACTION_ICON[a] ?? ''} ${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
     }
     return html + `</div></div>`;
-  }
-
-  /** Cartão curto de expedição (aba Região): equipe, lugar e ação, o que está fazendo, retratos, barra e o saque. */
-  private expCard(e: Expedition, t: Record<string, string>, b: Record<string, number>) {
-    const g = this.app.game;
-    const tm = g.team(e.teamId);
-    const live = e.status !== 'done' && e.status !== 'lost';
-    const total = e.status === 'going' || e.status === 'return' ? MINE.travel : MINE.floorTime;
-    const mine = e.kind === 'mine';
-    const where = mine ? `Mina · andar ${e.floor}/${MINE.floors}` : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
-    const label: Record<Expedition['status'], [string, string, string]> = {
-      going: ['A caminho', '{run}', 'good'], explore: [mine ? 'Explorando' : 'No serviço', mine ? '{pickaxe}' : '{shield}', 'safe'],
-      choice: ['Andar concluído', '{check}', 'safe'], return: ['Voltando', '{back}', 'info'], done: ['Terminou', '{check}', 'info'],
-      lost: ['Perdida', '{skull}', 'danger'], scene: [mine ? 'Jogando o andar' : 'Invasão jogável', '{swords}', 'danger'],
-    };
-    const [st, ic, cls] = label[e.status];
-    let html = `<div class="xcard ${live ? '' : 'ended'}" style="--c:${tm?.color ?? '#888'}"><div class="xc-top"><span class="dot"></span><div class="xc-t"><b>${esc(tm?.name ?? 'Equipe')}</b><span>${esc(where)}</span></div><span class="mpill ${cls}">${ic} ${st}</span></div>`;
-    const us = live ? expeditionUnits(g, e) : [];
-    html += `<div class="xc-mid"><span class="faces">${us.map((u) => this.face(u)).join('')}</span>`;
-    if (e.status === 'going' || e.status === 'explore' || e.status === 'return') {
-      html += `<div class="xc-prog"><div class="nc-bar xp"><i data-b="ex${e.id}"></i></div><span>{hourglass} <span data-t="ex${e.id}"></span></span></div>`;
-      b[`ex${e.id}`] = 1 - Math.max(0, e.timer) / total;
-      t[`ex${e.id}`] = `${Math.ceil(Math.max(0, e.timer))}s`;
-    } else if (e.status === 'scene') html += `<button class="btn danger mini" data-act="view-scene">{flag} Ver invasão</button>`;
-    html += `</div>`;
-    html += `<div class="xc-loot">{luggage} Saque: ${Object.keys(e.loot).length ? costLabel(e.loot) : '—'}</div>`;
-    if (e.status === 'choice') {
-      const next = e.floor + 1;
-      html += `<div class="btnrow"><button class="btn primary" data-act="exp-deeper" data-arg="${e.id}">{pickaxe} Descer ao andar ${next} <small>{swords}${floorPower(next)}</small></button>
-        <button class="btn" data-act="exp-back" data-arg="${e.id}">{run} Voltar com o saque</button></div>`;
-    }
-    return html + `</div>`;
   }
 
   /**
@@ -2099,8 +2195,9 @@ export class Panel {
   }
 
   /**
-   * Quadro de missões: cabeçalho com reputação e "Auto designar", abas (Ativas / Disponíveis / Recentes) e cada missão
-   * como um contrato com a equipe recomendada. Na janela larga os contratos ativos ficam numa coluna à direita.
+   * Quadro de missões numa tela só (sem abas): cabeçalho com reputação e "Auto designar", as disponíveis (cada uma um
+   * contrato com a equipe recomendada) e embaixo as recentes numa lista compacta. Na janela larga os contratos ativos
+   * ficam numa coluna à direita; na estreita, no alto.
    */
   private missionsSection(t: Record<string, string>, b: Record<string, number>) {
     const g = this.app.game;
@@ -2109,8 +2206,6 @@ export class Panel {
     const offered = ms.filter((m) => m.status === 'offered');
     const ended = ms.filter((m) => m.status === 'done' || m.status === 'failed').slice(-8).reverse();
     const wide = window.matchMedia(WIDE_BOARD).matches;
-    let tab = this.missionTab;
-    if (wide && tab === 'active') tab = 'offered'; // na larga as ativas já estão na coluna
     const max = maxActiveMissions(g);
     const full = active.length >= max;
     const canAuto = !full && offered.some((m) => {
@@ -2121,35 +2216,22 @@ export class Panel {
       <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{todo} ${g.state.stats.missionsDone} cumpridas</span>
       <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh} Em andamento ${active.length}/${max}</span>`;
     const auto = `<button class="btn primary" data-act="m-auto" ${blocked(g, [full && 'Limite de missões simultâneas atingido.', !full && !canAuto && 'Nenhuma equipe livre dá conta das missões do quadro.'])} ${tipAttr('Auto designar', 'Das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que ainda dá conta (poupa as fortes). Só envia com risco Seguro ou Favorável.')}>{users} Auto designar</button>`;
-    const tabs: [MissionTab, string, string, number][] = [
-      ['active', '{swords}', 'Ativas', active.length],
-      ['offered', '{scroll}', 'Disponíveis', offered.length],
-      ['recent', '{hourglass}', 'Recentes', ended.length],
-    ];
-    let html = this.winTop(
-      '{clipboard} Quadro de missões',
-      chips,
-      auto,
-      tabs.filter(([k]) => !(wide && k === 'active')).map(([k, ic, label, n]) => [k, `${ic} ${label}${k === 'recent' ? '' : ` (${n})`}`, tab === k, 'm-tab']),
-    );
+    let html = this.winTop('{clipboard} Quadro de missões', chips, auto, []);
     let main = '';
-    if (tab === 'active') {
-      const list = this.activeContracts(active, t, b);
-      main = list ? `<div class="mactives">${list}</div>` : `<p class="hint">Nenhuma missão em andamento. Envie uma equipe pela aba Disponíveis.</p>`;
-    }
-    else if (tab === 'recent') {
-      main = `<h4>Recentes</h4>`;
-      if (!ended.length) main += `<p class="hint">Nenhuma missão terminada ainda.</p>`;
+    // estreita: as em andamento no alto (na larga elas ficam na coluna da direita)
+    if (!wide && active.length) main += `<h4>{swords} Em andamento <small>${active.length}/${max}</small></h4><div class="mactives">${this.activeContracts(active, t, b)}</div>`;
+    main += `<h4>{scroll} Disponíveis <small>${offered.length}</small></h4>`;
+    if (!offered.length) main += `<p class="hint">Nenhuma missão no quadro hoje. Volte amanhã.</p>`;
+    const anyFree = freeTeams(g).length > 0;
+    for (const m of offered) main += this.contractCard(m, full, anyFree);
+    if (ended.length) {
+      main += `<h4>{hourglass} Recentes</h4><div class="mrecents">`;
       for (const m of ended) {
         const r = MISSION_RANKS[m.rank]!;
         const ok = m.status === 'done';
         main += `<div class="mrecent">${this.seal(r.label, r.color, true)}<span class="mr-t">${esc(m.title)}<small>${esc(m.result ?? '')}</small></span><span class="mpill ${ok ? 'safe' : 'danger'}">${ok ? '{check} Cumprida' : '{fail} Fracassou'}</span></div>`;
       }
-    } else {
-      main = `<h4>Missões disponíveis</h4>`;
-      if (!offered.length) main += `<p class="hint">Nenhuma missão no quadro hoje. Volte amanhã.</p>`;
-      const anyFree = freeTeams(g).length > 0;
-      for (const m of offered) main += this.contractCard(m, full, anyFree);
+      main += `</div>`;
     }
     if (wide) {
       const side = this.activeContracts(active, t, b) || `<p class="hint">Nenhuma em andamento. Escolha uma missão e toque em Enviar.</p>`;
@@ -2714,8 +2796,24 @@ export class Panel {
         return this.report(learnSpec(g, v.id, arg as SpecKind));
       }
       case 'r-node':
-        this.regionNode = arg;
-        return this.report({ ok: true });
+        this.regionNode = arg || null;
+        this.report({ ok: true });
+        // o painel do lugar só aparece depois de soltar o dedo (Panel.pressing): centra o lugar logo depois
+        if (arg)
+          setTimeout(() => {
+            this.update();
+            this.focusNode(arg);
+          }, 90);
+        return;
+      case 'r-zoom': {
+        const view = this.body.querySelector<HTMLElement>('.rmapview');
+        if (!view) return;
+        if (arg === 'home') {
+          this.map = { z: 1.6, x: 0, y: 0, ready: false };
+          this.applyMap();
+        } else this.zoomMap(arg === 'in' ? 1.35 : 1 / 1.35, view.clientWidth / 2, view.clientHeight / 2);
+        return;
+      }
       case 'r-team':
         this.regionTeam = Number(arg);
         return this.report({ ok: true });
@@ -2820,10 +2918,6 @@ export class Panel {
         return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
       case 'm-pick':
         this.missionPick = this.missionPick === Number(arg) ? null : Number(arg);
-        this.update();
-        return;
-      case 'm-tab':
-        this.missionTab = arg as MissionTab;
         this.update();
         return;
       case 'm-auto': {
