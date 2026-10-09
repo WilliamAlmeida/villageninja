@@ -2185,7 +2185,6 @@ export class Panel {
       const chips = RES_KEYS.filter((k) => st.def.cost[k]).map((k) => `<span class="mchip ${s.res[k] < st.def.cost[k]! ? 'bad' : ''}">${RES_INFO[k].icon} ${st.def.cost[k]}</span>`).join('');
       left += `<div class="vup"><button class="btn primary big" data-act="upgrade" ${blocked(g, st.checks.filter((c) => !c.ok).map((c) => `{todo} ${c.label}: ${Math.min(c.have, c.need)} de ${c.need}`), st.def.cost, st.ready ? undefined : 'Faltam requisitos')}>{up} Elevar a ${st.def.name}</button><span class="vup-cost">${chips}</span></div>`;
       if (st.ready && !st.afford) left += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
-      else if (!st.ready) left += `<p class="hint">{info} Falta: ${st.checks.filter((c) => !c.ok).map((c) => esc(c.label.toLowerCase())).join(', ')}.</p>`;
     }
     // nível máximo: a coluna mostra os marcos da vila (antes ficava vazia)
     if (!st) left += this.villageMarks();
