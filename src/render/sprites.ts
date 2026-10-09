@@ -358,10 +358,11 @@ function swordPic(id: string): HTMLCanvasElement | null {
  */
 function drawSlash(ctx: Ctx, u: Unit, pic: HTMLImageElement | HTMLCanvasElement, blade: string, k: number, x: number, base: number, height: number, flip: boolean, frame: number, row: number) {
   const sw = swordPic(blade);
-  const r = artRect(pic, x, base, height);
+  const r = artRect(pic, x, base, height, frame, row);
   const hp = artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
   if (!sw || !hp) return;
-  const hx = r.left + ((flip ? r.fw - hp[0] - 1 : hp[0]) + 0.5) * (r.w / r.fw);
+  // espelhado, o quadro vira em volta da origem: a borda esquerda é o reflexo da direita
+  const hx = (flip ? 2 * x - r.left - r.w : r.left) + ((flip ? r.fw - hp[0] - 1 : hp[0]) + 0.5) * (r.w / r.fw);
   const hy = r.top + (hp[1] + 0.5) * (r.h / r.fh);
   const grip = artPoint(`sword-${blade}`, 'grip') ?? [sw.width / 2, sw.height * 0.86];
   const len = 22 * (SWORD_LEN[blade] ?? 1) * (height / 30);

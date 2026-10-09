@@ -78,7 +78,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   também com a área de transferência do sistema: dá para colar do Photoshop, e o colado nasce flutuando) ou, sem seleção,
   a camada inteira num quadro ou na vista toda; com desfazer. Ferramenta **Ponto** (P): marca pontos nomeados por quadro em
   `src/data/layout.json` (`arts[nome].points`, lidos por `artPoint`): `hand` no corpo-base (a mão que segura a arma,
-  por vista e quadro) e `grip` nas espadas soltas `sword-<id>` (modo Arquivo); "Aplicar à vista/a todos" copia. Ferramenta **Origem** (O): mostra e ajusta a origem (clique/arraste), o alto do corpo (Shift+clique ou o campo Corpo) e a sombra (largura/altura) das folhas de personagem e bicho, com a prévia no tamanho do jogo já com a sombra. Modo "Arquivo" abre qualquer PNG de src/art, inclusive os de interface (`ui/…`): os atlas `ui/icons` e `ui/cards` abrem divididos nas casas, com o nome do ícone da casa (do `pxicons.ts`), e a folha inteira à direita escolhe a casa. `prepare-ui.py` respeita o `art-edits.json`: atlas editado é remontado guardando as casas existentes (só ícone novo sai da fonte), ilustração editada não é refeita; `--refresh=nome,…` refaz só esses, `--force` tudo. Salvar grava em src/art
+  por vista e quadro) e `grip` nas espadas soltas `sword-<id>` (modo Arquivo); "Aplicar à vista/a todos" copia. Ferramenta **Origem** (O): mostra e ajusta a origem (clique/arraste), o alto do corpo (Shift+clique ou o campo Corpo) e a sombra (largura/altura) das folhas de personagem e bicho, com a prévia no tamanho do jogo já com a sombra. A origem vale para a Folha, a Vista ou só o Quadro (bicho que muda de forma conforme a pose, como a cobra): `arts[nome].feet` por quadro, senão `foot` (`frameFit` em art.ts); a animação da prévia alinha cada quadro pela sua origem. Modo "Arquivo" abre qualquer PNG de src/art, inclusive os de interface (`ui/…`): os atlas `ui/icons` e `ui/cards` abrem divididos nas casas, com o nome do ícone da casa (do `pxicons.ts`), e a folha inteira à direita escolhe a casa. `prepare-ui.py` respeita o `art-edits.json`: atlas editado é remontado guardando as casas existentes (só ícone novo sai da fonte), ilustração editada não é refeita; `--refresh=nome,…` refaz só esses, `--force` tudo. Salvar grava em src/art
   (cópia do anterior em docs/arte/backup-editor/); arquivo salvo no editor entra em `src/art/art-edits.json` e o
   `prepare-art.py` / `prepare-layers.py` não o refazem a partir da fonte (só com `--force`).
 - Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
@@ -217,6 +217,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`) e **bloqueios
   avulsos** numa margem de 3 tiles em volta do prédio (`TypeLayout.extra`, células relativas ao canto, podem ser
   negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
+  **Prédio de margem** (`BuildingDef.shore`: o Porto): célula `~` (água) no terreno = píer/barco em cima da água; para
+  construir, tile só com `~` precisa ser água, só com `#` terra (os dois = a beira) e a porta em terra (`World.shoreFits`).
+  Terreno quadrado pode ser espelhado (`Building.flip`, `canFlip`): troca x por y no terreno, nos bloqueios e pontos
+  (`tileOf`/`extraOf`/`layoutPoint` com `flip`) e espelha a arte em volta da ponta da frente (`artBox`). Ao posicionar,
+  o fantasma gruda na beira mais perto já com o lado certo (`shoreSpot`). Chão: terra batida só sob o muro e sombra na água
+  sob o `~` (`shoreGround`). A prévia usa o `artBox` (escala/deslocamento do editor), igual ao prédio pronto.
   **Colisão em meio tile** (`SUB`/`CELL`/`FINE_W` em config.ts): `World.fine` é a colisão de verdade (`walkablePx`,
   `walkableCell`), a busca de caminho anda nas células (`findPathPx`/`findCells`; `u.path` guarda índices de célula,
   `cellCenter`); `World.blocked`/`walkable(tx,ty)` seguem em tiles (bloqueado se qualquer pedaço for) para escolher

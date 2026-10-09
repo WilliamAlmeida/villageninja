@@ -48,6 +48,11 @@ export interface ArtLayout {
    */
   body?: number;
   foot?: [number, number];
+  /**
+   * Origem própria de um quadro (índice = linha × quadros por linha + coluna; null = usa `foot`): bicho que muda de
+   * forma conforme a pose (cobra enrolada × esticada) pisa noutro ponto em cada quadro.
+   */
+  feet?: ([number, number] | null)[];
   shadow?: [number, number];
   /** Máscara das peças (0 = resto, 1… = peça), do tamanho da imagem, comprimida em RLE (`encodeMask`). */
   mask?: string;
@@ -61,7 +66,8 @@ export interface TypeLayout {
   h?: number;
   /**
    * Colisão em MEIO tile (16 px): uma linha por fileira de células (2 por tile, então h×2 linhas de w×2 letras):
-   * "." livre, "#" muro (bloqueia), "g" portão (livre, por onde se entra).
+   * "." livre, "#" muro (bloqueia), "g" portão (livre, por onde se entra), "~" água (prédio de margem, `shore`: o píer
+   * ou o barco em cima da água; bloqueia e o tile precisa ser água para construir).
    */
   tiles?: string[];
   /**
@@ -87,8 +93,17 @@ export let layoutVersion = 0;
 export const layout = () => LAYOUT;
 export const artLayout = (name: string): ArtLayout | undefined => LAYOUT.arts[name];
 export const typeLayout = (type: string): TypeLayout | undefined => LAYOUT.types[type];
-/** Ponto especial do tipo (px de mundo a partir do canto), ou undefined. */
-export const layoutPoint = (type: string, name: string) => LAYOUT.types[type]?.points?.[name];
+/**
+ * Ponto especial do tipo (px de mundo a partir do canto), ou undefined. `flip` = prédio espelhado (só de terreno
+ * quadrado): espelhar na isométrica é trocar x por y, então o ponto troca as coordenadas.
+ */
+export const layoutPoint = (type: string, name: string, flip = false): [number, number] | undefined => {
+  const p = LAYOUT.types[type]?.points?.[name];
+  return p && flip ? [p[1], p[0]] : p;
+};
+/** Bloqueios avulsos do tipo (meio tile, relativos ao canto), trocando x por y no prédio espelhado. */
+export const extraOf = (type: string, flip = false): [number, number][] =>
+  (LAYOUT.types[type]?.extra ?? []).map(([x, y]) => (flip ? [y, x] : [x, y]));
 
 /** Ponto nomeado da arte no quadro `i`; faltando, o primeiro definido na mesma linha (de `perRow` quadros), senão qualquer um. */
 export function artPoint(name: string, key: string, i = 0, perRow = 1): [number, number] | undefined {
@@ -108,10 +123,10 @@ export function setLayout(l: Layout) {
 export const touchLayout = () => layoutVersion++;
 
 /** Célula (x, y) do terreno, em meio tile: "." livre, "#" muro, "g" portão; undefined = sem ajuste (regra padrão do prédio). */
-export function tileOf(type: string, x: number, y: number): string | undefined {
+export function tileOf(type: string, x: number, y: number, flip = false): string | undefined {
   const t = LAYOUT.types[type]?.tiles;
   if (!t) return undefined;
-  return t[y]?.[x] ?? '.';
+  return (flip ? t[x]?.[y] : t[y]?.[x]) ?? '.';
 }
 
 // ------------------------------------------------------------------ máscara (RLE)

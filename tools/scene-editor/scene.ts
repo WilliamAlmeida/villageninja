@@ -388,7 +388,7 @@ function changed() {
 }
 const HELP: Record<Mode, string> = {
   pieces: 'Pincel: pinte arrastando · Lata: um clique troca a área da máscara pela peça ativa · Borracha devolve ao "resto" · "Âncora": clique onde a peça toca o chão · roda do mouse: zoom · Alt+arrastar ou botão do meio: mover a vista',
-  tiles: 'Células de meio tile (16 px): clique troca livre → muro → portão; arrastar pinta as outras com o mesmo valor. Muro bloqueia todo mundo; portão é por onde se entra.',
+  tiles: 'Células de meio tile (16 px): clique troca livre → muro → portão (→ água no Porto); arrastar pinta as outras com o mesmo valor. Muro bloqueia todo mundo; portão é por onde se entra; água = o pedaço que fica em cima da água.',
   art: 'Ajuste a escala e o deslocamento do desenho (também dá para arrastar a arte com o botão esquerdo).',
   points: 'Escolha o ponto à direita e clique no lugar dele na cena.',
   dummies: 'Botão esquerdo: escolher/arrastar boneco · Botão direito: o boneco escolhido anda até lá pelo caminho de verdade.',
@@ -422,8 +422,10 @@ function renderProps() {
     const gi = gridInfo();
     if (!gi) h += `<p class="hint">Sem grade para este item.</p>`;
     else {
-      h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span></div>`;
+      h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span>${building && BUILDINGS[building.type].shore ? '<span><i style="background:rgba(70,150,255,.8)"></i>água</span>' : ''}</div>`;
       h += `<div class="row"><label>Largura</label><input type="number" id="tw" min="1" max="10" value="${gi.w}"><label>Altura</label><input type="number" id="th" min="1" max="10" value="${gi.h}"></div>`;
+      if (building && BUILDINGS[building.type].shore)
+        h += `<p class="hint">Prédio de margem: para construir, tile só com água pede água no mapa, tile só com muro pede terra (os dois = a beira). Com terreno quadrado o jogo espelha sozinho quando a água está do outro lado.</p>`;
       if (building) h += `<p class="hint">Em volta do terreno há uma margem: clique ou arraste nela para marcar <b>bloqueios avulsos</b> (a arte que passa do terreno, como o muro da arena), sem aumentar o prédio.</p><p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
       if (site || item.kind === 'node') h += `<p class="hint">${item.kind === 'node' ? 'Objetos: muro = não dá para atravessar (vale no estágio desta arte; toco e rocha rachada têm o seu). ' : ''}Shift+clique escolhe o tile onde ${item.kind === 'node' ? 'o objeto' : 'o local'} fica (origem).</p>`;
       h += `<div class="row"><button id="tilesreset">Voltar ao padrão</button></div>`;
@@ -871,7 +873,9 @@ over.addEventListener('pointerdown', (e) => {
       // clique troca a célula; arrastando, pinta as outras com o mesmo valor
       const rows = tileRows().map((r) => r.split(''));
       const cur = rows[cy]![cx]!;
-      cellPaint = cur === '.' ? '#' : cur === '#' ? 'g' : '.';
+      // prédio de margem (Porto) tem também a água: livre → muro → portão → água
+      const shore = !!building && !!BUILDINGS[building.type].shore;
+      cellPaint = cur === '.' ? '#' : cur === '#' ? 'g' : cur === 'g' && shore ? '~' : '.';
       rows[cy]![cx] = cellPaint;
       typeL().tiles = rows.map((r) => r.join(''));
       drag = { kind: 'cells', x, y };
@@ -1049,7 +1053,7 @@ function drawOverlay() {
           octx.beginPath();
           p.forEach((q, i) => (i ? octx.lineTo(q.x, q.y) : octx.moveTo(q.x, q.y)));
           octx.closePath();
-          octx.fillStyle = c === '#' ? 'rgba(255,90,90,0.45)' : c === 'g' ? 'rgba(255,211,77,0.55)' : 'rgba(125,220,107,0.25)';
+          octx.fillStyle = c === '#' ? 'rgba(255,90,90,0.45)' : c === 'g' ? 'rgba(255,211,77,0.55)' : c === '~' ? 'rgba(70,150,255,0.55)' : 'rgba(125,220,107,0.25)';
           octx.fill();
           octx.strokeStyle = 'rgba(0,0,0,0.25)';
           octx.lineWidth = 1;

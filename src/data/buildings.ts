@@ -50,6 +50,11 @@ export interface BuildingDef {
   lights?: boolean;
   /** Nível mínimo da vila para construir (padrão 0). */
   minLevel?: number;
+  /**
+   * Prédio de margem (Porto): parte em cima da água. As células "~" do terreno (Editor de cenário) precisam ser água e
+   * as de muro, terra; com terreno quadrado pode ser espelhado (`Building.flip`) para a água ficar do outro lado.
+   */
+  shore?: boolean;
   roof: string;
   wall: string;
 }
@@ -142,8 +147,8 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'port', name: 'Porto', icon: '{ship}', desc: 'Barcos para as ilhas e os lugares sagrados da região (janela Mundo → Região).',
-    w: 3, h: 2, cost: { wood: 150, stone: 60, ryo: 100 }, buildTime: 30, unique: true, buildable: true, lights: true, minLevel: 1,
-    roof: '#3d5a80', wall: '#c8a26a',
+    w: 3, h: 3, cost: { wood: 150, stone: 60, ryo: 100 }, buildTime: 30, unique: true, buildable: true, lights: true, minLevel: 1,
+    roof: '#3d5a80', wall: '#c8a26a', shore: true,
   },
   {
     type: 'intel', name: 'Torre de Inteligência', icon: '{eye}', desc: 'Vê longe: revela a névoa ao redor e descobre espiões invisíveis. Forma ninjas espiões (Chunin+).',

@@ -1,6 +1,6 @@
 import type { App } from '../app';
 import { BUILDING_LIST, BUILDINGS, type BuildingType } from '../data/buildings';
-import { canBuild, canMove, costLabel, moveBuilding, placeBuilding } from '../game/commands';
+import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, shoreSpot } from '../game/commands';
 import { toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
@@ -182,7 +182,7 @@ export class BuildUI {
     const d = BUILDINGS[b.type];
     this.moveId = id;
     this.app.buildType = b.type;
-    this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false };
+    this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false, flip: !!b.flip };
     this.showPlacebar(`{refresh} Mover ${d.name} — toque no novo lugar`, '{check} Mover aqui');
   }
 
@@ -193,9 +193,9 @@ export class BuildUI {
     this.place.querySelector('[data-act="ok"]')!.innerHTML = rich(ok);
   }
 
-  private validAt(tx: number, ty: number) {
+  private validAt(tx: number, ty: number, flip = false) {
     const type = this.app.buildType!;
-    return this.moveId != null ? canMove(this.app.home, this.moveId, tx, ty).ok : this.app.home.world.canPlace(type, tx, ty);
+    return this.moveId != null ? canMove(this.app.home, this.moveId, tx, ty, flip).ok : this.app.home.world.canPlace(type, tx, ty, flip);
   }
 
   /** Chamado pelo toque no mapa durante o modo de construção. */
@@ -209,19 +209,27 @@ export class BuildUI {
   private setGhost(tx: number, ty: number) {
     const type = this.app.buildType!;
     const gh = this.app.ghost;
-    if (gh && gh.type === type && gh.tx === tx && gh.ty === ty) return;
-    this.app.ghost = { type, tx, ty, valid: this.validAt(tx, ty) };
+    if (gh && gh.type === type && ((gh.tx === tx && gh.ty === ty) || (gh.at?.tx === tx && gh.at?.ty === ty))) return;
+    // prédio de margem: gruda na beira da água mais perto, já com o lado (espelhado ou não) que encaixa
+    if (BUILDINGS[type].shore) {
+      const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined);
+      if (spot) {
+        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
+        return;
+      }
+    }
+    this.app.ghost = { type, tx, ty, valid: this.validAt(tx, ty), at: { tx, ty } };
   }
 
   refreshGhost() {
     const gh = this.app.ghost;
-    if (gh) gh.valid = this.validAt(gh.tx, gh.ty);
+    if (gh) gh.valid = this.validAt(gh.tx, gh.ty, gh.flip);
   }
 
   confirm() {
     const gh = this.app.ghost;
     if (!gh) return;
-    const r = this.moveId != null ? moveBuilding(this.app.home, this.moveId, gh.tx, gh.ty) : placeBuilding(this.app.home, gh.type, gh.tx, gh.ty);
+    const r = this.moveId != null ? moveBuilding(this.app.home, this.moveId, gh.tx, gh.ty, gh.flip) : placeBuilding(this.app.home, gh.type, gh.tx, gh.ty, gh.flip);
     if (!r.ok) {
       this.app.home.toast(r.error, 'warn');
       return;

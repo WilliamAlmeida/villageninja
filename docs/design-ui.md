@@ -139,6 +139,9 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Sprite nunca fica deformado depois de um efeito (conferir se o efeito acaba).
 - Folha de personagem/bicho tem folga em volta do desenho (nada encostado na borda do quadro) e origem/sombra ajustáveis
   no editor de sprites: o autor quer poder corrigir à mão o que a geração cortou ou posicionou mal.
+  A origem pode ser por quadro (bicho que muda de forma conforme a pose, como a cobra gigante).
+- Prédio que fica na água (Porto) não se ajusta à mão com deslocamento e bloqueios avulsos: o terreno cobre o desenho,
+  com células de água, e o jogo acha a beira e o lado (espelhando) sozinho. Chão e sombra seguem as células, não o retângulo.
 - Estágios de recurso visíveis: rocha racha, some com fumaça e deixa pedrinhas; veio perde os cristais; toco de cada árvore.
 - Arte nova: **Codex com a arte atual como referência**, no mesmo estilo; conferir a cor (o veio saiu escuro e foi
   refeito claro). Não regenerar por defeito pequeno.

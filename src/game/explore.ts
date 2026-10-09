@@ -1,7 +1,7 @@
 // Exploração: névoa (tiles explorados num bitset), locais especiais escondidos e o que acontece ao investigá-los.
 import { DAY_LENGTH, MAP_H, MAP_W, SUB, TILE } from '../config';
 import { BUILDINGS } from '../data/buildings';
-import { typeLayout } from '../data/layout';
+import { extraOf } from '../data/layout';
 import { chance, mulberry32, pick } from '../core/rng';
 import { JUTSU_LIST } from '../data/jutsus';
 import { MINE_USES, SIGHT, SITE_MIN_DIST, SITE_RESPAWN_DAYS, SITES, type SiteKind } from '../data/sites';
@@ -75,7 +75,7 @@ export function nearBuilding(s: GameState, tx: number, ty: number) {
     let y0 = b.ty;
     let x1 = b.tx + d.w - 1;
     let y1 = b.ty + d.h - 1;
-    for (const [fx, fy] of typeLayout(b.type)?.extra ?? []) {
+    for (const [fx, fy] of extraOf(b.type, b.flip)) {
       x0 = Math.min(x0, b.tx + Math.floor(fx / SUB));
       y0 = Math.min(y0, b.ty + Math.floor(fy / SUB));
       x1 = Math.max(x1, b.tx + Math.floor(fx / SUB));

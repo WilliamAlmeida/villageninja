@@ -94,6 +94,11 @@
         <div class="optbar">
           <span id="originBox" class="group" hidden>
             <span class="lbl">Origem</span>
+            <span class="seg sm" id="oScope" data-tip="Onde o clique grava a origem: a folha toda, os 4 quadros desta vista ou só este quadro (bicho que muda de forma conforme a pose)">
+              <button data-scope="sheet">Folha</button><button data-scope="row">Vista</button><button data-scope="frame">Quadro</button>
+            </span>
+            <button id="oFree" class="ghost" data-tip="Tira a origem própria (no alcance escolhido; em Folha, de todos os quadros): volta à da folha" hidden>Tirar própria</button>
+            <span id="oOwn" class="hint"></span>
             <label data-tip="Quantos px do quadro valem a altura no mundo (Shift+clique no alto da cabeça também marca)">Corpo <input type="number" id="oBody" min="4" max="400" step="1" /></label>
             <label data-tip="Largura da sombra (1 = padrão)">Sombra <input type="number" id="oShW" min="0" max="4" step="0.05" /></label>
             <label data-tip="Altura da sombra (1 = padrão)">× <input type="number" id="oShH" min="0" max="4" step="0.05" /></label>

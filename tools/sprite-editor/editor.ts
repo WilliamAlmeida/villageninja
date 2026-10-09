@@ -117,16 +117,21 @@ function currentPoint(): [number, number] | null {
 // ------------------------------------------------------------------ origem, corpo e sombra (layout.json)
 /** Folha de personagem/bicho (tem origem e sombra no jogo)? */
 const unitSheet = () => mode === 'doll' || (!!fileName && SHEET_RE.test(fileName));
-/** Origem (pés), altura do corpo e sombra da arte aberta, em px do quadro (o padrão quando o layout não diz). */
-function originOf() {
-  const { fw, fh } = grid();
+/**
+ * Origem (pés), altura do corpo e sombra da arte aberta, em px do quadro (o padrão quando o layout não diz). A origem é a
+ * do quadro (`feet`, quando ele tem uma própria) ou a da folha (`foot`); `general` = a da folha, `own` = o quadro tem a sua.
+ */
+function originOf(c = col, r = row) {
+  const { fw, fh, cols } = grid();
   const name = pointArt() ?? '';
   const a = layoutData.arts[name];
   const body = a?.body ?? (name === 'ninja-body' ? fh / DOLL_FRAME_PAD : fh);
-  const foot = a?.foot ?? [fw / 2, fh];
+  const general = a?.foot ?? [fw / 2, fh];
+  const mine = a?.feet?.[r * cols + c] ?? null;
+  const foot = mine ?? general;
   const mult = a?.shadow ?? [1, 1];
   const [rx, ry] = shadowFrac(name);
-  return { name, body, foot, mult, shadow: [body * rx * mult[0], body * ry * mult[1]] as [number, number] };
+  return { name, body, foot, general, own: !!mine, mult, shadow: [body * rx * mult[0], body * ry * mult[1]] as [number, number] };
 }
 function setOrigin(patch: { body?: number; foot?: [number, number]; shadow?: [number, number] } | null) {
   const name = pointArt();
@@ -135,8 +140,36 @@ function setOrigin(patch: { body?: number; foot?: [number, number]; shadow?: [nu
   if (!patch) {
     delete a.body;
     delete a.foot;
+    delete a.feet;
     delete a.shadow;
   } else Object.assign(a, patch);
+  layoutDirty = true;
+  syncOriginBox();
+  updateStatus();
+  redraw();
+}
+/** Onde o clique da ferramenta Origem grava: a folha toda, os quadros desta vista ou só este quadro. */
+type OriginScope = 'sheet' | 'row' | 'frame';
+let originScope: OriginScope = 'sheet';
+try {
+  originScope = (localStorage.getItem('originScope') as OriginScope) || 'sheet';
+} catch {}
+/** Grava a origem conforme o alcance escolhido; `null` tira a origem própria (volta à da folha). */
+function setFoot(p: [number, number] | null, scope: OriginScope = originScope) {
+  const name = pointArt();
+  if (!name) return;
+  const a = (layoutData.arts[name] ??= {});
+  if (scope === 'sheet') {
+    if (p) a.foot = p;
+    else delete a.feet;
+  } else {
+    const { cols, rows } = grid();
+    const feet = (a.feet ??= []);
+    while (feet.length < cols * rows) feet.push(null);
+    const cells = scope === 'row' ? [...Array(cols).keys()].map((c) => row * cols + c) : [frameIndex()];
+    for (const i of cells) feet[i] = p;
+    if (feet.every((f) => !f)) delete a.feet;
+  }
   layoutDirty = true;
   syncOriginBox();
   updateStatus();
@@ -147,6 +180,15 @@ function syncOriginBox() {
   $<HTMLInputElement>('oBody').value = String(Math.round(o.body * 10) / 10);
   $<HTMLInputElement>('oShW').value = String(o.mult[0]);
   $<HTMLInputElement>('oShH').value = String(o.mult[1]);
+  syncOwn();
+}
+/** Alcance escolhido e quantos quadros têm origem própria (muda ao trocar de quadro). */
+function syncOwn() {
+  const o = originOf();
+  for (const b of $('oScope').querySelectorAll<HTMLButtonElement>('button')) b.classList.toggle('on', b.dataset.scope === originScope);
+  const own = (layoutData.arts[o.name]?.feet ?? []).filter(Boolean).length;
+  $('oOwn').textContent = own ? `${own} quadro${own > 1 ? 's' : ''} com origem própria${o.own ? ' (este também)' : ''}` : '';
+  $('oFree').hidden = !own;
 }
 /** Sombra como no jogo (centrada na origem, 1,5 px de mundo acima), em px do quadro → tela pela escala `k`. */
 function drawShadow(ctx: CanvasRenderingContext2D, ox: number, oy: number, k: number) {
@@ -186,7 +228,21 @@ function drawOriginMarks(ctx: CanvasRenderingContext2D, ox: number, oy: number, 
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.fillStyle = '#5ff2ff';
-  ctx.fillText('origem', fx + 10, fy + 14);
+  ctx.fillText(o.own ? 'origem do quadro' : 'origem', fx + 10, fy + 14);
+  if (o.own) {
+    // a da folha, apagada, para comparar
+    const gx = ox + o.general[0] * k;
+    const gy = oy + o.general[1] * k;
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = '#5ff2ff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(gx, gy, 6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillText('folha', gx + 8, gy - 6);
+  }
   ctx.restore();
 }
 
@@ -306,6 +362,7 @@ function drawStage() {
   sctx.fillRect(ox, oy, fw * zoom, fh * zoom);
   // origem e sombra (folhas de personagem/bicho): a sombra embaixo do desenho, as marcas por cima
   const showO = unitSheet() && (tool === 'origin' || $<HTMLInputElement>('showOrigin').checked);
+  if (tool === 'origin') syncOwn();
   if (showO) drawShadow(sctx, ox, oy, zoom);
   if ($<HTMLInputElement>('onion').checked) drawFrame(sctx, (col + cols - 1) % cols, row, ox, oy, zoom, { alpha: 0.25 });
   drawFrame(sctx, col, row, ox, oy, zoom, { focus: $<HTMLInputElement>('focus').checked });
@@ -689,7 +746,7 @@ stage.addEventListener('pointerdown', (e) => {
     if (!unitSheet()) return setStatus('Origem e sombra só nas folhas de personagem e bicho');
     if (e.shiftKey) setOrigin({ body: Math.max(4, originOf().foot[1] - p.y) }); // alto do corpo
     else {
-      setOrigin({ foot: [p.x + 0.5, p.y + 1] }); // os pés pisam no pixel clicado
+      setFoot([p.x + 0.5, p.y + 1]); // os pés pisam no pixel clicado
       drag = { kind: 'origin', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     }
     return;
@@ -747,7 +804,7 @@ stage.addEventListener('pointermove', (e) => {
     return;
   }
   if (drag.kind === 'origin') {
-    setOrigin({ foot: [p.x + 0.5, p.y + 1] });
+    setFoot([p.x + 0.5, p.y + 1]);
     return;
   }
   const l = activeLayer();
@@ -1104,7 +1161,7 @@ const TOOL_HINT: Record<Tool, string> = {
   select: 'Arraste um retângulo · arraste dentro dele para mover (fica flutuando até Enter) · Ctrl+arrastar duplica · setas 1 px · Delete apaga · Ctrl+C/V · Esc tira',
   wand: 'Clique numa cor: seleciona a área parecida (tolerância acima) · Shift soma · Ctrl tira · arraste dentro da seleção para mover · setas 1 px · Delete apaga',
   move: 'Arraste para mover a seleção ou a camada inteira (flutua até Enter) · Ctrl+arrastar duplica · setas 1 px · "Vista toda" leva os 4 quadros',
-  origin: 'Clique ou arraste: origem (os pés) · Shift+clique: alto do corpo · campos acima: sombra · vale para a folha toda',
+  origin: 'Clique ou arraste: origem (os pés), na folha, na vista ou só no quadro (acima) · Shift+clique: alto do corpo · campos acima: sombra',
   point: 'Clique marca o ponto deste quadro · botão direito tira · "Aplicar" copia para a vista ou para todos',
 };
 function setTool(t: Tool) {
@@ -1220,7 +1277,13 @@ function drawPreviews(t: number) {
   animC.height = fh * k * Math.ceil(views.length / per);
   const actx = animC.getContext('2d')!;
   actx.clearRect(0, 0, animC.width, animC.height);
-  views.forEach(([r, flip], i) => drawFrame(actx, frame, r, (i % per) * fw * k, Math.floor(i / per) * fh * k, k, { flip }));
+  views.forEach(([r, flip], i) => {
+    // como o jogo: a unidade fica no mesmo ponto e cada quadro se desenha pela SUA origem
+    const o = unitSheet() ? originOf(frame, r) : null;
+    const dx = o ? (o.general[0] - o.foot[0]) * k * (flip ? -1 : 1) : 0;
+    const dy = o ? (o.general[1] - o.foot[1]) * k : 0;
+    drawFrame(actx, frame, r, (i % per) * fw * k + dx, Math.floor(i / per) * fh * k + dy, k, { flip });
+  });
   // tamanho do jogo (zoom 1 e 2,5): o QUADRO EM EDIÇÃO (vista e coluna escolhidas), parado; o corpo vale a altura no
   // mundo (ninja 30 px; bicho pelo tamanho dele), com a origem na mesma linha e a sombra embaixo, como o jogo desenha
   if (unitSheet()) {
@@ -1447,6 +1510,15 @@ for (const [id, i] of [['oShW', 0], ['oShH', 1]] as const)
     setOrigin({ shadow: m });
   };
 $('oReset').onclick = () => setOrigin(null);
+for (const b of $('oScope').querySelectorAll<HTMLButtonElement>('button'))
+  b.onclick = () => {
+    originScope = b.dataset.scope as OriginScope;
+    try {
+      localStorage.setItem('originScope', originScope);
+    } catch {}
+    syncOriginBox();
+  };
+$('oFree').onclick = () => setFoot(null);
 $('showOrigin').onchange = redraw;
 for (const id of ['fCols', 'fRows'])
   $(id).oninput = () => {

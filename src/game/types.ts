@@ -306,6 +306,8 @@ export interface Building {
   craft?: { itemId: string; progress: number } | null;
   /** Nível do prédio (1–3, ver data/upgrades.ts). */
   level?: number;
+  /** Prédio de margem espelhado (troca x por y no terreno e espelha a arte): a água fica do outro lado. */
+  flip?: boolean;
   /** Upgrade em obra: segundos trabalhados (null = nenhum). O prédio continua funcionando. */
   upgrade?: number | null;
   /** Torres: segundos desde o último arremesso contados para trás (o guarda aparece enquanto > 0; só visual). */

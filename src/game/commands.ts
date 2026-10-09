@@ -12,7 +12,7 @@ import { addStat, nextRank } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
-import { doorPos } from './world';
+import { canFlip, doorPos } from './world';
 import { academyRecruitLevel, workersOf } from './upgrade';
 import { needsScroll, studyable } from './library';
 
@@ -35,14 +35,16 @@ export function canBuild(g: Game, type: BuildingType): Result {
 /** Fora do território → mensagem específica (as outras regras dão "Local inválido"). */
 export function placeError(g: Game, type: BuildingType, tx: number, ty: number) {
   const d = BUILDINGS[type];
-  return inTerritory(g.state, tx, ty, d.w, d.h + 1) ? 'Local inválido.' : 'Fora do território da vila. Evolua a vila para expandir.';
+  if (!inTerritory(g.state, tx, ty, d.w, d.h + 1)) return 'Fora do território da vila. Evolua a vila para expandir.';
+  return d.shore ? 'Precisa ficar na beira da água: o píer em cima da água e a casa em terra.' : 'Local inválido.';
 }
 
-export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: number): Result {
+/** `flip`: prédio de margem espelhado (a água do outro lado, ver `canFlip`). */
+export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: number, flip = false): Result {
   const def = BUILDINGS[type];
   const c = canBuild(g, type);
   if (!c.ok) return c;
-  if (!g.world.canPlace(type, tx, ty)) return fail(placeError(g, type, tx, ty));
+  if (!g.world.canPlace(type, tx, ty, flip)) return fail(placeError(g, type, tx, ty));
   g.pay(def.cost);
   // árvores no terreno viram madeira
   let wood = 0;
@@ -55,6 +57,7 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
   }
   g.state.res.wood += wood;
   const b: Building = { id: g.newId(), type, tx, ty, built: false, progress: 0, desired: def.workers ?? 0, workers: [], cd: 0 };
+  if (flip) b.flip = true;
   g.addBuilding(b);
   const p = doorPos(b);
   fx(g, 'smoke', p.x, p.y - 16, { r: 20, life: 0.6, color: '#d8c8a8' });
@@ -62,19 +65,49 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
 }
 
 /**
+ * Prédio de margem: o lugar válido mais perto de (tx, ty), num raio de `r` tiles, com o lado da água (espelhado ou não)
+ * que encaixa. `ignoreId` = prédio sendo movido (testa como se ele já tivesse saído). Null se não houver.
+ */
+export function shoreSpot(g: Game, type: BuildingType, tx: number, ty: number, ignoreId?: number, r = 4): { tx: number; ty: number; flip: boolean } | null {
+  const s = g.state;
+  const i = ignoreId == null ? -1 : s.buildings.findIndex((b) => b.id === ignoreId);
+  const out = i >= 0 ? s.buildings.splice(i, 1)[0]! : null;
+  if (out) g.world.rebuild();
+  let best: { tx: number; ty: number; flip: boolean } | null = null;
+  let bestD = Infinity;
+  const flips = canFlip(type) ? [false, true] : [false];
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++) {
+      const d = dx * dx + dy * dy;
+      if (d > r * r || d >= bestD) continue;
+      for (const flip of flips)
+        if (g.world.canPlace(type, tx + dx, ty + dy, flip)) {
+          best = { tx: tx + dx, ty: ty + dy, flip };
+          bestD = d;
+          break;
+        }
+    }
+  if (out) {
+    s.buildings.splice(i, 0, out);
+    g.world.rebuild();
+  }
+  return best;
+}
+
+/**
  * Pode mover o prédio para (tx, ty)? Testa o lugar como se o prédio já tivesse saído de onde está.
  * A Residência do Hokage é o centro do território: só se move se todos os outros prédios continuarem dentro.
  */
-export function canMove(g: Game, id: number, tx: number, ty: number): Result {
+export function canMove(g: Game, id: number, tx: number, ty: number, flip = false): Result {
   const b = g.building(id);
   if (!b) return fail('Prédio não encontrado.');
-  if (b.tx === tx && b.ty === ty) return fail('O prédio já está aí.');
+  if (b.tx === tx && b.ty === ty && !!b.flip === flip) return fail('O prédio já está aí.');
   const s = g.state;
   const at = { tx: b.tx, ty: b.ty };
   const i = s.buildings.indexOf(b);
   s.buildings.splice(i, 1);
   g.world.rebuild();
-  let r: Result = g.world.canPlace(b.type, tx, ty) ? ok : fail(placeError(g, b.type, tx, ty));
+  let r: Result = g.world.canPlace(b.type, tx, ty, flip) ? ok : fail(placeError(g, b.type, tx, ty));
   if (r.ok && b.type === 'hokage') {
     Object.assign(b, { tx, ty });
     s.buildings.splice(i, 0, b);
@@ -89,8 +122,8 @@ export function canMove(g: Game, id: number, tx: number, ty: number): Result {
 }
 
 /** Muda um prédio (pronto ou em obra) de lugar, de graça. Quem estava dentro sai junto pela porta nova. */
-export function moveBuilding(g: Game, id: number, tx: number, ty: number): Result {
-  const r = canMove(g, id, tx, ty);
+export function moveBuilding(g: Game, id: number, tx: number, ty: number, flip = false): Result {
+  const r = canMove(g, id, tx, ty, flip);
   if (!r.ok) return r;
   const b = g.building(id)!;
   const def = BUILDINGS[b.type];
@@ -107,6 +140,8 @@ export function moveBuilding(g: Game, id: number, tx: number, ty: number): Resul
   }
   b.tx = tx;
   b.ty = ty;
+  if (flip) b.flip = true;
+  else delete b.flip;
   g.world.rebuild();
   const door = doorPos(b);
   for (const u of inside) {

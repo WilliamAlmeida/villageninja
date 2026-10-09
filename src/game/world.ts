@@ -2,7 +2,7 @@ import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB, TILE, VILLAGE_MARGIN } from '.
 import { lerp } from '../core/math';
 import { mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
-import { layoutPoint, tileOf, typeLayout } from '../data/layout';
+import { extraOf, layoutPoint, tileOf, typeLayout } from '../data/layout';
 import type { Building, GameState, ResourceNode, Site } from './types';
 import { inTerritory } from './village';
 
@@ -24,14 +24,14 @@ export const toCell = (v: number) => Math.floor(v / CELL);
 export const cellCenter = (i: number) => ({ x: (i % FINE_W) * CELL + CELL / 2, y: Math.floor(i / FINE_W) * CELL + CELL / 2 });
 
 export function doorTile(b: Building) {
-  const p = layoutPoint(b.type, 'door'); // ajustado no Editor de cenário
+  const p = layoutPoint(b.type, 'door', b.flip); // ajustado no Editor de cenário
   if (p) return { tx: b.tx + Math.floor(p[0] / TILE), ty: b.ty + Math.floor(p[1] / TILE) };
   const d = BUILDINGS[b.type];
   return { tx: b.tx + Math.floor(d.w / 2), ty: b.ty + d.h };
 }
 /** Ponto (px) logo em frente à porta. */
 export function doorPos(b: Building) {
-  const p = layoutPoint(b.type, 'door');
+  const p = layoutPoint(b.type, 'door', b.flip);
   if (p) return { x: b.tx * TILE + p[0], y: b.ty * TILE + p[1] };
   const t = doorTile(b);
   return { x: tileCenter(t.tx), y: t.ty * TILE + 10 };
@@ -118,9 +118,12 @@ export class World {
         }
       if (custom)
         for (let fy = 0; fy < d.h * SUB; fy++)
-          for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(b.type, fx, fy) === '#') this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
+          for (let fx = 0; fx < d.w * SUB; fx++) {
+            const c = tileOf(b.type, fx, fy, b.flip);
+            if (c === '#' || c === '~') this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
+          }
       // bloqueios avulsos em volta (arte maior que o terreno)
-      if (b.built) for (const [fx, fy] of typeLayout(b.type)?.extra ?? []) this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
+      if (b.built) for (const [fx, fy] of extraOf(b.type, b.flip)) this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
       const m = VILLAGE_MARGIN * TILE;
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
     }
@@ -231,19 +234,56 @@ export class World {
     return false;
   }
 
-  canPlace(type: BuildingType, tx: number, ty: number): boolean {
+  canPlace(type: BuildingType, tx: number, ty: number, flip = false): boolean {
     const d = BUILDINGS[type];
     if (tx < 1 || ty < 1 || tx + d.w > MAP_W - 1 || ty + d.h > MAP_H - 2) return false;
+    if (flip && !canFlip(type)) return false;
     // 1 tile de folga entre prédios garante que sempre exista caminho.
     for (let y = ty - 1; y <= ty + d.h; y++)
       for (let x = tx - 1; x <= tx + d.w; x++) if (inBounds(x, y) && this.occupied[idx(x, y)] !== 0) return false;
-    for (let y = ty; y <= ty + d.h; y++)
-      for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER || this.state.tiles[idx(x, y)] === T.ROCK) return false;
+    if (d.shore && tileOf(type, 0, 0) !== undefined) {
+      if (!this.shoreFits(type, tx, ty, flip)) return false;
+    } else
+      for (let y = ty; y <= ty + d.h; y++)
+        for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER || this.state.tiles[idx(x, y)] === T.ROCK) return false;
     for (const n of this.state.nodes)
       // rocha/veio esgotado (rachado, crescendo de volta) não bloqueia: some quando constroem em cima
       if ((n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
     return inTerritory(this.state, tx, ty, d.w, d.h + 1);
   }
+
+  /**
+   * Prédio de margem: cada tile do terreno pelo que as 4 células dele pedem: só água ("~") = tile de água; só muro
+   * ("#") = terra; os dois = a beira (qualquer um); só livre = qualquer chão. A porta tem que dar em terra firme.
+   */
+  shoreFits(type: BuildingType, tx: number, ty: number, flip = false): boolean {
+    const d = BUILDINGS[type];
+    const tiles = this.state.tiles;
+    for (let y = 0; y < d.h; y++)
+      for (let x = 0; x < d.w; x++) {
+        let wet = false;
+        let dry = false;
+        for (let c = 0; c < SUB * SUB; c++) {
+          const k = tileOf(type, x * SUB + (c % SUB), y * SUB + Math.floor(c / SUB), flip);
+          if (k === '~') wet = true;
+          else if (k === '#') dry = true;
+        }
+        const t = tiles[idx(tx + x, ty + y)];
+        if (t === T.ROCK) return false;
+        if (wet && !dry && t !== T.WATER) return false;
+        if (dry && !wet && t === T.WATER) return false;
+      }
+    const door = doorTile({ type, tx, ty, flip } as Building);
+    if (!inBounds(door.tx, door.ty)) return false;
+    const dt = tiles[idx(door.tx, door.ty)];
+    return dt !== T.WATER && dt !== T.ROCK;
+  }
+}
+
+/** Só prédio de margem com terreno quadrado pode ser espelhado (trocar x por y não muda o tamanho). */
+export function canFlip(type: BuildingType): boolean {
+  const d = BUILDINGS[type];
+  return !!d.shore && d.w === d.h;
 }
 
 function makeNoise(rng: () => number, cell: number) {

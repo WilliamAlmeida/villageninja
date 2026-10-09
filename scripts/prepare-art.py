@@ -267,6 +267,7 @@ for name, (frame_h, kind) in SHEETS.items():
         a = layout_data.setdefault('arts', {}).setdefault(name, {})
         a['body'] = frame_h
         a['foot'] = foot
+        a.pop('feet', None)  # quadro refeito: origens por quadro antigas não valem mais
         layout_changed = True
 
 for name, size in SINGLE.items():

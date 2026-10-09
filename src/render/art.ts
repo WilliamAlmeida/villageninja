@@ -264,9 +264,9 @@ export function smoothIfShrunk(ctx: CanvasRenderingContext2D, drawnW: number, sr
 
 /**
  * Geometria do quadro: px de tela por px do quadro (`k`, a altura pedida vale o CORPO: `body` do layout.json, ou o
- * quadro inteiro) e o ponto de origem no quadro (`foot`: os pés; sem, o meio da base).
+ * quadro inteiro) e o ponto de origem no quadro (`feet` do quadro, senão `foot`: os pés; sem, o meio da base).
  */
-function frameFit(img: Pic, height: number) {
+function frameFit(img: Pic, height: number, frame = 0, row = 0) {
   const sheet = artFrames(img);
   const { w: iw, h: ih } = size(img);
   const fw = iw / sheet.frames;
@@ -274,7 +274,7 @@ function frameFit(img: Pic, height: number) {
   const name = img.dataset.name ?? '';
   const lay = artLayout(name);
   const body = lay?.body ?? fh / (FRAME_PAD[name] ?? 1);
-  const [fx, fy] = lay?.foot ?? [fw / 2, fh];
+  const [fx, fy] = lay?.feet?.[row * sheet.frames + frame] ?? lay?.foot ?? [fw / 2, fh];
   return { sheet, fw, fh, k: height / body, fx, fy };
 }
 
@@ -283,7 +283,7 @@ function frameFit(img: Pic, height: number) {
  * pedida. `flip` espelha na horizontal (em volta da origem). Ampliando, sem suavização; reduzindo, com (`smoothIfShrunk`).
  */
 export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, baseY: number, height: number, flip = false, frame = 0, row = 0) {
-  const { fw, fh, k, fx, fy } = frameFit(img, height);
+  const { fw, fh, k, fx, fy } = frameFit(img, height, frame, row);
   ctx.save();
   smoothIfShrunk(ctx, fw * k, fw);
   ctx.translate(x, 0);
@@ -293,8 +293,8 @@ export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, base
 }
 
 /** Retângulo em que `drawArt` desenha um quadro (as mesmas contas, sem espelhar), para prender coisas a pontos da arte. */
-export function artRect(img: Pic, x: number, baseY: number, height: number) {
-  const { sheet, fw, fh, k, fx, fy } = frameFit(img, height);
+export function artRect(img: Pic, x: number, baseY: number, height: number, frame = 0, row = 0) {
+  const { sheet, fw, fh, k, fx, fy } = frameFit(img, height, frame, row);
   return { left: x - fx * k, top: baseY - fy * k, w: fw * k, h: fh * k, fw, fh, frames: sheet.frames };
 }
 

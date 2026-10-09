@@ -1,4 +1,4 @@
-import { MAX_DPR, TILE, WORLD_H, WORLD_W } from '../config';
+import { CELL, MAX_DPR, SUB, TILE, WORLD_H, WORLD_W } from '../config';
 import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
@@ -16,7 +16,7 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { plainTokens } from '../core/tokens';
-import { artLayout } from '../data/layout';
+import { artLayout, tileOf } from '../data/layout';
 import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
@@ -25,7 +25,7 @@ import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
-import { buildingCenter, doorPos, nodeArt } from '../game/world';
+import { buildingCenter, doorPos, doorTile, nodeArt } from '../game/world';
 import { art, artFoot, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
@@ -38,6 +38,10 @@ export interface Ghost {
   tx: number;
   ty: number;
   valid: boolean;
+  /** Prédio de margem espelhado (a água do outro lado). */
+  flip?: boolean;
+  /** Onde o jogador tocou (o prédio de margem gruda na beira mais perto e pode ficar noutro tile). */
+  at?: { tx: number; ty: number };
 }
 
 /** Estado de interface que o render mostra por cima do mundo. */
@@ -188,11 +192,15 @@ export class Renderer {
     this.seasonal.drawCloudShadows(ctx, s);
     ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, WORLD_W + FOG_PAD * 2 * TILE, WORLD_H + FOG_PAD * 2 * TILE);
 
-    // chão batido sob prédios
+    // chão batido sob prédios (o de margem: só sob as células de terra, e sombra na água sob o píer e o barco)
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
     for (const b of s.buildings) {
       const d = BUILDINGS[b.type];
       if (d.walkable) continue;
+      if (d.shore && tileOf(b.type, 0, 0) !== undefined) {
+        this.shoreGround(b);
+        continue;
+      }
       ctx.beginPath();
       ctx.roundRect(b.tx * TILE - 4, b.ty * TILE - 4, d.w * TILE + 8, d.h * TILE + 10, 8);
       ctx.fill();
@@ -268,7 +276,7 @@ export class Renderer {
         if (!seen(project(c.x, c.y))) continue;
         const L = artLayout(box!.artName)!;
         L.pieces!.forEach((p, i) => {
-          if (set.canvases[i + 1]) list.push({ x: box!.left + p.ax * box!.w, y: box!.top + p.ay * box!.h, b, piece: i + 1 });
+          if (set.canvases[i + 1]) list.push({ x: box!.left + (box!.flip ? 1 - p.ax : p.ax) * box!.w, y: box!.top + p.ay * box!.h, b, piece: i + 1 });
         });
         if (!(L.ground ?? !!def.walkable) && set.canvases[0]) {
           const pc = project(c.x, c.y);
@@ -518,16 +526,19 @@ export class Renderer {
     const pieceHit = (
       d: Drawable,
       i: number,
-      box: { left: number; top: number; w: number; h: number },
+      box: { left: number; top: number; w: number; h: number; flip?: boolean },
       set: PieceSet,
       fade: [number, number, number, number] | undefined,
     ) => {
       const p = d.piece!;
+      // fração da imagem na horizontal (espelhada no prédio de margem virado)
+      const u = (x: number) => (box.flip ? 1 - (x - box.left) / box.w : (x - box.left) / box.w);
       if (fade) {
-        const r = { x0: box.left + fade[0] * box.w, x1: box.left + fade[2] * box.w, y0: box.top + fade[1] * box.h, y1: box.top + fade[3] * box.h };
+        const [fa, fb] = box.flip ? [1 - fade[2], 1 - fade[0]] : [fade[0], fade[2]];
+        const r = { x0: box.left + fa * box.w, x1: box.left + fb * box.w, y0: box.top + fade[1] * box.h, y1: box.top + fade[3] * box.h };
         return bodies.some((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1);
       }
-      const at = (x: number, y: number) => pieceCovers(set, p, (x - box.left) / box.w, (y - box.top) / box.h);
+      const at = (x: number, y: number) => pieceCovers(set, p, u(x), (y - box.top) / box.h);
       return bodies.some((u) => u.i < i && (at(u.x, u.y) || at(u.x - 4, u.y - 6) || at(u.x + 4, u.y - 6) || at(u.x, u.y + 8)));
     };
     list.forEach((d, i) => {
@@ -575,9 +586,31 @@ export class Renderer {
     const L = artLayout(artName);
     const h = ((width * (ART_SCALE[artName] ?? 1) * (L?.scale ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
     const w = (h / pic.naturalHeight) * pic.naturalWidth;
-    const x = front.x + (L?.dx ?? 0);
+    // espelhado (prédio de margem): a arte vira em volta da ponta da frente, então o deslocamento lateral também
+    const flip = !!b.flip;
+    const x = front.x + (flip ? -1 : 1) * (L?.dx ?? 0);
     const baseY = front.y + 4 + (L?.dy ?? 0);
-    return { artName, pic, lvl, front, width, h, w, x, baseY, left: x - w / 2, top: baseY - h };
+    return { artName, pic, lvl, front, width, h, w, x, baseY, left: x - w / 2, top: baseY - h, flip };
+  }
+
+  /** (chão) Prédio de margem: terra batida sob as células de muro e a sombra do píer na água sob as de água. */
+  private shoreGround(b: Building) {
+    const ctx = this.ctx;
+    const d = BUILDINGS[b.type];
+    const cells = (want: string) => {
+      ctx.beginPath();
+      for (let fy = 0; fy < d.h * SUB; fy++)
+        for (let fx = 0; fx < d.w * SUB; fx++)
+          if (tileOf(b.type, fx, fy, b.flip) === want) ctx.roundRect(b.tx * TILE + fx * CELL - 2, b.ty * TILE + fy * CELL - 2, CELL + 4, CELL + 4, 4);
+    };
+    ctx.save();
+    cells('#');
+    ctx.fillStyle = 'rgba(120,90,55,0.35)';
+    ctx.fill();
+    cells('~');
+    ctx.fillStyle = 'rgba(8,24,44,0.3)';
+    ctx.fill();
+    ctx.restore();
   }
 
   /** Uma peça pintada do prédio (0 = o resto). */
@@ -591,7 +624,11 @@ export class Renderer {
     ctx.save();
     if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * Math.min(1, b.progress / Math.max(1, d.buildTime));
     smoothIfShrunk(ctx, box.w, box.pic.naturalWidth);
-    ctx.drawImage(cv, box.left, box.top, box.w, box.h);
+    if (box.flip) {
+      ctx.translate(box.left + box.w, box.top);
+      ctx.scale(-1, 1);
+      ctx.drawImage(cv, 0, 0, box.w, box.h);
+    } else ctx.drawImage(cv, box.left, box.top, box.w, box.h);
     ctx.restore();
     if (i === 0 || i === set!.canvases.length - 1) this.buildBars(b, box.front);
   }
@@ -690,11 +727,11 @@ export class Renderer {
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
     const box = this.artBox(b, level)!;
     const h = box.h;
-    drawArt(ctx, pic, box.x, box.baseY, h);
+    drawArt(ctx, pic, box.x, box.baseY, h, box.flip);
     if (SEASON_VIEW.snow > 0.03 && (!d.walkable || b.type === 'farm' || b.type === 'herbgarden')) {
       ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
       // canteiros: neve pintada no próprio desenho (terra branca, plantas e cerca aparecendo); prédios: no telhado
-      drawArt(ctx, d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), box.x, box.baseY, h);
+      drawArt(ctx, d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), box.x, box.baseY, h, box.flip);
     }
     ctx.restore();
     // inverno: fumaça saindo das chaminés das casas
@@ -1341,22 +1378,29 @@ export class Renderer {
     }
     ctx.fillStyle = gh.valid ? 'rgba(80,220,100,0.35)' : 'rgba(240,60,60,0.4)';
     ctx.fillRect(x, y, d.w * TILE, d.h * TILE);
+    // prédio de margem: as células que vão na água em azul
+    if (d.shore && tileOf(gh.type, 0, 0) !== undefined) {
+      ctx.fillStyle = 'rgba(70,150,255,0.45)';
+      for (let fy = 0; fy < d.h * SUB; fy++)
+        for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(gh.type, fx, fy, gh.flip) === '~') ctx.fillRect(x + fx * CELL, y + fy * CELL, CELL, CELL);
+    }
     ctx.strokeStyle = gh.valid ? '#5ee05e' : '#ff5a5a';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, d.w * TILE, d.h * TILE);
     // porta
+    const door = doorTile({ type: gh.type, tx: gh.tx, ty: gh.ty, flip: gh.flip } as Building);
     ctx.fillStyle = gh.valid ? 'rgba(255,255,255,0.6)' : 'rgba(255,90,90,0.6)';
-    ctx.fillRect((gh.tx + Math.floor(d.w / 2)) * TILE + 8, (gh.ty + d.h) * TILE + 2, TILE - 16, 6);
+    ctx.fillRect(door.tx * TILE + 8, door.ty * TILE + 2, TILE - 16, 6);
   }
 
   /** Prévia translúcida do prédio em pé sobre a base. */
   private ghostSprite(gh: Ghost) {
-    const pic = art(gh.type);
-    if (!pic) return;
-    const { front, width } = this.footprint(gh.type, gh.tx, gh.ty);
+    // como o prédio pronto vai ficar: escala e deslocamento do Editor de cenário e o lado espelhado
+    const box = this.artBox({ type: gh.type, tx: gh.tx, ty: gh.ty, flip: gh.flip } as Building, this.level);
+    if (!box) return;
     const ctx = this.ctx;
     ctx.globalAlpha = 0.6;
-    drawArt(ctx, pic, front.x, front.y + 4, ((width * (ART_SCALE[gh.type] ?? 1)) / pic.naturalWidth) * pic.naturalHeight);
+    drawArt(ctx, box.pic, box.x, box.baseY, box.h, box.flip);
     ctx.globalAlpha = 1;
   }
 }
