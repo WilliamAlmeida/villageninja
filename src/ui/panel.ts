@@ -2248,7 +2248,7 @@ export class Panel {
       for (const m of ended) {
         const r = MISSION_RANKS[m.rank]!;
         const ok = m.status === 'done';
-        main += `<div class="mrecent">${this.seal(r.label, r.color, true)}<span class="mr-t">${esc(m.title)}<small>${esc(m.result ?? '')}</small></span><span class="mpill ${ok ? 'safe' : 'danger'}">${ok ? '{check} Cumprida' : '{fail} Fracassou'}</span></div>`;
+        main += `<div class="mrecent">${this.seal(r.label, r.color, true)}<span class="mr-t">${esc(m.title)}${ok || !m.result ? '' : `<small>${esc(m.result)}</small>`}</span><span class="mpill ${ok ? 'safe' : 'danger'}">${ok ? '{check} Cumprida' : '{fail} Fracassou'}</span></div>`;
       }
       main += `</div>`;
     }
@@ -2286,14 +2286,13 @@ export class Panel {
     else {
       const p = teamPower(g, rec);
       html += `<span class="mc-rec">{users} Recomendada: <span class="dot" style="--c:${rec.color}"></span><b>${esc(rec.name)}</b> · {swords} ${p}</span>${this.riskPill(missionRisk(p, need))}
-        <span class="mc-acts"><button class="btn primary" data-act="m-accept" data-arg="${m.id}" data-team="${rec.id}">Enviar</button><button class="btn ghost ${this.missionPick === m.id ? 'on' : ''}" data-act="m-pick" data-arg="${m.id}">Trocar equipe</button></span>`;
+        <span class="mc-acts"><button class="btn primary" data-act="m-accept" data-arg="${m.id}" data-team="${rec.id}">Enviar</button><button class="btn ghost ${this.missionPick === m.id ? 'on' : ''}" data-act="m-pick" data-arg="${m.id}">${this.missionPick === m.id ? 'Cancelar troca' : 'Trocar equipe'}</button></span>`;
     }
     html += `</div>`;
     if (this.missionPick === m.id && !full && rec) {
       html += `<div class="mc-teams">`;
       for (const x of teamsForMission(g, m)) {
-        const faces = teamUnits(g, x.team).slice(0, 4).map((u) => this.face(u)).join('');
-        html += `<button class="mteam" data-act="m-accept" data-arg="${m.id}" data-team="${x.team.id}"><span class="dot" style="--c:${x.team.color}"></span><b>${esc(x.team.name)}</b><span class="faces">${faces}</span><span class="pw">{swords} ${x.power}</span>${this.riskPill(x.risk)}</button>`;
+        html += `<button class="mteam" data-act="m-accept" data-arg="${m.id}" data-team="${x.team.id}"><span class="dot" style="--c:${x.team.color}"></span><b>${esc(x.team.name)}</b><span class="pw">{swords} ${x.power}</span>${this.riskPill(x.risk)}</button>`;
       }
       html += `</div>`;
     }
