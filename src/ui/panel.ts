@@ -79,7 +79,7 @@ import { drawInterior } from '../render/interior';
 import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
-import { atlasCell, rich } from './icons';
+import { atlasCell, pxIco, rich } from './icons';
 import { GLYPHS } from './glyphs';
 import { morph } from './morph';
 import { blocked, blockedClick, tipAttr } from './popup';
@@ -120,9 +120,9 @@ interface Built {
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
   village: [['village', '{home} Vila'], ['kage', '{kage} Kage'], ['bingo', '{skull} Bingo Book'], ['stats', '{chart} Estatísticas']],
-  world: [['region', '{map} Região'], ['expeditions', '{pickaxe} Expedições']],
+  world: [['region', `${pxIco('map')} Região`], ['expeditions', '{pickaxe} Expedições']],
 };
-const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: '{map} Mundo' };
+const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: `${pxIco('map')} Mundo` };
 const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', bingo: 'village', stats: 'village', expeditions: 'world', region: 'world' };
 
 type BuildingTab = 'main' | 'inside';
