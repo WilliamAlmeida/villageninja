@@ -8,6 +8,7 @@ import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import type { MistBlade } from '../data/blades';
 import { ANIMALS } from '../data/animals';
 import { artLayout, artPoint } from '../data/layout';
+import { ART_SIZE } from './unitShape';
 import { STRIKE_ANIM } from '../game/combat';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
@@ -161,7 +162,6 @@ export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
 
 // ---------------------------------------------------------------- unidades
 /** Altura da arte do bicho em relação ao `size` (a cobra é baixa e comprida: precisa de mais para parecer gigante). */
-const ART_SIZE: Record<string, number> = { snake: 3.8, crow: 3.4, monkey: 3, spider: 2.4, tiger: 2.6, rhino: 2.6, hydra: 3.6, golem: 3.2 };
 /** Golem de Barro: cada divisão desenha menor. */
 const TIER_SCALE = [1, 0.72, 0.52];
 const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'hammer' };
@@ -446,7 +446,8 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // trabalhando: ciclo do golpe; andando: ciclo de caminhada; parado: quadro de descanso
   const frame = action ? workFrame(u, t, sheet.frames) : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ellipse(ctx, u.x, base - 1.5, u.animal ? size * 1.2 : 8, u.animal ? size * 0.4 : 3.5);
+  const shadow = artLayout(pic.dataset.name ?? '')?.shadow ?? [1, 1]; // ajuste da sombra no editor de sprites
+  ellipse(ctx, u.x, base - 1.5, (u.animal ? size * 1.2 : 8) * shadow[0], (u.animal ? size * 0.4 : 3.5) * shadow[1]);
   ctx.save();
   if (u.kind === 'clone') ctx.globalAlpha = 0.75;
   // tigre das sombras: quase some no escuro até entrar em combate

@@ -64,8 +64,15 @@
             <button data-tool="picker" title="Conta-gotas (I)">Conta-gotas</button>
             <button data-tool="select" title="Seleção (S): arraste um retângulo; arrastar dentro dele ou as setas movem só o selecionado. Delete apaga, Ctrl+C/Ctrl+V copia e cola, Esc tira, Ctrl+A seleciona o quadro">Seleção</button>
             <button data-tool="move" title="Mover (M): move a seleção ou, sem seleção, a camada inteira no quadro; setas movem 1 px">Mover</button>
+            <button data-tool="origin" title="Origem (O): onde a unidade fica no jogo (os pés) e a sombra. Clique/arraste marca a origem; Shift+clique marca o alto do corpo (a altura que vale no mundo; o resto do quadro é folga). Vale para a folha toda; vai para src/data/layout.json">Origem</button>
             <button data-tool="point" title="Ponto (P): clique marca o ponto nomeado neste quadro (mão no corpo do ninja, cabo nas espadas soltas); vai para src/data/layout.json">Ponto</button>
           </div>
+          <span id="originBox" hidden>
+            <label title="Quantos px do quadro valem a altura no mundo (Shift+clique no alto da cabeça também marca)">Corpo <input type="number" id="oBody" min="4" max="400" step="1" /></label>
+            <label title="Largura da sombra (1 = padrão)">Sombra L <input type="number" id="oShW" min="0" max="4" step="0.05" /></label>
+            <label title="Altura da sombra (1 = padrão)">A <input type="number" id="oShH" min="0" max="4" step="0.05" /></label>
+            <button id="oReset" title="Volta a origem, o corpo e a sombra para o padrão">Padrão</button>
+          </span>
           <span id="pointBox" hidden>
             <input id="pointKey" value="hand" title="Nome do ponto: hand (mão que segura a arma, no corpo-base) · grip (onde a mão pega, nas espadas soltas sword-*)" />
             <button id="pointRow" title="Copia o ponto deste quadro para os outros quadros da mesma vista">Aplicar à vista</button>
@@ -80,6 +87,7 @@
           <label class="check"><input type="checkbox" id="onion" /> quadro anterior</label>
           <label class="check"><input type="checkbox" id="raw" /> cores-chave</label>
           <label class="check" title="Mostra o ponto nomeado do quadro (mão / cabo) mesmo fora da ferramenta Ponto"><input type="checkbox" id="showPoints" checked /> pontos</label>
+          <label class="check" title="Mostra a origem (pés), o alto do corpo e a sombra como no jogo"><input type="checkbox" id="showOrigin" checked /> origem e sombra</label>
         </div>
         <div class="frames">
           <div class="seg" id="rows"></div>
@@ -99,7 +107,7 @@
           <button data-anim="idle">Parado</button>
         </div>
         <canvas id="anim"></canvas>
-        <h3 id="ingameTitle">Tamanho no jogo <small>(zoom 1× e 2,5×)</small></h3>
+        <h3 id="ingameTitle">Tamanho no jogo <small>(zoom 1× e 2,5×, com a sombra)</small></h3>
         <canvas id="ingame"></canvas>
         <h3>Folha inteira <small>(clique para escolher o quadro)</small></h3>
         <canvas id="sheet"></canvas>

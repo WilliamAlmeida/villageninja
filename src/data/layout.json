@@ -332,6 +332,265 @@
      ]
     ]
    }
+  },
+  "villager": {
+   "body": 56,
+   "foot": [
+    27.0,
+    73
+   ]
+  },
+  "rogue": {
+   "body": 56,
+   "foot": [
+    21.0,
+    73
+   ]
+  },
+  "villager-chop": {
+   "body": 56,
+   "foot": [
+    30.5,
+    73
+   ]
+  },
+  "villager-mine": {
+   "body": 56,
+   "foot": [
+    31.0,
+    73
+   ]
+  },
+  "villager-farm": {
+   "body": 56,
+   "foot": [
+    33.0,
+    73
+   ]
+  },
+  "tower-guard": {
+   "body": 56,
+   "foot": [
+    39.0,
+    73
+   ]
+  },
+  "boar": {
+   "body": 48,
+   "foot": [
+    48.0,
+    62
+   ]
+  },
+  "wolf": {
+   "body": 48,
+   "foot": [
+    45.5,
+    62
+   ]
+  },
+  "bear": {
+   "body": 64,
+   "foot": [
+    59.0,
+    83
+   ]
+  },
+  "snake": {
+   "body": 64,
+   "foot": [
+    61.0,
+    83
+   ]
+  },
+  "crow": {
+   "body": 40,
+   "foot": [
+    36.5,
+    52
+   ]
+  },
+  "monkey": {
+   "body": 48,
+   "foot": [
+    41.0,
+    62
+   ]
+  },
+  "spider": {
+   "body": 52,
+   "foot": [
+    48.5,
+    68
+   ]
+  },
+  "tiger": {
+   "body": 56,
+   "foot": [
+    55.0,
+    73
+   ]
+  },
+  "rhino": {
+   "body": 64,
+   "foot": [
+    60.0,
+    83
+   ]
+  },
+  "hydra": {
+   "body": 72,
+   "foot": [
+    62.5,
+    94
+   ]
+  },
+  "golem": {
+   "body": 64,
+   "foot": [
+    30.0,
+    83
+   ]
+  },
+  "puppet": {
+   "body": 56,
+   "foot": [
+    24.5,
+    73
+   ]
+  },
+  "dog": {
+   "body": 44,
+   "foot": [
+    36.5,
+    57
+   ]
+  },
+  "dog-white": {
+   "body": 44,
+   "foot": [
+    36.5,
+    57
+   ]
+  },
+  "dog-pug": {
+   "body": 44,
+   "foot": [
+    41.0,
+    57
+   ]
+  },
+  "dog-bull": {
+   "body": 44,
+   "foot": [
+    45.5,
+    57
+   ]
+  },
+  "toad": {
+   "body": 64,
+   "foot": [
+    65.0,
+    83
+   ]
+  },
+  "slug": {
+   "body": 52,
+   "foot": [
+    49.0,
+    68
+   ]
+  },
+  "org-goen": {
+   "body": 56,
+   "foot": [
+    24.5,
+    73
+   ]
+  },
+  "org-tetsuo": {
+   "body": 56,
+   "foot": [
+    33.0,
+    73
+   ]
+  },
+  "org-mizuchi": {
+   "body": 56,
+   "foot": [
+    30.0,
+    73
+   ]
+  },
+  "org-raiga": {
+   "body": 56,
+   "foot": [
+    21.5,
+    73
+   ]
+  },
+  "org-kagero": {
+   "body": 56,
+   "foot": [
+    27.0,
+    73
+   ]
+  },
+  "org-shiryo": {
+   "body": 56,
+   "foot": [
+    30.0,
+    73
+   ]
+  },
+  "org-tsuchigumo": {
+   "body": 56,
+   "foot": [
+    35.5,
+    73
+   ]
+  },
+  "org-yomi": {
+   "body": 56,
+   "foot": [
+    32.5,
+    73
+   ]
+  },
+  "sound-iwao": {
+   "body": 56,
+   "foot": [
+    29.5,
+    73
+   ]
+  },
+  "sound-kumomaru": {
+   "body": 56,
+   "foot": [
+    30.0,
+    73
+   ]
+  },
+  "sound-kanade": {
+   "body": 56,
+   "foot": [
+    24.5,
+    73
+   ]
+  },
+  "sound-sokon": {
+   "body": 56,
+   "foot": [
+    25.0,
+    73
+   ]
+  },
+  "sound-hakkotsu": {
+   "body": 56,
+   "foot": [
+    23.5,
+    73
+   ]
   }
  },
  "types": {

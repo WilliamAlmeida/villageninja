@@ -37,6 +37,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   contato · passagem · contato · passagem (parado = coluna 2). `prepare-art.py` fatia pela grade e valida
   (quadro vazio, altura, direção pelo rosto/gabarito, ordem do ciclo), corrigindo o que dá e listando o resto.
   Para incluir um novo: gere, adicione em `SHEETS` do `prepare-art.py` e no `URLS`/`SHEETS` de `render/art.ts`.
+  Cada pedaço do desenho vai inteiro para a casa onde está quase todo (70%+; cauda/chama que passa da casa não é cortada) e
+  o quadro sai com **folga** (25% dos lados, 30% em cima, 10% embaixo; `scripts/pad-sheets.py` faz o mesmo nas folhas já
+  prontas, sem refazer da fonte). O jogo desenha pela **altura do corpo** (`arts[nome].body`, px do quadro que valem a
+  altura no mundo) e pela **origem** (`foot`, os pés) do layout.json, e a sombra multiplica por `shadow` (`frameFit` em
+  render/art.ts; sem esses campos, o quadro inteiro é o corpo e a origem é o meio da base). Altura no mundo e sombra padrão:
+  `render/unitShape.ts` (puro, usado pelo editor).
 - **Ninjas**: o penteado sai do id (`NINJA_HAIRSTYLES`, 6 com careca) e as cores do `look` (`tintedArt`/`dollArt` recolorem
   as cores-chave). As folhas antigas por penteado (`ninja-hair-*`, `ninja.png`) saíram: o ninja é sempre montado em camadas.
 - **Ninja em camadas**: corpo-base careca de malha cinza
@@ -64,7 +70,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   dá para colar do Photoshop) ou, sem seleção, a camada
   inteira num quadro ou na vista toda; com desfazer. Ferramenta **Ponto** (P): marca pontos nomeados por quadro em
   `src/data/layout.json` (`arts[nome].points`, lidos por `artPoint`): `hand` no corpo-base (a mão que segura a arma,
-  por vista e quadro) e `grip` nas espadas soltas `sword-<id>` (modo Arquivo); "Aplicar à vista/a todos" copia. Modo "Arquivo" abre qualquer PNG de src/art, inclusive os de interface (`ui/…`): os atlas `ui/icons` e `ui/cards` abrem divididos nas casas, com o nome do ícone da casa (do `pxicons.ts`), e a folha inteira à direita escolhe a casa. `prepare-ui.py` respeita o `art-edits.json`: atlas editado é remontado guardando as casas existentes (só ícone novo sai da fonte), ilustração editada não é refeita; `--refresh=nome,…` refaz só esses, `--force` tudo. Salvar grava em src/art
+  por vista e quadro) e `grip` nas espadas soltas `sword-<id>` (modo Arquivo); "Aplicar à vista/a todos" copia. Ferramenta **Origem** (O): mostra e ajusta a origem (clique/arraste), o alto do corpo (Shift+clique ou o campo Corpo) e a sombra (largura/altura) das folhas de personagem e bicho, com a prévia no tamanho do jogo já com a sombra. Modo "Arquivo" abre qualquer PNG de src/art, inclusive os de interface (`ui/…`): os atlas `ui/icons` e `ui/cards` abrem divididos nas casas, com o nome do ícone da casa (do `pxicons.ts`), e a folha inteira à direita escolhe a casa. `prepare-ui.py` respeita o `art-edits.json`: atlas editado é remontado guardando as casas existentes (só ícone novo sai da fonte), ilustração editada não é refeita; `--refresh=nome,…` refaz só esses, `--force` tudo. Salvar grava em src/art
   (cópia do anterior em docs/arte/backup-editor/); arquivo salvo no editor entra em `src/art/art-edits.json` e o
   `prepare-art.py` / `prepare-layers.py` não o refazem a partir da fonte (só com `--force`).
 - Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.

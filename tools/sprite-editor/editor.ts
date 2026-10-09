@@ -4,10 +4,11 @@
 // pelo servidor local (scripts/editor.ts).
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 import { type Atlas, BADGE_RANKS, ICONS } from '../../src/ui/pxicons';
+import { shadowFrac, worldHeight } from '../../src/render/unitShape';
 import type { Layout } from '../../src/data/layout';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
-type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move' | 'point';
+type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move' | 'point' | 'origin';
 type Rect = { x: number; y: number; w: number; h: number };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -90,6 +91,82 @@ function setPoint(p: [number, number] | null, at = frameIndex()) {
 }
 function currentPoint(): [number, number] | null {
   return pointsOf(pointKey())?.[frameIndex()] ?? null;
+}
+
+// ------------------------------------------------------------------ origem, corpo e sombra (layout.json)
+/** Folha de personagem/bicho (tem origem e sombra no jogo)? */
+const unitSheet = () => mode === 'doll' || (!!fileName && SHEET_RE.test(fileName));
+/** Origem (pés), altura do corpo e sombra da arte aberta, em px do quadro (o padrão quando o layout não diz). */
+function originOf() {
+  const { fw, fh } = grid();
+  const name = pointArt() ?? '';
+  const a = layoutData.arts[name];
+  const body = a?.body ?? (name === 'ninja-body' ? fh / DOLL_FRAME_PAD : fh);
+  const foot = a?.foot ?? [fw / 2, fh];
+  const mult = a?.shadow ?? [1, 1];
+  const [rx, ry] = shadowFrac(name);
+  return { name, body, foot, mult, shadow: [body * rx * mult[0], body * ry * mult[1]] as [number, number] };
+}
+function setOrigin(patch: { body?: number; foot?: [number, number]; shadow?: [number, number] } | null) {
+  const name = pointArt();
+  if (!name) return;
+  const a = (layoutData.arts[name] ??= {});
+  if (!patch) {
+    delete a.body;
+    delete a.foot;
+    delete a.shadow;
+  } else Object.assign(a, patch);
+  layoutDirty = true;
+  syncOriginBox();
+  updateStatus();
+  redraw();
+}
+function syncOriginBox() {
+  const o = originOf();
+  $<HTMLInputElement>('oBody').value = String(Math.round(o.body * 10) / 10);
+  $<HTMLInputElement>('oShW').value = String(o.mult[0]);
+  $<HTMLInputElement>('oShH').value = String(o.mult[1]);
+}
+/** Sombra como no jogo (centrada na origem, 1,5 px de mundo acima), em px do quadro → tela pela escala `k`. */
+function drawShadow(ctx: CanvasRenderingContext2D, ox: number, oy: number, k: number) {
+  const o = originOf();
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(ox + o.foot[0] * k, oy + (o.foot[1] - (1.5 * o.body) / worldHeight(o.name)) * k, o.shadow[0] * k, o.shadow[1] * k, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+/** Cruz na origem e linha tracejada no alto do corpo. */
+function drawOriginMarks(ctx: CanvasRenderingContext2D, ox: number, oy: number, k: number, fw: number) {
+  const o = originOf();
+  const fx = ox + o.foot[0] * k;
+  const fy = oy + o.foot[1] * k;
+  const top = oy + (o.foot[1] - o.body) * k;
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = 'rgba(255,120,220,0.9)';
+  ctx.beginPath();
+  ctx.moveTo(ox, top + 0.5);
+  ctx.lineTo(ox + fw * k, top + 0.5);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = 'bold 11px system-ui';
+  ctx.fillStyle = 'rgba(255,120,220,0.95)';
+  ctx.fillText(`corpo ${Math.round(o.body)} px`, ox + 4, top - 4);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(fx - 9, fy);
+  ctx.lineTo(fx + 9, fy);
+  ctx.moveTo(fx, fy - 9);
+  ctx.lineTo(fx, fy + 9);
+  ctx.stroke();
+  ctx.strokeStyle = '#5ff2ff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = '#5ff2ff';
+  ctx.fillText('origem', fx + 10, fy + 14);
+  ctx.restore();
 }
 
 // ------------------------------------------------------------------ arquivos
@@ -205,8 +282,12 @@ function drawStage() {
   sctx.clearRect(0, 0, stage.width, stage.height);
   sctx.fillStyle = 'rgba(58,92,48,0.55)';
   sctx.fillRect(ox, oy, fw * zoom, fh * zoom);
+  // origem e sombra (folhas de personagem/bicho): a sombra embaixo do desenho, as marcas por cima
+  const showO = unitSheet() && (tool === 'origin' || $<HTMLInputElement>('showOrigin').checked);
+  if (showO) drawShadow(sctx, ox, oy, zoom);
   if ($<HTMLInputElement>('onion').checked) drawFrame(sctx, (col + cols - 1) % cols, row, ox, oy, zoom, { alpha: 0.25 });
   drawFrame(sctx, col, row, ox, oy, zoom, { focus: $<HTMLInputElement>('focus').checked });
+  if (showO) drawOriginMarks(sctx, ox, oy, zoom, fw);
   if ($<HTMLInputElement>('grid').checked && zoom >= 5) {
     sctx.strokeStyle = 'rgba(255,255,255,0.07)';
     sctx.lineWidth = 1;
@@ -439,7 +520,7 @@ function rectOf(a: { x: number; y: number }, b: { x: number; y: number }): Rect 
   return { x: x0, y: y0, w: Math.max(1, x1 - x0 + 1), h: Math.max(1, y1 - y0 + 1) };
 }
 
-let drag: { kind: 'paint' | 'move' | 'pan' | 'select' | 'line'; last: { x: number; y: number }; start: { x: number; y: number }; client: { x: number; y: number } } | null = null;
+let drag: { kind: 'paint' | 'move' | 'pan' | 'select' | 'line' | 'origin'; last: { x: number; y: number }; start: { x: number; y: number }; client: { x: number; y: number } } | null = null;
 let spaceDown = false;
 
 stage.addEventListener('pointerdown', (e) => {
@@ -458,6 +539,15 @@ stage.addEventListener('pointerdown', (e) => {
   if (tool === 'point') {
     const { fw, fh } = grid();
     if (p.x >= 0 && p.y >= 0 && p.x < fw && p.y < fh) setPoint(e.button === 2 ? null : [p.x, p.y]);
+    return;
+  }
+  if (tool === 'origin') {
+    if (!unitSheet()) return setStatus('Origem e sombra só nas folhas de personagem e bicho');
+    if (e.shiftKey) setOrigin({ body: Math.max(4, originOf().foot[1] - p.y) }); // alto do corpo
+    else {
+      setOrigin({ foot: [p.x + 0.5, p.y + 1] }); // os pés pisam no pixel clicado
+      drag = { kind: 'origin', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
+    }
     return;
   }
   if (tool === 'select' && !inSel(p)) {
@@ -498,6 +588,10 @@ stage.addEventListener('pointermove', (e) => {
   if (drag.kind === 'pan') {
     pan = { x: e.clientX - drag.client.x, y: e.clientY - drag.client.y };
     redraw();
+    return;
+  }
+  if (drag.kind === 'origin') {
+    setOrigin({ foot: [p.x + 0.5, p.y + 1] });
     return;
   }
   const l = activeLayer();
@@ -780,6 +874,7 @@ function fileItem(name: string, label: string, depth: number) {
     pan = { x: 0, y: 0 };
     renderFiles();
     renderFrames();
+    if (tool === 'origin') syncOriginBox();
     redraw();
   };
   return li;
@@ -832,6 +927,8 @@ function setTool(t: Tool) {
   for (const b of $('tools').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tool === t);
   stage.style.cursor = t === 'move' ? 'move' : t === 'picker' ? 'copy' : t === 'select' ? 'cell' : 'crosshair';
   $('pointBox').hidden = t !== 'point';
+  $('originBox').hidden = t !== 'origin';
+  if (t === 'origin') syncOriginBox();
   if (t === 'point' && mode === 'file' && fileName?.startsWith('sword-') && $<HTMLInputElement>('pointKey').value === 'hand') $<HTMLInputElement>('pointKey').value = 'grip';
   if (t === 'point' && mode === 'doll') $<HTMLInputElement>('pointKey').value = 'hand';
   redraw();
@@ -934,17 +1031,23 @@ function drawPreviews(t: number) {
   const actx = animC.getContext('2d')!;
   actx.clearRect(0, 0, animC.width, animC.height);
   views.forEach(([r, flip], i) => drawFrame(actx, frame, r, (i % per) * fw * k, Math.floor(i / per) * fh * k, k, { flip }));
-  // tamanho do jogo: o ninja tem 30 px de corpo no zoom 1 (o quadro com folga fica maior)
-  if (mode === 'doll') {
-    const body = fh / DOLL_FRAME_PAD;
-    const scales = [30 / body, (30 * 2.5) / body];
+  // tamanho do jogo (zoom 1 e 2,5): o corpo vale a altura no mundo (ninja 30 px; bicho pelo tamanho dele), com a
+  // origem na mesma linha e a sombra embaixo, como o jogo desenha
+  if (unitSheet()) {
+    const o = originOf();
+    const h = mode === 'doll' ? 30 : worldHeight(o.name);
+    const scales = [h / o.body, (h * 2.5) / o.body];
+    const below = Math.max(...scales.map((s) => (fh - o.foot[1]) * s));
     ingameC.width = Math.ceil(fw * (scales[0]! + scales[1]!)) + 30;
-    ingameC.height = Math.ceil(fh * scales[1]!) + 10;
+    ingameC.height = Math.ceil(o.foot[1] * scales[1]! + below) + 10;
     const ictx = ingameC.getContext('2d')!;
     ictx.clearRect(0, 0, ingameC.width, ingameC.height);
+    const baseY = ingameC.height - 5 - below;
     let x = 10;
     for (const s of scales) {
-      drawFrame(ictx, frame, 1, x, ingameC.height - 5 - fh * s, s);
+      const top = baseY - o.foot[1] * s;
+      if ($<HTMLInputElement>('showOrigin').checked) drawShadow(ictx, x, top, s);
+      drawFrame(ictx, frame, mode === 'doll' ? 1 : Math.min(1, rows - 1), x, top, s);
       x += fw * s + 10;
     }
     ingameC.hidden = false;
@@ -1032,6 +1135,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'i') setTool('picker');
   else if (k === 'm') setTool('move');
   else if (k === 'p') setTool('point');
+  else if (k === 'o') setTool('origin');
   else if (k === 's' && !e.ctrlKey) setTool('select');
   else if (k === ' ') {
     spaceDown = true;
@@ -1112,6 +1216,15 @@ $('undo').onclick = () => undo(undoStack, redoStack);
 $('redo').onclick = () => undo(redoStack, undoStack);
 $('save').onclick = () => void save();
 $('filter').oninput = renderFiles;
+$('oBody').onchange = () => setOrigin({ body: Math.max(4, Number($<HTMLInputElement>('oBody').value) || originOf().body) });
+for (const [id, i] of [['oShW', 0], ['oShH', 1]] as const)
+  $(id).onchange = () => {
+    const m = [...originOf().mult] as [number, number];
+    m[i] = Math.max(0, Number($<HTMLInputElement>(id).value) || 0);
+    setOrigin({ shadow: m });
+  };
+$('oReset').onclick = () => setOrigin(null);
+$('showOrigin').onchange = redraw;
 for (const id of ['fCols', 'fRows'])
   $(id).oninput = () => {
     const { cols, rows } = grid();

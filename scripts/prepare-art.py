@@ -3,13 +3,23 @@
 #   - prédios isométricos (docs/arte/iso): largura ≈ 2× o losango da base; alguns são espelhados
 #     para a porta ficar sempre na parede da frente-esquerda (onde fica a porta no jogo)
 #   - folhas de sprite (docs/arte/sprites, padrão de scripts/sprite-template.py): fatiadas pela grade
-#     fixa 4×3, VALIDADAS (quadro vazio, tamanho, direção, ordem do ciclo) e normalizadas
+#     fixa 4×3, VALIDADAS (quadro vazio, tamanho, direção, ordem do ciclo) e normalizadas. Cada pedaço do desenho vai
+#     inteiro para a casa onde está a maior parte dele (cauda ou chama que passa para a casa vizinha não é cortada), e o
+#     quadro sai com FOLGA (scripts/pad-sheets.py): a altura do corpo e a origem vão para o layout.json
 #   - natureza (docs/arte/pixel): imagem única
 # Uso: python scripts/prepare-art.py      (sai com erro se alguma folha não passar na validação)
+import importlib.util
 import json
 import sys
+from collections import deque
 from pathlib import Path
+
+import numpy as np
 from PIL import Image, ImageChops, ImageOps
+
+_spec = importlib.util.spec_from_file_location('pad_sheets', Path(__file__).with_name('pad-sheets.py'))
+pad_sheets = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(pad_sheets)
 
 ISO = Path('docs/arte/iso')
 SPRITES = Path('docs/arte/sprites')
@@ -74,10 +84,10 @@ def crisp(im):
 
 def save(im, name, palette=False):
     if ONLY is not None and name not in ONLY:
-        return
+        return False
     if f'{name}.png' in EDITED:
         print(f'{name}.png editada à mão: mantida (use --force para refazer)')
-        return
+        return False
     im = crisp(im)
     if palette:  # 256 cores com transparência: segura o peso do PNG em 2× (a arte reduzida tem milhares de tons)
         im = im.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
@@ -85,6 +95,57 @@ def save(im, name, palette=False):
     dest = Path('docs/arte/layers') if name in TOOL_ONLY else OUT
     im.save(dest / f'{name}.png', optimize=True)
     print(f'{name}.png', im.size, f'{(dest / f"{name}.png").stat().st_size / 1024:.1f} KB')
+    return True
+
+
+def owner_cells(src, work=420):
+    """Casa (0..11) dona de cada pixel: o pedaço de desenho conectado vai inteiro para a casa onde está a maior parte
+    dele, se estiver quase todo nela (70%); pedaço que liga duas casas é cortado pela grade. Rotulado numa cópia
+    reduzida (rápido); a máscara volta ao tamanho original."""
+    k = work / max(src.size)
+    small = np.array(src.getchannel('A').resize((max(1, round(src.width * k)), max(1, round(src.height * k))), Image.NEAREST)) > 40
+    h, w = small.shape
+    ch, cw = h / ROWS, w / COLS
+    owner = np.full((h, w), -1, np.int16)
+    seen = np.zeros((h, w), bool)
+    for y0, x0 in zip(*np.nonzero(small)):
+        if seen[y0, x0]:
+            continue
+        q = deque([(y0, x0)])
+        seen[y0, x0] = True
+        pts = []
+        while q:
+            y, x = q.popleft()
+            pts.append((y, x))
+            for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= ny < h and 0 <= nx < w and small[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    q.append((ny, nx))
+        ys, xs = np.array(pts).T
+        cells = np.minimum((ys / ch).astype(int), ROWS - 1) * COLS + np.minimum((xs / cw).astype(int), COLS - 1)
+        counts = np.bincount(cells)
+        # pedaço que liga duas casas (chamas, efeito) sem dono claro: corta pela grade, como antes
+        owner[ys, xs] = counts.argmax() if counts.max() >= 0.7 * len(cells) else cells
+    big = Image.fromarray(owner.astype(np.int16).astype(np.int32)).resize(src.size, Image.NEAREST)
+    return np.array(big)
+
+
+def cell_frame(src, owner, r, c):
+    """Quadro (r, c): só os pixels da casa, mesmo os que passaram para a vizinha; recortado no contorno."""
+    cw, ch = src.width / COLS, src.height / ROWS
+    a = np.array(src)
+    own = owner == r * COLS + c
+    # pixel sem dono (fraco, fora da máscara) fica com a casa da grade
+    loose = owner < 0
+    gy, gx = np.mgrid[0:src.height, 0:src.width]
+    loose &= (np.minimum((gy / ch).astype(int), ROWS - 1) == r) & (np.minimum((gx / cw).astype(int), COLS - 1) == c)
+    a[~(own | loose)] = 0
+    return trim(Image.fromarray(a, 'RGBA'))
+
+
+LAYOUT_PATH = Path('src/data/layout.json')
+layout_data = json.loads(LAYOUT_PATH.read_text(encoding='utf8'))
+layout_changed = False
 
 
 def similarity(a, b, size=(40, 40)):
@@ -144,8 +205,10 @@ for name, tiles in BUILDINGS.items():
 
 for name, (frame_h, kind) in SHEETS.items():
     src = Image.open(SPRITES / f'{name}.png').convert('RGBA')
-    cw, ch = src.width / COLS, src.height / ROWS
-    grid = [[trim(src.crop((round(c * cw), round(r * ch), round((c + 1) * cw), round((r + 1) * ch)))) for c in range(COLS)] for r in range(ROWS)]
+    if (ONLY is not None and name not in ONLY) or f'{name}.png' in EDITED:
+        continue  # não vai ser regravada (evita o trabalho de fatiar)
+    owner = owner_cells(src)
+    grid = [[cell_frame(src, owner, r, c) for c in range(COLS)] for r in range(ROWS)]
     bad = False
     for r, row in enumerate(grid):
         if any(f is None for f in row):
@@ -195,7 +258,16 @@ for name, (frame_h, kind) in SHEETS.items():
     for r, row in enumerate(frames):
         for c, f in enumerate(row):  # centrado na horizontal, pés na base da célula
             sheet.paste(f, (c * fw + (fw - f.width) // 2, (r + 1) * frame_h - f.height))
-    save(sheet, name)
+    if name in TOOL_ONLY or name == 'ninja-base':
+        save(sheet, name)
+        continue
+    # folga em volta do quadro (editar além do contorno); o jogo desenha igual pela altura do corpo e pela origem
+    padded, _, _, foot = pad_sheets.pad_sheet(sheet, fw, frame_h)
+    if save(padded, name):
+        a = layout_data.setdefault('arts', {}).setdefault(name, {})
+        a['body'] = frame_h
+        a['foot'] = foot
+        layout_changed = True
 
 for name, size in SINGLE.items():
     src = (PIXEL if name == 'herb' else ISO) / f'{name}.png'
@@ -209,6 +281,10 @@ for name, size in SINGLE.items():
     else:
         im.thumbnail((size * SCENERY_SCALE, size * SCENERY_SCALE), Image.BOX)
     save(im, name, palette=True)
+
+if layout_changed:
+    LAYOUT_PATH.write_text(json.dumps(layout_data, indent=1, ensure_ascii=False) + '\n', encoding='utf8')
+    print('layout.json: altura do corpo e origem das folhas refeitas')
 
 if problems:
     print('\nVALIDAÇÃO:')

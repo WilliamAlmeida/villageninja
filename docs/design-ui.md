@@ -130,6 +130,8 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Partículas que parecem sujeira (quadradinhos marrons no chão) estragam: sumiço = puf de fumaça clara + faíscas.
 - Anéis/brilhos no chão **centrados onde a arte toca o chão**, não no meio do quadrado da imagem.
 - Sprite nunca fica deformado depois de um efeito (conferir se o efeito acaba).
+- Folha de personagem/bicho tem folga em volta do desenho (nada encostado na borda do quadro) e origem/sombra ajustáveis
+  no editor de sprites: o autor quer poder corrigir à mão o que a geração cortou ou posicionou mal.
 - Estágios de recurso visíveis: rocha racha, some com fumaça e deixa pedrinhas; veio perde os cristais; toco de cada árvore.
 - Arte nova: **Codex com a arte atual como referência**, no mesmo estilo; conferir a cor (o veio saiu escuro e foi
   refeito claro). Não regenerar por defeito pequeno.

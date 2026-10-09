@@ -2,6 +2,7 @@
 // O jogo é sempre em pixel art; o desenho procedural de sprites.ts só aparece enquanto a imagem carrega (ou fora do
 // navegador, nos testes).
 import { DOLL_FRAME_PAD, type DollPart, hex, hsv, tintPixels } from './doll';
+import { artLayout } from '../data/layout';
 import hokage from '../art/hokage.png';
 import house from '../art/house.png';
 import lumber from '../art/lumber.png';
@@ -262,33 +263,39 @@ export function smoothIfShrunk(ctx: CanvasRenderingContext2D, drawnW: number, sr
 }
 
 /**
- * Desenha a imagem (ou o quadro `frame` da linha `row` de uma folha) com a base centrada em (x, baseY), na altura pedida.
- * `flip` espelha na horizontal. Ampliando, sem suavização (pixel art não borra); reduzindo, com (`smoothIfShrunk`).
+ * Geometria do quadro: px de tela por px do quadro (`k`, a altura pedida vale o CORPO: `body` do layout.json, ou o
+ * quadro inteiro) e o ponto de origem no quadro (`foot`: os pés; sem, o meio da base).
  */
-export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, baseY: number, height: number, flip = false, frame = 0, row = 0) {
+function frameFit(img: Pic, height: number) {
   const sheet = artFrames(img);
   const { w: iw, h: ih } = size(img);
   const fw = iw / sheet.frames;
   const fh = ih / sheet.rows;
-  height *= FRAME_PAD[img.dataset.name ?? ''] ?? 1;
-  const w = (fw / fh) * height;
+  const name = img.dataset.name ?? '';
+  const lay = artLayout(name);
+  const body = lay?.body ?? fh / (FRAME_PAD[name] ?? 1);
+  const [fx, fy] = lay?.foot ?? [fw / 2, fh];
+  return { sheet, fw, fh, k: height / body, fx, fy };
+}
+
+/**
+ * Desenha a imagem (ou o quadro `frame` da linha `row` de uma folha) com a origem (os pés) em (x, baseY), na altura
+ * pedida. `flip` espelha na horizontal (em volta da origem). Ampliando, sem suavização; reduzindo, com (`smoothIfShrunk`).
+ */
+export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, baseY: number, height: number, flip = false, frame = 0, row = 0) {
+  const { fw, fh, k, fx, fy } = frameFit(img, height);
   ctx.save();
-  smoothIfShrunk(ctx, w, fw);
+  smoothIfShrunk(ctx, fw * k, fw);
   ctx.translate(x, 0);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(img, fw * frame, fh * row, fw, fh, -w / 2, baseY - height, w, height);
+  ctx.drawImage(img, fw * frame, fh * row, fw, fh, -fx * k, baseY - fy * k, fw * k, fh * k);
   ctx.restore();
 }
 
-/** Retângulo em que `drawArt` desenha um quadro (as mesmas contas), para prender coisas a pontos da arte. */
+/** Retângulo em que `drawArt` desenha um quadro (as mesmas contas, sem espelhar), para prender coisas a pontos da arte. */
 export function artRect(img: Pic, x: number, baseY: number, height: number) {
-  const sheet = artFrames(img);
-  const { w: iw, h: ih } = size(img);
-  const fw = iw / sheet.frames;
-  const fh = ih / sheet.rows;
-  height *= FRAME_PAD[img.dataset.name ?? ''] ?? 1;
-  const w = (fw / fh) * height;
-  return { left: x - w / 2, top: baseY - height, w, h: height, fw, fh, frames: sheet.frames };
+  const { sheet, fw, fh, k, fx, fy } = frameFit(img, height);
+  return { left: x - fx * k, top: baseY - fy * k, w: fw * k, h: fh * k, fw, fh, frames: sheet.frames };
 }
 
 const feet = new WeakMap<object, { cx: number; by: number; hw: number }>();

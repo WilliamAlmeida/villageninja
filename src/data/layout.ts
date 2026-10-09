@@ -41,6 +41,14 @@ export interface ArtLayout {
    * só o 0): `hand` no corpo do ninja (onde a arma é segurada), `grip` nas espadas soltas (onde a mão pega). null = sem.
    */
   points?: Record<string, ([number, number] | null)[]>;
+  /**
+   * Folhas de personagem e bicho (px do QUADRO, ajustadas no editor de sprites): `body` = quantos px do quadro valem a
+   * altura no mundo (o resto é folga para cabelo, cauda, asas); `foot` = ponto de origem (onde a unidade está: os pés);
+   * `shadow` = multiplica a sombra padrão [largura, altura]. Sem: o quadro inteiro é o corpo e a origem é o meio da base.
+   */
+  body?: number;
+  foot?: [number, number];
+  shadow?: [number, number];
   /** Máscara das peças (0 = resto, 1… = peça), do tamanho da imagem, comprimida em RLE (`encodeMask`). */
   mask?: string;
   maskW?: number;
