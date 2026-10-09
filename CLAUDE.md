@@ -406,7 +406,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Dicas e avisos próprios** (`ui/popup.ts`), nada de `title`/`alert` nativo: `tipAttr(título, texto, tap?)` dá dica ao
   passar o mouse ou segurar o dedo (`tap` = um toque já mostra, para o que não tem ação). Botão que não pode agir não usa
   `disabled`: `blocked(g, [motivos], custo)` deixa clicável e o toque abre o aviso com o que falta (calculado na hora). Drawers mostram só números e botões: a explicação de uma seção vai no "i" ao lado do título (`infoTip` em panel.ts), não em parágrafo. Ícone inline tem `margin-inline` (`.ic`) para não colar no texto/número. Trabalhadores: uma marca por vaga (cheia = trabalhando, contorno = pedido) e o alcance em etiquetas.
-- Validar visualmente com Playwright em 844×390 (celular deitado) quando mexer na UI.
+- UI tem que funcionar em 844×390 (celular deitado), mas a conferência visual é do autor: não abrir navegador nem tirar
+  screenshot sem ele pedir.
 
 ## Decisões de design (do autor)
 - Combate automático + ordens do jogador; pixel art no futuro (Fase 2 adiada até haver arte);

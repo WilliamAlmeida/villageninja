@@ -22,7 +22,8 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
   esticam (`.kfill`, `.vfill`, `#win .body:has(> …)` em coluna flex).
 - **Consistência entre componentes**: o que aparece igual em dois lugares (drawer, painel por cima) tem a mesma
   animação, o mesmo fechar, o mesmo cabeçalho.
-- Sempre conferir **desktop e celular deitado (844×390)** no jogo com o save dele antes de entregar.
+- A tela tem que funcionar no **desktop e no celular deitado (844×390)**. Quem confere no jogo é o autor: não abrir
+  navegador nem tirar print por conta própria, só quando ele pedir; ao entregar, dizer onde olhar.
 
 ## 2. Os dois tipos de tela (não criar um terceiro)
 
