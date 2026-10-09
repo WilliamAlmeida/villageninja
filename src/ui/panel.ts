@@ -1539,7 +1539,7 @@ export class Panel {
       const nat = j.nature ? `${NATURES[j.nature].kanji} ${NATURES[j.nature].name}` : 'Neutro';
       const why = openBlock(g, j.id);
       const btn = isOpen(g.state, j.id)
-        ? `<span class="mpill good">{check} Aberto</span>`
+        ? ``
         : `<button class="btn mini primary" data-act="lib-open" data-arg="${j.id}" ${blocked(g, [why && !why.startsWith('Custa') && why], scrollCost(j))}>{scroll} Abrir ${costTag(scrollCost(j))}</button>`;
       html += `<div class="lrow" style="--c:${j.color}" ${tipAttr(j.name, `${j.desc} ${JUTSU_TYPE_LABEL[j.type]} · ${nat}. ${fit} ninja(s) da vila podem aprender.`)}><span class="lrank">${JUTSU_RANK_LABEL[j.rank]}</span><b class="ln">${esc(j.name)}</b><small class="lsub">${esc(nat)} · {users} ${fit}</small>${btn}</div>`;
     }
