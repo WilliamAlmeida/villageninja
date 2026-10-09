@@ -71,10 +71,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `villageninja-editor`; `scripts/editor.ts` + `tools/sprite-editor/`). Só escuta em 127.0.0.1, fora do túnel. Monta o
   ninja por patente/penteado/cores igual ao jogo, mostra a animação (lado nos dois sentidos, frente, costas), o tamanho
   real no jogo e a folha inteira; edita pixel (lápis, borracha, linha com Shift reta, balde, conta-gotas, cores-chave; botão direito ou
-  "apagar"/X fazem lápis, linha e balde apagarem), seleciona um retângulo (S)
-  e move só ele (arrastar dentro / setas = 1 px; Delete apaga, Ctrl+C/V copia e cola, também com a área de transferência do sistema:
-  dá para colar do Photoshop) ou, sem seleção, a camada
-  inteira num quadro ou na vista toda; com desfazer. Ferramenta **Ponto** (P): marca pontos nomeados por quadro em
+  "apagar"/X fazem lápis, linha e balde apagarem), seleciona um retângulo (S) ou pela varinha mágica (W: área da mesma
+  cor com tolerância, "Adjacente" ou o quadro todo; Shift soma, Ctrl tira; forma livre em `selMask`) e move só o
+  selecionado como **seleção flutuante** (`float` em editor.ts: levantado da camada e solto por cima até fixar com Enter,
+  Esc, outra ferramenta/quadro/camada ou salvar; Ctrl+arrastar duplica; setas = 1 px; Delete apaga, Ctrl+C/V copia e cola,
+  também com a área de transferência do sistema: dá para colar do Photoshop, e o colado nasce flutuando) ou, sem seleção,
+  a camada inteira num quadro ou na vista toda; com desfazer. Ferramenta **Ponto** (P): marca pontos nomeados por quadro em
   `src/data/layout.json` (`arts[nome].points`, lidos por `artPoint`): `hand` no corpo-base (a mão que segura a arma,
   por vista e quadro) e `grip` nas espadas soltas `sword-<id>` (modo Arquivo); "Aplicar à vista/a todos" copia. Ferramenta **Origem** (O): mostra e ajusta a origem (clique/arraste), o alto do corpo (Shift+clique ou o campo Corpo) e a sombra (largura/altura) das folhas de personagem e bicho, com a prévia no tamanho do jogo já com a sombra. Modo "Arquivo" abre qualquer PNG de src/art, inclusive os de interface (`ui/…`): os atlas `ui/icons` e `ui/cards` abrem divididos nas casas, com o nome do ícone da casa (do `pxicons.ts`), e a folha inteira à direita escolhe a casa. `prepare-ui.py` respeita o `art-edits.json`: atlas editado é remontado guardando as casas existentes (só ícone novo sai da fonte), ilustração editada não é refeita; `--refresh=nome,…` refaz só esses, `--force` tudo. Salvar grava em src/art
   (cópia do anterior em docs/arte/backup-editor/); arquivo salvo no editor entra em `src/art/art-edits.json` e o

@@ -41,7 +41,7 @@ const TOOLS = {
   undo: ['bold', 'arrow-u-up-left'], redo: ['bold', 'arrow-u-up-right'], keyboard: ['fill', 'keyboard'], image: ['fill', 'image'],
   stack: ['fill', 'stack'], folder: ['fill', 'folder'], search: ['bold', 'magnifying-glass'], polygon: ['bold', 'polygon'],
   wall: ['fill', 'wall'], anchor: ['fill', 'anchor-simple'], grid: ['bold', 'grid-four'], ruler: ['fill', 'ruler'],
-  person: ['fill', 'person'], palette: ['fill', 'palette'], step: ['fill', 'skip-forward'], stop: ['fill', 'stop'], hand: ['fill', 'hand'],
+  wand: ['fill', 'magic-wand'], person: ['fill', 'person'], palette: ['fill', 'palette'], step: ['fill', 'skip-forward'], stop: ['fill', 'stop'], hand: ['fill', 'hand'],
 };
 
 function inner(weight, src) {

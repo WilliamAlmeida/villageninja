@@ -83,6 +83,7 @@
         <button data-tool="picker" data-ico="picker" data-tip="Conta-gotas (ou Alt+clique)" data-tip-pos="right"><kbd>I</kbd></button>
         <span class="sep"></span>
         <button data-tool="select" data-ico="select" data-tip="Seleção: arraste um retângulo; dentro dele arrasta, setas movem 1 px" data-tip-pos="right"><kbd>S</kbd></button>
+        <button data-tool="wand" data-ico="wand" data-tip="Varinha mágica: seleciona a área da mesma cor; Shift soma, Ctrl tira" data-tip-pos="right"><kbd>W</kbd></button>
         <button data-tool="move" data-ico="move" data-tip="Mover a seleção ou, sem seleção, a camada inteira no quadro" data-tip-pos="right"><kbd>M</kbd></button>
         <span class="sep"></span>
         <button data-tool="origin" data-ico="footprints" data-tip="Origem e sombra: onde a unidade pisa no jogo; Shift+clique marca o alto do corpo" data-tip-pos="right"><kbd>O</kbd></button>
@@ -97,6 +98,12 @@
             <label data-tip="Largura da sombra (1 = padrão)">Sombra <input type="number" id="oShW" min="0" max="4" step="0.05" /></label>
             <label data-tip="Altura da sombra (1 = padrão)">× <input type="number" id="oShH" min="0" max="4" step="0.05" /></label>
             <button id="oReset" class="ghost" data-ico="refresh" data-tip="Volta a origem, o corpo e a sombra para o padrão">Padrão</button>
+          </span>
+          <span id="wandBox" class="group" hidden>
+            <span class="lbl">Varinha</span>
+            <label data-tip="Quanto a cor pode diferir (0 = só a cor exata; 255 = tudo)">Tolerância <input type="number" id="wTol" min="0" max="255" step="1" value="16" /></label>
+            <label class="tog" data-tip="Ligado: só a área contínua a partir do clique; desligado: a cor inteira no quadro"><input type="checkbox" id="wAdj" checked /> Adjacente</label>
+            <span class="hint">Shift soma · Ctrl tira</span>
           </span>
           <span id="pointBox" class="group" hidden>
             <span class="lbl">Ponto</span>

@@ -9,7 +9,7 @@ import { applyIcons, helpDialog, ico } from '../shared/ui';
 import type { Layout } from '../../src/data/layout';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
-type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'move' | 'point' | 'origin';
+type Tool = 'pencil' | 'eraser' | 'line' | 'fill' | 'picker' | 'select' | 'wand' | 'move' | 'point' | 'origin';
 type Rect = { x: number; y: number; w: number; h: number };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -61,6 +61,26 @@ let pan = { x: 0, y: 0 };
 let anim: 'walk' | 'idle' = 'walk';
 /** Retângulo selecionado no quadro (coordenadas do quadro); Mover/setas mexem só nele. */
 let sel: Rect | null = null;
+/** Forma livre dentro do retângulo (varinha mágica): 1 = selecionado, do tamanho sel.w × sel.h. null = o retângulo todo. */
+let selMask: Uint8Array | null = null;
+const inMask = (x: number, y: number) => !!sel && (!selMask || selMask[(y - sel.y) * sel.w + (x - sel.x)] === 1);
+/** Canvas com os pixels selecionados opacos (para recortar o pedaço e apagar só a forma). */
+function maskCanvas(): HTMLCanvasElement | null {
+  if (!sel || !selMask) return null;
+  const c = document.createElement('canvas');
+  c.width = sel.w;
+  c.height = sel.h;
+  const d = c.getContext('2d')!.createImageData(sel.w, sel.h);
+  for (let i = 0; i < selMask.length; i++) if (selMask[i]) d.data[i * 4 + 3] = 255;
+  c.getContext('2d')!.putImageData(d, 0, 0);
+  return c;
+}
+/** Pixels de um quadro (ImageData) que ficam de fora da seleção viram transparentes. */
+function applyMask(data: ImageData) {
+  if (!selMask) return data;
+  for (let i = 0; i < selMask.length; i++) if (!selMask[i]) data.data[i * 4 + 3] = 0;
+  return data;
+}
 let clip: ImageData | null = null;
 const recent: string[] = [];
 const undoStack: { name: string; data: ImageData }[] = [];
@@ -321,6 +341,26 @@ function drawStage() {
     sctx.strokeRect(...r);
     sctx.setLineDash([]);
     sctx.lineDashOffset = 0;
+    if (selMask) {
+      // forma livre: escurece o que ficou de fora do retângulo e traça o contorno dos pixels selecionados
+      sctx.fillStyle = 'rgba(0,0,0,0.35)';
+      for (let yy = 0; yy < sel.h; yy++) for (let xx = 0; xx < sel.w; xx++) if (!selMask[yy * sel.w + xx]) sctx.fillRect(ox + (sel.x + xx) * zoom, oy + (sel.y + yy) * zoom, zoom, zoom);
+      sctx.lineWidth = 1;
+      sctx.strokeStyle = '#7fd8ff';
+      sctx.beginPath();
+      const on = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < sel!.w && yy < sel!.h && selMask![yy * sel!.w + xx] === 1;
+      for (let yy = 0; yy < sel.h; yy++)
+        for (let xx = 0; xx < sel.w; xx++) {
+          if (!on(xx, yy)) continue;
+          const px = ox + (sel.x + xx) * zoom + 0.5;
+          const py = oy + (sel.y + yy) * zoom + 0.5;
+          if (!on(xx, yy - 1)) sctx.moveTo(px, py), sctx.lineTo(px + zoom, py);
+          if (!on(xx, yy + 1)) sctx.moveTo(px, py + zoom), sctx.lineTo(px + zoom, py + zoom);
+          if (!on(xx - 1, yy)) sctx.moveTo(px, py), sctx.lineTo(px, py + zoom);
+          if (!on(xx + 1, yy)) sctx.moveTo(px + zoom, py), sctx.lineTo(px + zoom, py + zoom);
+        }
+      sctx.stroke();
+    }
   }
   const pt = currentPoint();
   if (pt && (tool === 'point' || $<HTMLInputElement>('showPoints').checked)) {
@@ -502,8 +542,19 @@ function liftFloat(l: Layer, copy = false) {
     const p = document.createElement('canvas');
     p.width = rect.w;
     p.height = rect.h;
-    p.getContext('2d')!.drawImage(b, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
-    if (!copy) bx.clearRect(rect.x, rect.y, rect.w, rect.h); // o que fica para trás: o quadro sem o pedaço
+    const px = p.getContext('2d')!;
+    px.drawImage(b, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+    const m = sel ? maskCanvas() : null;
+    if (m) {
+      // forma livre: o pedaço só tem os pixels selecionados; o resto do retângulo fica no lugar
+      px.globalCompositeOperation = 'destination-in';
+      px.drawImage(m, 0, 0);
+      if (!copy) {
+        bx.globalCompositeOperation = 'destination-out';
+        bx.drawImage(m, rect.x, rect.y);
+        bx.globalCompositeOperation = 'source-over';
+      }
+    } else if (!copy) bx.clearRect(rect.x, rect.y, rect.w, rect.h); // o que fica para trás: o quadro sem o pedaço
     base.push(b);
     piece.push(p);
   }
@@ -540,7 +591,70 @@ function moveApply(_l: Layer, dx: number, dy: number) {
   floatTo(moveFrom.x + dx, moveFrom.y + dy);
 }
 
-const inSel = (p: { x: number; y: number }) => !!sel && p.x >= sel.x && p.y >= sel.y && p.x < sel.x + sel.w && p.y < sel.y + sel.h;
+const inSel = (p: { x: number; y: number }) => !!sel && p.x >= sel.x && p.y >= sel.y && p.x < sel.x + sel.w && p.y < sel.y + sel.h && inMask(p.x, p.y);
+
+/**
+ * Varinha mágica: a área da mesma cor (diferença máxima por canal ≤ tolerância, contando a transparência), contínua a
+ * partir do clique ("Adjacente") ou no quadro inteiro. `add` soma à seleção, `sub` tira; senão substitui.
+ */
+function wandSelect(l: Layer, x: number, y: number, how: 'new' | 'add' | 'sub') {
+  const { fw, fh } = grid();
+  const img = l.ctx.getImageData(col * fw, row * fh, fw, fh).data;
+  const tol = Math.max(0, Math.min(255, Number($<HTMLInputElement>('wTol').value) || 0));
+  const i0 = (y * fw + x) * 4;
+  const ref = [img[i0]!, img[i0 + 1]!, img[i0 + 2]!, img[i0 + 3]!];
+  const like = (i: number) => {
+    const a = img[i + 3]!;
+    if (ref[3]! < 40 || a < 40) return (ref[3]! < 40) === (a < 40); // transparente só casa com transparente
+    return Math.abs(img[i]! - ref[0]!) <= tol && Math.abs(img[i + 1]! - ref[1]!) <= tol && Math.abs(img[i + 2]! - ref[2]!) <= tol && Math.abs(a - ref[3]!) <= tol;
+  };
+  const hit = new Uint8Array(fw * fh);
+  if ($<HTMLInputElement>('wAdj').checked) {
+    const q = [y * fw + x];
+    hit[y * fw + x] = 1;
+    while (q.length) {
+      const k = q.pop()!;
+      const kx = k % fw;
+      const ky = (k - kx) / fw;
+      for (const [nx, ny] of [[kx + 1, ky], [kx - 1, ky], [kx, ky + 1], [kx, ky - 1]] as const) {
+        if (nx < 0 || ny < 0 || nx >= fw || ny >= fh) continue;
+        const n = ny * fw + nx;
+        if (!hit[n] && like(n * 4)) {
+          hit[n] = 1;
+          q.push(n);
+        }
+      }
+    }
+  } else for (let i = 0; i < fw * fh; i++) if (like(i * 4)) hit[i] = 1;
+  // combina com a seleção que já existe (no quadro inteiro) e volta ao retângulo que envolve o resultado
+  const cur = new Uint8Array(fw * fh);
+  if (sel && how !== 'new') for (let yy = sel.y; yy < sel.y + sel.h; yy++) for (let xx = sel.x; xx < sel.x + sel.w; xx++) if (inMask(xx, yy)) cur[yy * fw + xx] = 1;
+  const out = new Uint8Array(fw * fh);
+  let n = 0;
+  let x0 = fw, y0 = fh, x1 = -1, y1 = -1;
+  for (let i = 0; i < fw * fh; i++) {
+    const v = how === 'new' ? hit[i]! : how === 'add' ? (cur[i]! | hit[i]!) : cur[i]! && !hit[i] ? 1 : 0;
+    if (!v) continue;
+    out[i] = 1;
+    n++;
+    const xx = i % fw;
+    const yy = (i - xx) / fw;
+    if (xx < x0) x0 = xx;
+    if (xx > x1) x1 = xx;
+    if (yy < y0) y0 = yy;
+    if (yy > y1) y1 = yy;
+  }
+  if (!n) {
+    sel = null;
+    selMask = null;
+    setStatus('Nada selecionado');
+    return;
+  }
+  sel = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  selMask = new Uint8Array(sel.w * sel.h);
+  for (let yy = 0; yy < sel.h; yy++) for (let xx = 0; xx < sel.w; xx++) selMask[yy * sel.w + xx] = out[(sel.y + yy) * fw + sel.x + xx]!;
+  setStatus(`${n} px selecionado(s)`);
+}
 function rectOf(a: { x: number; y: number }, b: { x: number; y: number }): Rect {
   const { fw, fh } = grid();
   const x0 = Math.max(0, Math.min(a.x, b.x));
@@ -580,10 +694,19 @@ stage.addEventListener('pointerdown', (e) => {
     }
     return;
   }
+  if (tool === 'wand') {
+    const { fw, fh } = grid();
+    if (p.x < 0 || p.y < 0 || p.x >= fw || p.y >= fh) return;
+    commitFloat();
+    wandSelect(l, p.x, p.y, e.shiftKey ? 'add' : e.ctrlKey ? 'sub' : 'new');
+    redraw();
+    return;
+  }
   if (tool === 'select' && !inSel(p)) {
     commitFloat(); // clicou fora: o que flutuava fica onde está
     drag = { kind: 'select', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     sel = rectOf(p, p);
+    selMask = null;
     redraw();
     return;
   }
@@ -722,6 +845,7 @@ function pasteImage(src: CanvasImageSource & { width: number; height: number }) 
   p.width = src.width;
   p.height = src.height;
   p.getContext('2d')!.drawImage(src, 0, 0);
+  selMask = null;
   float = { layer: l, row, col, cells: [col], rect: { x: at.x, y: at.y, w: src.width, h: src.height }, pos: { x: at.x, y: at.y }, base: [b], piece: [p] };
   floatTo(at.x, at.y);
   setStatus(src.width > fw || src.height > fh ? `Colado ${src.width}×${src.height} flutuando (o quadro tem ${fw}×${fh}: o que passar da borda fica de fora ao fixar)` : 'Colado flutuando: arraste ou use as setas; Enter fixa');
@@ -977,6 +1101,7 @@ const TOOL_HINT: Record<Tool, string> = {
   fill: 'Clique na área contínua da mesma cor · botão direito deixa transparente',
   picker: 'Clique numa cor para usá-la no lápis',
   select: 'Arraste um retângulo · arraste dentro dele para mover (fica flutuando até Enter) · Ctrl+arrastar duplica · setas 1 px · Delete apaga · Ctrl+C/V · Esc tira',
+  wand: 'Clique numa cor: seleciona a área parecida (tolerância acima) · Shift soma · Ctrl tira · depois arraste com a Seleção para mover',
   move: 'Arraste para mover a seleção ou a camada inteira (flutua até Enter) · Ctrl+arrastar duplica · setas 1 px · "Vista toda" leva os 4 quadros',
   origin: 'Clique ou arraste: origem (os pés) · Shift+clique: alto do corpo · campos acima: sombra · vale para a folha toda',
   point: 'Clique marca o ponto deste quadro · botão direito tira · "Aplicar" copia para a vista ou para todos',
@@ -990,6 +1115,7 @@ function setTool(t: Tool) {
   if (slot) slot.outerHTML = ico($('tools').querySelector<HTMLElement>(`[data-tool="${t}"]`)?.dataset.ico ?? 'info').replace('class="ic"', 'class="ic" data-ico-slot');
   stage.style.cursor = t === 'move' ? 'move' : t === 'picker' ? 'copy' : t === 'select' ? 'cell' : 'crosshair';
   $('pointBox').hidden = t !== 'point';
+  $('wandBox').hidden = t !== 'wand';
   $('originBox').hidden = t !== 'origin';
   if (t === 'origin') syncOriginBox();
   if (t === 'point' && mode === 'file' && fileName?.startsWith('sword-') && $<HTMLInputElement>('pointKey').value === 'hand') $<HTMLInputElement>('pointKey').value = 'grip';
@@ -1164,24 +1290,32 @@ window.addEventListener('keydown', (e) => {
     commitFloat();
     const { fw, fh } = grid();
     sel = { x: 0, y: 0, w: fw, h: fh };
+    selMask = null;
     setTool('select');
     redraw();
   } else if (e.ctrlKey && k === 'c' && sel) {
     const l = activeLayer();
     const { fw, fh } = grid();
     if (!l) return;
-    clip = l.ctx.getImageData(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
+    clip = applyMask(l.ctx.getImageData(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h));
     void copyToSystem(clip);
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
     const l = activeLayer();
     const { fw, fh } = grid();
     if (!l) return;
     pushUndo(l);
-    l.ctx.clearRect(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
+    const m = maskCanvas();
+    if (m) {
+      l.ctx.save();
+      l.ctx.globalCompositeOperation = 'destination-out';
+      l.ctx.drawImage(m, col * fw + sel.x, row * fh + sel.y);
+      l.ctx.restore();
+    } else l.ctx.clearRect(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
     touched(l);
   } else if (e.key === 'Escape') {
     commitFloat();
     sel = null;
+    selMask = null;
     redraw();
   } else if (e.key === 'Enter' && float) {
     commitFloat();
@@ -1201,6 +1335,7 @@ window.addEventListener('keydown', (e) => {
     c.checked = !c.checked;
   }
   else if (k === 'i') setTool('picker');
+  else if (k === 'w') setTool('wand');
   else if (k === 'm') setTool('move');
   else if (k === 'p') setTool('point');
   else if (k === 'o') setTool('origin');
@@ -1326,7 +1461,7 @@ applyIcons();
 helpDialog('Editor de sprites: atalhos', [
   ['Ferramentas', [
     ['B', 'Lápis'], ['E', 'Borracha'], ['L', 'Linha (Shift: reta ou 45°)'], ['G', 'Balde'], ['I | Alt+clique', 'Conta-gotas'],
-    ['S', 'Seleção'], ['M', 'Mover'], ['O', 'Origem e sombra'], ['P', 'Ponto nomeado (mão, cabo)'], ['X | botão direito', 'Apagar com lápis, linha e balde'],
+    ['S', 'Seleção'], ['W', 'Varinha mágica (Shift soma, Ctrl tira; tolerância e "Adjacente" acima do palco)'], ['M', 'Mover'], ['O', 'Origem e sombra'], ['P', 'Ponto nomeado (mão, cabo)'], ['X | botão direito', 'Apagar com lápis, linha e balde'],
   ]],
   ['Seleção', [
     ['Ctrl+A', 'Seleciona o quadro inteiro'], ['Delete', 'Apaga o selecionado'], ['Ctrl+C', 'Copia (também para a área de transferência do sistema)'],
