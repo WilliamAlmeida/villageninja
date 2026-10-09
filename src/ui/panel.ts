@@ -1434,14 +1434,6 @@ export class Panel {
     return html + `</div>`;
   }
 
-  /** Proteger novatos: Genins se abrigam de inimigos fortes demais (com veteranos em casa para defender). */
-  /** Equipar com o estoque agora e o modo automático (passa sozinho o que for sendo fabricado). */
-  private gearBar(compact = false) {
-    const on = !!this.app.game.state.flags.autoGear;
-    return `<div class="wtools ${compact ? 'workshop-bar' : ''}"><button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
-      ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}</div>`;
-  }
-
   /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
   private breedPicker() {
     // cartão com o cão parado de frente (quadro do meio da linha 2 da folha 4×3)
@@ -2199,7 +2191,7 @@ export class Panel {
     const recipes = recipesOf(bd.type);
     const MAX_QUEUE = queueMax(bd);
     let html = `<div class="actions"><button class="btn primary" data-act="win" data-arg="crafts">{anvil} Abrir painel das Oficinas</button></div>`;
-    html += this.gearBar(true) + `<h4>Estoque</h4><div class="btnrow">`;
+    html += `<h4>Estoque</h4><div class="btnrow">`;
     for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
     html += `</div>`;
     const queue = bd.queue ?? [];
@@ -2586,7 +2578,7 @@ export class Panel {
         <button class="btn primary" data-act="cmd-mode" data-arg="team">{pin} Dar ordem</button>
         <button class="btn" data-act="cmd-retreat" data-arg="team">{run} Recuar</button>
         <button class="btn" data-act="cmd-clear" data-arg="team">{x} Cancelar</button>
-        <button class="btn" data-act="team-autoequip">{kunai} Equipar equipe</button></div></div>`;
+        <button class="btn" data-act="team-autoequip">{kunai} Equipar</button></div></div>`;
     }
     html += `</div>` + this.teamCandidates(tm);
     html += `<div class="actions"><button class="btn danger" data-act="team-disband">${this.armedDemolish ? 'Toque de novo para confirmar' : '{trash} Desfazer equipe'}</button></div>`;
