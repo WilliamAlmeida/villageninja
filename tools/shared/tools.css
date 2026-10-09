@@ -147,11 +147,8 @@ label.tog:has(input:checked) { color: var(--text); border-color: rgba(255, 150, 
 .search input { width: 100%; padding-left: 28px; }
 .search .ic { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--dim); pointer-events: none; }
 
-/* ---- dica instantânea (data-tip), sem o atraso do title nativo */
-[data-tip] { position: relative; }
-[data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%); width: max-content; max-width: 280px; white-space: normal; text-align: left; padding: 6px 9px; border-radius: 6px; background: #120b06; color: var(--text); border: 1px solid var(--line-hi); font-size: 12px; font-weight: 400; line-height: 1.35; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); z-index: 50; pointer-events: none; }
-[data-tip][data-tip-pos='right']:hover::after { left: calc(100% + 8px); bottom: auto; top: 50%; transform: translateY(-50%); }
-[data-tip][data-tip-pos='bottom']:hover::after { bottom: auto; top: calc(100% + 7px); }
+/* ---- dica instantânea (data-tip, montada por ui.ts num elemento fixo: não é cortada por painel que rola nem pela borda) */
+#tip { position: fixed; z-index: 100; width: max-content; max-width: 280px; padding: 6px 9px; border-radius: 6px; background: #120b06; color: var(--text); border: 1px solid var(--line-hi); font-size: 12px; font-weight: 400; line-height: 1.35; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); pointer-events: none; white-space: normal; }
 
 /* ---- diálogo de ajuda (atalhos) */
 dialog.help { background: var(--bg2); color: var(--text); border: 1px solid var(--line-hi); border-radius: 12px; padding: 0; max-width: min(92vw, 760px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); }

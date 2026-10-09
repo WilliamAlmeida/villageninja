@@ -24,6 +24,52 @@ export function applyIcons(root: ParentNode = document) {
 
 export const kbd = (k: string) => `<kbd>${k}</kbd>`;
 
+/**
+ * Dicas instantâneas: um elemento fixo só (#tip) que aparece ao passar o mouse em qualquer `[data-tip]`, do lado pedido
+ * em `data-tip-pos` (top, bottom, right) e preso dentro da janela: nunca é cortado por painel que rola nem pela borda.
+ */
+function initTips() {
+  const tip = document.createElement('div');
+  tip.id = 'tip';
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  let cur: HTMLElement | null = null;
+  const hide = () => {
+    tip.hidden = true;
+    cur = null;
+  };
+  const show = (el: HTMLElement) => {
+    cur = el;
+    tip.textContent = el.dataset.tip ?? '';
+    tip.hidden = false;
+    const r = el.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    const pos = el.dataset.tipPos ?? 'top';
+    const M = 6;
+    let x = r.left + r.width / 2 - t.width / 2;
+    let y = r.top - t.height - 7;
+    if (pos === 'bottom') y = r.bottom + 7;
+    else if (pos === 'right') {
+      x = r.right + 8;
+      y = r.top + r.height / 2 - t.height / 2;
+    }
+    if (y < M) y = pos === 'top' ? r.bottom + 7 : M;
+    x = Math.max(M, Math.min(window.innerWidth - t.width - M, x));
+    y = Math.max(M, Math.min(window.innerHeight - t.height - M, y));
+    tip.style.left = `${x}px`;
+    tip.style.top = `${y}px`;
+  };
+  document.addEventListener('mouseover', (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tip]');
+    if (el && el !== cur) show(el);
+    else if (!el && cur) hide();
+  });
+  document.addEventListener('mousedown', hide);
+  document.addEventListener('scroll', hide, true);
+  window.addEventListener('blur', hide);
+}
+initTips();
+
 /** Marca o botão Salvar (ponto amarelo) e o texto de estado quando há mudança não salva. */
 export function markDirty(dirty: boolean, text = '') {
   document.getElementById('save')?.classList.toggle('dirty', dirty);
