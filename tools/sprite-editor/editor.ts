@@ -861,12 +861,16 @@ const openDirs = new Set<string>(JSON.parse(localStorage.getItem('spr-dirs') ?? 
  * Lista de arquivos em árvore (src/art na raiz; ui/ e ui/art/ como pastas que abrem e fecham). Com filtro, a busca
  * vale para todas as pastas e mostra os achados numa lista só, com o caminho.
  */
+/** Filtro por tipo na lista de arquivos: tudo, folhas (grade 4×3), imagens únicas ou só as editadas à mão. */
+let fileKind: 'all' | 'sheet' | 'single' | 'edited' = 'all';
+const kindOk = (name: string) => fileKind === 'all' || (fileKind === 'sheet' ? SHEET_RE.test(name) : fileKind === 'single' ? !SHEET_RE.test(name) : edited.has(name));
 function renderFiles() {
   const q = $<HTMLInputElement>('filter').value.trim().toLowerCase();
   const ul = $('files');
   ul.innerHTML = '';
-  const names = files.map((f) => f.replace(/\.png$/, ''));
-  if (q) {
+  const names = files.map((f) => f.replace(/\.png$/, '')).filter(kindOk);
+  if (q || fileKind !== 'all') {
+    // com busca ou filtro, uma lista só, com o caminho
     for (const n of names) if (n.includes(q)) ul.appendChild(fileItem(n, n, 0));
     return;
   }
@@ -1111,7 +1115,7 @@ function drawPreviews(t: number) {
     }
     ingameC.hidden = false;
   } else ingameC.hidden = true;
-  $('ingameTitle').hidden = ingameC.hidden;
+  $('ingameCard').hidden = ingameC.hidden;
   // folha inteira com o quadro atual marcado
   const sk = Math.min(1.5, 276 / W);
   sheetC.width = Math.ceil(W * sk);
@@ -1280,6 +1284,25 @@ $('undo').onclick = () => undo(undoStack, redoStack);
 $('redo').onclick = () => undo(redoStack, undoStack);
 $('save').onclick = () => void save();
 $('filter').oninput = renderFiles;
+for (const b of $('fileKind').querySelectorAll<HTMLButtonElement>('button'))
+  b.onclick = () => {
+    fileKind = b.dataset.kind as typeof fileKind;
+    for (const x of $('fileKind').querySelectorAll('button')) x.classList.toggle('on', x === b);
+    renderFiles();
+  };
+// cartões recolhíveis lembram se estavam abertos
+for (const d of document.querySelectorAll<HTMLDetailsElement>('details[data-remember]')) {
+  const key = `spr-${d.dataset.remember}`;
+  try {
+    const v = localStorage.getItem(key);
+    if (v != null) d.open = v === '1';
+  } catch {}
+  d.addEventListener('toggle', () => {
+    try {
+      localStorage.setItem(key, d.open ? '1' : '0');
+    } catch {}
+  });
+}
 $('oBody').onchange = () => setOrigin({ body: Math.max(4, Number($<HTMLInputElement>('oBody').value) || originOf().body) });
 for (const [id, i] of [['oShW', 0], ['oShH', 1]] as const)
   $(id).onchange = () => {

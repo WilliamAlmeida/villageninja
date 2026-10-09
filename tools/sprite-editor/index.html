@@ -48,7 +48,7 @@
             <h3 data-ico="stack">Camadas <small>de baixo para cima</small></h3>
             <ul id="layers" class="list layers"></ul>
           </div>
-          <details class="card">
+          <details class="card" data-remember="callCard">
             <summary><h3>Chamada das peças</h3></summary>
             <pre id="call" class="call"></pre>
           </details>
@@ -57,6 +57,12 @@
           <div class="card">
             <h3 data-ico="folder">Arquivos de src/art</h3>
             <div class="search"><svg class="ic" viewBox="0 0 256 256" data-ico="search"></svg><input id="filter" type="search" placeholder="Buscar (ex.: layer, org, ui/)" /></div>
+            <div class="chips fkind" id="fileKind">
+              <button data-kind="all" class="on">Tudo</button>
+              <button data-kind="sheet" data-ico="person" data-tip="Folhas de personagem e bicho (grade 4×3)">Folhas</button>
+              <button data-kind="single" data-ico="image" data-tip="Imagens únicas: prédios, cenário, camadas, interface">Imagens</button>
+              <button data-kind="edited" data-tip="Só as editadas à mão aqui">Editadas</button>
+            </div>
             <ul id="files" class="list files"></ul>
           </div>
           <div class="card">
@@ -127,22 +133,22 @@
       </section>
 
       <aside class="side right" id="right">
-        <div class="card">
-          <h3 data-ico="play">Animação</h3>
+        <details class="card" open data-remember="animCard">
+          <summary><h3 data-ico="play">Animação</h3></summary>
           <div class="seg sm" id="animMode">
             <button data-anim="walk" class="on">Andando</button>
             <button data-anim="idle">Parado</button>
           </div>
           <canvas id="anim" class="preview"></canvas>
-        </div>
-        <div class="card" id="ingameCard">
-          <h3 id="ingameTitle" data-ico="ruler">Tamanho no jogo <small>zoom 1× e 2,5×, com a sombra</small></h3>
+        </details>
+        <details class="card" id="ingameCard" open data-remember="ingameCard">
+          <summary><h3 id="ingameTitle" data-ico="ruler">Tamanho no jogo <small>zoom 1× e 2,5×, com a sombra</small></h3></summary>
           <canvas id="ingame" class="preview"></canvas>
-        </div>
-        <div class="card">
-          <h3 data-ico="grid">Folha inteira <small>clique escolhe o quadro</small></h3>
+        </details>
+        <details class="card" open data-remember="sheetCard">
+          <summary><h3 data-ico="grid">Folha inteira <small>clique escolhe o quadro</small></h3></summary>
           <canvas id="sheet" class="preview"></canvas>
-        </div>
+        </details>
       </aside>
     </main>
     <script type="module" src="./editor.ts"></script>
