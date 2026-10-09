@@ -1090,8 +1090,8 @@ function drawPreviews(t: number) {
   const actx = animC.getContext('2d')!;
   actx.clearRect(0, 0, animC.width, animC.height);
   views.forEach(([r, flip], i) => drawFrame(actx, frame, r, (i % per) * fw * k, Math.floor(i / per) * fh * k, k, { flip }));
-  // tamanho do jogo (zoom 1 e 2,5): o corpo vale a altura no mundo (ninja 30 px; bicho pelo tamanho dele), com a
-  // origem na mesma linha e a sombra embaixo, como o jogo desenha
+  // tamanho do jogo (zoom 1 e 2,5): o QUADRO EM EDIÇÃO (vista e coluna escolhidas), parado; o corpo vale a altura no
+  // mundo (ninja 30 px; bicho pelo tamanho dele), com a origem na mesma linha e a sombra embaixo, como o jogo desenha
   if (unitSheet()) {
     const o = originOf();
     const h = mode === 'doll' ? 30 : worldHeight(o.name);
@@ -1106,7 +1106,7 @@ function drawPreviews(t: number) {
     for (const s of scales) {
       const top = baseY - o.foot[1] * s;
       if ($<HTMLInputElement>('showOrigin').checked) drawShadow(ictx, x, top, s);
-      drawFrame(ictx, frame, mode === 'doll' ? 1 : Math.min(1, rows - 1), x, top, s);
+      drawFrame(ictx, col, row, x, top, s);
       x += fw * s + 10;
     }
     ingameC.hidden = false;
