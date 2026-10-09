@@ -2051,21 +2051,6 @@ export class Panel {
     return html + `</section>`;
   }
 
-  /** Os níveis da vila em sequência: arte da Residência, nome, território e impostos, e o que cada um trouxe. */
-  private villagePath() {
-    const s = this.app.game.state;
-    let html = `<div class="bsec"><h4>{map} Caminho da vila</h4><div class="vpath">`;
-    for (let i = 0; i <= MAX_VILLAGE_LEVEL; i++) {
-      const d = levelDef(i);
-      const url = artUrl(i > 0 ? `hokage-${i + 1}` : 'hokage') ?? artUrl('hokage');
-      const done = s.level >= i;
-      html += `<div class="vstep ${done ? 'done' : ''} ${s.level === i ? 'now' : ''}"><span class="vs-art">${url ? `<img src="${url}" alt="" draggable="false">` : d.icon}</span>
-        <b>${d.icon} ${d.name}</b><small>território ${d.territory} · ${d.tax}{ryo}/morador</small><span class="vs-perk">${esc(d.perks[0] ?? '')}</span>
-        <span class="mpill ${done ? 'safe' : 'info'}">${done ? '{check} Alcançado' : 'A seguir'}</span></div>`;
-    }
-    return html + `</div></div>`;
-  }
-
   /** Marcos da vila com o progresso: metas grandes de longo prazo (seguem fazendo sentido no nível máximo). */
   private villageMarks() {
     const g = this.app.game;
@@ -2108,7 +2093,7 @@ export class Panel {
       <p class="vr-sub">{clock} Faltam ${daysToNextSeason(s)} dia(s) para a próxima estação</p></div></div></div>`;
     const why = festivalBlock(g);
     const on = festivalOn(s);
-    const chips = RES_KEYS.filter((k) => FESTIVAL.cost[k]).map((k) => `<span class="mchip">${RES_INFO[k].icon} ${FESTIVAL.cost[k]} ${RES_INFO[k].name.toLowerCase()}</span>`).join('');
+    const chips = RES_KEYS.filter((k) => FESTIVAL.cost[k]).map((k) => `<span class="mchip">${RES_INFO[k].icon} ${FESTIVAL.cost[k]}</span>`).join('');
     html += `<div class="bsec vfest"><h4>{party} ${season.festival}</h4><div class="vrow">${scene('scene-festival')}<div class="vrow-main">
       ${on ? '<span class="mpill safe">{party} Acontecendo agora</span>' : '<span class="mpill safe">Disponível</span>'}
       <p class="vr-txt">+${FESTIVAL.mood} de felicidade até o fim do dia seguinte.</p><div class="td-chips">${chips}</div>
@@ -2150,8 +2135,8 @@ export class Panel {
       if (st.ready && !st.afford) left += `<p class="hint">Requisitos cumpridos — faltam recursos.</p>`;
       else if (!st.ready) left += `<p class="hint">{info} Falta: ${st.checks.filter((c) => !c.ok).map((c) => esc(c.label.toLowerCase())).join(', ')}.</p>`;
     }
-    // nível máximo: a coluna mostra o caminho percorrido e os marcos da vila (antes ficava vazia)
-    if (!st) left += this.villagePath() + this.villageMarks();
+    // nível máximo: a coluna mostra os marcos da vila (antes ficava vazia)
+    if (!st) left += this.villageMarks();
     return `<div class="vfill vgrid"><div class="vcol">${left}</div><div class="vcol">${this.lifeSection()}</div></div>`;
   }
 
@@ -2287,7 +2272,7 @@ export class Panel {
     const need = missionPower(m);
     const reward = missionReward(tpl);
     const chips = RES_KEYS.filter((k) => reward[k])
-      .map((k) => `<span class="mchip">${RES_INFO[k].icon} ${reward[k]}${k === 'ryo' ? ' ryo' : ''}</span>`)
+      .map((k) => `<span class="mchip">${RES_INFO[k].icon} ${reward[k]}</span>`)
       .join('');
     let html = `<div class="mcontract" style="--c:${r.color}">${this.seal(r.label, r.color)}
       <div class="mc-body"><div class="mc-top"><div class="mc-head"><div class="mc-title">${esc(m.title)}</div>
