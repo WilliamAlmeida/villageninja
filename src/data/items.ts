@@ -72,15 +72,15 @@ const LIST: ItemDef[] = [
   },
   // ---- lendários: materiais raros das minas
   {
-    id: 'blackblade', name: 'Lâmina de aço negro', icon: '{darksteel}', slot: 'weapon', building: 'forge', craftTime: 60, minLevel: 2,
+    id: 'blackblade', name: 'Lâmina de aço negro', icon: '{blade-dark}', slot: 'weapon', building: 'forge', craftTime: 60, minLevel: 2,
     cost: { darksteel: 6, iron: 10 }, bonus: { melee: 13, kunai: 4 }, dura: 300, desc: 'Lendária: +13 de dano corpo a corpo e +4 nas kunais.',
   },
   {
-    id: 'crystalvest', name: 'Colete de cristal', icon: '{crystal}', slot: 'armor', building: 'forge', craftTime: 60, minLevel: 2,
+    id: 'crystalvest', name: 'Colete de cristal', icon: '{vest-crystal}', slot: 'armor', building: 'forge', craftTime: 60, minLevel: 2,
     cost: { crystal: 6, iron: 8 }, bonus: { defense: 0.22, hp: 50 }, dura: 1800, desc: 'Lendário: +50 de vida e 22% menos dano recebido.',
   },
   {
-    id: 'chakracrystal', name: 'Cristal de chakra', icon: '{crystal}', slot: 'item', building: 'pharmacy', craftTime: 25,
+    id: 'chakracrystal', name: 'Cristal de chakra', icon: '{chakra-crystal}', slot: 'item', building: 'pharmacy', craftTime: 25,
     cost: { crystal: 2, herbs: 3 }, use: { kind: 'chakra', amount: 1 }, desc: 'Recupera todo o chakra quando ele acaba.',
   },
 ];

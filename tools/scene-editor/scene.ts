@@ -37,7 +37,7 @@ for (const d of BUILDING_LIST) {
 }
 for (const [type, artName, label] of [['ruin', 'ruin', 'Ruínas'], ['cave', 'cave', 'Entrada de mina'], ['chest', 'chest', 'Baú'], ['chest', 'chest-open', 'Baú aberto']] as const)
   ITEMS.push({ kind: 'site', type, artName, label, level: 1 });
-for (const [artName, label] of [['tree0', 'Árvore folhosa'], ['tree1', 'Pinheiro'], ['stump', 'Toco'], ['rock', 'Rocha'], ['rock-cracked', 'Rocha rachada'], ['ore', 'Veio de ferro'], ['herb', 'Erva']] as const)
+for (const [artName, label] of [['tree0', 'Árvore folhosa'], ['tree1', 'Pinheiro'], ['stump0', 'Toco (folhosa)'], ['stump1', 'Toco (pinheiro)'], ['rock', 'Rocha'], ['rock-cracked', 'Rocha rachada'], ['ore', 'Veio de ferro'], ['herb', 'Erva']] as const)
   ITEMS.push({ kind: 'node', type: artName, artName, label, level: 1 });
 
 const PIECE_COLORS = ['#ff5a5a', '#4da6ff', '#7ddc6b', '#ffd34d', '#e05ad1', '#5ad1c8', '#ff8a2b', '#b39cff', '#ffffff'];
@@ -115,7 +115,7 @@ function place() {
   } else {
     const n: ResourceNode = { id: 3, type: 'tree', tx: CENTER_TX, ty: CENTER_TY, amount: 25, max: 25, variant: 0 };
     if (item.artName === 'tree1') n.variant = 1;
-    if (item.artName === 'stump') n.amount = 2;
+    if (item.artName.startsWith('stump')) n.amount = 2;
     if (item.artName.startsWith('rock') || item.artName === 'ore') Object.assign(n, { type: item.artName === 'ore' ? 'ore' : 'rock', amount: item.artName === 'rock-cracked' ? 10 : 40, max: 40 });
     if (item.artName === 'herb') Object.assign(n, { type: 'herb', amount: 10, max: 10 });
     s.nodes.push(n);

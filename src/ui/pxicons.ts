@@ -1,13 +1,12 @@
-// Gerado por scripts/prepare-ui.py: assets de interface em pixel art (atlas de ícones e de cartões, ilustrações).
+// Gerado por scripts/prepare-ui.py: assets de interface em pixel art (atlas de ícones e dos selos de rank, ilustrações).
 
-import iconsAtlas from '../art/ui/icons.png';
-import cardsAtlas from '../art/ui/cards.png';
+import atlas_icons from '../art/ui/icons.png';
+import atlas_badge_ranks from '../art/ui/badge-ranks.png';
 import ar_beast_slug from '../art/ui/art/beast-slug.png';
 import ar_beast_snake from '../art/ui/art/beast-snake.png';
 import ar_beast_toad from '../art/ui/art/beast-toad.png';
 import ar_kage_bg from '../art/ui/art/kage-bg.png';
 import ar_kunai_card from '../art/ui/art/kunai-card.png';
-import ar_kunai_hiraishin from '../art/ui/art/kunai-hiraishin.png';
 import ar_perk_buildings from '../art/ui/art/perk-buildings.png';
 import ar_perk_clans from '../art/ui/art/perk-clans.png';
 import ar_perk_kage from '../art/ui/art/perk-kage.png';
@@ -23,6 +22,6 @@ import ar_scene_winter from '../art/ui/art/scene-winter.png';
 
 /** Um atlas: imagem, colunas × linhas e a casa (coluna, linha) de cada item. */
 export interface Atlas { url: string; cols: number; rows: number; pos: Record<string, [number, number]> }
-export const ICONS: Atlas = { url: iconsAtlas, cols: 10, rows: 10, pos: { 'alert': [0, 0], 'anvil': [1, 0], 'arena': [2, 0], 'axe': [3, 0], 'baby': [4, 0], 'back': [5, 0], 'beast': [6, 0], 'bell': [7, 0], 'bomb': [8, 0], 'books': [9, 0], 'candle': [0, 1], 'cart': [1, 1], 'castle': [2, 1], 'check': [3, 1], 'clipboard': [4, 1], 'crown': [5, 1], 'crystal': [6, 1], 'darksteel': [7, 1], 'dna': [8, 1], 'drop': [9, 1], 'dummy': [0, 2], 'eclipse': [1, 2], 'eye': [2, 2], 'fail': [3, 2], 'flag': [4, 2], 'flask': [5, 2], 'food': [6, 2], 'frown': [7, 2], 'fullscreen': [8, 2], 'gear': [9, 2], 'gold': [0, 3], 'hammer': [1, 3], 'herbs': [2, 3], 'hourglass': [3, 3], 'house': [4, 3], 'houses': [5, 3], 'hut': [6, 3], 'info': [7, 3], 'iron': [8, 3], 'kunai': [9, 3], 'lantern': [0, 4], 'leaf': [1, 4], 'lock': [2, 4], 'luggage': [3, 4], 'map': [4, 4], 'medal': [5, 4], 'medic': [6, 4], 'megaphone': [7, 4], 'menu': [8, 4], 'minus': [9, 4], 'monument': [0, 5], 'moon': [1, 5], 'ninja': [2, 5], 'paper': [3, 5], 'party': [4, 5], 'path-slug': [5, 5], 'path-snake': [6, 5], 'path-toad': [7, 5], 'pause': [8, 5], 'paw': [9, 5], 'phone': [0, 6], 'pickaxe': [1, 6], 'pill': [2, 6], 'pin': [3, 6], 'play': [4, 6], 'plus': [5, 6], 'rain': [6, 6], 'refresh': [7, 6], 'run': [8, 6], 'ryo': [9, 6], 'save': [0, 7], 'scroll': [1, 7], 'select': [2, 7], 'shield': [3, 7], 'ship': [4, 7], 'skull': [5, 7], 'smile': [6, 7], 'snow': [7, 7], 'star': [8, 7], 'stone': [9, 7], 'storm': [0, 8], 'sun': [1, 8], 'swords': [2, 8], 'target': [3, 8], 'text': [4, 8], 'todo': [5, 8], 'tower': [6, 8], 'trash': [7, 8], 'trophy': [8, 8], 'up': [9, 8], 'users': [0, 9], 'vest': [1, 9], 'wheat': [2, 9], 'wood': [3, 9], 'x': [4, 9] } };
-export const CARDS: Atlas = { url: cardsAtlas, cols: 10, rows: 1, pos: { 'seal-A': [0, 0], 'seal-B': [1, 0], 'seal-C': [2, 0], 'seal-D': [3, 0], 'seal-S': [4, 0] } };
-export const ART: Record<string, string> = { 'beast-slug': ar_beast_slug, 'beast-snake': ar_beast_snake, 'beast-toad': ar_beast_toad, 'kage-bg': ar_kage_bg, 'kunai-card': ar_kunai_card, 'kunai-hiraishin': ar_kunai_hiraishin, 'perk-buildings': ar_perk_buildings, 'perk-clans': ar_perk_clans, 'perk-kage': ar_perk_kage, 'perk-taxes': ar_perk_taxes, 'perk-territory': ar_perk_territory, 'perk-threat': ar_perk_threat, 'scene-autumn': ar_scene_autumn, 'scene-festival': ar_scene_festival, 'scene-spring': ar_scene_spring, 'scene-summer': ar_scene_summer, 'scene-village': ar_scene_village, 'scene-winter': ar_scene_winter };
+export const ICONS: Atlas = { url: atlas_icons, cols: 10, rows: 4, pos: { 'anvil': [0, 0], 'arena': [1, 0], 'beast': [2, 0], 'blade-dark': [3, 0], 'bomb': [4, 0], 'candle': [5, 0], 'castle': [6, 0], 'chakra-crystal': [7, 0], 'crystal': [8, 0], 'darksteel': [9, 0], 'drop': [0, 1], 'eclipse': [1, 1], 'food': [2, 1], 'gold': [3, 1], 'hammer': [4, 1], 'herbs': [5, 1], 'iron': [6, 1], 'kunai': [7, 1], 'map': [8, 1], 'ninja': [9, 1], 'paper': [0, 2], 'path-slug': [1, 2], 'path-snake': [2, 2], 'path-toad': [3, 2], 'pickaxe': [4, 2], 'pill': [5, 2], 'ryo': [6, 2], 'scroll': [7, 2], 'select': [8, 2], 'shield': [9, 2], 'stone': [0, 3], 'swords': [1, 3], 'vest-crystal': [2, 3], 'vest': [3, 3], 'wood': [4, 3] } };
+export const BADGE_RANKS: Atlas = { url: atlas_badge_ranks, cols: 5, rows: 1, pos: { 'seal-A': [0, 0], 'seal-B': [1, 0], 'seal-C': [2, 0], 'seal-D': [3, 0], 'seal-S': [4, 0] } };
+export const ART: Record<string, string> = { 'beast-slug': ar_beast_slug, 'beast-snake': ar_beast_snake, 'beast-toad': ar_beast_toad, 'kage-bg': ar_kage_bg, 'kunai-card': ar_kunai_card, 'perk-buildings': ar_perk_buildings, 'perk-clans': ar_perk_clans, 'perk-kage': ar_perk_kage, 'perk-taxes': ar_perk_taxes, 'perk-territory': ar_perk_territory, 'perk-threat': ar_perk_threat, 'scene-autumn': ar_scene_autumn, 'scene-festival': ar_scene_festival, 'scene-spring': ar_scene_spring, 'scene-summer': ar_scene_summer, 'scene-village': ar_scene_village, 'scene-winter': ar_scene_winter };

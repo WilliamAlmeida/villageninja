@@ -115,7 +115,6 @@ declare -A SEALS=(
 )
 
 declare -A ART=(
-  [kunai-hiraishin]="a special three-pronged kunai knife with a paper seal tag tied to the handle, glowing with yellow lightning energy around it (Flying Thunder God technique), dramatic, centered"
   [beast-toad]="a big wise toad sage with orange skin, a small pipe, sitting, surrounded by faint orange natural energy sparkles, portrait"
   [beast-snake]="a huge purple serpent with yellow eyes coiled, fangs showing, faint purple aura, portrait"
   [beast-slug]="a large white and blue slug with a kind face, faint green healing glow, portrait"

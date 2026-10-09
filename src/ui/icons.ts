@@ -2,10 +2,10 @@
 // Textos usam tokens `{nome}`; `rich()` troca cada token pelo SVG correspondente.
 import { TOKEN_RE } from '../core/tokens';
 import { GLYPHS } from './glyphs';
-import { ART, CARDS, ICONS, type Atlas } from './pxicons';
+import { ART, BADGE_RANKS, ICONS, type Atlas } from './pxicons';
 
 // atlas pedidos já na abertura (aparecem na hora nas janelas), junto com as ilustrações
-if (typeof Image !== 'undefined') for (const url of [ICONS.url, CARDS.url, ...Object.values(ART)]) new Image().src = url;
+if (typeof Image !== 'undefined') for (const url of [ICONS.url, BADGE_RANKS.url, ...Object.values(ART)]) new Image().src = url;
 
 /**
  * Uma casa de um atlas como elemento: fundo com a imagem do atlas, tamanho e posição em %, então escala com o
@@ -120,8 +120,8 @@ const I: Record<string, string> = {
 };
 
 /**
- * Ícone: o PNG em pixel art (src/art/ui/icons, gerado pelo Codex) quando existe; senão o `<svg>` de traço
- * (herda a cor do texto; alguns têm cor própria via `.ic-nome`).
+ * Ícone de interface: o glifo (Phosphor) quando existe; senão a casa do atlas em pixel art (src/art/ui/icons.png);
+ * senão o `<svg>` de traço antigo. Recurso e item que precisam da pixel art mesmo havendo glifo usam `pxIco`.
  */
 export function ico(name: string, cls = '') {
   // glifo de interface (Phosphor, monocromático, herda a cor) → ícone-objeto pixel art do atlas → SVG de traço antigo

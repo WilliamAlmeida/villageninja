@@ -1,6 +1,6 @@
 # Prepara os assets de interface gerados pelo Codex (docs/arte/ui/*) para o jogo:
 #   icons/  → atlas src/art/ui/icons.png, casas de 64 px (ícones; `rich()`/`ico()` usam no lugar do SVG)
-#   seals/ → atlas src/art/ui/cards.png, casas de 128 px (selos de rank; os bustos da Ordem saíram: o Bingo Book usa os sprites)
+#   seals/ → atlas src/art/ui/badge-ranks.png, casas de 128 px numa linha (os 5 selos de rank)
 #   art/    → arquivos soltos em src/art/ui/art, até 256 px no lado maior (cenas, kunai, animais)
 # Atlas = uma requisição só (pelo túnel, dezenas de PNGs soltos demoravam a aparecer). Paleta de 256 cores com
 # transparência: pixel art não perde nada e o arquivo cai a ~1/4. Escreve src/ui/pxicons.ts com os mapas.
@@ -23,7 +23,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'docs', 'arte', 'ui')
 DST = os.path.join(ROOT, 'src', 'art', 'ui')
-ATLASES = {'icons': (['icons'], 64), 'cards': (['seals'], 128)}
+ATLASES = {'icons': (['icons'], 64), 'badge-ranks': (['seals'], 128)}
 ART_MAX = 256
 COLS = 10
 EDITS = os.path.join(ROOT, 'src', 'art', 'art-edits.json')
@@ -32,12 +32,16 @@ REFRESH = {n for a in sys.argv if a.startswith('--refresh=') for n in a.split('=
 PXICONS = os.path.join(ROOT, 'src', 'ui', 'pxicons.ts')
 
 
+def const_name(atlas):
+    return atlas.replace('-', '_').upper()
+
+
 def old_positions(atlas):
     """Casa (coluna, linha) de cada item no atlas atual, lida do pxicons.ts gerado da última vez."""
     if not os.path.exists(PXICONS):
         return {}
     for line in open(PXICONS, encoding='utf8'):
-        if line.startswith(f'export const {atlas.upper()}:'):
+        if line.startswith(f'export const {const_name(atlas)}:'):
             return {n: (int(c), int(r)) for n, c, r in re.findall(r"'([^']+)': \[(\d+), (\d+)\]", line)}
     return {}
 
@@ -169,7 +173,7 @@ for atlas, (groups, cell) in ATLASES.items():
     for g in groups:
         for f in sorted(glob.glob(os.path.join(SRC, g, '*.png'))):
             name = os.path.splitext(os.path.basename(f))[0]
-            if name in old and name not in REFRESH:
+            if name in old and name not in REFRESH and before.width >= (old[name][0] + 1) * cell:
                 c, r = old[name]
                 items.append((name, before.crop((c * cell, r * cell, (c + 1) * cell, (r + 1) * cell)), True))
                 kept += 1
@@ -179,19 +183,20 @@ for atlas, (groups, cell) in ATLASES.items():
                 print('vazio:', f)
                 continue
             items.append((name, defringe(fit(im, cell, True), 1), False))
-    rows = max(1, (len(items) + COLS - 1) // COLS)
-    sheet = Image.new('RGBA', (COLS * cell, rows * cell), (0, 0, 0, 0))
+    cols = max(1, min(COLS, len(items)))  # atlas pequeno (selos) fica só da largura do que tem
+    rows = max(1, (len(items) + cols - 1) // cols)
+    sheet = Image.new('RGBA', (cols * cell, rows * cell), (0, 0, 0, 0))
     pos = {}
     for i, (name, im, whole) in enumerate(items):
-        x, y = (i % COLS) * cell, (i // COLS) * cell
+        x, y = (i % cols) * cell, (i // cols) * cell
         if whole:
             sheet.paste(im, (x, y))  # a casa inteira, como foi editada
         else:
             sheet.paste(im, (x + (cell - im.width) // 2, y + (cell - im.height) // 2), im)
-        pos[name] = (i % COLS, i // COLS)
+        pos[name] = (i % cols, i // cols)
     save_small(sheet, out)
-    maps[atlas] = (pos, rows)
-    print(f'{atlas}: {len(items)} em {COLS}x{rows} ({cell}px)' + (f' · {kept} casas mantidas (editado à mão; --force ou --refresh=nome refaz)' if edited else ''))
+    maps[atlas] = (pos, cols, rows)
+    print(f'{atlas}: {len(items)} em {cols}x{rows} ({cell}px)' + (f' · {kept} casas mantidas (editado à mão; --force ou --refresh=nome refaz)' if edited else ''))
 
 art = []
 for f in sorted(glob.glob(os.path.join(SRC, 'art', '*.png'))):
@@ -212,17 +217,17 @@ for f in glob.glob(os.path.join(DST, 'art', '*.png')):
         os.remove(f)
 print('art:', len(art))
 
-lines = ['// Gerado por scripts/prepare-ui.py: assets de interface em pixel art (atlas de ícones e de cartões, ilustrações).', '']
+lines = ['// Gerado por scripts/prepare-ui.py: assets de interface em pixel art (atlas de ícones e dos selos de rank, ilustrações).', '']
 for atlas in maps:
-    lines.append(f"import {atlas}Atlas from '../art/ui/{atlas}.png';")
+    lines.append(f"import atlas_{atlas.replace('-', '_')} from '../art/ui/{atlas}.png';")
 for n in art:
     lines.append(f"import ar_{n.replace('-', '_')} from '../art/ui/art/{n}.png';")
 lines.append('')
 lines.append('/** Um atlas: imagem, colunas × linhas e a casa (coluna, linha) de cada item. */')
 lines.append('export interface Atlas { url: string; cols: number; rows: number; pos: Record<string, [number, number]> }')
-for atlas, (pos, rows) in maps.items():
+for atlas, (pos, cols, rows) in maps.items():
     body = ', '.join(f"'{n}': [{c}, {r}]" for n, (c, r) in pos.items())
-    lines.append(f'export const {atlas.upper()}: Atlas = {{ url: {atlas}Atlas, cols: {COLS}, rows: {rows}, pos: {{ {body} }} }};')
+    lines.append(f"export const {const_name(atlas)}: Atlas = {{ url: atlas_{atlas.replace('-', '_')}, cols: {cols}, rows: {rows}, pos: {{ {body} }} }};")
 body = ', '.join(f"'{n}': ar_{n.replace('-', '_')}" for n in art)
 lines.append(f'export const ART: Record<string, string> = {{ {body} }};')
 with open(os.path.join(ROOT, 'src', 'ui', 'pxicons.ts'), 'w', encoding='utf8', newline='\n') as fh:

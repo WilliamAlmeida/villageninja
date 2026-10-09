@@ -38,9 +38,8 @@ for _name in list(BUILDINGS):
             if _name in FLIP:
                 FLIP.add(f'{_name}-{_lv}')
 # altura (px) do quadro na folha final — ≈ 2× a altura em que aparece no mundo
-SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'biped'),
-          **{f'ninja-hair-{s}': (56, 'biped') for s in ('spiky', 'ponytail', 'short', 'long', 'buns', 'bald')},
-          'ninja-base': (56, 'biped'),  # corpo-base das camadas (scripts/prepare-layers.py)
+SHEETS = {'villager': (56, 'biped'), 'rogue': (56, 'biped'),
+          'ninja-base': (56, 'biped'),  # corpo-base das camadas: vai para docs/arte/layers (entrada do prepare-layers.py)
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
@@ -52,8 +51,9 @@ SHEETS = {'ninja': (56, 'biped'), 'villager': (56, 'biped'), 'rogue': (56, 'bipe
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
 TRUST_FACING = {'spider', 'slug', 'dog-white'}
 SAME_SCALE = {'chest-open': 'chest'}
-SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump': 48, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
+SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3
+TOOL_ONLY = {'ninja-base'}
 problems: list[str] = []
 
 
@@ -81,8 +81,10 @@ def save(im, name, palette=False):
     im = crisp(im)
     if palette:  # 256 cores com transparência: segura o peso do PNG em 2× (a arte reduzida tem milhares de tons)
         im = im.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-    im.save(OUT / f'{name}.png', optimize=True)
-    print(f'{name}.png', im.size, f'{(OUT / f"{name}.png").stat().st_size / 1024:.1f} KB')
+    # o corpo-base não vai para o jogo: é só a entrada das camadas (prepare-layers.py)
+    dest = Path('docs/arte/layers') if name in TOOL_ONLY else OUT
+    im.save(dest / f'{name}.png', optimize=True)
+    print(f'{name}.png', im.size, f'{(dest / f"{name}.png").stat().st_size / 1024:.1f} KB')
 
 
 def similarity(a, b, size=(40, 40)):

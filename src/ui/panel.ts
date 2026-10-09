@@ -40,7 +40,7 @@ import {
   recommendTeam, teamPower, teamsForMission, templateOf, type MissionRisk,
 } from '../game/missions';
 import { artPortrait, bladeIcon, kagePortrait, swordsmanPortrait, unitPortrait } from '../render/sprites';
-import { ART, CARDS, ICONS } from './pxicons';
+import { ART, BADGE_RANKS, ICONS } from './pxicons';
 import missionScrollUrl from '../art/ui-scroll.png';
 import { missionFocus } from '../game/missionView';
 import { currentKage, electionStatus, electKage, KAGE_COST, KAGE_MIN_LEVEL } from '../game/kage';
@@ -58,7 +58,7 @@ import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, cl
 import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
-import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemSlot } from '../data/items';
+import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemDef, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, carried, carryMax, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, owned, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
 import { duraOf, wearStage, type WearStage } from '../game/gearBonus';
 import { hasWornGear, pendingRepairs, repairAll, repairBlock, repairUnit, setAutoRepair, unitRepairCost, weekUse, wornStock } from '../game/wear';
@@ -212,6 +212,8 @@ const WEAR_TIP: Record<WearStage, string> = {
   broken: 'Quebrada: não dá bônus nenhum até passar na Forja.',
   blunt: 'Cega: a lâmina lendária perde 30% do dano até passar na Forja.',
 };
+/** Ícone de um item: sempre a pixel art (casa do atlas mesmo havendo glifo; lâmina lendária = recorte do sprite). */
+const itemPx = (d: ItemDef) => (d.blade ? pimg(bladeIcon(d.blade), 'inv-blade') : pxIco(d.icon.slice(1, -1)));
 const infoTip = (title: string, text: string) => `<span class="itip" ${tipAttr(title, text, true)}>{info}</span>`;
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
   safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
@@ -1041,7 +1043,7 @@ export class Panel {
   /** Ícone de um item: a espada recortada do sprite (lâminas lendárias) ou o ícone do item. */
   private itemIcon(id: string) {
     const d = ITEMS[id]!;
-    return d.blade ? pimg(bladeIcon(d.blade), 'inv-blade') : `<span class="inv-ic">${d.icon}</span>`;
+    return d.blade ? itemPx(d) : `<span class="inv-ic">${itemPx(d)}</span>`;
   }
 
   /**
@@ -1412,7 +1414,7 @@ export class Panel {
     html += `<div class="ws-sec ws-a"><h4>{luggage} Estoque${type === 'forge' ? '' : ` ${infoTip('Gasto na semana', 'Quantos foram usados em combate nos últimos 7 dias: ajuda a escolher quanto manter.')}`}</h4><div class="ws-stock">${recipes
       .map((r) => {
         const week = r.slot === 'item' ? weekUse(g.state, r.id) : -1;
-        return `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${r.icon}</span><span>${esc(r.name)}${week >= 0 ? `<small class="ws-week">${week} na semana</small>` : ''}</span><b>${stock(g, r.id)}</b></span>`;
+        return `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${itemPx(r)}</span><span>${esc(r.name)}${week >= 0 ? `<small class="ws-week">${week} na semana</small>` : ''}</span><b>${stock(g, r.id)}</b></span>`;
       })
       .join('')}</div></div>`;
     if (type === 'forge') html += this.repairSection(bd, 'ws-sec ws-c');
@@ -1426,12 +1428,12 @@ export class Panel {
       const k = `cr${bd.id}`;
       b[k] = bd.craft.progress / it.craftTime;
       t[k] = `${Math.floor(b[k] * 100)}%`;
-      html += `<div class="ws-now"><span class="ws-ic big">${it.icon}</span><div><b>${esc(it.name)}</b><div class="xc-prog"><div class="nc-bar xp"><i data-b="${k}"></i></div><span data-t="${k}"></span></div></div></div>`;
+      html += `<div class="ws-now"><span class="ws-ic big">${itemPx(it)}</span><div><b>${esc(it.name)}</b><div class="xc-prog"><div class="nc-bar xp"><i data-b="${k}"></i></div><span data-t="${k}"></span></div></div></div>`;
     } else html += `<div class="ws-now idle"><span class="ws-ic big">{gear}</span><b>Nada em produção</b></div>`;
     html += `<h4>{todo} Fila de produção <small>${used}/${max}</small></h4><div class="ws-queue">`;
     for (let i = 0; i < max; i++) {
       const id = i === 0 ? bd.craft?.itemId : q[bd.craft ? i - 1 : i];
-      html += id ? `<span class="ws-slot on" ${tipAttr(ITEMS[id]!.name, i === 0 && bd.craft ? 'Em produção.' : 'Na fila.', true)}>${ITEMS[id]!.icon}</span>` : `<span class="ws-slot"></span>`;
+      html += id ? `<span class="ws-slot on" ${tipAttr(ITEMS[id]!.name, i === 0 && bd.craft ? 'Em produção.' : 'Na fila.', true)}>${itemPx(ITEMS[id]!)}</span>` : `<span class="ws-slot"></span>`;
     }
     if (used) html += `<button class="ws-slot x" data-act="ws-cancel" data-arg="${bd.id}" ${tipAttr('Cancelar o último', 'Devolve os recursos do último pedido.')}>{x}</button>`;
     html += `</div></div>`;
@@ -1442,7 +1444,7 @@ export class Panel {
       const locked = (r.minLevel ?? 0) > g.state.level;
       const keep = bd.keep?.[r.id] ?? 0;
       const time = Math.round(r.craftTime / craftMult(bd));
-      html += `<div class="wsrow ${locked ? 'locked' : ''}"><span class="ws-ic">${r.icon}</span><div class="wsr-main"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${esc(r.name)}</span><span class="mchip">${stock(g, r.id)} no estoque</span></div>
+      html += `<div class="wsrow ${locked ? 'locked' : ''}"><span class="ws-ic">${itemPx(r)}</span><div class="wsr-main"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${esc(r.name)}</span><span class="mchip">${stock(g, r.id)} no estoque</span></div>
         <div class="wsr-cost">${costLabel(r.cost)} · ${time}s</div>`;
       if (locked) html += `<div class="why">{lock} Requer ${levelDef(r.minLevel!).name}</div>`;
       else if (r.blade) {
@@ -1905,8 +1907,8 @@ export class Panel {
         <div class="k-main"><div class="k-name">${esc(k.name)}</div>
         <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{castle} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
       if (art) {
-        const pic = ART['kunai-card'] ?? ART['kunai-hiraishin'];
-        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row"><span class="kart-pic ${ART['kunai-card'] ? 'full' : ''}">${pimg(pic)}</span>
+        const pic = ART['kunai-card'];
+        html += `<div class="kart"><b class="kart-t">${esc(art.name)}</b><div class="kart-row"><span class="kart-pic full">${pimg(pic)}</span>
           <div class="kart-info"><div class="k-chips one"><span class="mchip">{drop} Chakra ${art.chakra}</span><span class="mchip">{hourglass} Recarga ${art.cooldown}s</span><span class="mchip">{clock} Marca ${art.markLife}s</span></div>
           <p ${tipAttr(art.name, art.desc, true)}>Kunais marcadas; teleporte em clarão amarelo e retorno à Residência ao cair.</p></div></div></div>`;
       }
@@ -2240,23 +2242,23 @@ export class Panel {
     const MAX_QUEUE = queueMax(bd);
     let html = `<div class="actions"><button class="btn primary" data-act="win" data-arg="crafts">{anvil} Abrir painel das Oficinas</button></div>`;
     html += `<h4>Estoque</h4><div class="btnrow">`;
-    for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}${r.slot === 'item' ? ` <small>· ${weekUse(g.state, r.id)} na semana</small>` : ''}</span>`;
+    for (const r of recipes) html += `<span class="badge">${itemPx(r)} ${esc(r.name)}: ${stock(g, r.id)}${r.slot === 'item' ? ` <small>· ${weekUse(g.state, r.id)} na semana</small>` : ''}</span>`;
     html += `</div>`;
     if (bd.type === 'forge' && bd.built) html += this.repairSection(bd, 'ws-dfix');
     const queue = bd.queue ?? [];
     html += `<h4>Produção (${queue.length + (bd.craft ? 1 : 0)}/${MAX_QUEUE})</h4>`;
     if (bd.craft) {
       const d = ITEMS[bd.craft.itemId]!;
-      html += `<div class="hint">${d.icon} ${esc(d.name)}</div><div class="bar pg"><i data-b="craft"></i><span data-t="craft"></span></div>`;
+      html += `<div class="hint">${itemPx(d)} ${esc(d.name)}</div><div class="bar pg"><i data-b="craft"></i><span data-t="craft"></span></div>`;
       b.craft = bd.craft.progress / d.craftTime;
       t.craft = `${Math.floor(b.craft * 100)}%`;
     } else html += `<p class="hint">${bd.workers.length ? 'Nada em produção.' : 'Sem artesão: aumente os trabalhadores (+).'}</p>`;
-    if (queue.length) html += `<p class="hint">Na fila: ${queue.map((id) => ITEMS[id]!.icon).join(' ')}</p>`;
+    if (queue.length) html += `<p class="hint">Na fila: ${queue.map((id) => itemPx(ITEMS[id]!)).join(' ')}</p>`;
     if (queue.length || bd.craft) html += `<div class="btnrow"><button class="btn" data-act="craft-cancel" ${tipAttr('Cancelar último', 'Tira o último pedido da fila e devolve os recursos.')}>{x} Cancelar último</button></div>`;
     html += `<h4>Receitas</h4><div class="scrollist jscroll">`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
-      html += `<div class="jcard ${locked ? 'locked' : ''}"><div class="jn">${r.icon} ${esc(r.name)} <small>· ${SLOT_LABEL[r.slot]}</small></div>
+      html += `<div class="jcard ${locked ? 'locked' : ''}"><div class="jn">${itemPx(r)} ${esc(r.name)} <small>· ${SLOT_LABEL[r.slot]}</small></div>
         <div class="jm">${costLabel(r.cost)} · ${r.craftTime}s</div><div class="jd">${esc(r.desc)}</div>
         <div class="jb">${locked ? `<span class="why">{lock} Requer ${levelDef(r.minLevel!).name}</span>` : r.blade && g.state.blades.includes(r.blade) ? `<span class="mpill safe">{check} Forjada</span>` : `<button class="btn primary" data-act="craft" data-arg="${r.id}" ${blocked(g, [queue.length + (bd.craft ? 1 : 0) >= MAX_QUEUE && `A fila está cheia (máximo ${MAX_QUEUE}).`, r.blade && craftBlock(g, bd, r.id)], r.cost)}>${r.blade ? 'Forjar' : 'Fabricar'}</button>`}</div></div>`;
     }
@@ -2311,7 +2313,7 @@ export class Panel {
 
   /** Selo do rank: pergaminho com o lacre de cera (ou só o lacre, pequeno). */
   private seal(label: string, color: string, small = false) {
-    const px = atlasCell(CARDS, `seal-${label}`, 'wax');
+    const px = atlasCell(BADGE_RANKS, `seal-${label}`, 'wax');
     return `<span class="mseal ${small ? 'sm' : ''} ${px ? 'px' : ''}" style="--c:${color}">${small ? '' : `<img src="${missionScrollUrl}" alt="" draggable="false">`}${px ?? `<b>${label}</b>`}</span>`;
   }
 

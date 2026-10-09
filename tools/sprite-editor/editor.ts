@@ -3,7 +3,7 @@
 // PNG de src/art, inclusive os de interface (src/art/ui: atlas de ícones e selos, ilustrações). Salvar grava em src/art
 // pelo servidor local (scripts/editor.ts).
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
-import { type Atlas, CARDS, ICONS } from '../../src/ui/pxicons';
+import { type Atlas, BADGE_RANKS, ICONS } from '../../src/ui/pxicons';
 import type { Layout } from '../../src/data/layout';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
@@ -35,7 +35,7 @@ const PART_NAMES: Record<string, string> = {
 for (const [k, n] of Object.entries(SWORD_NAMES)) PART_NAMES[`layer-sword-${k}`] = `Espada: ${n}`;
 for (const [k, n] of Object.entries(MASK_NAMES)) PART_NAMES[`layer-mask-${k}`] = `Máscara: ${n}`;
 /** Atlas de interface: abrem divididos nas casas (cada quadro = um ícone/selo); o nome de cada casa vem do pxicons.ts. */
-const ATLASES: Record<string, Atlas> = { 'ui/icons': ICONS, 'ui/cards': CARDS };
+const ATLASES: Record<string, Atlas> = { 'ui/icons': ICONS, 'ui/badge-ranks': BADGE_RANKS };
 const SHEET_RE = /^(ninja|villager|rogue|org-|layer-|dog|boar|wolf|bear|snake|crow|monkey|spider|tiger|rhino|hydra|golem|puppet|toad|slug|tower-guard)/;
 const KEY_SWATCHES = [
   ['#ff8cff', '#ff00ff', '#a0009f'], ['#fff799', '#ffee00', '#b0a000'], ['#9ff6ff', '#00e5ff', '#0090a0'], ['#7dff8a', '#2ecc40', '#1e8a2b'], ['#18101c'],

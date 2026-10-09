@@ -20,7 +20,6 @@ import monument from '../art/monument.png';
 import farm from '../art/farm.png';
 import training from '../art/training.png';
 import herbgarden from '../art/herbgarden.png';
-import ninja from '../art/ninja.png';
 import villager from '../art/villager.png';
 import rogue from '../art/rogue.png';
 import boar from '../art/boar.png';
@@ -34,7 +33,6 @@ import herb from '../art/herb.png';
 import chop from '../art/villager-chop.png';
 import mine from '../art/villager-mine.png';
 import hoe from '../art/villager-farm.png';
-import stump from '../art/stump.png';
 import rockCracked from '../art/rock-cracked.png';
 import stump0 from '../art/stump0.png';
 import stump1 from '../art/stump1.png';
@@ -62,12 +60,6 @@ import academy3 from '../art/academy-3.png';
 import hokage2 from '../art/hokage-2.png';
 import hokage3 from '../art/hokage-3.png';
 import hokage4 from '../art/hokage-4.png';
-import hairSpiky from '../art/ninja-hair-spiky.png';
-import hairPonytail from '../art/ninja-hair-ponytail.png';
-import hairShort from '../art/ninja-hair-short.png';
-import hairLong from '../art/ninja-hair-long.png';
-import hairBuns from '../art/ninja-hair-buns.png';
-import hairBald from '../art/ninja-hair-bald.png';
 // ninja em camadas (scripts/prepare-layers.py): corpo-base com folga no quadro + peças em cor-chave
 import ninjaBody from '../art/ninja-body.png';
 import layerOutfitGenin from '../art/layer-outfit-genin.png';
@@ -89,7 +81,6 @@ import swordSakumo from '../art/sword-sakumo.png';
 import swordAsuma from '../art/sword-asuma.png';
 import swordRaijin from '../art/sword-raijin.png';
 import swordBee from '../art/sword-bee.png';
-import swordTanto from '../art/sword-tanto.png';
 
 import layerVestChunin from '../art/layer-vest-chunin.png';
 import layerHairSpiky from '../art/layer-hair-spiky.png';
@@ -176,12 +167,12 @@ import dogBull from '../art/dog-bull.png';
 import toad from '../art/toad.png';
 import slug from '../art/slug.png';
 
-const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, ninja, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
-  'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
+const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
+  'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
   'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
-  'ninja-hair-spiky': hairSpiky, 'ninja-hair-ponytail': hairPonytail, 'ninja-hair-short': hairShort, 'ninja-hair-long': hairLong, 'ninja-hair-buns': hairBuns, 'ninja-hair-bald': hairBald, 'ninja-body': ninjaBody, 'layer-outfit-genin': layerOutfitGenin, 'layer-headband': layerHeadband, 'layer-vest-jounin': layerVestJounin, 'layer-coat-sannin': layerCoatSannin, 'layer-cloak-kage': layerCloakKage, 'layer-hat-kage': layerHatKage, 'layer-sword-zabuza': layerSwordZabuza, 'sword-zabuza': swordZabuza, 'sword-samehada': swordSamehada, 'sword-kiba': swordKiba, 'sword-hiramekarei': swordHiramekarei, 'sword-nuibari': swordNuibari, 'sword-kabutowari': swordKabutowari, 'sword-shibuki': swordShibuki, 'sword-kusanagi': swordKusanagi, 'sword-sakumo': swordSakumo, 'sword-asuma': swordAsuma, 'sword-raijin': swordRaijin, 'sword-bee': swordBee, 'sword-tanto': swordTanto, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'layer-hair-ponytail': layerHairPonytail, 'layer-hair-short': layerHairShort, 'layer-hair-long': layerHairLong, 'layer-hair-buns': layerHairBuns, 'layer-outfit-anbu': layerOutfitAnbu, 'layer-sword-samehada': layerSwordSamehada, 'layer-sword-kiba': layerSwordKiba, 'layer-sword-hiramekarei': layerSwordHiramekarei, 'layer-sword-nuibari': layerSwordNuibari, 'layer-sword-kabutowari': layerSwordKabutowari, 'layer-sword-shibuki': layerSwordShibuki, 'layer-sword-kusanagi': layerSwordKusanagi, 'layer-sword-sakumo': layerSwordSakumo, 'layer-sword-asuma': layerSwordAsuma, 'layer-sword-raijin': layerSwordRaijin, 'layer-sword-bee': layerSwordBee, 'layer-sword-tanto': layerSwordTanto, 'layer-mask-fox': layerMaskFox, 'layer-mask-tiger': layerMaskTiger, 'layer-mask-crow': layerMaskCrow, 'layer-mask-owl': layerMaskOwl, 'layer-mask-boar': layerMaskBoar, 'layer-mask-hawk': layerMaskHawk, 'layer-mask-bear': layerMaskBear, 'layer-mask-monkey': layerMaskMonkey, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, 'chest-open': chestOpen, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
+  'ninja-body': ninjaBody, 'layer-outfit-genin': layerOutfitGenin, 'layer-headband': layerHeadband, 'layer-vest-jounin': layerVestJounin, 'layer-coat-sannin': layerCoatSannin, 'layer-cloak-kage': layerCloakKage, 'layer-hat-kage': layerHatKage, 'layer-sword-zabuza': layerSwordZabuza, 'sword-zabuza': swordZabuza, 'sword-samehada': swordSamehada, 'sword-kiba': swordKiba, 'sword-hiramekarei': swordHiramekarei, 'sword-nuibari': swordNuibari, 'sword-kabutowari': swordKabutowari, 'sword-shibuki': swordShibuki, 'sword-kusanagi': swordKusanagi, 'sword-sakumo': swordSakumo, 'sword-asuma': swordAsuma, 'sword-raijin': swordRaijin, 'sword-bee': swordBee, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'layer-hair-ponytail': layerHairPonytail, 'layer-hair-short': layerHairShort, 'layer-hair-long': layerHairLong, 'layer-hair-buns': layerHairBuns, 'layer-outfit-anbu': layerOutfitAnbu, 'layer-sword-samehada': layerSwordSamehada, 'layer-sword-kiba': layerSwordKiba, 'layer-sword-hiramekarei': layerSwordHiramekarei, 'layer-sword-nuibari': layerSwordNuibari, 'layer-sword-kabutowari': layerSwordKabutowari, 'layer-sword-shibuki': layerSwordShibuki, 'layer-sword-kusanagi': layerSwordKusanagi, 'layer-sword-sakumo': layerSwordSakumo, 'layer-sword-asuma': layerSwordAsuma, 'layer-sword-raijin': layerSwordRaijin, 'layer-sword-bee': layerSwordBee, 'layer-sword-tanto': layerSwordTanto, 'layer-mask-fox': layerMaskFox, 'layer-mask-tiger': layerMaskTiger, 'layer-mask-crow': layerMaskCrow, 'layer-mask-owl': layerMaskOwl, 'layer-mask-boar': layerMaskBoar, 'layer-mask-hawk': layerMaskHawk, 'layer-mask-bear': layerMaskBear, 'layer-mask-monkey': layerMaskMonkey, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, 'chest-open': chestOpen, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
   // Ordem do Eclipse
   'org-goen': orgGoen, 'org-tetsuo': orgTetsuo, 'org-mizuchi': orgMizuchi, 'org-raiga': orgRaiga, 'org-kagero': orgKagero, 'org-shiryo': orgShiryo, 'org-tsuchigumo': orgTsuchigumo, 'org-yomi': orgYomi, 'sound-iwao': soundIwao, 'sound-kumomaru': soundKumomaru, 'sound-kanade': soundKanade, 'sound-sokon': soundSokon, 'sound-hakkotsu': soundHakkotsu };
 
@@ -193,7 +184,7 @@ export const SHEET_ROWS = { side: 0, front: 1, back: 2 } as const;
 const SHEET = { frames: 4, rows: 3, idle: 1 };
 /** Bases de ninja (uma por penteado) desenhadas em cores-chave: cabelo verde e roupa azul, recoloridas por ninja. */
 export const NINJA_HAIRSTYLES = ['spiky', 'ponytail', 'short', 'long', 'buns', 'bald'] as const;
-const SHEETS = new Set(['ninja', 'ninja-body', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', 'org-goen', 'org-tetsuo', 'org-mizuchi', 'org-raiga', 'org-kagero', 'org-shiryo', 'org-tsuchigumo', 'org-yomi', 'sound-iwao', 'sound-kumomaru', 'sound-kanade', 'sound-sokon', 'sound-hakkotsu', ...NINJA_HAIRSTYLES.map((h) => `ninja-hair-${h}`)]);
+const SHEETS = new Set(['ninja-body', 'villager', 'rogue', 'boar', 'wolf', 'bear', 'snake', 'crow', 'monkey', 'spider', 'tiger', 'rhino', 'hydra', 'golem', 'puppet', 'dog', 'dog-white', 'dog-pug', 'dog-bull', 'toad', 'slug', 'villager-chop', 'villager-mine', 'villager-farm', 'tower-guard', 'org-goen', 'org-tetsuo', 'org-mizuchi', 'org-raiga', 'org-kagero', 'org-shiryo', 'org-tsuchigumo', 'org-yomi', 'sound-iwao', 'sound-kumomaru', 'sound-kanade', 'sound-sokon', 'sound-hakkotsu']);
 
 const images = new Map<string, HTMLImageElement>();
 

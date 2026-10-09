@@ -37,11 +37,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   contato · passagem · contato · passagem (parado = coluna 2). `prepare-art.py` fatia pela grade e valida
   (quadro vazio, altura, direção pelo rosto/gabarito, ordem do ciclo), corrigindo o que dá e listando o resto.
   Para incluir um novo: gere, adicione em `SHEETS` do `prepare-art.py` e no `URLS`/`SHEETS` de `render/art.ts`.
-- **Ninjas "paper doll"**: bases `ninja-hair-<penteado>` desenhadas em cores-chave (cabelo verde puro, roupa azul pura);
-  `tintedArt` (render/art.ts) recolore pelo `look` da unidade (cabelo/roupa/pele) e o penteado sai do id. Há 6 penteados (inclui careca, com olhos escuros para não pegar a cor da roupa). Penteado novo =
-  gerar com as mesmas cores-chave e incluir em `NINJA_HAIRSTYLES`.
-- **Ninja em camadas** (substituindo aos poucos as folhas por penteado): corpo-base careca de malha cinza
-  (`docs/arte/sprites/ninja-base.png` → `src/art/ninja-base.png`) + peças, cada uma num pedido separado ao Codex desenhada
+- **Ninjas**: o penteado sai do id (`NINJA_HAIRSTYLES`, 6 com careca) e as cores do `look` (`tintedArt`/`dollArt` recolorem
+  as cores-chave). As folhas antigas por penteado (`ninja-hair-*`, `ninja.png`) saíram: o ninja é sempre montado em camadas.
+- **Ninja em camadas**: corpo-base careca de malha cinza
+  (`docs/arte/sprites/ninja-base.png` → `docs/arte/layers/ninja-base.png`, só entrada do prepare-layers, não vai para o jogo) + peças, cada uma num pedido separado ao Codex desenhada
   por cima de um MOLDE (o corpo já montado com as peças de baixo, `under` em `PIECES`, para a peça acompanhar os pixels
   do que fica embaixo) em cor-chave (roupa magenta, segunda cor amarelo, metal ciano, cabelo verde):
   `python scripts/prepare-layers.py tpl <peça>` grava o molde; `bash scripts/layer-pieces.sh <peça>` gera a folha inteira
@@ -53,7 +52,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   sete espadas do Bee, tantō: o sprite mostra a lâmina lendária EQUIPADA, `bladeOf`) e ANBU (`outfit-anbu` + máscara
   `mask-<animal>` pelo melhor atributo, `data/anbu.ts`; veste quem foi nomeado, `NinjaInfo.anbu`). Máscaras só geram a
   folha inteira (sem a vista de lado). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
-  Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo sem camada segue na folha antiga. Prévia: `python scripts/preview-layers.py`.
+  Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo precisa da camada. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
 - **Ferramentas** em http://localhost:3011: a raiz é o início com os três editores (cada um tem o link "Início").
   **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011/spr (`bun run editor` ou PM2
@@ -127,8 +126,13 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   no lugar do SVG quando existe; a moeda de ryo é a referência de estilo), selos de rank (`SEALS`), kunai do Hiraishin,
   animais dos Sannin e cenas das estações/festival/vila (`ART`). Tokens do tema (cores, bordas âmbar, botões com relevo)
   no bloco "Tema fiel aos mockups" no fim de styles.css.
-  **Atlas**: ícones (64 px) em `src/art/ui/icons.png` e selos de rank (128 px) em `cards.png`, desenhados por `atlasCell`
-  (icons.ts); um arquivo só em vez de dezenas (pelo túnel, PNGs soltos atrasavam as janelas). Ilustrações soltas até
+  **Atlas**: ícones (64 px) em `src/art/ui/icons.png` e selos de rank (128 px, uma linha com os 5) em `badge-ranks.png`,
+  desenhados por `atlasCell` (icons.ts); um arquivo só em vez de dezenas (pelo túnel, PNGs soltos atrasavam as janelas).
+  **Organização das artes**: interface = glifo; recurso e item = casa do atlas (item SEMPRE em pixel art: `itemPx` em panel.ts
+  força a casa mesmo havendo glifo, e cada item tem o seu ícone: `vest-crystal`, `chakra-crystal`, `blade-dark`; lâmina
+  lendária = recorte do sprite); o atlas só guarda o que aparece (ícone com glifo e sem `pxIco` não entra; `.perf/atlaskeep.py`
+  confere); ilustração maior que 64 px solta em `ui/art`; o que é desenhado no mapa (recolorido/animado/em peças) solto em
+  `src/art`. O que saiu fica em `docs/arte/_backup/<data>/` com um LEIAME (o autor apaga à mão). Ilustrações soltas até
   256 px, pré-carregadas. **Gerar vários de uma vez**: `scripts/ui-grid.py` pede uma grade (ex.: 4×4) numa geração e
   fatia — gasta 1/16 da cota. **Bustos dos ninjas** (`src/art/bust-<penteado>.png`, cores-chave como as bases dos
   sprites): `unitPortrait(u)` recolore com `tintedArt`; `unitPortrait(u, true)` dá o corpo inteiro do sprite. Emblemas
@@ -175,7 +179,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Tomadas as sete, continuam vindo atrás delas (o primeiro derrubado cai e dá ryo). Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
   Quinteto do Som ficam na aba **Bingo Book** da janela Vila (`View 'bingo'`); a aba Kage tem o Kage, a ANBU e os Sannin
   No Bingo Book todos aparecem pelo sprite (`artPortrait(org-<id>, true)` / `swordsmanPortrait`), num padrão só (os bustos
-  pintados da Ordem saíram do atlas `cards.png`, que ficou só com os selos de rank); `.bingo` deixa todos os cartões com a mesma altura).
+  pintados da Ordem saíram; o atlas dos selos é `badge-ranks.png`); `.bingo` deixa todos os cartões com a mesma altura).
 - **Quinteto do Som** (`data/sound.ts`, `game/sound.ts`, `state.sound`, arte `sound-<membro>` via `scripts/sound-sprites.sh`):
   da Vila Oculta em diante, 4 membros invadem para RAPTAR o ninja mais talentoso (`soundTarget`: kekkei genkai, nível,
   atributos; nunca Kage nem Sannin). `soundBrain` (hostiles): vão atrás dele (até dentro de casa), um carrega
@@ -203,7 +207,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `walkableCell`), a busca de caminho anda nas células (`findPathPx`/`findCells`; `u.path` guarda índices de célula,
   `cellCenter`); `World.blocked`/`walkable(tx,ty)` seguem em tiles (bloqueado se qualquer pedaço for) para escolher
   lugar de nascer/trabalhar. Caminho que começa dentro de muro sai pela célula livre mais perto. **Objetos de cenário**
-  também têm terreno, pela arte do estágio (`nodeArt`: tree0/tree1/stump/rock/rock-cracked/ore/herb; `nodeTiles`):
+  também têm terreno, pela arte do estágio (`nodeArt`: tree0/tree1/stump0/stump1/rock/rock-cracked/rock-pebbles/ore/ore-empty/herb; `nodeTiles`):
   rocha, rocha rachada e veio vêm com 1 tile; árvores livres. Estágios (`nodeArt`, o mesmo para colisão e desenho): toco de
   cada árvore (`stump0` folhosa, `stump1` pinheiro), rocha rachada depois da metade, rocha esgotada some numa nuvem e deixa
   `rock-pebbles` (sem colisão) até voltar, veio esgotado vira `ore-empty` (sem os cristais). Recurso é obstáculo MACIO (`World.soft`): o A* desvia

@@ -100,6 +100,11 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - **Padrão ícone-quantidade**: em pares de recurso e valor, o ícone vem primeiro e a quantia depois (ex.: `{ryo} 30`). Use uma `.lchip` quando couber uma etiqueta compacta por recurso, com fonte pequena e em negrito; em texto corrido, mantenha a ordem sem criar cartão. `costLabel` segue esse formato. Em texto puro (tooltip/título), `plainTokens` continua convertendo para "30 ryo". Não escrever a quantia antes do token (ex.: `30{ryo}`).
 - **Interface = SVG liso do Phosphor** com cor por tipo (`.ic-<nome>`): títulos, abas, etiquetas, botões, selos.
 - **Pixel art só para** recursos, itens, retratos, bustos, animais, cenas e selos de rank; no máximo 64 px e no atlas.
+- **Item é sempre pixel art** (nunca o glifo, mesmo com o mesmo nome) e **cada item tem o seu ícone**: nada de o mesmo
+  ícone para coisas diferentes (o cristal não pode servir de recurso, colete e cristal de chakra). Item novo derivado de
+  outro (colete de cristal) nasce do ícone do original como referência.
+- Arquivos organizados: o que sai do jogo vai para `docs/arte/_backup/<data>/` com LEIAME, nunca apagado direto; nomes
+  dizem o que são (`badge-ranks.png`, não `cards.png`).
 - Listas que precisam de visual uniforme (números das Estatísticas, marcos e requisitos da Vila) usam só glifos, todos
   na mesma cor bege. O que o Phosphor não tem é desenhado à mão no mesmo estilo (`kage`, `shinobi`, `grave`).
 - Barra de atalhos de baixo usa as sprites do atlas.

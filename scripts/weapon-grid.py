@@ -52,10 +52,12 @@ if force or not os.path.exists(SHEET):
 
 # O Codex embaralhou a ordem das casas (e ignorou as cores-chave; as cores reais ficam, o tintPixels só mexe nas chaves):
 # casa da grade → espada. A 13ª casa saiu outro cutelo e o tantō usa a katana (encurtada pelo SWORD_LEN do jogo).
-SLICE = {'zabuza': 0, 'sakumo': 1, 'hiramekarei': 2, 'kabutowari': 3, 'kiba': 4, 'nuibari': 5, 'asuma': 6, 'raijin': 7, 'kusanagi': 8, 'samehada': 9, 'shibuki': 10, 'bee': 11, 'tanto': 11}
+SLICE = {'zabuza': 0, 'sakumo': 1, 'hiramekarei': 2, 'kabutowari': 3, 'kiba': 4, 'nuibari': 5, 'asuma': 6, 'raijin': 7, 'kusanagi': 8, 'samehada': 9, 'shibuki': 10, 'bee': 11}  # o tantō da ANBU só existe nas costas (layer-sword-tanto)
 im = Image.open(SHEET).convert('RGBA')
 cw, ch = im.width / COLS, im.height / ROWS
 for name, _ in SWORDS:
+    if name not in SLICE:
+        continue  # tantō: só a camada das costas
     i = SLICE.get(name, SWORDS.index(next(s for s in SWORDS if s[0] == name)))
     x, y = (i % COLS) * cw, (i // COLS) * ch
     cell = im.crop((round(x), round(y), round(x + cw), round(y + ch)))

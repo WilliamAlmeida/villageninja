@@ -123,9 +123,9 @@ const NODE_ART_H: Record<ResourceNode['type'], number> = { tree: 48, rock: 22, o
 export const isStump = (n: ResourceNode) => n.type === 'tree' && n.amount / n.max < 0.25;
 
 /** Altura (px) de cada estágio que não é o recurso inteiro. */
-const STAGE_H: Record<string, number> = { stump0: 20, stump1: 20, stump: 20, 'rock-cracked': 22, 'rock-pebbles': 11, 'ore-empty': 22 };
+const STAGE_H: Record<string, number> = { stump0: 20, stump1: 20, 'rock-cracked': 22, 'rock-pebbles': 11, 'ore-empty': 22 };
 /** Estágio sem arte ainda (carregando, save antigo): o desenho que existia antes. */
-const STAGE_FALLBACK: Record<string, string> = { stump0: 'stump', stump1: 'stump', 'ore-empty': 'rock-cracked', 'rock-pebbles': 'rock-cracked' };
+const STAGE_FALLBACK: Record<string, string> = { 'ore-empty': 'rock-cracked', 'rock-pebbles': 'rock-cracked' };
 
 /** `whole`: desenha a árvore inteira mesmo já sendo toco (a queda, no renderer). */
 export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
@@ -187,7 +187,7 @@ function unitPic(u: Unit, noSword = false) {
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
   const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, mask: u.ninja?.mask, stats: u.ninja?.stats, sword: noSword ? null : bladeOf(u), look: u.look }) : null;
-  return (doll && dollArt(doll, u.look.skin)) ?? tintedArt(`ninja-hair-${style}`, u.look) ?? art('ninja');
+  return doll ? dollArt(doll, u.look.skin) : null; // sem arte ainda: o desenho procedural
 }
 
 
