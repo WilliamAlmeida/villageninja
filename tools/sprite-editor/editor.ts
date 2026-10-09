@@ -273,6 +273,7 @@ function origin() {
 }
 
 function drawStage() {
+  syncFloat();
   const wrap = $('stageWrap');
   if (stage.width !== wrap.clientWidth || stage.height !== wrap.clientHeight) {
     stage.width = wrap.clientWidth;
@@ -469,9 +470,24 @@ function snapLine(a: { x: number; y: number }, b: { x: number; y: number }, on: 
 let lineBase: ImageData | null = null;
 const erasing = (e: PointerEvent | MouseEvent) => tool === 'eraser' || e.button === 2 || (e.buttons & 2) !== 0 || $<HTMLInputElement>('eraseMode').checked;
 
-// mover: a camada ativa no quadro atual (ou nos 4 quadros da vista), recortada no quadro; com seleção, só o retângulo
-let moveSnap: { cells: number[]; rect: Rect; base: HTMLCanvasElement[]; piece: HTMLCanvasElement[] } | null = null;
-function moveStart(l: Layer) {
+/**
+ * Seleção FLUTUANTE (como nos editores de imagem): ao mover uma seleção (ou colar), o pedaço é levantado da camada e
+ * fica solto por cima dela (`base` = o quadro sem o pedaço, `piece` = o pedaço). Cada arrasto ou seta só muda a posição
+ * e recompõe base + pedaço; nada do que está embaixo é cortado. Fixa (vira pixel de verdade) ao mudar de ferramenta,
+ * quadro, camada ou arquivo, com Enter, Esc, nova seleção ou ao salvar. Ctrl+arrastar levanta uma CÓPIA (duplica).
+ */
+let float: { layer: Layer; row: number; col: number; cells: number[]; rect: Rect; pos: { x: number; y: number }; base: HTMLCanvasElement[]; piece: HTMLCanvasElement[] } | null = null;
+/** O flutuante só vale no quadro/camada em que nasceu: se mudou, ele já está fixado (a camada tem a composição). */
+function syncFloat() {
+  if (float && (float.row !== row || float.col !== col || float.layer !== activeLayer() || (tool !== 'select' && tool !== 'move'))) float = null;
+}
+function commitFloat() {
+  if (!float) return;
+  float = null;
+  updateStatus();
+}
+/** Levanta a seleção (ou o quadro inteiro) da camada; `copy` deixa o original no lugar (duplica). */
+function liftFloat(l: Layer, copy = false) {
   const { fw, fh, cols } = grid();
   const cells = $<HTMLInputElement>('moveRow').checked ? [...Array(cols).keys()] : [col];
   const rect = sel ?? { x: 0, y: 0, w: fw, h: fh };
@@ -487,28 +503,41 @@ function moveStart(l: Layer) {
     p.width = rect.w;
     p.height = rect.h;
     p.getContext('2d')!.drawImage(b, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
-    bx.clearRect(rect.x, rect.y, rect.w, rect.h); // o que fica para trás: o quadro sem o pedaço
+    if (!copy) bx.clearRect(rect.x, rect.y, rect.w, rect.h); // o que fica para trás: o quadro sem o pedaço
     base.push(b);
     piece.push(p);
   }
-  moveSnap = { cells, rect, base, piece };
+  float = { layer: l, row, col, cells, rect, pos: { x: rect.x, y: rect.y }, base, piece };
+  sel = { ...rect };
+  setStatus(copy ? 'Cópia flutuando: arraste ou use as setas; Enter fixa' : 'Seleção flutuando: arraste ou use as setas; Enter fixa');
 }
-function moveApply(l: Layer, dx: number, dy: number) {
-  if (!moveSnap) return;
+/** Começa um arrasto: usa o flutuante que já existe ou levanta um novo. */
+function moveStart(l: Layer, copy = false) {
+  syncFloat();
+  if (!float || copy) liftFloat(l, copy);
+}
+/** Recompõe o quadro com o pedaço na posição nova (deslocamento em relação ao início do arrasto ou à posição atual). */
+function floatTo(x: number, y: number) {
+  if (!float) return;
   const { fw, fh } = grid();
-  const { rect } = moveSnap;
-  moveSnap.cells.forEach((c, i) => {
+  const { layer: l, rect } = float;
+  float.pos = { x, y };
+  float.cells.forEach((c, i) => {
     l.ctx.save();
     l.ctx.beginPath();
     l.ctx.rect(c * fw, row * fh, fw, fh);
     l.ctx.clip();
     l.ctx.clearRect(c * fw, row * fh, fw, fh);
-    l.ctx.drawImage(moveSnap!.base[i]!, c * fw, row * fh);
-    l.ctx.drawImage(moveSnap!.piece[i]!, c * fw + rect.x + dx, row * fh + rect.y + dy);
+    l.ctx.drawImage(float!.base[i]!, c * fw, row * fh);
+    l.ctx.drawImage(float!.piece[i]!, c * fw + x, row * fh + y);
     l.ctx.restore();
   });
-  if (sel) sel = { ...rect, x: rect.x + dx, y: rect.y + dy };
+  sel = { ...rect, x, y };
   touched(l);
+}
+let moveFrom = { x: 0, y: 0 };
+function moveApply(_l: Layer, dx: number, dy: number) {
+  floatTo(moveFrom.x + dx, moveFrom.y + dy);
 }
 
 const inSel = (p: { x: number; y: number }) => !!sel && p.x >= sel.x && p.y >= sel.y && p.x < sel.x + sel.w && p.y < sel.y + sel.h;
@@ -552,6 +581,7 @@ stage.addEventListener('pointerdown', (e) => {
     return;
   }
   if (tool === 'select' && !inSel(p)) {
+    commitFloat(); // clicou fora: o que flutuava fica onde está
     drag = { kind: 'select', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     sel = rectOf(p, p);
     redraw();
@@ -559,7 +589,8 @@ stage.addEventListener('pointerdown', (e) => {
   }
   pushUndo(l);
   if (tool === 'move' || tool === 'select') {
-    moveStart(l);
+    moveStart(l, e.ctrlKey);
+    moveFrom = { ...float!.pos };
     drag = { kind: 'move', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     return;
   }
@@ -621,7 +652,6 @@ stage.addEventListener('pointermove', (e) => {
 const endDrag = () => {
   drag = null;
   lineBase = null;
-  moveSnap = null;
 };
 stage.addEventListener('pointerup', endDrag);
 stage.addEventListener('pointercancel', endDrag);
@@ -647,10 +677,12 @@ stage.addEventListener(
 function nudge(dx: number, dy: number) {
   const l = activeLayer();
   if (!l) return;
-  pushUndo(l);
-  moveStart(l);
-  moveApply(l, dx, dy);
-  moveSnap = null;
+  syncFloat();
+  if (!float) {
+    pushUndo(l);
+    liftFloat(l);
+  }
+  floatTo(float!.pos.x + dx, float!.pos.y + dy);
 }
 
 // ------------------------------------------------------------------ área de transferência (também a do sistema)
@@ -677,18 +709,22 @@ function pasteImage(src: CanvasImageSource & { width: number; height: number }) 
   const l = activeLayer();
   if (!l) return;
   const { fw, fh } = grid();
+  setTool('select');
+  commitFloat();
   pushUndo(l);
   const at = sel ?? { x: 0, y: 0 };
-  l.ctx.save();
-  l.ctx.beginPath();
-  l.ctx.rect(col * fw, row * fh, fw, fh);
-  l.ctx.clip();
-  l.ctx.drawImage(src, col * fw + at.x, row * fh + at.y);
-  l.ctx.restore();
-  sel = { x: at.x, y: at.y, w: Math.max(1, Math.min(src.width, fw - at.x)), h: Math.max(1, Math.min(src.height, fh - at.y)) };
-  setTool('select');
-  touched(l);
-  if (src.width > fw || src.height > fh) setStatus(`Colado ${src.width}×${src.height}; o quadro tem ${fw}×${fh}, o que passou ficou de fora`);
+  // o colado nasce flutuando: a camada fica como está por baixo (base) e o pedaço vai por cima até fixar
+  const b = document.createElement('canvas');
+  b.width = fw;
+  b.height = fh;
+  b.getContext('2d')!.drawImage(l.canvas, col * fw, row * fh, fw, fh, 0, 0, fw, fh);
+  const p = document.createElement('canvas');
+  p.width = src.width;
+  p.height = src.height;
+  p.getContext('2d')!.drawImage(src, 0, 0);
+  float = { layer: l, row, col, cells: [col], rect: { x: at.x, y: at.y, w: src.width, h: src.height }, pos: { x: at.x, y: at.y }, base: [b], piece: [p] };
+  floatTo(at.x, at.y);
+  setStatus(src.width > fw || src.height > fh ? `Colado ${src.width}×${src.height} flutuando (o quadro tem ${fw}×${fh}: o que passar da borda fica de fora ao fixar)` : 'Colado flutuando: arraste ou use as setas; Enter fixa');
 }
 
 window.addEventListener('paste', async (e) => {
@@ -713,6 +749,7 @@ window.addEventListener('paste', async (e) => {
 function undo(from: typeof undoStack, to: typeof undoStack) {
   const step = from.pop();
   if (!step) return;
+  float = null; // o flutuante guardava a composição antiga
   const l = layers.get(step.name);
   if (!l) return;
   to.push({ name: l.name, data: l.ctx.getImageData(0, 0, l.canvas.width, l.canvas.height) });
@@ -721,6 +758,7 @@ function undo(from: typeof undoStack, to: typeof undoStack) {
 }
 
 async function save() {
+  commitFloat(); // salvar fixa o que flutuava
   const dirty = [...layers.values()].filter((l) => l.dirty);
   if (!dirty.length && !layoutDirty) return setStatus('Nada para salvar');
   setStatus('Salvando…');
@@ -934,13 +972,14 @@ const TOOL_HINT: Record<Tool, string> = {
   line: 'Arraste do início ao fim · Shift prende na horizontal, vertical ou 45°',
   fill: 'Clique na área contínua da mesma cor · botão direito deixa transparente',
   picker: 'Clique numa cor para usá-la no lápis',
-  select: 'Arraste um retângulo · arraste dentro dele para mover · setas 1 px · Delete apaga · Ctrl+C/V copia e cola · Esc tira',
-  move: 'Arraste para mover a seleção ou a camada inteira · setas movem 1 px · "Vista toda" leva os 4 quadros',
+  select: 'Arraste um retângulo · arraste dentro dele para mover (fica flutuando até Enter) · Ctrl+arrastar duplica · setas 1 px · Delete apaga · Ctrl+C/V · Esc tira',
+  move: 'Arraste para mover a seleção ou a camada inteira (flutua até Enter) · Ctrl+arrastar duplica · setas 1 px · "Vista toda" leva os 4 quadros',
   origin: 'Clique ou arraste: origem (os pés) · Shift+clique: alto do corpo · campos acima: sombra · vale para a folha toda',
   point: 'Clique marca o ponto deste quadro · botão direito tira · "Aplicar" copia para a vista ou para todos',
 };
 function setTool(t: Tool) {
   tool = t;
+  syncFloat(); // outra ferramenta fixa o que flutuava
   for (const b of $('tools').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tool === t);
   $('toolHint').textContent = TOOL_HINT[t];
   const slot = document.querySelector<SVGElement>('.hintbar [data-ico-slot]');
@@ -1118,6 +1157,7 @@ window.addEventListener('keydown', (e) => {
     void save();
   } else if (e.ctrlKey && k === 'a') {
     e.preventDefault();
+    commitFloat();
     const { fw, fh } = grid();
     sel = { x: 0, y: 0, w: fw, h: fh };
     setTool('select');
@@ -1136,8 +1176,12 @@ window.addEventListener('keydown', (e) => {
     l.ctx.clearRect(col * fw + sel.x, row * fh + sel.y, sel.w, sel.h);
     touched(l);
   } else if (e.key === 'Escape') {
+    commitFloat();
     sel = null;
     redraw();
+  } else if (e.key === 'Enter' && float) {
+    commitFloat();
+    setStatus('Fixado');
   } else if (e.ctrlKey && k === 'z') {
     e.preventDefault();
     undo(undoStack, redoStack);
@@ -1263,7 +1307,9 @@ helpDialog('Editor de sprites: atalhos', [
   ]],
   ['Seleção', [
     ['Ctrl+A', 'Seleciona o quadro inteiro'], ['Delete', 'Apaga o selecionado'], ['Ctrl+C', 'Copia (também para a área de transferência do sistema)'],
-    ['Ctrl+V', 'Cola (inclusive uma imagem do Photoshop)'], ['Setas', 'Move 1 px a seleção ou a camada'], ['Esc', 'Tira a seleção'],
+    ['Ctrl+V', 'Cola (inclusive uma imagem do Photoshop); o colado fica flutuando'], ['Setas', 'Move 1 px a seleção ou a camada'],
+    ['Arrastar dentro', 'Levanta e move: fica flutuando por cima, sem cortar o que está embaixo'], ['Ctrl+arrastar', 'Move uma cópia (duplica)'],
+    ['Enter', 'Fixa o que está flutuando'], ['Esc', 'Fixa e tira a seleção'],
   ]],
   ['Vista e quadros', [
     ['Roda', 'Zoom em volta do cursor'], ['Espaço+arrastar | botão do meio', 'Rolar o palco'], ['1 | 2 | 3', 'Vista: lado, frente, costas'],
