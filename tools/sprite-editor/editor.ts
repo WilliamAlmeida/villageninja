@@ -1,7 +1,9 @@
 // Editor de sprites da Vila Ninja: monta o ninja em camadas igual ao jogo (src/render/doll.ts), anima e deixa editar
 // pixel a pixel (lápis, borracha, conta-gotas) e mover uma camada num quadro ou na vista inteira. Também abre qualquer
-// PNG de src/art. Salvar grava em src/art pelo servidor local (scripts/editor.ts).
+// PNG de src/art, inclusive os de interface (src/art/ui: atlas de ícones e selos, ilustrações). Salvar grava em src/art
+// pelo servidor local (scripts/editor.ts).
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
+import { type Atlas, CARDS, ICONS } from '../../src/ui/pxicons';
 import type { Layout } from '../../src/data/layout';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
@@ -32,6 +34,8 @@ const PART_NAMES: Record<string, string> = {
 };
 for (const [k, n] of Object.entries(SWORD_NAMES)) PART_NAMES[`layer-sword-${k}`] = `Espada: ${n}`;
 for (const [k, n] of Object.entries(MASK_NAMES)) PART_NAMES[`layer-mask-${k}`] = `Máscara: ${n}`;
+/** Atlas de interface: abrem divididos nas casas (cada quadro = um ícone/selo); o nome de cada casa vem do pxicons.ts. */
+const ATLASES: Record<string, Atlas> = { 'ui/icons': ICONS, 'ui/cards': CARDS };
 const SHEET_RE = /^(ninja|villager|rogue|org-|layer-|dog|boar|wolf|bear|snake|crow|monkey|spider|tiger|rhino|hydra|golem|puppet|toad|slug|tower-guard)/;
 const KEY_SWATCHES = [
   ['#ff8cff', '#ff00ff', '#a0009f'], ['#fff799', '#ffee00', '#b0a000'], ['#9ff6ff', '#00e5ff', '#0090a0'], ['#7dff8a', '#2ecc40', '#1e8a2b'], ['#18101c'],
@@ -726,8 +730,9 @@ function renderFiles() {
     li.onclick = async () => {
       fileName = name;
       const sheet = SHEET_RE.test(name);
-      $<HTMLInputElement>('fCols').value = String(sheet ? 4 : 1);
-      $<HTMLInputElement>('fRows').value = String(sheet ? 3 : 1);
+      const atlas = ATLASES[name];
+      $<HTMLInputElement>('fCols').value = String(atlas?.cols ?? (sheet ? 4 : 1));
+      $<HTMLInputElement>('fRows').value = String(atlas?.rows ?? (sheet ? 3 : 1));
       await loadLayer(name);
       col = sheet ? DOLL_GRID.idle : 0;
       row = sheet ? 1 : 0;
@@ -793,8 +798,17 @@ function setTool(t: Tool) {
   redraw();
 }
 
+/** Nome do ícone/selo na casa aberta de um atlas. */
+function cellName() {
+  const atlas = mode === 'file' && fileName ? ATLASES[fileName] : undefined;
+  if (!atlas) return '';
+  const hit = Object.entries(atlas.pos).find(([, [c, r]]) => c === col && r === row);
+  return hit ? `Ícone: ${hit[0]}` : 'Casa vazia';
+}
+
 function renderFrames() {
   const { cols, rows } = grid();
+  $('cellName').textContent = cellName();
   const names = mode === 'doll' || rows === 3 ? ['Lado', 'Frente', 'Costas'] : [];
   const r = $('rows');
   r.innerHTML = '';

@@ -4,10 +4,17 @@
 #   art/    → arquivos soltos em src/art/ui/art, até 256 px no lado maior (cenas, kunai, animais)
 # Atlas = uma requisição só (pelo túnel, dezenas de PNGs soltos demoravam a aparecer). Paleta de 256 cores com
 # transparência: pixel art não perde nada e o arquivo cai a ~1/4. Escreve src/ui/pxicons.ts com os mapas.
-# Uso: python scripts/prepare-ui.py
+# Editados à mão no editor de sprites (src/art/art-edits.json: "ui/icons.png", "ui/art/<nome>.png"): o atlas é
+# remontado guardando as casas que já existiam (só ícone novo é gerado da fonte) e a ilustração editada não é refeita.
+# Uso: python scripts/prepare-ui.py [--force] [--refresh=nome1,nome2]
+#   --force    refaz tudo da fonte (perde as edições à mão)
+#   --refresh  refaz só esses ícones/ilustrações da fonte, mantendo o resto do que foi editado
 import glob
+import json
 import os
+import re
 import shutil
+import sys
 from collections import deque
 
 import numpy as np
@@ -19,6 +26,20 @@ DST = os.path.join(ROOT, 'src', 'art', 'ui')
 ATLASES = {'icons': (['icons'], 64), 'cards': (['seals'], 128)}
 ART_MAX = 256
 COLS = 10
+EDITS = os.path.join(ROOT, 'src', 'art', 'art-edits.json')
+EDITED = set() if '--force' in sys.argv or not os.path.exists(EDITS) else set(json.load(open(EDITS, encoding='utf8')))
+REFRESH = {n for a in sys.argv if a.startswith('--refresh=') for n in a.split('=', 1)[1].split(',') if n}
+PXICONS = os.path.join(ROOT, 'src', 'ui', 'pxicons.ts')
+
+
+def old_positions(atlas):
+    """Casa (coluna, linha) de cada item no atlas atual, lida do pxicons.ts gerado da última vez."""
+    if not os.path.exists(PXICONS):
+        return {}
+    for line in open(PXICONS, encoding='utf8'):
+        if line.startswith(f'export const {atlas.upper()}:'):
+            return {n: (int(c), int(r)) for n, c, r in re.findall(r"'([^']+)': \[(\d+), (\d+)\]", line)}
+    return {}
 
 
 def defringe(im, passes=3):
@@ -134,38 +155,61 @@ def save_small(im, path):
 # limpa a saída antiga (arquivos soltos de versões anteriores)
 for old in ('icons', 'seals'):
     shutil.rmtree(os.path.join(DST, old), ignore_errors=True)
-shutil.rmtree(os.path.join(DST, 'art'), ignore_errors=True)
 os.makedirs(os.path.join(DST, 'art'), exist_ok=True)
 
 maps = {}
 for atlas, (groups, cell) in ATLASES.items():
+    out = os.path.join(DST, f'{atlas}.png')
+    # atlas editado à mão: as casas que já existiam vêm do atlas atual (com a edição), não da fonte
+    edited = f'ui/{atlas}.png' in EDITED and os.path.exists(out)
+    before = Image.open(out).convert('RGBA') if edited else None
+    old = old_positions(atlas) if edited else {}
     items = []
+    kept = 0
     for g in groups:
         for f in sorted(glob.glob(os.path.join(SRC, g, '*.png'))):
+            name = os.path.splitext(os.path.basename(f))[0]
+            if name in old and name not in REFRESH:
+                c, r = old[name]
+                items.append((name, before.crop((c * cell, r * cell, (c + 1) * cell, (r + 1) * cell)), True))
+                kept += 1
+                continue
             im = load(f)
             if im is None:
                 print('vazio:', f)
                 continue
-            items.append((os.path.splitext(os.path.basename(f))[0], defringe(fit(im, cell, True), 1)))
+            items.append((name, defringe(fit(im, cell, True), 1), False))
     rows = max(1, (len(items) + COLS - 1) // COLS)
     sheet = Image.new('RGBA', (COLS * cell, rows * cell), (0, 0, 0, 0))
     pos = {}
-    for i, (name, im) in enumerate(items):
+    for i, (name, im, whole) in enumerate(items):
         x, y = (i % COLS) * cell, (i // COLS) * cell
-        sheet.paste(im, (x + (cell - im.width) // 2, y + (cell - im.height) // 2), im)
+        if whole:
+            sheet.paste(im, (x, y))  # a casa inteira, como foi editada
+        else:
+            sheet.paste(im, (x + (cell - im.width) // 2, y + (cell - im.height) // 2), im)
         pos[name] = (i % COLS, i // COLS)
-    save_small(sheet, os.path.join(DST, f'{atlas}.png'))
+    save_small(sheet, out)
     maps[atlas] = (pos, rows)
-    print(f'{atlas}: {len(items)} em {COLS}x{rows} ({cell}px)')
+    print(f'{atlas}: {len(items)} em {COLS}x{rows} ({cell}px)' + (f' · {kept} casas mantidas (editado à mão; --force ou --refresh=nome refaz)' if edited else ''))
 
 art = []
 for f in sorted(glob.glob(os.path.join(SRC, 'art', '*.png'))):
+    name = os.path.splitext(os.path.basename(f))[0]
+    out = os.path.join(DST, 'art', f'{name}.png')
+    if f'ui/art/{name}.png' in EDITED and name not in REFRESH and os.path.exists(out):
+        print(f'ui/art/{name}.png editada à mão: mantida (--force ou --refresh={name} refaz)')
+        art.append(name)
+        continue
     im = load(f)
     if im is None:
         continue
-    name = os.path.splitext(os.path.basename(f))[0]
-    save_small(defringe(fit(im, ART_MAX, False), 1), os.path.join(DST, 'art', f'{name}.png'))
+    save_small(defringe(fit(im, ART_MAX, False), 1), out)
     art.append(name)
+# ilustração que saiu da fonte sai do jogo também
+for f in glob.glob(os.path.join(DST, 'art', '*.png')):
+    if os.path.splitext(os.path.basename(f))[0] not in art:
+        os.remove(f)
 print('art:', len(art))
 
 lines = ['// Gerado por scripts/prepare-ui.py: assets de interface em pixel art (atlas de ícones e de cartões, ilustrações).', '']

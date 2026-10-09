@@ -45,7 +45,7 @@
         </section>
         <section id="filePanel" hidden>
           <h3>Arquivos de src/art</h3>
-          <input id="filter" placeholder="Filtrar (ex.: layer, ninja, org)" />
+          <input id="filter" placeholder="Filtrar (ex.: layer, ninja, org, ui/)" />
           <ul id="files" class="files"></ul>
           <div class="grid2">
             <label>Colunas <input type="number" id="fCols" min="1" max="16" value="4" /></label>
@@ -84,6 +84,7 @@
         <div class="frames">
           <div class="seg" id="rows"></div>
           <div class="seg" id="colsSel"></div>
+          <b class="hint" id="cellName"></b>
           <span class="hint" id="pos"></span>
         </div>
         <div class="stage" id="stageWrap"><canvas id="stage"></canvas></div>
