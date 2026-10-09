@@ -519,7 +519,7 @@ const erasing = (e: PointerEvent | MouseEvent) => tool === 'eraser' || e.button 
 let float: { layer: Layer; row: number; col: number; cells: number[]; rect: Rect; pos: { x: number; y: number }; base: HTMLCanvasElement[]; piece: HTMLCanvasElement[] } | null = null;
 /** O flutuante só vale no quadro/camada em que nasceu: se mudou, ele já está fixado (a camada tem a composição). */
 function syncFloat() {
-  if (float && (float.row !== row || float.col !== col || float.layer !== activeLayer() || (tool !== 'select' && tool !== 'move'))) float = null;
+  if (float && (float.row !== row || float.col !== col || float.layer !== activeLayer() || (tool !== 'select' && tool !== 'move' && tool !== 'wand'))) float = null;
 }
 function commitFloat() {
   if (!float) return;
@@ -694,7 +694,8 @@ stage.addEventListener('pointerdown', (e) => {
     }
     return;
   }
-  if (tool === 'wand') {
+  // varinha: clique fora da seleção (ou com Shift/Ctrl) seleciona; dentro dela, arrasta como a Seleção
+  if (tool === 'wand' && (!inSel(p) || e.shiftKey || e.ctrlKey)) {
     const { fw, fh } = grid();
     if (p.x < 0 || p.y < 0 || p.x >= fw || p.y >= fh) return;
     commitFloat();
@@ -711,8 +712,8 @@ stage.addEventListener('pointerdown', (e) => {
     return;
   }
   pushUndo(l);
-  if (tool === 'move' || tool === 'select') {
-    moveStart(l, e.ctrlKey);
+  if (tool === 'move' || tool === 'select' || tool === 'wand') {
+    moveStart(l, e.ctrlKey); // Ctrl+arrastar duplica (na varinha o Ctrl já virou "tirar" acima)
     moveFrom = { ...float!.pos };
     drag = { kind: 'move', last: p, start: p, client: { x: e.clientX, y: e.clientY } };
     return;
@@ -1101,7 +1102,7 @@ const TOOL_HINT: Record<Tool, string> = {
   fill: 'Clique na área contínua da mesma cor · botão direito deixa transparente',
   picker: 'Clique numa cor para usá-la no lápis',
   select: 'Arraste um retângulo · arraste dentro dele para mover (fica flutuando até Enter) · Ctrl+arrastar duplica · setas 1 px · Delete apaga · Ctrl+C/V · Esc tira',
-  wand: 'Clique numa cor: seleciona a área parecida (tolerância acima) · Shift soma · Ctrl tira · depois arraste com a Seleção para mover',
+  wand: 'Clique numa cor: seleciona a área parecida (tolerância acima) · Shift soma · Ctrl tira · arraste dentro da seleção para mover · setas 1 px · Delete apaga',
   move: 'Arraste para mover a seleção ou a camada inteira (flutua até Enter) · Ctrl+arrastar duplica · setas 1 px · "Vista toda" leva os 4 quadros',
   origin: 'Clique ou arraste: origem (os pés) · Shift+clique: alto do corpo · campos acima: sombra · vale para a folha toda',
   point: 'Clique marca o ponto deste quadro · botão direito tira · "Aplicar" copia para a vista ou para todos',
