@@ -216,9 +216,9 @@ const ROSTER_SORTS: [RosterSort, string, string][] = [
 const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + b, 0);
 
 const ACTION_ICON: Record<string, string> = {
-  trade: '{cart}', protect: '{shield}', raid: '{swords}', annex: '{flag}', explore: '{map}', outpost: '{hut}', train: '{dummy}', contract: '{scroll}', assault: '{skull}',
+  trade: '{cart}', protect: '{shield}', raid: '{swords}', annex: '{flag}', explore: '{map}', outpost: '{hut}', train: '{barbell}', contract: '{scroll}', assault: '{skull}',
 };
-const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{dummy}', patrol: '{flag}', scout: '{eye}' };
+const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{barbell}', patrol: '{flag}', scout: '{eye}' };
 const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar'], ['scout', 'Explorar']];
 /** O que cada rotina faz (dica e texto abaixo dos botões). */
 const ROUTINE_TIP: Record<NinjaOrder, string> = {
@@ -2437,7 +2437,7 @@ export class Panel {
     if (u.hp < u.maxHp * 0.6) return ['Ferido', '{medic}', 'danger', true];
     if (u.ninja?.learning) return ['Estudando', '{books}', 'info', true];
     const label = STATE_LABEL[u.state] ?? u.state;
-    if (u.state === 'train') return [label, '{dummy}', 'safe', false];
+    if (u.state === 'train') return [label, '{barbell}', 'safe', false];
     if (u.state === 'fight' || u.state === 'attack' || u.state === 'engage') return [label, '{swords}', 'risky', false];
     return [label, '{house}', 'info', false];
   }
@@ -2500,7 +2500,7 @@ export class Panel {
     if (!us.length) return ['Vazia', '{users}', 'info'];
     if (us.some((u) => u.away != null)) return ['Expedição', '{map}', 'good'];
     if (us.some((u) => u.state === 'fight')) return ['Em combate', '{swords}', 'danger'];
-    if (us.every((u) => u.state === 'train' || u.state === 'toTrain')) return ['Treinando', '{dummy}', 'info'];
+    if (us.every((u) => u.state === 'train' || u.state === 'toTrain')) return ['Treinando', '{barbell}', 'info'];
     return ['Livre', '{shield}', 'safe'];
   }
 

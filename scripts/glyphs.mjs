@@ -31,7 +31,7 @@ const MAP = {
   hammer: ['fill', 'hammer'], axe: ['fill', 'axe'], wheat: ['fill', 'grains'], lantern: ['fill', 'lamp'],
   sun: ['fill', 'sun'], moon: ['fill', 'moon'], snow: ['fill', 'snowflake'], rain: ['fill', 'cloud-rain'], storm: ['fill', 'cloud-lightning'],
   fire: ['fill', 'flame'], coins: ['fill', 'coins'], handshake: ['fill', 'handshake'], fist: ['fill', 'hand-fist'], sparkle: ['fill', 'sparkle'],
-  userplus: ['fill', 'user-plus'], lightning: ['fill', 'lightning'], tree: ['fill', 'tree'],
+  userplus: ['fill', 'user-plus'], lightning: ['fill', 'lightning'], tree: ['fill', 'tree'], barbell: ['fill', 'barbell'],
 };
 
 const out = ['// Gerado por scripts/glyphs.mjs a partir do Phosphor Icons (MIT): glifos de interface (viewBox 256).', '', 'export const GLYPHS: Record<string, string> = {'];

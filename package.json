@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun scripts/dev.ts",
     "editor": "bun scripts/editor.ts",
+    "glyphs": "node scripts/glyphs.mjs",
     "build": "bun build ./index.html --outdir=dist --minify && bun -e \"require('fs').cpSync('public', 'dist', { recursive: true })\"",
     "preview": "bun run build && bun scripts/serve.ts",
     "typecheck": "tsc --noEmit",

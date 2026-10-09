@@ -91,7 +91,7 @@ const LIST: BuildingDef[] = [
     roof: '#d35400', wall: '#f0e0c0',
   },
   {
-    type: 'training', name: 'Campo de Treino', icon: '{dummy}', desc: 'Ninjas treinam e melhoram atributos.',
+    type: 'training', name: 'Campo de Treino', icon: '{barbell}', desc: 'Ninjas treinam e melhoram atributos.',
     w: 3, h: 3, cost: { wood: 40, stone: 10 }, buildTime: 12, buildable: true, walkable: true,
     roof: '#7a5a2a', wall: '#a57c4f',
   },
