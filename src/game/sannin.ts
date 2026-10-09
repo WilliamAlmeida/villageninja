@@ -7,6 +7,7 @@ import { fx, fxMoment, fxText } from './fx';
 import { grantBlade } from './blades';
 import type { Game } from './game';
 import { leaveTeam } from './teams';
+import { dogOf, releaseDog } from './ninken';
 import type { NinjaInfo, Unit } from './types';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -46,6 +47,7 @@ export function nameSannin(g: Game, unitId: number, path: SanninPath): Result {
   n.sannin = path;
   n.contract = path;
   leaveTeam(g, u!.id); // Sannin só forma equipe com Sannin
+  if (dogOf(g, u!)) releaseDog(g, u!.id); // Sannin tem a invocação: o ninken volta para o Canil
   const d = SANNIN_PATHS[path];
   fx(g, 'ring', u!.x, u!.y, { r: 46, color: d.color, life: 1.2 });
   fxText(g, u!.x, u!.y - 36, d.title, d.color, true);

@@ -3,7 +3,7 @@ import { DAY_LENGTH, SAVE_VERSION, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
-import { adoptDog, dogOf, freeDogs, giveDog, KENNEL_DOGS, releaseDog, sniffRange } from '../src/game/ninken';
+import { adoptDog, dogOf, freeDogs, giveDog, KENNEL_DOGS, releaseDog, releaseSanninDogs, sniffRange } from '../src/game/ninken';
 import { SYSTEMS } from '../src/game/systems';
 import { occupantsOf } from '../src/game/interior';
 import { migrate } from '../src/game/save';
@@ -16,6 +16,20 @@ const run = (g: Game, seconds: number) => {
 };
 
 describe('ninken', () => {
+  test('Sannin não fica com ninken: não adota, não recebe e o cão de quem virou Sannin volta para o Canil', () => {
+    const g = createNewGame(SYSTEMS, 126);
+    Object.assign(g.state.res, { food: 999, ryo: 999 });
+    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 30, ty: 20, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const s = createNinja(g, 36 * 32, 24 * 32, 'jounin', 0);
+    expect(adoptDog(g, s.id).ok).toBe(true);
+    const dog = dogOf(g, s)!;
+    s.ninja!.sannin = 'toad'; // virou Sannin com o cão (save antigo)
+    releaseSanninDogs(g);
+    expect(dogOf(g, s)).toBeFalsy();
+    expect(adoptDog(g, s.id).ok).toBe(false);
+    expect(giveDog(g, dog.id, s.id).ok).toBe(false);
+  });
+
   test('migra nomes antigos de ninken nos saves', () => {
     const old = {
       version: SAVE_VERSION - 1,

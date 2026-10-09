@@ -1537,7 +1537,7 @@ export class Panel {
             `<button class="${d === waiting ? 'on' : ''}" data-act="dog-pick" data-arg="${d.id}">{paw} <b>${esc(d.name)}</b><small>${esc(BREEDS[d.breed ?? 'shiba'].name)} · vida ${Math.ceil(d.hp)}/${d.maxHp}</small></button>`,
         )
         .join('')}</div></div>`;
-    const without = ninjas.filter((u) => !dogOf(g, u));
+    const without = ninjas.filter((u) => !dogOf(g, u) && !u.ninja!.sannin); // Sannin tem a invocação, não ninken
     const withDog = ninjas.filter((u) => dogOf(g, u));
     // uma lista por vez (abas); no máximo 20 ninjas, os de nível mais alto primeiro
     const MAX_ROWS = 20;

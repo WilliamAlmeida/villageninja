@@ -299,7 +299,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (morre se for abatido no caminho); lá dentro recupera a vida (`kennelRest`) e espera outro dono. Drawer do
   Canil: raças ordenadas pelo nível (cartão baixo com o cão de lado em meio corpo e o nível no canto; travada abre o aviso
   em vez de trocar) e abas "Sem cão" / "Com cão" (`kennelTab`, até 20 ninjas, os de nível mais alto; botões na linha do rank/nível); cães sem
-  dono numa lista rolável para escolher qual vai no "Dar" (`dogPick`); o topo mostra só vagas e o custo de adotar. Dono escondido (em casa) ou em expedição: de dia o cão patrulha a vila farejando (`dogPatrol`), à noite dorme no Canil (`goKennel`, em hostiles.ts); volta a seguir o dono quando ele sai.
+  dono numa lista rolável para escolher qual vai no "Dar" (`dogPick`); o topo mostra só vagas e o custo de adotar. Dono escondido (em casa) ou em expedição: de dia o cão patrulha a vila farejando (`dogPatrol`), à noite dorme no Canil (`goKennel`, em hostiles.ts); volta a seguir o dono quando ele sai. **Sannin não fica com ninken** (já tem a invocação): `dogBlock`/`giveDog` recusam, quem vira Sannin solta o cão e `releaseSanninDogs` (automação) conserta saves antigos.
 - **Recursos crescem de volta** (`data/regrow.ts`, `systems/nature.ts`): árvore/rocha/veio esgotado vira toco/rocha rachada
   (`ResourceNode.regrow`) em vez de sumir. Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
   coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).

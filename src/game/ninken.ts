@@ -39,6 +39,7 @@ export function breedBlock(g: Game, breed: DogBreed): string | null {
 export function dogBlock(g: Game, u: Unit, breed?: DogBreed): string | null {
   if (!u.ninja || u.faction !== 'village' || u.kind !== 'ninja') return 'Inválido.';
   if (!g.findBuilt('kennel')) return 'Construa o Canil primeiro.';
+  if (u.ninja.sannin) return 'Sannin já tem a invocação do contrato: não fica com ninken.';
   if (dogOf(g, u)) return 'Já tem um ninken.';
   if (u.away != null) return 'Está fora numa expedição.';
   if (breed && breedBlock(g, breed)) return breedBlock(g, breed);
@@ -61,12 +62,18 @@ export function releaseDog(g: Game, unitId: number): Result {
   return { ok: true };
 }
 
+/** Sannin não fica com ninken (já tem a invocação): o cão de quem virou Sannin volta para o Canil (conserta saves antigos). */
+export function releaseSanninDogs(g: Game) {
+  for (const u of g.state.units) if (!u.dead && u.ninja?.sannin && u.faction === 'village' && dogOf(g, u)) releaseDog(g, u.id);
+}
+
 /** Dá um cão que espera no Canil a um ninja sem cão (sem custo). */
 export function giveDog(g: Game, dogId: number, unitId: number): Result {
   const u = g.unit(unitId);
   const d = g.unit(dogId);
   if (!u || !d || d.dead || d.animal !== 'dog' || d.ownerId != null) return fail('Cão não encontrado no Canil.');
   if (!u.ninja || u.faction !== 'village' || u.kind !== 'ninja') return fail('Inválido.');
+  if (u.ninja.sannin) return fail('Sannin já tem a invocação do contrato: não fica com ninken.');
   if (dogOf(g, u)) return fail('Já tem um ninken.');
   if (u.away != null) return fail('Está fora numa expedição.');
   d.ownerId = u.id;
