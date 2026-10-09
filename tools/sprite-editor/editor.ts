@@ -1353,7 +1353,7 @@ window.addEventListener('keydown', (e) => {
     col = (col + (k === '.' ? 1 : cols - 1)) % cols;
     renderFrames();
     redraw();
-  } else if (e.key.startsWith('Arrow') && (tool === 'move' || tool === 'select')) {
+  } else if (e.key.startsWith('Arrow') && (tool === 'move' || tool === 'select' || tool === 'wand')) {
     e.preventDefault();
     nudge(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0, e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0);
   }
