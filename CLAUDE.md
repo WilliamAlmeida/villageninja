@@ -265,7 +265,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Janela "Mundo" (botão e tecla R).
 - **Mapa da região** (`data/region.ts`, `game/region.ts`, `systems/region.ts`; janela Mundo → Região, fundo `src/art/region.jpg`).
   A aba é o mapa ocupando a janela: zoom (roda, pinça, botões; até `MAP_ZOOM_MAX`) e arrastar (`Panel.map`, `applyMap`/
-  `zoomMap`; a camada `.rlayer` cobre a vista em 3:2 e os marcadores não crescem com o zoom, `--z`); tocar num lugar abre o
+  `zoomMap`; a camada `.rlayer` cobre a vista em 3:2; o zoom `--z` muda a LARGURA dela, não um `scale`, para mapa e rótulos saírem nítidos; ampliada além da imagem, pixels duros, classe `px`); tocar num lugar abre o
   painel dele por cima (`.rsheet`, `focusNode` tira o lugar de baixo dele); equipes em viagem andam no mapa pela trilha
   tracejada (`.rtoken`/`.rroute`); legenda e "como funciona" no canto. Quadro de missões numa tela só (disponíveis e
   recentes; as ativas na coluna da direita ou no alto na estreita).

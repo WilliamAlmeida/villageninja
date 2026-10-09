@@ -133,4 +133,6 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Baú aberto some depois de uns segundos (como a ruína).
 - Baú, ruína e mina **nunca colados num prédio** (nem na arte que passa do terreno, como o muro da arena).
 - Invasão não pode virar "enxurrada": poucos defensores por inimigo, o resto segue a rotina.
-- Mapa com zoom e arrastar: marcadores mantêm o tamanho; um toque rápido continua abrindo o item.
+- Mapa com zoom e arrastar: marcadores mantêm o tamanho; um toque rápido continua abrindo o item. **Com zoom tudo
+  continua nítido** (mapa e rótulos borrados ao aproximar foi reclamação): o zoom redimensiona, não amplia uma imagem
+  pronta, e a arte ampliada fica em pixels duros, como pixel art.

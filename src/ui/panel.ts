@@ -740,10 +740,20 @@ export class Panel {
     return html + `</div>`;
   }
 
-  /** Transformação do mapa da região (zoom e deslocamento) como estilo inline (o morph mantém o que o arrastar pôs). */
+  /**
+   * Zoom e deslocamento do mapa da região como estilo inline (o morph mantém o que o arrastar pôs). O zoom muda a
+   * LARGURA da camada (`--z` no CSS), não uma escala: o navegador redesenha mapa e rótulos no tamanho de verdade, nítidos
+   * (com `scale` a camada virava uma foto ampliada, borrada).
+   */
   private mapStyle() {
     const m = this.map;
-    return m.ready ? `transform:translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px) scale(${m.z.toFixed(3)});--z:${m.z.toFixed(3)}` : '--z:1';
+    return m.ready ? `transform:translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px);--z:${m.z.toFixed(3)}` : '--z:1';
+  }
+
+  /** Tamanho da camada do mapa em px com o zoom atual (cobre a vista em 3:2, como no CSS). */
+  private mapSize(view: HTMLElement) {
+    const lw = Math.max(view.clientWidth, view.clientHeight * 1.5) * this.map.z;
+    return { lw, lh: lw / 1.5 };
   }
 
   /** Limita o mapa à vista (sem mostrar borda vazia), centra na primeira vez e aplica no DOM. */
@@ -754,8 +764,7 @@ export class Panel {
     const m = this.map;
     const W = view.clientWidth;
     const H = view.clientHeight;
-    const lw = layer.offsetWidth * m.z;
-    const lh = layer.offsetHeight * m.z;
+    const { lw, lh } = this.mapSize(view);
     if (!m.ready) {
       // começa centrado na sua vila
       m.x = W / 2 - (HOME_POS.x / 100) * lw;
@@ -764,8 +773,11 @@ export class Panel {
     }
     m.x = lw <= W ? (W - lw) / 2 : Math.min(0, Math.max(W - lw, m.x));
     m.y = lh <= H ? (H - lh) / 2 : Math.min(0, Math.max(H - lh, m.y));
-    layer.style.transform = `translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px) scale(${m.z.toFixed(3)})`;
+    layer.style.transform = `translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px)`;
     layer.style.setProperty('--z', m.z.toFixed(3));
+    // ampliado além da imagem: pixels duros (pixel art); menor que ela, reduz suave (sem serrilhado)
+    const img = layer.querySelector('img');
+    layer.classList.toggle('px', !!img?.naturalWidth && lw * devicePixelRatio > img.naturalWidth * 1.15);
   }
 
   /** Leva o lugar escolhido para o meio da parte do mapa que o painel dele não cobre. */
@@ -777,8 +789,9 @@ export class Panel {
     const sheet = view.querySelector<HTMLElement>('.rsheet');
     const free = view.clientWidth - (sheet ? sheet.offsetWidth + 16 : 0);
     const m = this.map;
-    m.x = free / 2 - (def.x / 100) * layer.offsetWidth * m.z;
-    m.y = view.clientHeight / 2 - (def.y / 100) * layer.offsetHeight * m.z;
+    const { lw, lh } = this.mapSize(view);
+    m.x = free / 2 - (def.x / 100) * lw;
+    m.y = view.clientHeight / 2 - (def.y / 100) * lh;
     this.applyMap();
   }
 
