@@ -1848,12 +1848,13 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 
 /* ---------- janela Oficinas: uma oficina por vez (abas), receitas numa coluna larga à direita ---------- */
 .craftone { margin-top: 0.4rem; }
-.craftone .wscard { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); grid-template-areas: 'h h' 'a r' 'b r' 'u r'; align-items: start; gap: 0.5rem 0.9rem; }
+.craftone .wscard { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); grid-template-areas: 'h h' 'a r' 'c r' 'b r' 'u r'; align-items: start; gap: 0.5rem 0.9rem; }
+.craftone .ws-c { grid-area: c; }
 .craftone .wshead { grid-area: h; }
 .craftone .ws-a { grid-area: a; } .craftone .ws-b { grid-area: b; } .craftone .ws-u { grid-area: u; }
 .craftone .ws-r { grid-area: r; }
 .craftone .ws-r .scrollist { max-height: min(62vh, 34rem); }
-@media (max-width: 760px) { .craftone .wscard { grid-template-columns: 1fr; grid-template-areas: 'h' 'a' 'b' 'r' 'u'; } }
+@media (max-width: 760px) { .craftone .wscard { grid-template-columns: 1fr; grid-template-areas: 'h' 'a' 'c' 'b' 'r' 'u'; } }
 
 /* ---------- inventário do ninja (drawer): boneco com os espaços em volta e a grade do estoque ---------- */
 .inv { display: flex; flex-direction: column; gap: 0.55rem; }
@@ -1877,6 +1878,18 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 .inv-n { font-size: 0.64rem; line-height: 1.05; text-align: center; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .inv-q { position: absolute; top: 0.15rem; right: 0.3rem; font-size: 0.68rem; color: var(--warn); }
 .inv-up { position: absolute; top: 0.15rem; left: 0.25rem; color: var(--good); }
+/* durabilidade da arma/colete equipado; selo só quando gasta, quebrada ou cega */
+.inv-dura { width: 80%; height: 0.25rem; border-radius: 1rem; background: rgba(0, 0, 0, 0.45); overflow: hidden; }
+.inv-dura i { display: block; height: 100%; background: var(--good); }
+.inv-dura.worn i, .inv-dura.blunt i { background: var(--warn); }
+.inv-dura.broken i { background: var(--bad); }
+.inv-slot .inv-wear { position: absolute; top: 0.1rem; right: 0.2rem; padding: 0.02rem 0.3rem; font-size: 0.58rem; }
+.inv-slot .inv-q { top: auto; bottom: 0.2rem; }
+.inv-worn { position: absolute; bottom: 0.15rem; left: 0; right: 0; text-align: center; font-size: 0.58rem; color: var(--warn); }
+.inv-fix { margin-top: 0.4rem; }
+.ws-fix { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.35rem; }
+.ws-week { display: block; font-size: 0.66rem; color: var(--muted); }
+.ws-dfix { margin-top: 0.4rem; }
 .inv-up .ic { width: 0.85rem; height: 0.85rem; }
 
 /* medidor de FPS (ui/fps.ts): flutuante, arrastável */

@@ -83,6 +83,6 @@ export const BLADE_ITEMS: ItemDef[] = BLADE_IDS.map((id) => {
   return {
     id: bladeItem(id), name: d.name, icon: '{swords}', slot: 'weapon', blade: id, kageOnly: id === 'raijin' || undefined,
     bonus: { melee: d.melee, kunai: d.kunai ?? 2 }, desc: `Lendária, única: +${d.melee} de dano corpo a corpo. ${d.effect}`,
-    cost: f?.cost ?? {}, craftTime: f?.craftTime ?? 0, building: f ? 'forge' : undefined, minBuildingLevel: f ? 3 : undefined,
+    cost: f?.cost ?? {}, craftTime: f?.craftTime ?? 0, building: f ? 'forge' : undefined, minBuildingLevel: f ? 3 : undefined, dura: 220,
   };
 });

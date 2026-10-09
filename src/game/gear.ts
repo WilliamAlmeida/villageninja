@@ -1,6 +1,7 @@
 // Equipamento dos ninjas (arma, colete, consumível) e fabricação nas oficinas.
 import { BUILDINGS, type BuildingType } from '../data/buildings';
-import { ITEM_LIST, ITEMS, type ItemDef, type ItemSlot } from '../data/items';
+import { CARRY, ITEM_LIST, ITEMS, type ItemDef, type ItemSlot } from '../data/items';
+import { noteUse, storeWorn, takeWorn, wornStock } from './wear';
 import { craftMult, queueMax } from './upgrade';
 import { levelDef } from '../data/villageLevels';
 import { refreshDerived } from './entities';
@@ -20,7 +21,21 @@ const take = (g: Game, id: string) => {
   g.state.items[id] = stock(g, id) - 1;
   return true;
 };
-const put = (g: Game, id: string) => (g.state.items[id] = stock(g, id) + 1);
+const put = (g: Game, id: string, n = 1) => (g.state.items[id] = stock(g, id) + n);
+/** Quantas dessa peça a vila tem guardadas (novas + gastas). */
+export const owned = (g: Game, id: string) => stock(g, id) + wornStock(g, id);
+
+/** Consumíveis que o ninja carrega (Genin 1, Chunin 2, Jounin e Kage 3). */
+export const carryMax = (u: Unit) => CARRY[u.ninja?.rank ?? 'genin'] ?? 1;
+export const carried = (u: Unit) => {
+  const e = u.ninja?.equip;
+  return e?.item && e.itemReady ? (e.itemCount ?? 1) : 0;
+};
+const setCarried = (u: Unit, n: number) => {
+  const e = u.ninja!.equip;
+  e.itemReady = n > 0;
+  e.itemCount = n > 0 ? n : undefined;
+};
 
 function ownNinja(g: Game, unitId: number) {
   const u = g.unit(unitId);
@@ -34,13 +49,24 @@ export function equip(g: Game, unitId: number, itemId: string): Result {
   if (!u || !def) return fail('Inválido.');
   const why = canWield(u, itemId);
   if (why) return fail(why);
-  if (!take(g, itemId)) return fail('Sem esse item no estoque.');
+  // arma/colete: a peça nova primeiro; sem nova, a gasta guardada que estiver melhor
+  let dura = 1;
+  if (!take(g, itemId)) {
+    const worn = def.slot === 'item' ? null : takeWorn(g, itemId);
+    if (worn == null) return fail('Sem esse item no estoque.');
+    dura = worn;
+  }
   unequip(g, unitId, def.slot);
   const e = u.ninja!.equip;
   if (def.slot === 'item') {
     e.item = itemId;
-    e.itemReady = true;
-  } else e[def.slot] = itemId;
+    setCarried(u, 1);
+    refillItem(g, u); // na vila já enche a bolsa até o que a patente carrega
+  } else {
+    e[def.slot] = itemId;
+    if (dura < 1) (e.dura ??= {})[def.slot] = dura;
+    else if (e.dura) delete e.dura[def.slot];
+  }
   refreshDerived(u);
   return ok;
 }
@@ -50,12 +76,16 @@ export function unequip(g: Game, unitId: number, slot: ItemSlot): Result {
   if (!u) return fail('Inválido.');
   const e = u.ninja!.equip;
   if (slot === 'item') {
-    if (e.item && e.itemReady) put(g, e.item);
+    if (e.item && carried(u)) put(g, e.item, carried(u));
     e.item = null;
-    e.itemReady = false;
+    setCarried(u, 0);
   } else {
-    if (e[slot]) put(g, e[slot]!);
+    // peça gasta não volta nova para o estoque: fica guardada gasta até a Forja consertar
+    const dura = e.dura?.[slot] ?? 1;
+    if (e[slot] && dura < 1) storeWorn(g, e[slot]!, dura);
+    else if (e[slot]) put(g, e[slot]!);
     e[slot] = null;
+    if (e.dura) delete e.dura[slot];
   }
   refreshDerived(u);
   return ok;
@@ -72,7 +102,7 @@ export function autoEquip(g: Game, unitIds: number[]): Result {
     const e = u.ninja!.equip;
     for (const slot of ['weapon', 'armor'] as const) {
       const cur = e[slot] ? score(ITEMS[e[slot]!]!) : -1;
-      const best = ITEM_LIST.filter((d) => d.slot === slot && stock(g, d.id) > 0 && !canWield(u, d.id)).sort((a, b) => score(b) - score(a))[0];
+      const best = ITEM_LIST.filter((d) => d.slot === slot && owned(g, d.id) > 0 && !canWield(u, d.id)).sort((a, b) => score(b) - score(a))[0];
       if (best && score(best) > cur && equip(g, id, best.id).ok) changed++;
     }
     if (!e.item) {
@@ -108,19 +138,23 @@ export function setAutoGear(g: Game, on: boolean) {
   g.toast(on ? `{gear} Equipamento automático ligado${n ? `: ${n} ninja(s) equipado(s)` : ''}.` : '{gear} Equipamento automático desligado.', 'info');
 }
 
-/** Ninja dentro da vila pega outro consumível do mesmo tipo no estoque. */
+/** Ninja dentro da vila enche a bolsa com o consumível escolhido, até o que a patente carrega. */
 export function refillItem(g: Game, u: Unit) {
   const e = u.ninja?.equip;
-  if (!e || !e.item || e.itemReady) return;
-  if (take(g, e.item)) e.itemReady = true;
+  if (!e?.item) return;
+  let n = carried(u);
+  while (n < carryMax(u) && take(g, e.item)) n++;
+  setCarried(u, n);
 }
 
-/** Consome o item carregado. A lógica de quando usar fica na IA de combate. */
+/** Consome um do item carregado (e conta no consumo da semana). A lógica de quando usar fica na IA de combate. */
 export function consumeItem(g: Game, u: Unit): ItemDef | null {
   const e = u.ninja?.equip;
-  if (!e?.item || !e.itemReady) return null;
+  const n = carried(u);
+  if (!e?.item || !n) return null;
   const def = ITEMS[e.item]!;
-  e.itemReady = false;
+  setCarried(u, n - 1);
+  noteUse(g.state, def.id);
   fxText(g, u.x, u.y - 30, `${def.icon} ${def.name}!`, '#ffe08a', true);
   return def;
 }

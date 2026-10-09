@@ -308,6 +308,17 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   que o equipado, lâminas com o ícone recortado do sprite (`bladeIcon`). Toque no item equipa; no espaço, tira.
   Listas longas em drawers rolam por dentro (`.scrollist`: Canil, jutsus, grupo, "Lá dentro", candidatos da equipe,
   receitas, inventário).
+- **Desgaste e conserto** (`game/wear.ts`, `WEAR`/`ItemDef.dura` em data/items.ts): a arma gasta a cada golpe que acerta
+  (corpo a corpo e kunai) e o colete com o dano que segura (`wearOut` em `applyDamage`/projéteis; só ninjas da vila, fora
+  do duelo do Exame); expedição fora do mapa gasta `WEAR.away` na volta e o mapa jogável devolve o equipamento. Durabilidade
+  em `Equip.dura` (sem = nova): abaixo de 25% fica gasta (metade do bônus), em 0 quebrada (nada) até consertar; lâmina
+  lendária fica cega (-30%), nunca quebra (`gearBonus` já aplica). Peça gasta tirada vai para `state.worn` (não volta nova).
+  Conserto na Forja (`repairUnit`/`repairAll`, `repairCost` = 30% do custo de fabricar pelo desgaste; só dentro da vila);
+  Forja nv 2+ conserta sozinha abaixo de 60% (`autoRepairTick`, `flags.autoRepair`, padrão sim). Calibrado no save do autor:
+  em 10 dias os que mais lutam gastam ~45% da arma e ~70% do colete (`.perf/wear.ts`). UI: barra e selo no inventário,
+  filtro "Equip. gasto" na lista de Ninjas, seção Conserto na Forja (janela Oficinas e drawer).
+  **Consumíveis**: a bolsa carrega pela patente (`CARRY`: Genin 1, Chunin 2, Jounin/Kage 3; `Equip.itemCount`) e repõe na
+  vila; o gasto dos últimos 7 dias (`state.usage`, `noteUse`/`weekUse`) aparece no estoque da Farmácia e dos Selos.
 - **Equipamento automático** (`autoEquipAll`/`setAutoGear` em gear.ts, `systems/gear.ts`, `state.flags.autoGear`): botões
   na lista de ninjas e nas oficinas. Promovido a Chunin numa equipe sem sensei vira o sensei (`promoteToSensei`).
 - **Técnicas ninja** (`game/techniques.ts`, `systems/techniques.ts`, tudo automático): **Shunshin** (some num redemoinho e

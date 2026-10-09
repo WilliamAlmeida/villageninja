@@ -16,6 +16,7 @@ import { createOrgMember, lairGuards } from './org';
 import { createSoundMember } from './sound';
 import { SOUND, SOUND_MEMBERS, SOUND_RAIDERS } from '../data/sound';
 import { fxText } from './fx';
+import { noteUse } from './wear';
 import { Game } from './game';
 import { baseState } from './newGame';
 import { findPath, nearestWalkable } from './pathfinding';
@@ -278,6 +279,7 @@ export function closeScene(home: Game): { result: 'win' | 'lose' | 'retreat'; lo
       u.ninja.level = c.ninja.level;
       u.ninja.kills = c.ninja.kills;
       u.ninja.stats = { ...c.ninja.stats };
+      u.ninja.equip = { ...c.ninja.equip, dura: c.ninja.equip.dura && { ...c.ninja.equip.dura } };
       refreshDerived(u);
     }
     if (!c.dead) {
@@ -295,6 +297,8 @@ export function closeScene(home: Game): { result: 'win' | 'lose' | 'retreat'; lo
       home.toast(`{skull} ${u.name} não voltou da invasão.`, 'danger');
     }
   }
+  // consumíveis gastos lá entram no consumo da semana da vila
+  for (const d of s.usage?.days ?? []) for (const [id, n] of Object.entries(d)) noteUse(home.state, id, n);
   home.state.scene = null;
   return { result, loot };
 }

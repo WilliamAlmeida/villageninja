@@ -59,7 +59,9 @@ import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemSlot } from '../data/items';
-import { autoEquip, cancelCraft, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
+import { autoEquip, cancelCraft, carried, carryMax, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, owned, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
+import { duraOf, wearStage, type WearStage } from '../game/gearBonus';
+import { hasWornGear, pendingRepairs, repairAll, repairBlock, repairUnit, setAutoRepair, unitRepairCost, weekUse, wornStock } from '../game/wear';
 import { bladeOf, canWield } from '../game/blades';
 import { ANBU, anbuBlock, anbuCandidates, anbus, anbuSlots, appointAnbu, dismissAnbu, freeMask, maskInfo, maskOf } from '../game/anbu';
 import { MASK_LIST } from '../data/anbu';
@@ -203,11 +205,18 @@ const roleBadge = (r: Role, compact = false) =>
     : `<span class="badge role-${r}" ${tipAttr(ROLE_INFO[r].name, ROLE_INFO[r].desc, true)}>${ROLE_ICON[r]} ${ROLE_INFO[r].name}</span>`;
 const costTag = (cost: Partial<Record<ResKey, number>>) => `<small class="bcost">${costLabel(cost)}</small>`;
 /** "i" ao lado do título de uma seção: a explicação fica na dica (um toque ou o mouse em cima), não escrita no drawer. */
+const WEAR_LABEL: Record<WearStage, string> = { ok: '', worn: 'Gasta', broken: 'Quebrada', blunt: 'Cega' };
+const WEAR_TIP: Record<WearStage, string> = {
+  ok: '',
+  worn: 'Gasta: dá metade do bônus até passar na Forja.',
+  broken: 'Quebrada: não dá bônus nenhum até passar na Forja.',
+  blunt: 'Cega: a lâmina lendária perde 30% do dano até passar na Forja.',
+};
 const infoTip = (title: string, text: string) => `<span class="itip" ${tipAttr(title, text, true)}>{info}</span>`;
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
   safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
 };
-type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'genin' | 'chunin' | 'jounin' | 'sannin' | 'anbu' | 'kage';
+type RosterFilter = 'all' | 'free' | 'team' | 'mission' | 'hurt' | 'worn' | 'genin' | 'chunin' | 'jounin' | 'sannin' | 'anbu' | 'kage';
 /** Filtros de graduação: aparecem sempre, mesmo vazios (dá para ver que existe Sannin e Kage). */
 const RANK_FILTERS: RosterFilter[] = ['genin', 'chunin', 'jounin', 'sannin', 'anbu', 'kage'];
 type RosterSort = 'level' | 'rank' | 'power' | 'hp' | 'name';
@@ -1045,15 +1054,32 @@ export class Panel {
     const slot = (k: ItemSlot, area: string) => {
       const id = e[k];
       const d = id ? ITEMS[id] : undefined;
-      const state = k === 'item' && d ? (e.itemReady ? 'pronto' : 'gasto, repõe na vila') : '';
       if (!d) return `<div class="inv-slot empty" style="grid-area:${area}"><span class="inv-sl">${SLOT_LABEL[k]}</span><span class="inv-none">{plus}</span></div>`;
-      return `<button class="inv-slot" style="grid-area:${area}" data-act="unequip" data-arg="${k}" ${tipAttr(d.name, `${d.desc} Toque para tirar.`)}><span class="inv-sl">${SLOT_LABEL[k]}</span>${this.itemIcon(d.id)}<small>${esc(d.name)}${state ? ` · ${state}` : ''}</small></button>`;
+      // consumível: quantos carrega (repõe na vila); arma/colete: durabilidade e o selo só quando gasta
+      let extra = '';
+      let tip = d.desc;
+      if (k === 'item') {
+        extra = `<b class="inv-q">${carried(u)}/${carryMax(u)}</b>`;
+        tip += ` Carrega até ${carryMax(u)} (pela patente) e repõe dentro da vila.`;
+      } else if (d.dura) {
+        const dura = duraOf(u, k);
+        const st = wearStage(u, k);
+        extra = `<span class="inv-dura ${st}"><i style="width:${Math.round(dura * 100)}%"></i></span>${st === 'ok' ? '' : `<span class="mpill ${st === 'broken' ? 'danger' : 'risky'} inv-wear">${WEAR_LABEL[st]}</span>`}`;
+        tip += ` Durabilidade ${Math.round(dura * 100)}%.${st === 'ok' ? '' : ` ${WEAR_TIP[st]}`}`;
+      }
+      return `<button class="inv-slot" style="grid-area:${area}" data-act="unequip" data-arg="${k}" ${tipAttr(d.name, `${tip} Toque para tirar.`)}><span class="inv-sl">${SLOT_LABEL[k]}</span>${this.itemIcon(d.id)}<small>${esc(d.name)}</small>${extra}</button>`;
     };
     const gb = gearBonus(u);
     let html = `<div class="inv"><div class="inv-doll">${slot('weapon', 'w')}<span class="inv-fig" style="grid-area:f">${pimg(unitPortrait(u, true))}</span>${slot('armor', 'a')}${slot('item', 'i')}
       <div class="inv-stats" style="grid-area:s"><span>{swords} +${gb.melee} dano</span><span>{kunai} +${gb.kunai} kunai</span><span>{shield} ${Math.round(gb.defense * 100)}% defesa</span><span>{medic} +${gb.hp} vida</span></div></div>`;
-    // grade do estoque
-    const stockList = ITEM_LIST.filter((d) => stock(g, d.id) > 0);
+    // conserto na Forja (só aparece com algo gasto)
+    const fix = unitRepairCost(u);
+    if (Object.keys(fix).length) {
+      const why = repairBlock(g, u);
+      html += `<div class="btnrow inv-fix"><button class="btn" data-act="repair" ${blocked(g, [why], fix)} ${tipAttr('Consertar', 'A Forja deixa arma e colete novos de novo. Custa parte do que custa fabricar, pelo desgaste.')}>{anvil} Consertar ${costTag(fix)}</button></div>`;
+    }
+    // grade do estoque (novas + gastas guardadas)
+    const stockList = ITEM_LIST.filter((d) => owned(g, d.id) > 0);
     const count = (k: ItemSlot | 'all') => stockList.filter((d) => k === 'all' || d.slot === k).length;
     html += `<div class="inv-head"><b>{luggage} Estoque da vila</b><span class="chips">${(['all', 'weapon', 'armor', 'item'] as const)
       .map((k) => `<button data-act="inv-filter" data-arg="${k}" class="${this.invFilter === k ? 'on' : ''}">${k === 'all' ? 'Tudo' : SLOT_LABEL[k]} ${count(k)}</button>`)
@@ -1066,7 +1092,7 @@ export class Panel {
         const cur = e[d.slot] ? ITEMS[e[d.slot]!] : undefined;
         const better = d.slot === 'weapon' ? (d.bonus?.melee ?? 0) > (cur?.bonus?.melee ?? 0) : d.slot === 'armor' ? (d.bonus?.defense ?? 0) > (cur?.bonus?.defense ?? 0) : !cur;
         const why = canWield(u, d.id);
-        html += `<button class="inv-cell ${d.blade ? 'legend' : ''}" data-act="equip" data-arg="${d.id}" ${blocked(g, [why])} ${tipAttr(d.name, `${SLOT_LABEL[d.slot]}. ${d.desc}`)}>${this.itemIcon(d.id)}<span class="inv-n">${esc(d.name)}</span><b class="inv-q">×${stock(g, d.id)}</b>${better && !why ? '<span class="inv-up">{up}</span>' : ''}</button>`;
+        html += `<button class="inv-cell ${d.blade ? 'legend' : ''}" data-act="equip" data-arg="${d.id}" ${blocked(g, [why])} ${tipAttr(d.name, `${SLOT_LABEL[d.slot]}. ${d.desc}`)}>${this.itemIcon(d.id)}<span class="inv-n">${esc(d.name)}</span><b class="inv-q">×${owned(g, d.id)}</b>${wornStock(g, d.id) ? `<span class="inv-worn" ${tipAttr('Gastas', `${wornStock(g, d.id)} delas estão gastas (tiradas antes do conserto). Equipar usa a nova primeiro; a Forja conserta.`, true)}>${wornStock(g, d.id)} gasta${wornStock(g, d.id) > 1 ? 's' : ''}</span>` : ''}${better && !why ? '<span class="inv-up">{up}</span>' : ''}</button>`;
       }
       html += `</div>`;
     }
@@ -1382,10 +1408,14 @@ export class Panel {
       : `<span class="ws-noone"><span class="mpill danger">{users} Sem artesão</span><button class="btn mini" data-act="ws-worker" data-arg="${bd.id}">{plus} Chamar</button></span>`;
     html += `</div></div>`;
     const recipes = recipesOf(type);
-    // estoque
-    html += `<div class="ws-sec ws-a"><h4>{luggage} Estoque</h4><div class="ws-stock">${recipes
-      .map((r) => `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${r.icon}</span><span>${esc(r.name)}</span><b>${stock(g, r.id)}</b></span>`)
+    // estoque (consumíveis: e quanto se gastou na semana)
+    html += `<div class="ws-sec ws-a"><h4>{luggage} Estoque${type === 'forge' ? '' : ` ${infoTip('Gasto na semana', 'Quantos foram usados em combate nos últimos 7 dias: ajuda a escolher quanto manter.')}`}</h4><div class="ws-stock">${recipes
+      .map((r) => {
+        const week = r.slot === 'item' ? weekUse(g.state, r.id) : -1;
+        return `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${r.icon}</span><span>${esc(r.name)}${week >= 0 ? `<small class="ws-week">${week} na semana</small>` : ''}</span><b>${stock(g, r.id)}</b></span>`;
+      })
       .join('')}</div></div>`;
+    if (type === 'forge') html += this.repairSection(bd, 'ws-sec ws-c');
     // produção e fila
     const q = bd.queue ?? [];
     const used = q.length + (bd.craft ? 1 : 0);
@@ -1445,6 +1475,25 @@ export class Panel {
       }<div class="bup-cost">${chips}</div></div><button class="btn primary" data-act="ws-upgrade" data-arg="${bd.id}" ${blocked(g, [st.reason !== 'Recursos insuficientes.' && st.reason], st.cost ?? undefined)}>{up} Nível ${lvl + 1}</button></div></div>`;
     }
     return html + `</div>`;
+  }
+
+  /**
+   * Conserto na Forja (janela Oficinas e drawer da Forja): quantas peças gastas (ninjas na vila e guardadas), o custo
+   * de consertar tudo e o Auto-reparo (nível 2 em diante: conserta sozinha quem passa abaixo de 60%).
+   */
+  private repairSection(bd: Building, cls: string) {
+    const g = this.app.game;
+    const p = pendingRepairs(g);
+    const lvl = levelOf(bd);
+    const away = g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.ninja && hasWornGear(u) && !p.units.includes(u)).length;
+    let html = `<div class="${cls}"><h4>{anvil} Conserto ${infoTip('Conserto', 'Arma gasta a cada golpe que acerta e colete com o dano que segura. Gasta (abaixo de 25%) dá metade do bônus; quebrada, nada; lâmina lendária fica cega (-30%). Consertar custa parte do que custa fabricar, pelo desgaste. Só conserta quem está dentro da vila.')}</h4>`;
+    html += `<div class="ws-fix"><span class="mchip ${p.pieces ? 'bad' : ''}">${p.pieces} peça${p.pieces === 1 ? '' : 's'} gasta${p.pieces === 1 ? '' : 's'}</span>${away ? `<span class="mchip" ${tipAttr('Fora da vila', 'Ninjas com peça gasta que estão fora (missão, expedição): consertam quando voltarem.', true)}>${away} fora</span>` : ''}</div>`;
+    html += `<div class="btnrow"><button class="btn primary" data-act="repair-all" ${blocked(g, [!p.pieces && 'Nada para consertar agora.'], p.pieces ? p.cost : undefined)}>{anvil} Consertar (${p.pieces})${p.pieces ? ` ${costTag(p.cost)}` : ''}</button>`;
+    html +=
+      lvl >= 2
+        ? togBtn('repair-auto', g.state.flags.autoRepair !== false, '{anvil} Auto-reparo', 'Auto-reparo', 'Ligado: a Forja conserta sozinha quem passa pela vila com arma ou colete abaixo de 60%, se houver recursos.')
+        : `<span class="ws-lock">{lock} Nv 2 libera Auto-reparo</span>`;
+    return html + `</div></div>`;
   }
 
   /** Escolha da raça do próximo ninken (vale para o Canil e para o botão na ficha do ninja). */
@@ -2191,8 +2240,9 @@ export class Panel {
     const MAX_QUEUE = queueMax(bd);
     let html = `<div class="actions"><button class="btn primary" data-act="win" data-arg="crafts">{anvil} Abrir painel das Oficinas</button></div>`;
     html += `<h4>Estoque</h4><div class="btnrow">`;
-    for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}</span>`;
+    for (const r of recipes) html += `<span class="badge">${r.icon} ${esc(r.name)}: ${stock(g, r.id)}${r.slot === 'item' ? ` <small>· ${weekUse(g.state, r.id)} na semana</small>` : ''}</span>`;
     html += `</div>`;
+    if (bd.type === 'forge' && bd.built) html += this.repairSection(bd, 'ws-dfix');
     const queue = bd.queue ?? [];
     html += `<h4>Produção (${queue.length + (bd.craft ? 1 : 0)}/${MAX_QUEUE})</h4>`;
     if (bd.craft) {
@@ -2365,6 +2415,7 @@ export class Panel {
       team: ['Em equipe', (u) => !!teamOf(g, u)],
       mission: ['Em missão', (u) => onMission.has(teamOf(g, u)?.id ?? -1)],
       hurt: ['Feridos', (u) => u.hp < u.maxHp * 0.6],
+      worn: ['Equip. gasto', hasWornGear],
       genin: ['Genin', (u) => u.ninja!.rank === 'genin'],
       chunin: ['Chunin', (u) => u.ninja!.rank === 'chunin'],
       jounin: ['Jounin', (u) => u.ninja!.rank === 'jounin'],
@@ -2377,7 +2428,7 @@ export class Panel {
     for (const [k, [label, fn]] of Object.entries(tests) as [RosterFilter, [string, (u: Unit) => boolean]][]) {
       const n = ninjas.filter(fn).length;
       if (!n && k !== this.rosterFilter && k !== 'all' && !RANK_FILTERS.includes(k)) continue;
-      html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''} ${k === 'hurt' ? 'bad' : ''}">${label} <small>${n}</small></button>`;
+      html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''} ${k === 'hurt' || k === 'worn' ? 'bad' : ''}">${label} <small>${n}</small></button>`;
     }
     html += `</div><div class="fchips rsort"><span class="lbl">Ordenar</span>`;
     for (const [k, label, tip] of ROSTER_SORTS)
@@ -2792,6 +2843,14 @@ export class Panel {
       case 'gear-auto':
         setAutoGear(g, !g.state.flags.autoGear);
         return this.report({ ok: true });
+      case 'repair-all': {
+        const n = repairAll(g);
+        g.toast(n ? `{anvil} A Forja consertou ${n} peça(s).` : '{anvil} Nada consertado (faltam recursos ou ninguém está na vila).', n ? 'good' : 'info');
+        return this.report({ ok: true });
+      }
+      case 'repair-auto':
+        setAutoRepair(g, g.state.flags.autoRepair === false);
+        return this.report({ ok: true });
       case 'field-focus': {
         if (v?.kind !== 'building') return;
         return this.report(setFieldFocus(g, v.id, (arg || null) as StatKey | null));
@@ -3034,6 +3093,10 @@ export class Panel {
           return this.report(unequip(g, v.id, arg as ItemSlot));
         case 'autoequip':
           return this.report(autoEquip(g, [v.id]));
+        case 'repair': {
+          const u = g.unit(v.id);
+          return u ? this.report(repairUnit(g, u)) : undefined;
+        }
         case 'team-join':
           return this.report(btn.dataset.slot === 'sensei' ? joinAsSensei(g, Number(arg), v.id) : joinAsMember(g, Number(arg), v.id));
         case 'team-create-with':

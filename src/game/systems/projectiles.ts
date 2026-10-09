@@ -1,4 +1,5 @@
 import { areaDamage, applyDamage, markTarget } from '../combat';
+import { wearOut } from '../wear';
 import { canHit } from '../factions';
 import { fx } from '../fx';
 import type { Game } from '../game';
@@ -46,6 +47,7 @@ function explode(g: Game, p: Projectile, hit: Unit | null) {
   } else if (hit) {
     fx(g, 'burst', p.x, p.y, { r: p.kind === 'kunai' ? 8 : 14, color: p.color, life: 0.25, vfx: p.vfx });
     applyDamage(g, owner, hit, p.damage, p.nature, { stun: p.stun });
+    if (p.kind === 'kunai' && !p.radius) wearOut(g, owner, 'weapon', 1); // kunai que acerta gasta a arma
     if (p.mark != null && !hit.dead) markTarget(g, hit, p.mark);
   }
 }

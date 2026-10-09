@@ -19,7 +19,7 @@ import { chase, followPath, setDestination } from '../movement';
 import { trainTick } from '../progression';
 import { academyLearnMult } from '../upgrade';
 import { libraryLearnMult } from '../library';
-import { refillItem } from '../gear';
+import { carried, carryMax, refillItem } from '../gear';
 import { formationOffset, restPoint, senseiNear, teamLeader, teamOf, teamUnits } from '../teams';
 import { pickFoe } from '../tactics';
 import { isNight } from '../time';
@@ -50,7 +50,7 @@ export function ninjaSystem(g: Game, dt: number) {
     if (!u.hidden) trySupport(g, u);
     specTick(g, u, dt); // profissão (médico, espião, marionetista) e contrato de invocação
     // consumível gasto: pega outro do estoque ao passar pela vila
-    if (u.ninja!.equip.item && !u.ninja!.equip.itemReady && g.world.inVillage(u.x, u.y)) refillItem(g, u);
+    if (u.ninja!.equip.item && carried(u) < carryMax(u) && g.world.inVillage(u.x, u.y)) refillItem(g, u);
     if (u.command && runCommand(g, u, dt)) continue;
     if (shelterTick(g, u, dt)) continue; // novato com inimigo forte demais por perto: vai se abrigar
 

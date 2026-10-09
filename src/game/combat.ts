@@ -21,6 +21,7 @@ import { noteHit, shareXp, tryRescue } from './care';
 import { sageDamage, sanninSurvive } from './sannin';
 import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
+import { wearOut } from './wear';
 import { gearBonus } from './gearBonus';
 import { bladeDefense, bladeHit, bladeMult, bladeOf, bladeReach, bladeSpeed } from './blades';
 import { anbuAmbush } from './anbu';
@@ -470,6 +471,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
     if (src && !src.dead && t.faction !== 'village' && t.targetId == null) t.targetId = src.id;
     return;
   }
+  wearOut(g, t, 'armor', dmg); // colete segura o golpe e gasta (antes de tirar a vida: refaz a vida máxima)
+  if (opts.melee) wearOut(g, src, 'weapon', 1);
   t.hp -= dmg;
   noteHit(t, src);
   // golpe forte ou atordoamento quebram os selos

@@ -109,6 +109,10 @@ export interface Equip {
   /** Consumível escolhido; `itemReady` diz se o ninja está carregando um. */
   item: string | null;
   itemReady: boolean;
+  /** Quantos consumíveis carrega (até `CARRY` da patente); sem = 1 quando `itemReady`. */
+  itemCount?: number;
+  /** Durabilidade da arma e do colete equipados, de 1 (nova) a 0 (quebrada); sem = nova (game/wear.ts). */
+  dura?: { weapon?: number; armor?: number };
 }
 
 export interface Unit {
@@ -581,9 +585,13 @@ export interface GameState {
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;
+  /** Peças gastas fora de um ninja (tiradas antes do conserto): durabilidade de cada uma, por item (game/wear.ts). */
+  worn?: Record<string, number[]>;
+  /** Consumíveis gastos nos últimos 7 dias (`days[0]` = o dia `day`), para o painel das oficinas. */
+  usage?: { day: number; days: Record<string, number>[] };
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean; /** Vagas do Exame Chunin (4 ou 8; padrão 8). */ examSize?: number };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean; /** Vagas do Exame Chunin (4 ou 8; padrão 8). */ examSize?: number; /** Forja nv 2+ conserta sozinha (padrão sim). */ autoRepair?: boolean };
   stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
 }
 

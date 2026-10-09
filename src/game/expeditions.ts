@@ -16,6 +16,8 @@ import { gainXp } from './progression';
 import { teamUnits } from './teams';
 import type { Cost, Expedition, Unit } from './types';
 import { doorPos } from './world';
+import { WEAR } from '../data/items';
+import { wearAll } from './wear';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -271,6 +273,7 @@ function finish(g: Game, e: Expedition) {
   const p = hk ? doorPos(hk) : { x: 0, y: 0 };
   const us = expeditionUnits(g, e);
   us.forEach((u, i) => {
+    wearAll(g, u, WEAR.away); // fora do mapa também se luta: um pouco de desgaste na volta
     u.away = undefined;
     u.hidden = false;
     u.state = 'idle';

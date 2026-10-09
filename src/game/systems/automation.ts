@@ -1,5 +1,6 @@
 import { autoCraftTick, autoSenseiTick, autoTeachTick } from '../automation';
 import { enforceTeamRules } from '../teams';
+import { autoRepairTick } from '../wear';
 import type { Game } from '../game';
 
 let acc = 0;
@@ -11,6 +12,7 @@ export function automationSystem(g: Game, dt: number) {
   acc = 0;
   enforceTeamRules(g); // Kage sem equipe; ANBU e Sannin só entre si (conserta também saves antigos)
   autoCraftTick(g);
+  autoRepairTick(g); // Forja nv 2+: conserta quem passa pela vila
   if (g.state.flags.autoTeach) autoTeachTick(g);
   if (g.state.flags.autoSensei) autoSenseiTick(g);
 }
