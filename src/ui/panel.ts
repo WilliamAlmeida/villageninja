@@ -2529,7 +2529,7 @@ export class Panel {
     const [st, ic, cls] = this.teamStatus(tm);
     return `<button class="tcard ${on ? 'on' : ''}" data-act="open-team" data-arg="${tm.id}" style="--c:${tm.color}">
       <span class="tc-name"><span class="dot"></span>${esc(tm.name)}</span>
-      <span class="tc-sensei">{crown} Sensei: <b>${sensei ? esc(sensei.name.split(' ')[0]!) : 'sem sensei'}</b></span>
+      <span class="tc-sensei">Sensei: <b>${sensei ? esc(sensei.name.split(' ')[0]!) : 'sem sensei'}</b></span>
       <span class="tc-faces faces">${faces}${'<span class="face slot">{plus}</span>'.repeat(empty)}</span>
       <span class="tc-side"><span class="mchip">{swords} Poder ${teamPower(g, tm)}</span><span class="mpill ${cls}">${ic} ${st}</span></span></button>`;
   }
@@ -2541,8 +2541,8 @@ export class Panel {
     const units = teamUnits(g, tm);
     const [st, ic, cls] = this.teamStatus(tm);
     let html = `<div class="td-head" style="--c:${tm.color}">${back ? `<button class="btn icon" data-act="team-back" title="Voltar">{back}</button>` : ''}<span class="dot"></span><b class="td-name">${esc(tm.name)}</b><span class="mpill ${cls}">${ic} ${st}</span></div>
-      <div class="td-chips"><span class="mchip">{users} ${tm.memberIds.length}/${MAX_MEMBERS} membros</span><span class="mchip">{swords} Poder ${teamPower(g, tm)}</span>
-      <span class="mchip" ${tipAttr('Juntos', 'Membros perto uns dos outros focam o mesmo alvo e causam +10% de dano.', true)}>{star} +10% dano junto</span>
+      <div class="td-chips"><span class="mchip">{users} ${tm.memberIds.length}/${MAX_MEMBERS}</span><span class="mchip">{swords} Poder ${teamPower(g, tm)}</span>
+      <span class="mchip" ${tipAttr('Juntos', 'Membros perto uns dos outros focam o mesmo alvo e causam +10% de dano.', true)}>{up} +10% dano</span>
       ${sensei ? `<span class="mchip" ${tipAttr('Sensei', 'Com um sensei Chunin+ a equipe treina 50% mais rápido.', true)}>{up} +50% treino</span>` : ''}</div>`;
     if (!sensei && !tm.memberIds.length)
       html += `<div class="warnbox">Monte a equipe aqui: escolha até ${MAX_MEMBERS} membros e, se quiser, um sensei Chunin ou Jounin (treinam 50% mais rápido).</div>`;
