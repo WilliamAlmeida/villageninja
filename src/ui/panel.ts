@@ -119,10 +119,10 @@ interface Built {
 /** Abas da janela central: cada grupo de telas de gestão. */
 const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
-  village: [['village', '{home} Vila'], ['kage', '{kage} Kage'], ['bingo', '{skull} Bingo Book'], ['stats', '{chart} Estatísticas']],
+  village: [['village', '{castle} Vila'], ['kage', '{kage} Kage'], ['bingo', '{skull} Bingo Book'], ['stats', '{chart} Estatísticas']],
   world: [['region', `${pxIco('map')} Região`], ['expeditions', '{pickaxe} Expedições']],
 };
-const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: '{castle} Vila', world: `${pxIco('map')} Mundo` };
+const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: `${pxIco('castle')} Vila`, world: `${pxIco('map')} Mundo` };
 const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', bingo: 'village', stats: 'village', expeditions: 'world', region: 'world' };
 
 type BuildingTab = 'main' | 'inside';
@@ -202,7 +202,6 @@ const costTag = (cost: Partial<Record<ResKey, number>>) => `<small class="bcost"
 /** "i" ao lado do título de uma seção: a explicação fica na dica (um toque ou o mouse em cima), não escrita no drawer. */
 const infoTip = (title: string, text: string) => `<span class="itip" ${tipAttr(title, text, true)}>{info}</span>`;
 const RANK_BADGE_ICON: Record<string, string> = { genin: '{leaf}', chunin: '{medal}', jounin: '{star}', sannin: '{scroll}', kage: '{kage}' };
-const MISSION_TYPE_ICON: Record<Mission['type'], string> = { herbs: '{leaf}', hunt: '{beast}', escort: '{cart}', camp: '{flag}', wanted: '{target}' };
 const RISK_LABEL: Record<MissionRisk, [string, string]> = {
   safe: ['Seguro', '{shield}'], good: ['Favorável', '{shield}'], risky: ['Arriscado', '{alert}'], danger: ['Perigoso', '{skull}'],
 };
@@ -1221,7 +1220,7 @@ export class Panel {
       if (bd.type === 'missions') html += this.missionsSummary() + this.hireSection();
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
       if (bd.type === 'arena') html += this.arenaSection(b);
-      if (bd.type === 'sealshop') html += `<p class="hint">{paper} Artesão faz papel sozinho ${infoTip('Artesão', 'Sem pedidos, o artesão faz 1{paper} com 4{wood} a cada 8 s (se houver 30{wood} ou mais).')}</p>`;
+      if (bd.type === 'sealshop') html += `<p class="hint">{paper} Artesão faz papel sozinho ${infoTip('Artesão', 'Sem pedidos, o artesão faz {paper} 1 com {wood} 4 a cada 8 s (se houver {wood} 30 ou mais).')}</p>`;
       if (d.workers) {
         // uma marca por vaga: cheia = trabalhando, contorno = pedido (a caminho), apagada = vaga livre
         const max = workersOf(bd);
@@ -1249,8 +1248,8 @@ export class Panel {
       }
       if (bd.type === 'market') {
         html += this.marketSection(bd) + this.rareSection();
-        html += `<h4>{gold} Ouro ${infoTip('Ouro', `O mercado compra o ouro das minas por ${GOLD_PRICE}{ryo} cada.`)}</h4>`;
-        html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>{gold} Vender 1 <small class="bcost">+${GOLD_PRICE}{ryo}</small></button>
+        html += `<h4>{gold} Ouro ${infoTip('Ouro', `O mercado compra o ouro das minas por {ryo} ${GOLD_PRICE} cada.`)}</h4>`;
+        html += `<div class="btnrow"><button class="btn" data-act="sell-gold" data-arg="1" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>{gold} Vender 1 <small class="bcost">{ryo} +${GOLD_PRICE}</small></button>
           <button class="btn" data-act="sell-gold" data-arg="all" ${blocked(g, [g.state.res.gold < 1 && 'Sem ouro. Ele vem das partes fundas das minas.'])}>Vender tudo</button></div>`;
       }
       if (bd.type === 'academy') {
@@ -1295,7 +1294,7 @@ export class Panel {
     let html = `<h4>{ryo} Vende o excedente ${infoTip(
       'Vende o excedente',
       m
-        ? `A cada venda (8 s) leva até ${m.lot} ${RES_INFO[bd.sells!].icon} por +${m.ryo}{ryo}, sempre deixando ${m.keep} no estoque. Dois mercados podem escoar coisas diferentes.`
+        ? `A cada venda (8 s) leva até ${RES_INFO[bd.sells!].icon} ${m.lot} por {ryo} +${m.ryo}, sempre deixando ${m.keep} no estoque. Dois mercados podem escoar coisas diferentes.`
         : 'Escolha uma mercadoria para o comerciante vender o que sobrar no estoque (madeira, pedra, comida ou ervas).',
     )}</h4><div class="chips">`;
     html += `<button data-act="market-good" data-arg="" class="${bd.sells ? '' : 'on'}" ${tipAttr('Nada', 'Só o ryo de sempre do comerciante.')}>Nada</button>`;
@@ -1336,7 +1335,7 @@ export class Panel {
     for (const res of ['crystal', 'darksteel'] as const) {
       const price = RARE_PRICE[res]!;
       for (const n of [1, 5])
-        html += `<button class="btn" data-act="buy-rare" data-arg="${res}:${n}" ${blocked(g, [g.state.level < 2 && 'Só para uma Vila Oculta.'], { ryo: price * n })}>${RES_INFO[res].icon} +${n} · ${price * n}{ryo}</button>`;
+        html += `<button class="btn" data-act="buy-rare" data-arg="${res}:${n}" ${blocked(g, [g.state.level < 2 && 'Só para uma Vila Oculta.'], { ryo: price * n })}>${RES_INFO[res].icon} +${n} · {ryo} ${price * n}</button>`;
     }
     return html + `</div>`;
   }
@@ -1849,12 +1848,12 @@ export class Panel {
   private kageSection() {
     const g = this.app.game;
     const k = currentKage(g);
-    let html = `<div class="kfill"><div class="kgrid"><section class="kpanel kcard"><div class="kp-head">{scroll}<b>Kage atual</b></div>`;
+    let html = `<div class="kfill"><div class="kgrid"><section class="kpanel kcard"><div class="kp-head">{kage}<b>Kage atual</b></div>`;
     if (k) {
       const art = k.ninja!.kageArt && KAGE_ARTS[k.ninja!.kageArt];
       const monument = g.state.buildings.some((b) => b.type === 'monument');
       html += `<div class="kbody"><button class="k-face" data-act="pick" data-arg="${k.id}" style="${ART['kage-bg'] ? `background-image:url('${ART['kage-bg']}')` : ''}">${pimg(kagePortrait(k))}</button>
-        <div class="k-main"><div class="k-name">${esc(k.name)}<span class="kpill">{kage} Kage atual</span></div>
+        <div class="k-main"><div class="k-name">${esc(k.name)}</div>
         <div class="k-chips"><span class="mchip">Nv ${k.ninja!.level}</span><span class="mchip">{swords} Dano da vila +10%</span><span class="mchip ${monument ? '' : 'gold'}">{castle} ${monument ? 'Monte dos Kages' : 'Monte dos Kages pendente'}</span></div>`;
       if (art) {
         const pic = ART['kunai-card'] ?? ART['kunai-hiraishin'];
@@ -1920,8 +1919,10 @@ export class Panel {
   /** Os Três Sannin: emblema do caminho, o Sannin (ou os candidatos), o animal com a técnica e o botão. */
   private sanninSection() {
     const g = this.app.game;
-    const cost = (['ryo', 'food', 'wood', 'stone'] as const).filter((k) => SANNIN.cost[k]).map((k) => `${SANNIN.cost[k]} ${RES_INFO[k].name.toLowerCase()}`).join(' + ');
-    let html = `<section class="kpanel ssec"><div class="kp-head">{sparkle}<b>Os Três Sannin</b><small>Jounins Nv ${SANNIN.minLevel}+ · custo ${cost}</small></div><div class="sgrid">`;
+    const costs = RES_KEYS.filter((k) => SANNIN.cost[k])
+      .map((k) => `<span class="lchip">${costLabel({ [k]: SANNIN.cost[k] })}</span>`)
+      .join('');
+    let html = `<section class="kpanel ssec"><div class="kp-head">{sparkle}<b>Os Três Sannin</b><small>Jounins Nv ${SANNIN.minLevel}+</small><span class="s-costs">${costs}</span></div><div class="sgrid">`;
     const cands = sanninCandidates(g);
     for (const path of ['toad', 'snake', 'slug'] as const) {
       const d = SANNIN_PATHS[path];
@@ -1988,7 +1989,7 @@ export class Panel {
     }
     if (list.length) {
       const nodes = REGION_NODES.filter((n) => n.kind === 'village' && regionOf(g.state, n.id).status !== 'vassal');
-      html += `<div class="a-cov"><small ${tipAttr('Missão secreta', `${ACTION_TIP.covert} Furtividade: a força deles conta ${COVERT.stealth}×.`, true)}>{eye} Missão secreta</small><span class="chips">${nodes
+      html += `<div class="a-cov"><h4 ${tipAttr('Missão secreta', `${ACTION_TIP.covert} Furtividade: a força deles conta ${COVERT.stealth}×.`, true)}>{eye} Missão secreta</h4><span class="chips">${nodes
         .map((n) => `<button data-act="covert" data-arg="${n.id}" ${blocked(g, [covertBlock(g, n.id)])}>${esc(n.name)}</button>`)
         .join('')}</span></div>`;
     }
@@ -2114,11 +2115,11 @@ export class Panel {
     const done = st ? st.checks.filter((c) => c.ok).length : 0;
     let left = `<div class="vhero"><span class="vh-art">${url ? pimg(url) : cur.icon}</span><div class="vh-main">
       <div class="vh-name">${cur.icon} ${cur.name}</div>
-      <div class="hint">Nível ${s.level + 1} de ${MAX_VILLAGE_LEVEL + 1} · território ${cur.territory} · impostos ${cur.tax} {ryo}/morador</div>`;
+      <div class="hint">Nível ${s.level + 1} de ${MAX_VILLAGE_LEVEL + 1} · Território ${cur.territory} km · Impostos ${cur.tax} ryos por morador</div>`;
     if (st) {
       left += `<div class="vh-next"><span>Próximo marco: <b>${st.def.icon} ${st.def.name}</b></span><span class="mchip ${st.ready ? '' : 'gold'}">${done}/${st.checks.length} requisitos</span></div>
         <div class="nc-bar xp vh-bar"><i style="width:${(done / Math.max(1, st.checks.length)) * 100}%"></i></div>`;
-    } else left += `<div class="vh-next">{trophy} A vila chegou ao nível máximo!</div>`;
+    } else left += `<div class="vh-next">A vila chegou ao nível máximo!</div>`;
     left += `</div></div>`;
     if (st) {
       left += `<div class="vcols"><div class="bsec"><h4>{clipboard} Requisitos para elevar</h4><ul class="vreqs">`;
@@ -2276,7 +2277,7 @@ export class Panel {
       .join('');
     let html = `<div class="mcontract" style="--c:${r.color}">${this.seal(r.label, r.color)}
       <div class="mc-body"><div class="mc-top"><div class="mc-head"><div class="mc-title">${esc(m.title)}</div>
-        <div class="mc-meta">${MISSION_TYPE_ICON[m.type]} ${MISSION_TYPE_LABEL[m.type]} · Dificuldade ${need} · ${Math.round(MISSION_TIME)}s</div></div>
+        <div class="mc-meta"><strong>${MISSION_TYPE_LABEL[m.type]}</strong> · Dificuldade ${need} · ${Math.round(MISSION_TIME)}s</div></div>
         <div class="mc-reward">${chips}<span class="mchip">{star} +${r.xp} XP</span></div></div>
         <div class="mc-desc">${esc(tpl.desc)}</div><div class="mc-foot">`;
     const rec = recommendTeam(g, m);
@@ -2846,7 +2847,7 @@ export class Panel {
         if (n <= 0) return;
         g.state.res.gold -= n;
         g.state.res.ryo += n * GOLD_PRICE;
-        g.toast(`{gold} Vendeu ${n} ouro por ${n * GOLD_PRICE}{ryo}.`, 'good');
+        g.toast(`{gold} Vendeu ${n} ouro por {ryo} ${n * GOLD_PRICE}.`, 'good');
         return this.report({ ok: true });
       }
       case 'mine-go': {
