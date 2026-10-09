@@ -1,7 +1,6 @@
 import type { App } from '../app';
 import { bus, type ToastKind } from '../core/events';
 import { clockLabel, isNight } from '../game/time';
-import { levelDef } from '../data/villageLevels';
 import { arenaSpots, examLabel } from '../game/exam';
 import { BOSSES } from '../data/bosses';
 import { el, esc, fmt } from './dom';
@@ -40,7 +39,7 @@ export class Hud {
         <span class="chip mood" data-r="moodchip" data-tip-tap data-tip-title="Felicidade" data-tip=""><span data-r="moodicon"></span> <b data-r="mood"></b></span>
       </div>
       <div class="spacer"></div>
-      <div class="clock"><span data-r="lvl"></span> <span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span> <span class="season" data-r="season" data-tip-tap data-tip-title="Estação e clima" data-tip=""></span></div>
+      <div class="clock"><span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span> <span class="season" data-r="season" data-tip-tap data-tip-title="Estação e clima" data-tip=""></span></div>
       <div class="speed">
         <button data-speed="0" title="Pausar">{pause}</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
       </div>
@@ -133,8 +132,6 @@ export class Hud {
     set('pop', `${pop}/${cap}`);
     set('ninjas', String(s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village').length));
     set('day', String(s.day));
-    this.html(this.vals.get('lvl')!, levelDef(s.level).icon);
-    this.vals.get('lvl')!.title = levelDef(s.level).name;
     set('clock', clockLabel(s));
     this.html(this.vals.get('sun')!, isNight(s) ? '{moon}' : '{sun}');
     // felicidade e estação/clima (dicas com o detalhe)

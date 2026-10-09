@@ -39,7 +39,7 @@ button:disabled { cursor: not-allowed; }
 .ic {
   width: 1.2em; height: 1.2em; flex: 0 0 auto; vertical-align: -0.22em;
   /* respiro entre o ícone e o texto/número colado ("4{wood}", "{swords}22") */
-  margin-inline: 0.12em;
+  margin-inline: 0.22em;
   fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 .ic-wood { color: #d19a62; } .ic-stone { color: #b9bcc4; } .ic-food { color: #f2efe6; } .ic-ryo { color: #ffd34d; }
