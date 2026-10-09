@@ -106,7 +106,7 @@ export function dogSniff(g: Game, dog: Unit, owner: Unit, dt: number) {
   if (g.world.inVillage(owner.x, owner.y) || Math.random() > DOG.herbChance) return;
   const herbs = Math.round(DOG.herbs * BREEDS[dog.breed ?? 'shiba'].herbs);
   g.state.res.herbs += herbs;
-  fxText(g, dog.x, dog.y - 18, `+${herbs}{herbs}`, '#7fd36b');
+  fxText(g, dog.x, dog.y - 18, `{herbs} +${herbs}`, '#7fd36b');
 }
 
 export const dogName = (u: Unit) => u.name || ANIMALS.dog.name;

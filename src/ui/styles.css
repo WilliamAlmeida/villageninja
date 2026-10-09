@@ -38,7 +38,7 @@ button:disabled { cursor: not-allowed; }
 /* ---------- ícones ---------- */
 .ic {
   width: 1.2em; height: 1.2em; flex: 0 0 auto; vertical-align: -0.22em;
-  /* respiro entre o ícone e o texto/número colado ("4{wood}", "{swords}22") */
+  /* respiro entre o ícone e o texto/número colado ("{wood} 4", "{swords} 22") */
   margin-inline: 0.22em;
   fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
@@ -999,8 +999,8 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .a-main small { color: var(--muted); font-size: 0.74rem; }
 .a-masks { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.45rem; }
 .a-masks > small { color: var(--muted); }
-.a-cov { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
-.a-cov > small { color: var(--muted); display: flex; gap: 0.2rem; align-items: center; }
+.a-cov { margin-top: 0.5rem; }
+.a-cov h4 { margin: 0 0 0.4rem; }
 /* lâminas lendárias: uma linha com rolagem horizontal que encaixa cartão a cartão (scroll snap); a espada no fundo */
 .bl-title { display: flex; gap: 0.25rem; align-items: center; margin-top: 0.55rem; color: var(--muted); }
 .bl-title span { margin-left: auto; font-weight: 700; color: var(--warn); }
@@ -1121,7 +1121,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .xmem .nc-bar { width: 100%; height: 0.28rem; }
 .xloot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
 .xloot > small { color: var(--muted); margin-right: 0.15rem; }
-.lchip { display: inline-flex; align-items: center; padding: 0.08rem 0.4rem; border-radius: 0.45rem; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--line); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lchip { display: inline-flex; align-items: center; padding: 0.08rem 0.4rem; border-radius: 0.45rem; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--line); font-size: 0.8rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .xchoice { display: grid; grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr)); gap: 0.4rem; margin: 0; }
 .xchoice .btn { white-space: nowrap; justify-content: center; }
 .xmines { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.45rem; }
@@ -1333,6 +1333,8 @@ h4::after { background: var(--line); opacity: 0.6; }
 .kp-head > .ic { width: 1.7rem; height: 1.7rem; }
 .kp-head > b { font-size: 1.45rem; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
 .kp-head > small { color: var(--muted); font-size: 0.95rem; margin-left: 0.4rem; }
+.ssec .kp-head { flex-wrap: wrap; }
+.ssec .s-costs { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; flex-wrap: wrap; }
 /* Kage atual */
 .kbody { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 0.9rem; align-items: stretch; padding: 0.7rem; border-radius: 0.65rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); }
 .k-face { position: relative; width: 13rem; height: auto; min-height: 20rem; border-radius: 0.55rem; border: 2px solid #8a5b25; background: #3b2919 center / cover no-repeat; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0.3rem 0.8rem rgba(0, 0, 0, 0.4); }
@@ -1497,6 +1499,8 @@ h4::after { background: var(--line); opacity: 0.6; }
 .ic-alert { color: #ffc93a; } .ic-skull { color: #f2e6d0; } .ic-swords { color: #d8d2c8; } .ic-shield { color: #e7a92e; }
 .ic-hourglass, .ic-clock, .ic-calendar, .ic-users, .ic-castle, .ic-home, .ic-chart, .ic-clipboard, .ic-house, .ic-houses { color: #f0dcb4; }
 .ic-kage { color: #f0dcb4; } .ic-shinobi, .ic-grave { color: #f0dcb4; }
+/* Ícones de cabeçalho usam o mesmo tom neutro; recursos e estados mantêm suas cores semânticas. */
+h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic.gl, .sc-head > .ic.gl, .bl-title > .ic.gl { color: #f0dcb4; }
 /* grade de números: lista uniforme, todos os glifos na mesma cor bege (sem um amarelo, outro laranja, outro pixel art) */
 .statcard .si .ic.gl { color: #f0dcb4; }
 .vmark .vm-ic .ic.gl { color: #ffc93a; } .vmark.done .vm-ic .ic.gl { color: var(--good); } .vreqs .vr-ic .ic.gl { color: #f0dcb4; } .vreqs li.ok .vr-ic .ic.gl { color: #ffc93a; }

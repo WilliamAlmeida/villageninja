@@ -18,8 +18,8 @@ export const RES_INFO: Record<ResKey, { name: string; icon: string; /** Só apar
 
 export const emptyRes = (): Record<ResKey, number> => ({ wood: 0, stone: 0, food: 0, ryo: 0, iron: 0, herbs: 0, paper: 0, crystal: 0, gold: 0, darksteel: 0 });
 
-/** "30{wood} 10{stone}" — formata qualquer custo/recompensa. */
+/** "{wood} 30 {stone} 10" — formata qualquer custo/recompensa no padrão ícone-quantidade. */
 export const costLabel = (c: Partial<Record<ResKey, number>>) =>
   RES_KEYS.filter((k) => c[k])
-    .map((k) => `${c[k]}${RES_INFO[k].icon}`)
+    .map((k) => `${RES_INFO[k].icon} ${c[k]}`)
     .join(' ') || 'grátis';

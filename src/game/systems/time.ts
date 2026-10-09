@@ -15,5 +15,5 @@ function onNewDay(g: Game) {
   const tax = villagers * levelDef(g.state.level).tax;
   g.state.res.ryo += tax;
   if (g.state.buildings.some((b) => b.type === 'monument' && b.built)) g.state.reputation += 1;
-  g.toast(`{sun} Dia ${g.state.day} — impostos: +${tax} {ryo}`, 'info');
+  g.toast(`{sun} Dia ${g.state.day} — impostos: {ryo} +${tax}`, 'info');
 }

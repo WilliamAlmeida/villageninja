@@ -150,7 +150,7 @@ function work(g: Game, u: Unit, dt: number) {
         const out = job && BUILDINGS[job.type].job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
         const amount = out.res === 'food' ? Math.max(1, Math.round(farmYield(job) * harvestMult(g.state, u.x, u.y))) : out.amount;
         g.state.res[out.res] += amount;
-        fxText(g, u.x, u.y - 20, `+${amount}${RES_INFO[out.res].icon}`, '#ffe08a');
+        fxText(g, u.x, u.y - 20, `${RES_INFO[out.res].icon} +${amount}`, '#ffe08a');
         // o pedaço colhido fica sem planta e volta a crescer aos poucos
         fx(g, 'harvest', u.x + Math.cos(u.facing) * 8, u.y + Math.sin(u.facing) * 8, { life: 30, r: 10, color: '#6b4a2b' });
         u.state = 'idle';
@@ -200,7 +200,7 @@ function work(g: Game, u: Unit, dt: number) {
       if (followPath(g, u, dt)) {
         if (u.carry) {
           g.state.res[u.carry.res] += u.carry.amount;
-          fxText(g, u.x, u.y - 20, `+${u.carry.amount}${RES_INFO[u.carry.res].icon}`, '#ffe08a');
+          fxText(g, u.x, u.y - 20, `${RES_INFO[u.carry.res].icon} +${u.carry.amount}`, '#ffe08a');
         }
         u.carry = null;
         u.state = 'idle';
@@ -222,7 +222,7 @@ function work(g: Game, u: Unit, dt: number) {
         g.state.res.ryo += ryo;
         // mercado especializado: também vende o excedente da mercadoria escolhida
         const sold = marketSale(g, shop);
-        fxText(g, u.x, u.y - 20, `+${ryo + sold}{ryo}`, '#ffe08a');
+        fxText(g, u.x, u.y - 20, `{ryo} +${ryo + sold}`, '#ffe08a');
         u.timer = 8;
       }
       break;

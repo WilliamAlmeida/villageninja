@@ -26,8 +26,9 @@ test('todo ícone dos dados existe no conjunto de SVGs', () => {
 });
 
 test('tokens viram texto puro no canvas e em tooltips', () => {
-  expect(costLabel({ wood: 30, stone: 10 })).toBe('30{wood} 10{stone}');
-  expect(plainTokens('+3{ryo}')).toBe('+3 ryo');
+  expect(costLabel({ wood: 30, stone: 10 })).toBe('{wood} 30 {stone} 10');
+  expect(plainTokens(costLabel({ wood: 30, stone: 10 }))).toBe('30 madeira 10 pedra');
+  expect(plainTokens('{ryo} +3')).toBe('+3 ryo');
   expect(plainTokens('{castle} Vila concluída!')).toBe('Vila concluída!');
 });
 

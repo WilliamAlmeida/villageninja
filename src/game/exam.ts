@@ -230,7 +230,7 @@ export function finishExam(g: Game) {
   s.exam = null;
   s.examNextDay = s.day + EXAM_COOLDOWN_DAYS;
   g.toast(
-    `{trophy} ${champ?.name ?? '?'} venceu o Exame Chunin! ${promoted.length ? `Promovidos: ${promoted.join(', ')}.` : 'Ninguém da vila foi promovido.'} +${ryo}{ryo}`,
+    `{trophy} ${champ?.name ?? '?'} venceu o Exame Chunin! ${promoted.length ? `Promovidos: ${promoted.join(', ')}.` : 'Ninguém da vila foi promovido.'} {ryo} +${ryo}`,
     'good',
   );
 }

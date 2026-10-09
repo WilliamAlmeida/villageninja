@@ -679,7 +679,7 @@ export function markTarget(g: Game, t: Unit, by: number) {
 
 function rewardText(g: Game, t: Unit, r: { food?: number; ryo?: number; wood?: number; stone?: number }) {
   const parts: string[] = [];
-  if (r.food) parts.push(`+${r.food}{food}`);
-  if (r.ryo) parts.push(`+${r.ryo}{ryo}`);
+  if (r.food) parts.push(`{food} +${r.food}`);
+  if (r.ryo) parts.push(`{ryo} +${r.ryo}`);
   if (parts.length) fxText(g, t.x, t.y - 30, parts.join(' '), '#ffe08a');
 }

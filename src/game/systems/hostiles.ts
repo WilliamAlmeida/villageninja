@@ -138,7 +138,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (followPath(g, u, dt) && Math.hypot(p.x - u.x, p.y - u.y) < 40) {
     const stolen = Math.min(g.state.res.ryo, 40 + g.state.day * 5);
     g.state.res.ryo -= stolen;
-    fxText(g, u.x, u.y - 30, `-${stolen}{ryo}`, '#ff5a5a', true);
+    fxText(g, u.x, u.y - 30, `{ryo} -${stolen}`, '#ff5a5a', true);
     g.toast(`{ryo} ${u.name} roubou ${stolen} ryo da Residência do Hokage!`, 'danger', u);
     g.state.flags.raidStole = true;
     u.state = 'escape';
@@ -261,7 +261,7 @@ function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
     if (take <= 0) return flee(g, u);
     res.food -= take;
     u.loot = { food: (u.loot?.food ?? 0) + take };
-    fxText(g, u.x, u.y - 14, `-${take}{food}`, '#ff8a8a');
+    fxText(g, u.x, u.y - 14, `{food} -${take}`, '#ff8a8a');
     return;
   }
   // macaco: vai até o estoque (Residência do Hokage, ou a horta se houver ervas), pega e foge

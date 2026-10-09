@@ -70,7 +70,7 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 | `.mchip` | Número de contexto (cabeçalho, chips de resumo) | `gold` para reputação/honra, `bad` para o que é ruim |
 | `.mpill` | **Estado** de algo | `safe` (verde) · `good` (dourado) · `risky` (laranja) · `danger` (vermelho) · `info`; risco em palavras (Seguro, Favorável, Arriscado, Perigoso) |
 | `.badge` / `.rbadge` | Atributos do ninja (patente, natureza, papel) | Patente com ícone próprio |
-| `.lchip` | **Recurso: ícone + quantia** | Uma etiqueta por recurso; rótulo pequeno antes ("Tributo por dia"); nunca a frase "Tributo: 30 4 /dia" |
+| `.lchip` | **Recurso: ícone + quantia** | Etiqueta compacta escura, texto em negrito; uma por recurso. Rótulo pequeno antes ("Tributo por dia"); nunca a frase "Tributo: 30 4 /dia" |
 | `.btn primary` | A ação principal do grupo | Uma por grupo; laranja com relevo |
 | `togBtn` (`.btn.tog`) | Liga/desliga | Rótulo curto + chave ("Auto", "Auto-ensino"); nunca "ligado/desligado" escrito |
 | Ação em lote | Verbo curto + contagem | "Ensinar (4)", "Montar (3)"; explicação na dica |
@@ -97,6 +97,7 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 
 ## 7. Ícones
 
+- **Padrão ícone-quantidade**: em pares de recurso e valor, o ícone vem primeiro e a quantia depois (ex.: `{ryo} 30`). Use uma `.lchip` quando couber uma etiqueta compacta por recurso, com fonte pequena e em negrito; em texto corrido, mantenha a ordem sem criar cartão. `costLabel` segue esse formato. Em texto puro (tooltip/título), `plainTokens` continua convertendo para "30 ryo". Não escrever a quantia antes do token (ex.: `30{ryo}`).
 - **Interface = SVG liso do Phosphor** com cor por tipo (`.ic-<nome>`): títulos, abas, etiquetas, botões, selos.
 - **Pixel art só para** recursos, itens, retratos, bustos, animais, cenas e selos de rank; no máximo 64 px e no atlas.
 - Listas que precisam de visual uniforme (números das Estatísticas, marcos e requisitos da Vila) usam só glifos, todos
