@@ -17,15 +17,15 @@ export interface SpecDef {
 
 export const SPECS: Record<SpecKind, SpecDef> = {
   medic: {
-    name: 'Ninja médico', icon: '{medic}', building: 'hospital', buildingLevel: 2, cost: { ryo: 150, herbs: 20 },
+    name: 'Médico', icon: '{medic}', building: 'hospital', buildingLevel: 2, cost: { ryo: 150, herbs: 20 },
     desc: 'Em combate, cura o aliado mais ferido por perto a cada poucos segundos.',
   },
   spy: {
-    name: 'Espião da vila', icon: '{eye}', building: 'intel', cost: { ryo: 150, paper: 10 },
+    name: 'Espião', icon: '{eye}', building: 'intel', cost: { ryo: 150, paper: 10 },
     desc: 'Descobre espiões invisíveis de longe e marca os inimigos por perto: todos causam +15% de dano neles.',
   },
   puppeteer: {
-    name: 'Marionetista', icon: '{target}', building: 'puppetshop', cost: { ryo: 150, wood: 80, iron: 10 },
+    name: 'Marionete', icon: '{target}', building: 'puppetshop', cost: { ryo: 150, wood: 80, iron: 10 },
     desc: 'Em combate, monta uma marionete de madeira que luta ao lado dele e aguenta muitos golpes.',
   },
 };

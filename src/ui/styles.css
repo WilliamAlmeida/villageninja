@@ -13,6 +13,7 @@
   --bad: #ff5a5a;
   --warn: #ffd34d;
   --r: 0.7rem;
+  --badge-r: 999px;
   --shadow: 0 0.2rem 1rem rgba(0, 0, 0, 0.45);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
@@ -182,7 +183,7 @@ button:disabled { cursor: not-allowed; }
 .ph .title .ic { color: var(--accent); }
 .ph .row { display: flex; align-items: center; gap: 0.5rem; }
 .badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-.badge { font-size: 0.82rem; padding: 0.12rem 0.55rem; border-radius: 999px; background: var(--card-hi); font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; }
+.badge { font-size: 0.82rem; padding: 0.12rem 0.55rem; border-radius: var(--badge-r); background: var(--card-hi); font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; }
 .badge.nat { background: color-mix(in srgb, var(--c) 28%, transparent); color: var(--c); }
 .badge.rank { background: #3f5a2c; }
 .badge.enemy { background: #8e2a22; }
@@ -580,7 +581,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .mh-title { font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 0.45rem; margin-right: 0.3rem; }
 .mh-title .ic { color: var(--accent); width: 1.35rem; height: 1.35rem; }
 .mh-auto { margin-left: auto; }
-.mchip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: 0.55rem; background: var(--card); border: 1px solid var(--line); font-size: 0.85rem; white-space: nowrap; }
+.mchip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: var(--badge-r); background: var(--card); border: 1px solid var(--line); font-size: 0.85rem; white-space: nowrap; }
 .mchip.gold { color: var(--warn); font-weight: 700; border-color: rgba(255, 211, 77, 0.35); background: rgba(255, 211, 77, 0.08); }
 .mtabs { display: flex; gap: 0.2rem; border-bottom: 1px solid var(--line); margin-bottom: 0.6rem; }
 .mtabs button { padding: 0.5rem 0.9rem; background: none; color: var(--muted); font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; border-bottom: 2px solid transparent; margin-bottom: -1px; }
@@ -615,7 +616,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .mteam .faces { margin-left: auto; }
 .mteam .pw { white-space: nowrap; color: var(--muted); }
 
-.mpill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.18rem 0.55rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 700; white-space: nowrap; border: 1px solid; }
+.mpill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.18rem 0.55rem; border-radius: var(--badge-r); font-size: 0.8rem; font-weight: 700; white-space: nowrap; border: 1px solid; }
 .mpill.safe { color: var(--good); border-color: rgba(94, 224, 94, 0.5); background: rgba(94, 224, 94, 0.08); }
 .mpill.good { color: var(--warn); border-color: rgba(255, 211, 77, 0.5); background: rgba(255, 211, 77, 0.08); }
 .mpill.risky { color: var(--accent); border-color: rgba(255, 138, 43, 0.55); background: rgba(255, 138, 43, 0.08); }
@@ -687,13 +688,14 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .nc-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.12rem 0.4rem; align-items: center; align-content: start; }
 .nc-name { grid-column: 1 / -1; font-weight: 800; font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nc-badges { grid-column: 1 / -1; display: flex; gap: 0.25rem; flex-wrap: wrap; margin-bottom: 0.15rem; }
-.rbadge, .lvbadge { font-size: 0.76rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 0.4rem; display: inline-flex; align-items: center; gap: 0.2rem; border: 1px solid var(--line); white-space: nowrap; }
+.rbadge, .lvbadge { font-size: 0.76rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: var(--badge-r); display: inline-flex; align-items: center; gap: 0.2rem; border: 1px solid var(--line); white-space: nowrap; }
 .rbadge .ic { width: 0.85rem; height: 0.85rem; }
 .rbadge.r-genin { color: #9fe08a; border-color: rgba(159, 224, 138, 0.45); }
 .rbadge.r-chunin { color: #c9a6ff; border-color: rgba(201, 166, 255, 0.45); }
 .rbadge.r-jounin { color: var(--warn); border-color: rgba(255, 211, 77, 0.5); }
 .rbadge.r-sannin { color: #ff7a7a; border-color: rgba(255, 122, 122, 0.55); }
 .rbadge.r-kage { color: var(--accent); border-color: rgba(255, 138, 43, 0.6); background: rgba(255, 138, 43, 0.1); }
+.rbadge.nat { color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, transparent); }
 .nc-bar { height: 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
 .nc-bar i { display: block; height: 100%; width: 100%; transform-origin: left; border-radius: 999px; }
 .nc-bar.hp i { background: var(--good); }
@@ -837,6 +839,10 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .fh-main { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; justify-content: center; }
 .fh-name { font-size: 1.2rem; font-weight: 900; line-height: 1.15; }
 .fh-state { font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+.topbadges { flex-wrap: nowrap; }
+.topbadges .ibadge { min-width: 1.55rem; justify-content: center; padding-inline: 0.38rem; background: var(--card-hi); border-color: var(--line); }
+.topbadges .ibadge .ic { width: 0.92rem; height: 0.92rem; margin-inline: 0; }
+.topbadges .rbadge.nat { font-weight: 900; }
 .fquick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem; margin: 0.55rem 0 0.4rem; }
 .fquick > span { display: flex; flex-direction: column; padding: 0.3rem 0.45rem; border-radius: 0.55rem; background: var(--card); border: 1px solid var(--line); min-width: 0; }
 .fquick small { font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 0.2rem; white-space: nowrap; }
@@ -856,13 +862,20 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .ftechs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; }
 .ftechs .badge { border-radius: 0.55rem; padding: 0.4rem 0.55rem; background: var(--card); border: 1px solid var(--line); justify-content: flex-start; font-weight: 600; }
 .ftechs .badge b { margin-left: auto; color: var(--good); }
-.ftiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-top: 0.6rem; }
+.ftiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.35rem; margin-top: 0.6rem; }
 .ftile { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.45rem 0.55rem; border-radius: 0.6rem; background: var(--card); border: 1px solid var(--line); min-width: 0; }
 .ftile small { color: var(--muted); font-size: 0.74rem; display: flex; align-items: center; gap: 0.25rem; }
 .ftile b { font-size: 0.92rem; display: flex; align-items: center; }
 .ftile > span { font-size: 0.76rem; color: var(--muted); line-height: 1.25; }
 .ftile .btn.mini { align-self: flex-start; margin-top: 0.15rem; }
 .ftile .btnrow { gap: 0.25rem; }
+.ftile .spec-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ftile .spec-buttons .btn { width: 100%; min-width: 0; justify-content: flex-start; font-size: 0.8rem; }
+.ftile.teamtile .teamline { display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
+.ftile.teamtile .tname { min-width: 0; display: inline-flex; align-items: center; gap: 0.25rem; }
+.ftile.teamtile .tname b { min-width: 0; }
+.ftile.teamtile .trole { color: var(--muted); font-size: 0.8rem; }
+.ftile.teamtile .btn.mini { margin-top: 0; align-self: auto; }
 .factions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
 .factions .btn { flex: 1 1 auto; justify-content: center; }
 .factions .hint { flex-basis: 100%; margin: 0; }
