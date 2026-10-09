@@ -171,7 +171,7 @@ function reqIcon(label: string): string {
   if (l.includes('ninja')) return '{ninja}';
   if (l.includes('chunin') || l.includes('jounin')) return '{medal}';
   if (l.includes('invas')) return '{shield}';
-  if (l.includes('miss')) return '{clipboard}';
+  if (l.includes('miss')) return '{scroll}';
   if (l.includes('clã')) return '{castle}';
   if (l.includes('kage')) return '{kage}';
   return '{todo}';
@@ -1705,7 +1705,7 @@ export class Panel {
     const offered = ms.filter((m) => m.status === 'offered').length;
     return `<div class="lvlcard"><div class="lvlname">{star} Reputação ${g.state.reputation}</div>
       <div class="hint">${offered} missão(ões) no quadro · ${active}/${maxActiveMissions(g)} em andamento</div></div>
-      <div class="actions"><button class="btn primary" data-act="win" data-arg="missions">{clipboard} Abrir quadro de missões</button></div>`;
+      <div class="actions"><button class="btn primary" data-act="win" data-arg="missions">{scroll} Abrir quadro de missões</button></div>`;
   }
 
   private villageView(): Built {
@@ -1718,7 +1718,7 @@ export class Panel {
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
     if (!this.app.game.findBuilt('missions'))
-      return { html: `<div class="ph"><div class="title">{clipboard} Quadro de missões</div></div><div class="warnbox">Construa a {clipboard} Mesa de Missões (menu Construir) para receber pedidos.</div>`, t, b };
+      return { html: `<div class="ph"><div class="title">{scroll} Quadro de missões</div></div><div class="warnbox">Construa a {scroll} Mesa de Missões (menu Construir) para receber pedidos.</div>`, t, b };
     return { html: this.missionsSection(t, b), t, b };
   }
 
@@ -1740,7 +1740,7 @@ export class Panel {
     left += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');
     left += cell('shield', 'Invasões repelidas', s.stats.raidsRepelled, 'Ataques de renegados que a vila venceu.');
     left += cell('skull', 'Chefes derrotados', s.stats.bossesDefeated, 'Ameaças-chefe vencidas.');
-    left += cell('clipboard', 'Missões cumpridas', s.stats.missionsDone, 'Missões da Mesa de Missões concluídas com sucesso.');
+    left += cell('scroll', 'Missões cumpridas', s.stats.missionsDone, 'Missões da Mesa de Missões concluídas com sucesso.');
     left += cell('baby', 'Nascimentos', s.stats.born, 'Crianças nascidas na vila.');
     left += cell('grave', 'Perdas', s.stats.lost, 'Moradores e ninjas que morreram.');
     left += cell('castle', 'Clãs', s.clans.length, 'Clãs fundados por ninjas da vila.');
@@ -2061,7 +2061,7 @@ export class Panel {
       ['{scroll}', 'Os Três Sannin', sannins(g).length, 3],
       ['{moon}', 'Ordem do Eclipse destruída', s.org.done || (s.org.wins ?? 0) > 0 ? 8 : s.org.down.length, 8],
       ['{shield}', 'Invasões repelidas', s.stats.raidsRepelled, 100],
-      ['{clipboard}', 'Missões cumpridas', s.stats.missionsDone, 100],
+      ['{scroll}', 'Missões cumpridas', s.stats.missionsDone, 100],
       ['{swords}', 'Abates', s.stats.kills, 2000],
       ['{skull}', 'Chefes derrotados', s.stats.bossesDefeated, 50],
       ['{castle}', 'Clãs fundados', s.clans.length, 5],
@@ -2231,11 +2231,11 @@ export class Panel {
       const tm = recommendTeam(g, m);
       return !!tm && teamPower(g, tm) >= missionPower(m);
     });
-    const chips = `<span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star} Reputação ${g.state.reputation}</span>
-      <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{todo} ${g.state.stats.missionsDone} cumpridas</span>
-      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>{refresh} Em andamento ${active.length}/${max}</span>`;
+    const chips = `<span class="mchip gold" ${tipAttr('Reputação', 'Sobe com missões cumpridas, exames e chefes vencidos; cai quando uma missão fracassa.', true)}>{star} ${g.state.reputation}</span>
+      <span class="mchip" ${tipAttr('Cumpridas', 'Missões concluídas desde a fundação da vila.', true)}>{scroll} ${g.state.stats.missionsDone}</span>
+      <span class="mchip" ${tipAttr('Em andamento', `Até ${max} ao mesmo tempo (cresce com o nível da vila). O quadro renova todo dia.`, true)}>Em andamento ${active.length}/${max}</span>`;
     const auto = `<button class="btn primary" data-act="m-auto" ${blocked(g, [full && 'Limite de missões simultâneas atingido.', !full && !canAuto && 'Nenhuma equipe livre dá conta das missões do quadro.'])} ${tipAttr('Auto designar', 'Das missões mais difíceis para as mais fáceis, manda a equipe mais fraca que ainda dá conta (poupa as fortes). Só envia com risco Seguro ou Favorável.')}>{users} Auto designar</button>`;
-    let html = this.winTop('{clipboard} Quadro de missões', chips, auto, []);
+    let html = this.winTop(`${pxIco('scroll')} Quadro de missões`, chips, auto, []);
     let main = '';
     // estreita: as em andamento no alto (na larga elas ficam na coluna da direita)
     if (!wide && active.length) main += `<h4>{swords} Em andamento <small>${active.length}/${max}</small></h4><div class="mactives">${this.activeContracts(active, t, b)}</div>`;
@@ -2285,7 +2285,7 @@ export class Panel {
     else if (!anyFree || !rec) html += `<span class="why">Nenhuma equipe livre. Forme uma em {ninja} Ninjas → Equipes.</span>`;
     else {
       const p = teamPower(g, rec);
-      html += `<span class="mc-rec">{users} Recomendada: <span class="dot" style="--c:${rec.color}"></span><b>${esc(rec.name)}</b> · poder ${p}</span>${this.riskPill(missionRisk(p, need))}
+      html += `<span class="mc-rec">{users} Recomendada: <span class="dot" style="--c:${rec.color}"></span><b>${esc(rec.name)}</b> · {swords} ${p}</span>${this.riskPill(missionRisk(p, need))}
         <span class="mc-acts"><button class="btn primary" data-act="m-accept" data-arg="${m.id}" data-team="${rec.id}">Enviar</button><button class="btn ghost ${this.missionPick === m.id ? 'on' : ''}" data-act="m-pick" data-arg="${m.id}">Trocar equipe</button></span>`;
     }
     html += `</div>`;
@@ -2448,7 +2448,7 @@ export class Panel {
     if (u.away === WITH_SOUND) return ['Raptado', '{skull}', 'danger', true];
     if (u.captiveOf != null) return ['Sendo levado', '{alert}', 'danger', true];
     if (u.away != null) return ['Fora da vila', '{map}', 'good', true];
-    if (mission) return ['Em missão', '{clipboard}', 'good', true];
+    if (mission) return ['Em missão', '{scroll}', 'good', true];
     if (u.hp < u.maxHp * 0.6) return ['Ferido', '{medic}', 'danger', true];
     if (u.ninja?.learning) return ['Estudando', '{books}', 'info', true];
     const label = STATE_LABEL[u.state] ?? u.state;
@@ -2562,8 +2562,8 @@ export class Panel {
     // controles: missão e ordens na largura toda, rotina e tática lado a lado (uma coluna se o painel for estreito)
     const mission = missionOfTeam(g, tm.id);
     html += `<div class="td-ctl"><div class="full"><h4>Missão atual</h4><p class="td-mission">${mission
-      ? `{clipboard} ${esc(mission.title)} (rank ${MISSION_RANKS[mission.rank]!.label}) · ${this.missionPhase(mission)}`
-      : `Livre · envie pela {clipboard} Mesa de Missões.`}</p></div>`;
+      ? `{scroll} ${esc(mission.title)} (rank ${MISSION_RANKS[mission.rank]!.label}) · ${this.missionPhase(mission)}`
+      : `Livre · envie pela {scroll} Mesa de Missões.`}</p></div>`;
     if (units.length) {
       const n0 = units[0]!.ninja!;
       html += `<div><h4>Rotina da equipe</h4><div class="seg troutine">`;

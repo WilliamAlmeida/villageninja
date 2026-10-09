@@ -20,7 +20,7 @@ export function missionSystem(g: Game, dt: number) {
     const first = s.missionDay === 0;
     s.missionDay = s.day;
     generateOffers(g);
-    if (!first) g.toast('{clipboard} Novas missões no quadro da Mesa de Missões.', 'info');
+    if (!first) g.toast('{scroll} Novas missões no quadro da Mesa de Missões.', 'info');
   }
   for (const m of s.missions) if (m.status === 'active') runMission(g, m, dt);
 }

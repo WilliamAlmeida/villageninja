@@ -110,7 +110,7 @@ export function acceptMission(g: Game, missionId: number, teamId: number): Resul
   m.teamId = teamId;
   m.timeLeft = MISSION_TIME * (m.type === 'escort' ? 1.3 : 1);
   spawnObjective(g, m);
-  g.toast(`{clipboard} ${team.name} partiu: ${m.title} (rank ${MISSION_RANKS[m.rank]!.label}).`, 'info', m);
+  g.toast(`{scroll} ${team.name} partiu: ${m.title} (rank ${MISSION_RANKS[m.rank]!.label}).`, 'info', m);
   return { ok: true };
 }
 

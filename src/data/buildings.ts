@@ -111,7 +111,7 @@ const LIST: BuildingDef[] = [
     roof: '#6c3483', wall: '#efe3c8',
   },
   {
-    type: 'missions', name: 'Mesa de Missões', icon: '{clipboard}', desc: 'Recebe pedidos de missões. Envie equipes para cumpri-las.',
+    type: 'missions', name: 'Mesa de Missões', icon: '{scroll}', desc: 'Recebe pedidos de missões. Envie equipes para cumpri-las.',
     w: 2, h: 2, cost: { wood: 40, stone: 20, ryo: 30 }, buildTime: 14, unique: true, buildable: true, lights: true,
     roof: '#2c3e50', wall: '#e8dcc0',
   },
