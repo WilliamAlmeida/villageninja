@@ -146,7 +146,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (bustos `kage-bust-<penteado>` com chapéu e manto, recoloridos). "Preparar defesa": `prepareDefense` (org.ts).
   **Atualização dos painéis**: `morph` (ui/morph.ts) aplica só a diferença do HTML novo (o botão sob o dedo continua o
   mesmo elemento; `Panel.pressing` segura a troca enquanto o ponteiro está apertado) — não volte a usar innerHTML em
-  algo que se atualiza sozinho. **Padrão de botões** (panel.ts): liga/desliga = `togBtn` (rótulo curto + chave, nada de
+  algo que se atualiza sozinho. **Ritmo das telas** (`Panel.update`): o laço da interface roda 5×/s e só remonta o que está
+  aberto (aba escondida não é calculada); o drawer remonta a cada vez, listas com barras/tempos (`SLOW_VIEWS`: Ninjas,
+  Equipes, Missões, Expedições, Região, Oficinas) a cada 0,5 s e as telas paradas (`STATIC_VIEWS`: Bingo Book,
+  Estatísticas, Kage, Vila, Clãs) só quando `Game.rev` muda (nascer/cair, prédio, aviso, ação do jogador) ou o dia, com
+  rede de 3 s; pausado, nada se remonta sozinho. Ação do jogador e troca de tela chamam `update(true)` (na hora).
+  **Padrão de botões** (panel.ts): liga/desliga = `togBtn` (rótulo curto + chave, nada de
   "ligado/desligado" escrito: "Auto", "Auto-ensino", "Auto-sensei"); ação em lote = verbo curto + contagem ("Ensinar
   (4)", "Montar (3)", "Equipar"), explicação na dica; custo = `costTag` dentro do botão; linhas de botões seguidas têm
   espaço entre si. Cão de dono treinando no campo fica escondido junto dele (estado `withOwner`).

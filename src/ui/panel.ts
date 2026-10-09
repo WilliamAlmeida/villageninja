@@ -149,6 +149,10 @@ const ACTION_TIP: Record<RegionAction, string> = {
 const MAP_ZOOM_MAX = 2.6;
 /** Janela larga o bastante para os contratos ativos numa coluna ao lado das missões. */
 const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
+/** Telas paradas: só mudam com acontecimentos (nascer, cair, aviso, novo dia); remontam quando o jogo muda ou a cada 3 s. */
+const STATIC_VIEWS = new Set<string>(['bingo', 'stats', 'kage', 'village', 'clans']);
+/** Listas com barras e tempos: 2 vezes por segundo bastam (o drawer segue a 5). */
+const SLOW_VIEWS = new Set<string>(['roster', 'teams', 'team', 'missions', 'expeditions', 'region', 'crafts']);
 /**
  * Imagem com esqueleto: sem URL ainda (retrato sendo gerado) ou enquanto o arquivo carrega, mostra um bloco animado
  * no lugar; decodifica fora da thread principal e só carrega quando aparece na tela.
@@ -260,6 +264,9 @@ export class Panel {
   private rosterSort: RosterSort = 'level';
   /** Quadro de missões: aba e missão com a lista de equipes aberta ("Trocar equipe"). */
   private missionPick: number | null = null;
+  /** Quando a tela aberta foi remontada pela última vez e com qual revisão do jogo (ritmo por tela, em `update`). */
+  private lastBuild = 0;
+  private lastRev = '';
   /** Candidato escolhido em cada caminho Sannin (o "Nomear" usa este). */
   private sanninSel: Record<string, number> = {};
   /** Raça escolhida para a próxima adoção de ninken. */
@@ -417,12 +424,29 @@ export class Panel {
     this.armedDemolish = 0;
     this.root.hidden = !view;
     this.body.scrollTop = 0;
-    this.update();
+    this.update(true);
   }
 
-  update() {
+  /**
+   * Remonta a tela aberta. Do laço da interface (5×/s, `force` falso) cada tela tem o seu ritmo: o drawer a cada vez,
+   * listas com barras e tempos a cada 0,5 s (`SLOW_VIEWS`) e as paradas (`STATIC_VIEWS`) só quando o jogo mudou
+   * (`Game.rev`, o dia) ou de 3 em 3 s. Com o jogo pausado nada se remonta sozinho. Ação do jogador e troca de tela
+   * chamam com `force` e remontam na hora.
+   */
+  update(force = false) {
     if (!this.view) return;
     const g = this.app.game;
+    const now = performance.now();
+    const rev = `${this.app.home.rev}:${this.app.home.state.day}:${g === this.app.home ? '' : g.rev}`;
+    if (!force && this.lastHtml) {
+      if (this.app.home.state.speed === 0) return; // pausado: só o que o jogador fizer
+      const age = now - this.lastBuild;
+      if (STATIC_VIEWS.has(this.view.kind)) {
+        if (rev === this.lastRev && age < 3000) return;
+      } else if (SLOW_VIEWS.has(this.view.kind) && age < 480) return;
+    }
+    this.lastBuild = now;
+    this.lastRev = rev;
     let built: Built | null = null;
     if (this.view.kind === 'roster') built = this.roster();
     else if (this.view.kind === 'teams') built = this.teamsList();
@@ -2610,8 +2634,9 @@ export class Panel {
 
   private report(r: Result) {
     if (!r.ok) this.app.game.toast(r.error, 'warn');
+    this.app.home.rev++; // a outra tela aberta (janela/drawer) também se refaz no próximo ciclo
     this.lastHtml = '';
-    this.update();
+    this.update(true);
   }
 
   private onClick(e: Event) {
@@ -2724,7 +2749,7 @@ export class Panel {
       case 'sannin-sel': {
         const [path, id] = arg.split(':');
         this.sanninSel[path!] = Number(id);
-        this.update();
+        this.update(true);
         return;
       }
       case 'go-hokage': {
@@ -2805,7 +2830,7 @@ export class Panel {
         // o painel do lugar só aparece depois de soltar o dedo (Panel.pressing): centra o lugar logo depois
         if (arg)
           setTimeout(() => {
-            this.update();
+            this.update(true);
             this.focusNode(arg);
           }, 90);
         return;
@@ -2922,7 +2947,7 @@ export class Panel {
         return this.report(acceptMission(g, Number(arg), Number(btn.dataset.team)));
       case 'm-pick':
         this.missionPick = this.missionPick === Number(arg) ? null : Number(arg);
-        this.update();
+        this.update(true);
         return;
       case 'm-auto': {
         const r = autoAssign(g);
@@ -2974,7 +2999,7 @@ export class Panel {
           if (!this.armedDemolish) {
             this.armedDemolish = 1;
             this.lastHtml = '';
-            this.update();
+            this.update(true);
             return;
           }
           disbandTeam(g, v.id);
@@ -3059,7 +3084,7 @@ export class Panel {
           if (!this.armedDemolish) {
             this.armedDemolish = 1;
             this.lastHtml = '';
-            this.update();
+            this.update(true);
             return;
           }
           this.report(demolish(g, v.id));

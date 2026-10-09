@@ -502,6 +502,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
 }
 
 export function killUnit(g: Game, t: Unit, src: Unit | null) {
+  g.rev++; // as telas que listam gente (Bingo Book, estatísticas…) se refazem
   // Hidra: perde uma cabeça e volta com a vida cheia enquanto tiver mais de uma
   if (t.heads && t.heads > 1) {
     t.heads--;

@@ -117,19 +117,29 @@ export class Game {
     return id == null ? undefined : this.state.teams.find((t) => t.id === id);
   }
 
+  /**
+   * Revisão do que importa para as telas (fora do estado, não é salvo): sobe quando alguém nasce ou cai, um prédio
+   * aparece/some ou sai um aviso (quase todo acontecimento notável dá aviso). As janelas "paradas" (Bingo Book,
+   * Estatísticas, Kage, Vila, Clãs) só se remontam quando ela muda (ou de 3 em 3 s, por segurança).
+   */
+  rev = 0;
+
   addUnit(u: Unit) {
+    this.rev++;
     this.state.units.push(u);
     this.unitMap.set(u.id, u);
     this.foes.clear(); // quem nasceu já entra nas listas de alvo
     return u;
   }
   addBuilding(b: Building) {
+    this.rev++;
     this.state.buildings.push(b);
     this.buildingMap.set(b.id, b);
     this.world.rebuild();
     return b;
   }
   removeBuilding(id: number) {
+    this.rev++;
     this.state.buildings = this.state.buildings.filter((b) => b.id !== id);
     this.buildingMap.delete(id);
     for (const u of this.state.units) {
@@ -218,6 +228,7 @@ export class Game {
   }
 
   toast(text: string, kind: ToastKind = 'info', at?: { x: number; y: number }) {
+    this.rev++;
     this.bus.emit('toast', { text, kind, x: at?.x, y: at?.y, scene: this.isScene });
   }
 }
