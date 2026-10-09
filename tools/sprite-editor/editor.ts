@@ -717,33 +717,72 @@ function renderLayerList() {
     .join('\n')}`;
 }
 
+/** Pastas abertas na árvore de arquivos (lembradas no navegador). */
+const openDirs = new Set<string>(JSON.parse(localStorage.getItem('spr-dirs') ?? '[]'));
+
+/**
+ * Lista de arquivos em árvore (src/art na raiz; ui/ e ui/art/ como pastas que abrem e fecham). Com filtro, a busca
+ * vale para todas as pastas e mostra os achados numa lista só, com o caminho.
+ */
 function renderFiles() {
   const q = $<HTMLInputElement>('filter').value.trim().toLowerCase();
   const ul = $('files');
   ul.innerHTML = '';
-  for (const f of files) {
-    const name = f.replace(/\.png$/, '');
-    if (q && !name.includes(q)) continue;
-    const li = document.createElement('li');
-    li.textContent = name + (edited.has(name) ? ' (editada)' : '');
-    li.classList.toggle('on', name === fileName);
-    li.onclick = async () => {
-      fileName = name;
-      const sheet = SHEET_RE.test(name);
-      const atlas = ATLASES[name];
-      $<HTMLInputElement>('fCols').value = String(atlas?.cols ?? (sheet ? 4 : 1));
-      $<HTMLInputElement>('fRows').value = String(atlas?.rows ?? (sheet ? 3 : 1));
-      await loadLayer(name);
-      col = sheet ? DOLL_GRID.idle : 0;
-      row = sheet ? 1 : 0;
-      zoom = fitZoom();
-      pan = { x: 0, y: 0 };
-      renderFiles();
-      renderFrames();
-      redraw();
-    };
-    ul.appendChild(li);
+  const names = files.map((f) => f.replace(/\.png$/, ''));
+  if (q) {
+    for (const n of names) if (n.includes(q)) ul.appendChild(fileItem(n, n, 0));
+    return;
   }
+  // pastas antes dos arquivos, em cada nível
+  const walk = (dir: string, depth: number) => {
+    const pre = dir ? `${dir}/` : '';
+    const inside = names.filter((n) => n.startsWith(pre)).map((n) => n.slice(pre.length));
+    const dirs = [...new Set(inside.filter((n) => n.includes('/')).map((n) => n.split('/')[0]!))].sort();
+    for (const d of dirs) {
+      const path = pre + d;
+      const open = openDirs.has(path);
+      const count = inside.filter((n) => n.startsWith(`${d}/`)).length;
+      const li = document.createElement('li');
+      li.className = 'dir';
+      li.style.paddingLeft = `${6 + depth * 14}px`;
+      li.textContent = `${open ? '▾' : '▸'} ${d}/  (${count})`;
+      li.onclick = () => {
+        if (open) openDirs.delete(path);
+        else openDirs.add(path);
+        try {
+          localStorage.setItem('spr-dirs', JSON.stringify([...openDirs]));
+        } catch {}
+        renderFiles();
+      };
+      ul.appendChild(li);
+      if (open) walk(path, depth + 1);
+    }
+    for (const n of inside) if (!n.includes('/')) ul.appendChild(fileItem(pre + n, n, depth));
+  };
+  walk('', 0);
+}
+
+function fileItem(name: string, label: string, depth: number) {
+  const li = document.createElement('li');
+  li.textContent = label + (edited.has(name) ? ' (editada)' : '');
+  li.style.paddingLeft = `${6 + depth * 14}px`;
+  li.classList.toggle('on', name === fileName);
+  li.onclick = async () => {
+    fileName = name;
+    const sheet = SHEET_RE.test(name);
+    const atlas = ATLASES[name];
+    $<HTMLInputElement>('fCols').value = String(atlas?.cols ?? (sheet ? 4 : 1));
+    $<HTMLInputElement>('fRows').value = String(atlas?.rows ?? (sheet ? 3 : 1));
+    await loadLayer(name);
+    col = sheet ? DOLL_GRID.idle : 0;
+    row = sheet ? 1 : 0;
+    zoom = fitZoom();
+    pan = { x: 0, y: 0 };
+    renderFiles();
+    renderFrames();
+    redraw();
+  };
+  return li;
 }
 
 function renderPalette() {
