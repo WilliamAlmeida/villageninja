@@ -134,6 +134,9 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Ninja abre o baú **de perto, na frente, olhando para ele** (de costas para a câmera).
 - Baú aberto some depois de uns segundos (como a ruína).
 - Baú, ruína e mina **nunca colados num prédio** (nem na arte que passa do terreno, como o muro da arena).
+- Equipamento se gasta e se conserta (aprovado): peça gasta fica quebrada até consertar, nunca some; lâmina lendária só
+  fica cega. Na tela, barra fina de durabilidade e selo só quando gasta/quebrada/cega; números de consumo por **semana**,
+  não por dia.
 - Invasão não pode virar "enxurrada": poucos defensores por inimigo, o resto segue a rotina.
 - Mapa com zoom e arrastar: marcadores mantêm o tamanho; um toque rápido continua abrindo o item. **Com zoom tudo
   continua nítido** (mapa e rótulos borrados ao aproximar foi reclamação): o zoom redimensiona, não amplia uma imagem
