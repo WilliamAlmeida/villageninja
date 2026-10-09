@@ -1,6 +1,7 @@
 // Laboratório de jutsus (ferramenta de desenvolvimento, http://localhost:3011/lab): um campo limpo com um ninja e um
 // boneco de treino. Cada botão solta um jutsu, golpe, técnica, arte de Ordem/Som/Sannin ou lâmina no boneco, usando o
 // código real do jogo (combate, projéteis, efeitos e o renderer). "Duelo" deixa a IA lutar para ver o estilo de luta.
+import { applyIcons, helpDialog, ico } from '../shared/ui';
 import { DAY_LENGTH, SIM_DT, TILE } from '../../src/config';
 import { Camera } from '../../src/core/camera';
 import { BLADES, bladeItem, type BladeId } from '../../src/data/blades';
@@ -343,7 +344,7 @@ for (const [title, acts, hint] of GROUPS) {
     const b = document.createElement('button');
     b.textContent = a.label;
     if (a.color) b.style.setProperty('--c', a.color);
-    if (a.tip) b.title = a.tip;
+    if (a.tip) b.dataset.tip = a.tip;
     b.onclick = () => {
       idle = 0;
       a.run();
@@ -380,6 +381,20 @@ document.getElementById('reset')!.onclick = () => {
   cast('ninja');
   place();
 };
+// busca nos botões (esconde grupo sem resultado)
+const labFilter = document.getElementById('labFilter') as HTMLInputElement;
+labFilter.addEventListener('input', () => {
+  const q = labFilter.value.trim().toLowerCase();
+  for (const grp of lists.querySelectorAll<HTMLElement>('.grp')) {
+    let any = false;
+    for (const b of grp.querySelectorAll<HTMLElement>('button')) {
+      const hit = !q || (b.textContent ?? '').toLowerCase().includes(q);
+      b.hidden = !hit;
+      any ||= hit;
+    }
+    grp.hidden = !any;
+  }
+});
 void JUTSUS;
 
 // ------------------------------------------------------------------ desenho
@@ -425,6 +440,38 @@ preloadArt().then(() => requestAnimationFrame(frame));
 
 /** Para depurar (console): pausa e avança a simulação quadro a quadro. `lab.act('Chidori')` aperta o botão. */
 let paused = false;
+const pauseBtn = document.getElementById('pause') as HTMLButtonElement;
+function setPaused(p: boolean) {
+  paused = p;
+  pauseBtn.innerHTML = `${ico(p ? 'play' : 'pause')} ${p ? 'Continuar' : 'Pausar'}`;
+  pauseBtn.classList.toggle('on', p);
+  (document.getElementById('step') as HTMLButtonElement).disabled = !p;
+}
+pauseBtn.onclick = () => setPaused(!paused);
+document.getElementById('step')!.onclick = () => {
+  for (let t = 0; t < 0.25; t += SIM_DT) g.step(SIM_DT);
+  clock += 0.25;
+  renderer.render(g, camera, null, clock);
+};
+window.addEventListener('keydown', (e) => {
+  if ((e.target as HTMLElement).tagName === 'INPUT') return;
+  if (e.key === ' ') {
+    e.preventDefault();
+    setPaused(!paused);
+  } else if (e.key === '.' && paused) document.getElementById('step')!.click();
+  else if (e.key.toLowerCase() === 'r') document.getElementById('reset')!.click();
+  else if (e.key === '/') {
+    e.preventDefault();
+    labFilter.focus();
+  }
+});
+applyIcons();
+setPaused(false);
+helpDialog('Laboratório: atalhos', [
+  ['Simulação', [['Espaço', 'Pausar / continuar'], ['.', 'Avança 0,25 s (pausado)'], ['R', 'Reiniciar posições'], ['Roda', 'Zoom']]],
+  ['Lista', [['/', 'Buscar jutsu, golpe ou técnica'], ['Clique', 'Solta a técnica no boneco'], ['?', 'Esta ajuda']]],
+  ['Console', [['lab.pause()', 'Pausa'], ['lab.step(s)', 'Avança s segundos'], ["lab.act('Chidori')", 'Aperta o botão pelo nome']]],
+]);
 Object.assign(window, {
   lab: {
     g,

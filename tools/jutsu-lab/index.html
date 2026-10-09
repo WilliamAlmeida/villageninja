@@ -4,30 +4,38 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Laboratório de jutsus — Vila Ninja</title>
+    <link rel="stylesheet" href="../shared/tools.css" />
     <link rel="stylesheet" href="./lab.css" />
   </head>
   <body>
-    <aside id="side">
-      <header>
-        <b>Laboratório de jutsus</b>
-        <a href="/" class="link">Início</a>
-      </header>
-      <section class="opts">
-        <label>Ritmo</label>
-        <div class="seg" id="pace"><button data-v="fast" class="on">Rápido</button><button data-v="tactical">Tático (selos)</button></div>
-        <label>Distância</label>
-        <div class="seg" id="dist"><button data-v="40">Perto</button><button data-v="100" class="on">Média</button><button data-v="160">Longe</button></div>
-        <label>Velocidade</label>
-        <div class="seg" id="speed"><button data-v="0.25">¼×</button><button data-v="0.5">½×</button><button data-v="1" class="on">1×</button></div>
-        <label>Natureza do ninja (Shunshin)</label>
-        <div class="seg" id="nature"><button data-v="katon" class="on">Fogo</button><button data-v="suiton">Água</button><button data-v="doton">Terra</button><button data-v="raiton">Raio</button><button data-v="fuuton">Vento</button></div>
-      </section>
-      <div id="lists"></div>
-    </aside>
-    <main>
-      <canvas id="view"></canvas>
-      <div id="hud"><span id="now">Toque num jutsu à esquerda</span><button id="reset">Reiniciar posições</button></div>
-    </main>
+    <header class="top">
+      <a href="/" class="home" data-ico="home">Início</a>
+      <span class="sep"></span>
+      <b class="brand" data-ico="flask">Laboratório de jutsus</b>
+      <span class="sep"></span>
+      <span class="group"><span class="lbl">Ritmo</span><div class="seg sm" id="pace"><button data-v="fast" class="on">Rápido</button><button data-v="tactical" data-tip="Selos antes do jutsu; golpe forte interrompe" data-tip-pos="bottom">Tático</button></div></span>
+      <span class="group"><span class="lbl">Distância</span><div class="seg sm" id="dist"><button data-v="40">Perto</button><button data-v="100" class="on">Média</button><button data-v="160">Longe</button></div></span>
+      <span class="group"><span class="lbl">Velocidade</span><div class="seg sm" id="speed"><button data-v="0.25">¼×</button><button data-v="0.5">½×</button><button data-v="1" class="on">1×</button></div></span>
+      <span class="group"><span class="lbl" data-tip="Muda o visual do Shunshin" data-tip-pos="bottom">Natureza</span><div class="seg sm" id="nature"><button data-v="katon" class="on">Fogo</button><button data-v="suiton">Água</button><button data-v="doton">Terra</button><button data-v="raiton">Raio</button><button data-v="fuuton">Vento</button></div></span>
+      <span class="grow"></span>
+      <button id="help" class="icon ghost" data-ico="question" data-tip="Atalhos e ajuda (?)" data-tip-pos="bottom" aria-label="Ajuda"></button>
+    </header>
+    <div class="cols">
+      <aside class="side" id="side">
+        <div class="search"><svg class="ic" viewBox="0 0 256 256" data-ico="search"></svg><input id="labFilter" type="search" placeholder="Buscar (/)" /></div>
+        <div id="lists"></div>
+      </aside>
+      <main>
+        <canvas id="view"></canvas>
+        <div id="hud">
+          <span class="now-lbl">Agora</span><span id="now">Toque numa técnica à esquerda</span>
+          <span class="sep"></span>
+          <button id="pause" class="ghost" data-tip="Espaço" data-tip-pos="bottom">Pausar</button>
+          <button id="step" class="ghost" data-ico="step" data-tip="Avança 0,25 s (tecla .)" data-tip-pos="bottom" disabled>Passo</button>
+          <button id="reset" class="ghost" data-ico="refresh" data-tip="Volta o ninja e o boneco ao lugar (R)" data-tip-pos="bottom">Reiniciar</button>
+        </div>
+      </main>
+    </div>
     <script type="module" src="./lab.ts"></script>
   </body>
 </html>

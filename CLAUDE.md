@@ -61,6 +61,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo precisa da camada. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
 - **Ferramentas** em http://localhost:3011: a raiz é o início com os três editores (cada um tem o link "Início").
+  Visual comum em `tools/shared/tools.css` (tons do jogo: barra no alto com nome, modos e ações; painéis em cartões;
+  trilho de ferramentas com ícone e tecla; chaves liga/desliga `label.tog`; dicas instantâneas por `data-tip`, nada de
+  `title`; botão Salvar com ponto quando há mudança) e `tools/shared/ui.ts` (`ico`, `applyIcons` para `data-ico`,
+  `helpDialog` = diálogo de atalhos no botão "?" e na tecla ?). Glifos só das ferramentas (lápis, borracha, balde…)
+  em `tools/shared/glyphs.ts`, gerados pelo mesmo `scripts/glyphs.mjs` (lista `TOOLS`), fora do jogo. Botão com ícone:
+  o clique pode cair no `<svg>`, então quem lê `e.target` usa `closest('button')`.
   **Editor de sprites** (ferramenta de desenvolvimento): http://localhost:3011/spr (`bun run editor` ou PM2
   `villageninja-editor`; `scripts/editor.ts` + `tools/sprite-editor/`). Só escuta em 127.0.0.1, fora do túnel. Monta o
   ninja por patente/penteado/cores igual ao jogo, mostra a animação (lado nos dois sentidos, frente, costas), o tamanho

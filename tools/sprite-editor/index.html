@@ -4,113 +4,145 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Editor de sprites — Vila Ninja</title>
+    <link rel="stylesheet" href="../shared/tools.css" />
     <link rel="stylesheet" href="./editor.css" />
   </head>
   <body>
     <header class="top">
-      <a href="/" class="home">Início</a>
-      <b class="brand">Editor de sprites</b>
+      <a href="/" class="home" data-ico="home">Início</a>
+      <span class="sep"></span>
+      <b class="brand" data-ico="shinobi">Editor de sprites</b>
       <nav class="seg" id="mode">
-        <button data-mode="doll" class="on">Ninja montado</button>
-        <button data-mode="file">Arquivo</button>
+        <button data-mode="doll" class="on" data-ico="person">Ninja montado</button>
+        <button data-mode="file" data-ico="image">Arquivo</button>
       </nav>
       <span class="grow"></span>
       <span id="status" class="status"></span>
-      <button id="undo" title="Desfazer (Ctrl+Z)">Desfazer</button>
-      <button id="redo" title="Refazer (Ctrl+Y)">Refazer</button>
-      <button id="save" class="primary" title="Salvar em src/art (Ctrl+S)">Salvar</button>
+      <button id="undo" class="icon ghost" data-ico="undo" data-tip="Desfazer (Ctrl+Z)" data-tip-pos="bottom" aria-label="Desfazer"></button>
+      <button id="redo" class="icon ghost" data-ico="redo" data-tip="Refazer (Ctrl+Y)" data-tip-pos="bottom" aria-label="Refazer"></button>
+      <button id="help" class="icon ghost" data-ico="question" data-tip="Atalhos e ajuda (?)" data-tip-pos="bottom" aria-label="Ajuda"></button>
+      <button id="save" class="primary" data-ico="save" data-tip="Salvar em src/art e no layout.json (Ctrl+S)" data-tip-pos="bottom">Salvar</button>
     </header>
 
     <main class="cols">
       <aside class="side" id="left">
-        <section id="dollPanel">
-          <h3>Ninja</h3>
-          <label>Patente</label>
-          <div class="chips" id="rank"></div>
-          <label>Penteado</label>
-          <div class="chips" id="hair"></div>
-          <label title="No jogo a espada é a arma equipada (lâmina lendária); a ANBU sem lâmina leva o tantō">Espada</label>
-          <div class="chips" id="sword"></div>
-          <div id="maskBox" hidden><label title="O animal mostra o melhor atributo do ninja">Máscara ANBU</label><div class="chips" id="mask"></div></div>
-          <div class="colors">
-            <label>Roupa <input type="color" id="cCloth" value="#2d4a9a" /></label>
-            <label>Cabelo <input type="color" id="cHair" value="#f2c94c" /></label>
-            <label>Pele <input type="color" id="cSkin" value="#f1c79a" /></label>
+        <section id="dollPanel" class="stack">
+          <div class="card">
+            <h3 data-ico="person">Ninja</h3>
+            <label class="lbl">Patente</label>
+            <div class="chips" id="rank"></div>
+            <label class="lbl">Penteado</label>
+            <div class="chips" id="hair"></div>
+            <label class="lbl" data-tip="No jogo a espada é a lâmina lendária equipada; a ANBU sem lâmina leva o tantō" data-tip-pos="right">Espada</label>
+            <div class="chips" id="sword"></div>
+            <div id="maskBox" hidden><label class="lbl" data-tip="O animal mostra o melhor atributo do ninja" data-tip-pos="right">Máscara ANBU</label><div class="chips" id="mask"></div></div>
+            <label class="lbl">Cores</label>
+            <div class="colors">
+              <label><input type="color" id="cCloth" value="#2d4a9a" /> Roupa</label>
+              <label><input type="color" id="cHair" value="#f2c94c" /> Cabelo</label>
+              <label><input type="color" id="cSkin" value="#f1c79a" /> Pele</label>
+              <button id="randomize" class="ghost" data-ico="sparkle" data-tip="Sorteia roupa, cabelo e pele">Sortear</button>
+            </div>
           </div>
-          <button id="randomize">Cores aleatórias</button>
-          <h3>Camadas <small>(de baixo para cima)</small></h3>
-          <ul id="layers" class="layers"></ul>
-          <h3>Chamada das peças</h3>
-          <pre id="call" class="call"></pre>
+          <div class="card">
+            <h3 data-ico="stack">Camadas <small>de baixo para cima</small></h3>
+            <ul id="layers" class="list layers"></ul>
+          </div>
+          <details class="card">
+            <summary><h3>Chamada das peças</h3></summary>
+            <pre id="call" class="call"></pre>
+          </details>
         </section>
-        <section id="filePanel" hidden>
-          <h3>Arquivos de src/art</h3>
-          <input id="filter" placeholder="Filtrar (ex.: layer, ninja, org, ui/)" />
-          <ul id="files" class="files"></ul>
-          <div class="grid2">
-            <label>Colunas <input type="number" id="fCols" min="1" max="16" value="4" /></label>
-            <label>Linhas <input type="number" id="fRows" min="1" max="16" value="3" /></label>
+        <section id="filePanel" class="stack" hidden>
+          <div class="card">
+            <h3 data-ico="folder">Arquivos de src/art</h3>
+            <div class="search"><svg class="ic" viewBox="0 0 256 256" data-ico="search"></svg><input id="filter" type="search" placeholder="Buscar (ex.: layer, org, ui/)" /></div>
+            <ul id="files" class="list files"></ul>
+          </div>
+          <div class="card">
+            <h3 data-ico="grid">Grade da folha</h3>
+            <div class="grid2">
+              <label>Colunas <input type="number" id="fCols" min="1" max="16" value="4" /></label>
+              <label>Linhas <input type="number" id="fRows" min="1" max="16" value="3" /></label>
+            </div>
           </div>
         </section>
       </aside>
 
+      <nav class="rail" id="tools">
+        <button data-tool="pencil" class="on" data-ico="pencil" data-tip="Lápis" data-tip-pos="right"><kbd>B</kbd></button>
+        <button data-tool="eraser" data-ico="eraser" data-tip="Borracha" data-tip-pos="right"><kbd>E</kbd></button>
+        <button data-tool="line" data-ico="line" data-tip="Linha: arraste; Shift prende em reta ou 45°" data-tip-pos="right"><kbd>L</kbd></button>
+        <button data-tool="fill" data-ico="bucket" data-tip="Balde: preenche a área contínua da mesma cor" data-tip-pos="right"><kbd>G</kbd></button>
+        <button data-tool="picker" data-ico="picker" data-tip="Conta-gotas (ou Alt+clique)" data-tip-pos="right"><kbd>I</kbd></button>
+        <span class="sep"></span>
+        <button data-tool="select" data-ico="select" data-tip="Seleção: arraste um retângulo; dentro dele arrasta, setas movem 1 px" data-tip-pos="right"><kbd>S</kbd></button>
+        <button data-tool="move" data-ico="move" data-tip="Mover a seleção ou, sem seleção, a camada inteira no quadro" data-tip-pos="right"><kbd>M</kbd></button>
+        <span class="sep"></span>
+        <button data-tool="origin" data-ico="footprints" data-tip="Origem e sombra: onde a unidade pisa no jogo; Shift+clique marca o alto do corpo" data-tip-pos="right"><kbd>O</kbd></button>
+        <button data-tool="point" data-ico="crosshair" data-tip="Ponto nomeado do quadro: mão do ninja, cabo da espada" data-tip-pos="right"><kbd>P</kbd></button>
+      </nav>
+
       <section class="center">
-        <div class="toolbar">
-          <div class="seg" id="tools">
-            <button data-tool="pencil" class="on" title="Lápis (B)">Lápis</button>
-            <button data-tool="eraser" title="Borracha (E)">Borracha</button>
-            <button data-tool="line" title="Linha (L): arraste; Shift prende na horizontal, vertical ou 45°. Botão direito ou &quot;apagar&quot; apaga">Linha</button>
-            <button data-tool="fill" title="Balde (G): preenche a área contínua da mesma cor no quadro. Botão direito ou &quot;apagar&quot; deixa a área transparente">Balde</button>
-            <button data-tool="picker" title="Conta-gotas (I)">Conta-gotas</button>
-            <button data-tool="select" title="Seleção (S): arraste um retângulo; arrastar dentro dele ou as setas movem só o selecionado. Delete apaga, Ctrl+C/Ctrl+V copia e cola, Esc tira, Ctrl+A seleciona o quadro">Seleção</button>
-            <button data-tool="move" title="Mover (M): move a seleção ou, sem seleção, a camada inteira no quadro; setas movem 1 px">Mover</button>
-            <button data-tool="origin" title="Origem (O): onde a unidade fica no jogo (os pés) e a sombra. Clique/arraste marca a origem; Shift+clique marca o alto do corpo (a altura que vale no mundo; o resto do quadro é folga). Vale para a folha toda; vai para src/data/layout.json">Origem</button>
-            <button data-tool="point" title="Ponto (P): clique marca o ponto nomeado neste quadro (mão no corpo do ninja, cabo nas espadas soltas); vai para src/data/layout.json">Ponto</button>
-          </div>
-          <span id="originBox" hidden>
-            <label title="Quantos px do quadro valem a altura no mundo (Shift+clique no alto da cabeça também marca)">Corpo <input type="number" id="oBody" min="4" max="400" step="1" /></label>
-            <label title="Largura da sombra (1 = padrão)">Sombra L <input type="number" id="oShW" min="0" max="4" step="0.05" /></label>
-            <label title="Altura da sombra (1 = padrão)">A <input type="number" id="oShH" min="0" max="4" step="0.05" /></label>
-            <button id="oReset" title="Volta a origem, o corpo e a sombra para o padrão">Padrão</button>
+        <div class="optbar">
+          <span id="originBox" class="group" hidden>
+            <span class="lbl">Origem</span>
+            <label data-tip="Quantos px do quadro valem a altura no mundo (Shift+clique no alto da cabeça também marca)">Corpo <input type="number" id="oBody" min="4" max="400" step="1" /></label>
+            <label data-tip="Largura da sombra (1 = padrão)">Sombra <input type="number" id="oShW" min="0" max="4" step="0.05" /></label>
+            <label data-tip="Altura da sombra (1 = padrão)">× <input type="number" id="oShH" min="0" max="4" step="0.05" /></label>
+            <button id="oReset" class="ghost" data-ico="refresh" data-tip="Volta a origem, o corpo e a sombra para o padrão">Padrão</button>
           </span>
-          <span id="pointBox" hidden>
-            <input id="pointKey" value="hand" title="Nome do ponto: hand (mão que segura a arma, no corpo-base) · grip (onde a mão pega, nas espadas soltas sword-*)" />
-            <button id="pointRow" title="Copia o ponto deste quadro para os outros quadros da mesma vista">Aplicar à vista</button>
-            <button id="pointAll" title="Copia o ponto deste quadro para todos os quadros">Aplicar a todos</button>
-            <button id="pointDel" title="Tira o ponto deste quadro">Tirar</button>
+          <span id="pointBox" class="group" hidden>
+            <span class="lbl">Ponto</span>
+            <input id="pointKey" value="hand" data-tip="hand = mão que segura a arma (corpo-base) · grip = onde a mão pega (espadas soltas sword-*)" />
+            <button id="pointRow" data-tip="Copia o ponto deste quadro para os outros da mesma vista">Aplicar à vista</button>
+            <button id="pointAll" data-tip="Copia o ponto deste quadro para todos os quadros">A todos</button>
+            <button id="pointDel" class="ghost danger" data-ico="trash" data-tip="Tira o ponto deste quadro">Tirar</button>
           </span>
-          <label class="check" title="Lápis, linha e balde apagam em vez de pintar (X). O botão direito também apaga."><input type="checkbox" id="eraseMode" /> apagar</label>
-          <label class="check"><input type="checkbox" id="moveRow" /> mover a vista toda (4 quadros)</label>
+          <span class="group">
+            <label class="tog" data-tip="Lápis, linha e balde apagam em vez de pintar (X). O botão direito também apaga."><input type="checkbox" id="eraseMode" /> Apagar</label>
+            <label class="tog" data-tip="Mover arrasta a vista inteira (os 4 quadros da linha)"><input type="checkbox" id="moveRow" /> Vista toda</label>
+          </span>
           <span class="grow"></span>
-          <label class="check"><input type="checkbox" id="grid" checked /> grade</label>
-          <label class="check"><input type="checkbox" id="focus" /> destacar camada</label>
-          <label class="check"><input type="checkbox" id="onion" /> quadro anterior</label>
-          <label class="check"><input type="checkbox" id="raw" /> cores-chave</label>
-          <label class="check" title="Mostra o ponto nomeado do quadro (mão / cabo) mesmo fora da ferramenta Ponto"><input type="checkbox" id="showPoints" checked /> pontos</label>
-          <label class="check" title="Mostra a origem (pés), o alto do corpo e a sombra como no jogo"><input type="checkbox" id="showOrigin" checked /> origem e sombra</label>
+          <span class="group">
+            <span class="lbl">Ver</span>
+            <label class="tog"><input type="checkbox" id="grid" checked /> Grade</label>
+            <label class="tog" data-tip="As outras camadas ficam apagadas"><input type="checkbox" id="focus" /> Só a camada</label>
+            <label class="tog" data-tip="Quadro anterior por baixo (onion skin)"><input type="checkbox" id="onion" /> Anterior</label>
+            <label class="tog" data-tip="Mostra as cores-chave cruas, sem recolorir"><input type="checkbox" id="raw" /> Cores-chave</label>
+            <label class="tog" data-tip="Ponto nomeado (mão / cabo) mesmo fora da ferramenta Ponto"><input type="checkbox" id="showPoints" checked /> Pontos</label>
+            <label class="tog" data-tip="Origem (pés), alto do corpo e sombra como no jogo"><input type="checkbox" id="showOrigin" checked /> Origem</label>
+          </span>
         </div>
         <div class="frames">
-          <div class="seg" id="rows"></div>
-          <div class="seg" id="colsSel"></div>
+          <div class="seg sm" id="rows"></div>
+          <div class="seg sm" id="colsSel"></div>
           <b class="hint" id="cellName"></b>
-          <span class="hint" id="pos"></span>
+          <span class="grow"></span>
+          <span class="hint mono" id="pos"></span>
         </div>
         <div class="stage" id="stageWrap"><canvas id="stage"></canvas></div>
         <div class="palette" id="palette"></div>
-        <p class="hint">Roda do mouse: zoom · botão do meio/espaço+arrastar: rolar · 1/2/3: vista · ,/.: quadro anterior/próximo · Alt+clique: conta-gotas · L: linha (Shift reta) · G: balde · X ou botão direito: apagar com lápis/linha/balde · S: seleção (arraste dentro dela para mover, Delete apaga, Ctrl+C/V copia e cola, inclusive do/para o Photoshop; Esc tira) · P: ponto (mão do ninja / cabo da espada; o golpe com lâmina gira a espada em volta da mão)</p>
+        <div class="hintbar"><svg class="ic" viewBox="0 0 256 256" data-ico-slot></svg><span id="toolHint"></span><span class="grow"></span><span>Roda: zoom · Espaço+arrastar: rolar · <kbd>?</kbd> atalhos</span></div>
       </section>
 
-      <aside class="side" id="right">
-        <h3>Animação</h3>
-        <div class="seg" id="animMode">
-          <button data-anim="walk" class="on">Andando</button>
-          <button data-anim="idle">Parado</button>
+      <aside class="side right" id="right">
+        <div class="card">
+          <h3 data-ico="play">Animação</h3>
+          <div class="seg sm" id="animMode">
+            <button data-anim="walk" class="on">Andando</button>
+            <button data-anim="idle">Parado</button>
+          </div>
+          <canvas id="anim" class="preview"></canvas>
         </div>
-        <canvas id="anim"></canvas>
-        <h3 id="ingameTitle">Tamanho no jogo <small>(zoom 1× e 2,5×, com a sombra)</small></h3>
-        <canvas id="ingame"></canvas>
-        <h3>Folha inteira <small>(clique para escolher o quadro)</small></h3>
-        <canvas id="sheet"></canvas>
+        <div class="card" id="ingameCard">
+          <h3 id="ingameTitle" data-ico="ruler">Tamanho no jogo <small>zoom 1× e 2,5×, com a sombra</small></h3>
+          <canvas id="ingame" class="preview"></canvas>
+        </div>
+        <div class="card">
+          <h3 data-ico="grid">Folha inteira <small>clique escolhe o quadro</small></h3>
+          <canvas id="sheet" class="preview"></canvas>
+        </div>
       </aside>
     </main>
     <script type="module" src="./editor.ts"></script>

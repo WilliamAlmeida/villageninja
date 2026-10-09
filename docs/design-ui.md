@@ -119,6 +119,13 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Textos em português, curtos; números e selos em vez de frases.
 - Responsivo: cartões que mudam com a própria largura usam container query (ex.: expedição em duas colunas quando larga).
 
+## 8b. Ferramentas de desenvolvimento (editores)
+
+- Seguem os tons do jogo (marrom, âmbar, laranja com relevo), mas como ferramenta: barra no alto (nome · modos · estado
+  · ações), painéis laterais em cartões, trilho de ferramentas com ícone e a tecla de atalho visível, chaves liga/desliga
+  em pílula, dica instantânea ao passar o mouse (sem o atraso do `title`), e um diálogo de atalhos no "?" em vez de um
+  parágrafo comprido de dicas. O botão Salvar mostra um ponto quando há mudança não salva.
+
 ## 9. Efeitos visuais e arte
 
 - **Fiel ao anime/à técnica**: Doryuuheki é uma muralha que brota do chão e fica parada (não um escudo que anda junto);

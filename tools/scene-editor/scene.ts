@@ -7,6 +7,7 @@
 // - Arte: escala e deslocamento do desenho;
 // - Pontos: porta, lugares do Exame, guarda da torre, chaminé;
 // - Bonecos: vários ninjas de teste para arrastar ou mandar andar (caminho de verdade, respeitando muros e portão).
+import { applyIcons, helpDialog, ico } from '../shared/ui';
 import { CELL, SUB, TILE } from '../../src/config';
 import { Camera } from '../../src/core/camera';
 import { project, unproject } from '../../src/core/iso';
@@ -377,11 +378,13 @@ function pointPos(pd: PointDef): { x: number; y: number } | null {
 
 // ------------------------------------------------------------------ painel da direita
 const props = document.getElementById('props')!;
-const help = document.getElementById('help')!;
+const help = document.getElementById('hint')!;
 const statusEl = document.getElementById('status')!;
 function changed() {
   dirty = true;
   statusEl.textContent = 'Alterado (não salvo)';
+  statusEl.className = 'status dirty';
+  document.getElementById('save')!.classList.add('dirty');
 }
 const HELP: Record<Mode, string> = {
   pieces: 'Pincel: pinte arrastando · Lata: um clique troca a área da máscara pela peça ativa · Borracha devolve ao "resto" · "Âncora": clique onde a peça toca o chão · roda do mouse: zoom · Alt+arrastar ou botão do meio: mover a vista',
@@ -406,13 +409,13 @@ function renderProps() {
       pieces.forEach((p, i) => {
         const n = i + 1;
         h += `<div class="piece ${activePiece === n ? 'on' : ''}" style="--c:${PIECE_COLORS[i % PIECE_COLORS.length]}" data-piece="${n}">
-          <div class="row"><input type="text" data-name="${n}" value="${p.name.replace(/"/g, '&quot;')}"><button data-del="${n}" title="Apagar peça">✕</button></div>
-          <div class="row"><button data-anchor="${n}" class="${pending?.kind === 'anchor' && pending.piece === n ? 'on' : ''}">Âncora</button><button data-fade="${n}" class="${pending?.kind === 'fade' && pending.piece === n ? 'on' : ''}">Transparência</button>${p.fade ? `<button data-fadeclr="${n}">sem área</button>` : ''}</div></div>`;
+          <div class="row"><input type="text" data-name="${n}" value="${p.name.replace(/"/g, '&quot;')}"><button data-del="${n}" class="icon ghost danger" data-tip="Apagar peça">${ico('x')}</button></div>
+          <div class="row"><button data-anchor="${n}" class="${pending?.kind === 'anchor' && pending.piece === n ? 'on' : ''}">${ico('anchor')} Âncora</button><button data-fade="${n}" class="${pending?.kind === 'fade' && pending.piece === n ? 'on' : ''}">Transparência</button>${p.fade ? `<button data-fadeclr="${n}">sem área</button>` : ''}</div></div>`;
       });
-      h += `<div class="row"><button id="addpiece">+ Nova peça</button></div>`;
-      h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" title="Pincel (B)">Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" title="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">Lata</button><button id="polytool" class="${paintTool === 'poly' ? 'on' : ''}" title="Polígono (P): pontos arrastáveis que definem a peça ativa">Polígono</button><button id="brusherase" class="${erase ? 'on' : ''}" title="Borracha (E): pincel ou lata devolvem ao resto">Borracha</button></div>
+      h += `<div class="row"><button id="addpiece">${ico('plus')} Nova peça</button></div>`;
+      h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" data-tip="Pincel (B)">${ico('pencil')} Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" data-tip="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">${ico('bucket')} Lata</button><button id="polytool" class="${paintTool === 'poly' ? 'on' : ''}" data-tip="Polígono (P): pontos arrastáveis que definem a peça ativa">${ico('polygon')} Polígono</button><button id="brusherase" class="${erase ? 'on' : ''}" data-tip="Borracha (E): pincel ou lata devolvem ao resto">${ico('eraser')} Borracha</button></div>
         ${paintTool === 'poly' ? `<p class="hint">Peça ativa: arraste os pontos; clique numa aresta cria ponto; botão direito num ponto apaga. Sem polígono, um clique cria um retângulo. Com polígono, a peça é exatamente ele (a pintura dela deixa de valer).</p>
-          <div class="row"><button id="polyguess" title="Contorno convexo do que já está pintado nesta peça">Adivinhar forma</button><button id="polybox" title="Retângulo em volta do que está pintado nesta peça">Retângulo do contorno</button><button id="polydel">Apagar polígono</button></div>` : paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<p class="hint">Clique numa área pintada (ou no resto) para trocá-la inteira pela peça ativa; com a Borracha, ela volta ao resto.</p>`}
+          <div class="row"><button id="polyguess" data-tip="Contorno convexo do que já está pintado nesta peça">Adivinhar forma</button><button id="polybox" data-tip="Retângulo em volta do que está pintado nesta peça">Retângulo do contorno</button><button id="polydel">Apagar polígono</button></div>` : paintTool === 'brush' ? `<div class="row"><label>Tamanho</label><input type="range" id="brush" min="1" max="80" value="${brush}"><span>${brush}px</span></div>` : `<p class="hint">Clique numa área pintada (ou no resto) para trocá-la inteira pela peça ativa; com a Borracha, ela volta ao resto.</p>`}
         <div class="row"><button id="clearmask">Limpar pintura</button></div>`;
     }
   } else if (mode === 'tiles') {
@@ -440,12 +443,13 @@ function renderProps() {
       h += `<div class="row"><button data-point="${pd.name}" class="${pending?.kind === 'point' && pending.name === pd.name ? 'on' : ''}">${pd.label}</button>${has ? `<button data-pointclr="${pd.name}">padrão</button>` : '<small class="hint">padrão</small>'}</div>`;
     }
   } else {
-    h += `<h3>Bonecos de teste</h3><p class="hint">${dummies.length} boneco(s). Eles não são salvos.</p><div class="row"><button id="adddummy">+ Boneco</button><button id="cleardummy">Tirar todos</button></div>`;
+    h += `<h3>Bonecos de teste</h3><p class="hint">${dummies.length} boneco(s). Eles não são salvos.</p><div class="row"><button id="adddummy">${ico('plus')} Boneco</button><button id="cleardummy">Tirar todos</button></div>`;
     h += `<h3>Mostrar</h3>${([['pieces', 'Peças (máscara, âncoras, polígonos)'], ['tiles', 'Terreno (muro/portão)'], ['points', 'Pontos'], ['base', 'Linha do chão (profundidade)']] as const)
       .map(([k, label]) => `<div class="row"><label><input type="checkbox" data-layer="${k}" ${showLayers.has(k) ? 'checked' : ''}> ${label}</label></div>`)
       .join('')}`;
   }
   props.innerHTML = h;
+  applyIcons(props);
 }
 
 props.addEventListener('change', (e) => {
@@ -461,7 +465,8 @@ props.addEventListener('change', (e) => {
   if (l === 'pieces' && !overlay) buildOverlay();
 });
 props.addEventListener('click', (e) => {
-  const t = e.target as HTMLElement;
+  // o clique pode cair no ícone dentro do botão: quem vale é o botão
+  const t = ((e.target as HTMLElement).closest('button, input, label') ?? e.target) as HTMLElement;
   // caixas do "Mostrar" (modo Bonecos): quem cuida é o 'change'; redesenhar o painel aqui trocava a caixa antes dela marcar
   if (t.closest('[data-layer]') || t.querySelector?.('[data-layer]')) return;
   const a = artL();
@@ -1200,11 +1205,20 @@ async function save() {
   statusEl.textContent = 'Salvando…';
   const r = await fetch('/api/layout', { method: 'PUT', body: JSON.stringify(L(), null, 1) });
   statusEl.textContent = r.ok ? 'Salvo em src/data/layout.json (o jogo se refaz sozinho)' : `Erro: ${await r.text()}`;
+  statusEl.className = `status ${r.ok ? 'ok' : 'err'}`;
   if (r.ok) dirty = false;
+  document.getElementById('save')!.classList.toggle('dirty', dirty);
   renderList();
 }
 document.getElementById('save')!.addEventListener('click', save);
 document.getElementById('undo')!.addEventListener('click', doUndo);
+applyIcons();
+helpDialog('Editor de cenário: atalhos', [
+  ['Geral', [['Ctrl+S', 'Salvar em src/data/layout.json'], ['Ctrl+Z', 'Desfazer'], ['Esc', 'Cancela o que está esperando um clique (âncora, ponto, área)'], ['Roda', 'Zoom'], ['Alt+arrastar | botão do meio', 'Mover a vista'], ['?', 'Esta ajuda']]],
+  ['Peças', [['B', 'Pincel'], ['G', 'Lata de tinta (troca a área contínua pela peça ativa)'], ['P', 'Polígono (pontos arrastáveis; clique na aresta cria, botão direito apaga)'], ['E', 'Borracha (liga/desliga)'], ['Clique em "Âncora"', 'Depois clique onde a peça toca o chão']]],
+  ['Terreno', [['Clique', 'Livre → muro → portão'], ['Arrastar', 'Pinta as outras células com o mesmo valor'], ['Margem em volta', 'Bloqueios avulsos (a arte que passa do terreno)'], ['Shift+clique', 'Origem do local/objeto (tile)']]],
+  ['Bonecos', [['Botão esquerdo', 'Escolher / arrastar o boneco'], ['Botão direito', 'O boneco anda até lá pelo caminho de verdade']]],
+]);
 window.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();

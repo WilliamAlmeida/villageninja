@@ -1,71 +1,31 @@
-:root {
-  --bg: #1d140d;
-  --panel: #2a1d12;
-  --panel2: #34251a;
-  --line: #5a3e22;
-  --text: #f0dcb4;
-  --muted: #b39a76;
-  --accent: #ff9a3c;
-  --grass: #3a5c30;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, 'Segoe UI', sans-serif; }
-button, input { font: inherit; color: inherit; }
-button { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
-button:hover { border-color: var(--accent); }
-button.primary { background: var(--accent); color: #2a1406; border-color: var(--accent); font-weight: 700; }
-button.on { background: var(--accent); color: #2a1406; border-color: var(--accent); }
-button:disabled { opacity: 0.5; cursor: default; }
-input[type='number'], input:not([type]) { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; width: 100%; }
-input[type='color'] { width: 34px; height: 24px; padding: 0; border: 1px solid var(--line); background: none; vertical-align: middle; }
-h3 { margin: 14px 0 6px; font-size: 13px; color: var(--accent); }
-h3 small, .hint { color: var(--muted); font-weight: 400; }
-.hint { font-size: 12px; margin: 6px 0; }
-label { display: block; color: var(--muted); margin: 6px 0 3px; }
-#pointBox:not([hidden]) { display: inline-flex; gap: 4px; align-items: center; margin-right: 8px; }
-#pointBox input { width: 5rem; }
-label.check { display: inline-flex; gap: 4px; align-items: center; margin: 0 8px 0 0; color: var(--text); }
-.grow { flex: 1; }
-
-.top .home { color: #c9a66b; font-size: 12px; }
-.top { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
-.brand { font-size: 15px; margin-right: 8px; }
-.status { color: var(--muted); }
-.status.dirty { color: var(--accent); }
-.seg { display: inline-flex; gap: 0; }
-.seg button { border-radius: 0; margin-left: -1px; }
-.seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
-.seg button:last-child { border-radius: 0 6px 6px 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 4px; }
-
-.cols { display: grid; grid-template-columns: 280px 1fr 300px; height: calc(100% - 45px); }
-.side { background: var(--panel); padding: 8px 12px; overflow: auto; border-right: 1px solid var(--line); }
-#right { border-right: 0; border-left: 1px solid var(--line); }
-.center { display: flex; flex-direction: column; padding: 8px 12px; min-width: 0; min-height: 0; }
-.toolbar, .frames { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-.stage { flex: 1; min-height: 0; overflow: hidden; background: repeating-conic-gradient(#2f2419 0% 25%, #261d14 0% 50%) 0 0 / 16px 16px; border: 1px solid var(--line); border-radius: 6px; position: relative; }
-#stage { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }
-.palette { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; align-items: center; }
-.sw { width: 22px; height: 22px; border-radius: 4px; border: 1px solid #0008; cursor: pointer; padding: 0; }
-.sw.on { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-.colors { display: flex; gap: 10px; margin: 6px 0; }
-.colors label { margin: 0; }
-.layers, .files { list-style: none; margin: 0; padding: 0; }
-.layers li { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
-.layers li.on { border-color: var(--accent); background: var(--panel2); }
-.layers li .eye { width: 22px; padding: 0; }
-.layers li .nm { flex: 1; }
-.layers li .tag { font-size: 11px; color: var(--accent); }
-.layers li .dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0008; }
-.files { max-height: 55vh; overflow: auto; margin: 6px 0; }
-.files li { padding: 3px 6px; border-radius: 4px; cursor: pointer; }
-.files li:hover { background: var(--panel2); }
-.files li.on { background: var(--accent); color: #2a1406; }
-.files li.dir { font-weight: 600; color: var(--accent); white-space: pre; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.call { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font-size: 11px; white-space: pre-wrap; margin: 0; }
-#anim, #ingame, #sheet { display: block; max-width: 100%; image-rendering: pixelated; background: var(--grass); border-radius: 6px; border: 1px solid var(--line); }
+/* Só o que é do editor de sprites; o tema e os componentes estão em ../shared/tools.css */
+.cols { display: grid; grid-template-columns: 272px auto minmax(0, 1fr) 300px; height: calc(100% - var(--top-h)); }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.center { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; min-width: 0; min-height: 0; }
+.center .stage { flex: 1; }
+#stage { image-rendering: pixelated; cursor: crosshair; }
+.frames { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.frames .hint { margin: 0; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.palette { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 26px; }
+.palette .hint { margin: 0 4px 0 0; }
+.sw { width: 22px; height: 22px; border-radius: 5px; border: 1px solid #0008; cursor: pointer; padding: 0; }
+.sw:hover { transform: scale(1.1); border-color: var(--line-hi); }
+.sw.on { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
+.colors { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.colors label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+.colors button { margin-left: auto; padding: 3px 8px; font-size: 12px; }
+.layers li .eye { width: 22px; height: 22px; padding: 0; border: 0; background: none; color: var(--muted); font-size: 11px; flex: 0 0 auto; }
+.layers li.on .eye { color: var(--accent-ink); }
+.layers li .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.layers li .dot { width: 11px; height: 11px; border-radius: 3px; border: 1px solid #0008; flex: 0 0 auto; }
+.files { max-height: 56vh; overflow: auto; margin: 6px 0 0; }
+details.card > summary { list-style: none; cursor: pointer; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary h3 { margin: 0; }
+details.card > summary h3::after { content: '▸'; margin-left: auto; color: var(--dim); }
+details[open].card > summary h3::after { content: '▾'; }
+.call { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font-size: 11px; white-space: pre-wrap; margin: 8px 0 0; color: var(--muted); }
 #sheet { cursor: pointer; }
+#ingameCard[hidden] { display: none; }
+.optbar label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }

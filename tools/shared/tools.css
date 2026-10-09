@@ -1,0 +1,168 @@
+/* Tema das ferramentas de desenvolvimento (editor de sprites, editor de cenário, laboratório, início): os mesmos tons
+   do jogo (marrom quente, bordas âmbar, laranja com relevo), numa interface densa de ferramenta: barra no alto com o
+   nome, o modo e as ações; painéis laterais em cartões; trilho de ferramentas com ícone e atalho; dicas instantâneas
+   (data-tip); diálogo de atalhos ("?"). Cada página só acrescenta o que é dela. */
+:root {
+  --bg: #1b120b;
+  --bg2: #241810;
+  --panel: #2a1c12;
+  --card: linear-gradient(180deg, rgba(67, 45, 27, 0.9), rgba(43, 28, 18, 0.92));
+  --card-hi: linear-gradient(180deg, rgba(76, 51, 30, 1), rgba(48, 31, 19, 1));
+  --line: rgba(194, 132, 50, 0.38);
+  --line-hi: #c98731;
+  --text: #fff3dc;
+  --muted: #c2ab86;
+  --dim: #8f7a5c;
+  --accent: #ff962e;
+  --accent-hi: #ffb443;
+  --accent-ink: #2a1406;
+  --good: #55d957;
+  --bad: #ff5752;
+  --warn: #ffd24a;
+  --info: #7fd8ff;
+  --grass: #3a5c30;
+  --r: 8px;
+  --shadow-btn: 0 2px 0 #9f4f13, 0 4px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 239, 178, 0.35);
+  --top-h: 46px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, 'Segoe UI', sans-serif; }
+::selection { background: rgba(255, 150, 46, 0.35); }
+a { color: var(--accent-hi); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; line-height: 1.3; }
+button:hover { border-color: var(--line-hi); background: var(--card-hi); }
+button:active { transform: translateY(1px); }
+button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent-hi); font-weight: 700; }
+button.primary { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--accent-ink); border-color: #ffc46a; font-weight: 800; box-shadow: var(--shadow-btn); }
+button.primary:hover { background: linear-gradient(180deg, #ffc86f, var(--accent-hi)); }
+button.primary:active { box-shadow: 0 0 0 #9f4f13, 0 2px 6px rgba(0, 0, 0, 0.3); transform: translateY(2px); }
+button:disabled { opacity: 0.45; cursor: default; transform: none; }
+button.ghost { background: none; border-color: transparent; color: var(--muted); }
+button.ghost:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); border-color: transparent; }
+button.icon { width: 30px; height: 30px; padding: 0; }
+button.icon .ic { width: 18px; height: 18px; }
+button.danger { color: #ffb0ad; }
+button.danger:hover { border-color: var(--bad); }
+.ic { width: 1em; height: 1em; fill: currentColor; flex: 0 0 auto; vertical-align: -0.15em; }
+button .ic { width: 15px; height: 15px; }
+input[type='number'], input[type='text'], input[type='search'], input:not([type]) { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 5px 8px; min-width: 0; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
+input[type='color'] { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: none; cursor: pointer; }
+input[type='range'] { accent-color: var(--accent); }
+input[type='checkbox'] { accent-color: var(--accent); }
+kbd { display: inline-block; min-width: 1.35em; padding: 0 4px; border-radius: 4px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--bg); color: var(--muted); font: 600 10.5px/1.5 ui-monospace, Consolas, monospace; text-align: center; }
+h3 { margin: 0 0 6px; font-size: 11px; font-weight: 800; color: var(--accent-hi); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; }
+h3 small { color: var(--dim); font-weight: 500; text-transform: none; letter-spacing: 0; }
+h4 { margin: 10px 0 4px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.hint { color: var(--muted); font-size: 12px; margin: 4px 0; }
+.warn { color: #ffb067; font-size: 12px; }
+.grow { flex: 1; }
+
+/* ---- barra do alto: Início · nome · modos · (espaço) · estado · ações */
+.top { height: var(--top-h); display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--bg2); border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(255, 220, 155, 0.05); }
+.top .home { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); text-decoration: none; font-size: 12px; padding: 4px 8px; border-radius: var(--r); }
+.top .home:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+.top .home .ic { width: 15px; height: 15px; }
+.top .brand { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; color: var(--accent-hi); margin-right: 6px; }
+.top .brand .ic { width: 18px; height: 18px; }
+.top .sep { width: 1px; height: 22px; background: var(--line); }
+.status { color: var(--muted); font-size: 12px; max-width: 34vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status.dirty { color: var(--warn); }
+.status.ok { color: var(--good); }
+.status.err { color: var(--bad); }
+/* ponto no Salvar quando há mudança não salva */
+button.dirty { position: relative; }
+button.dirty::after { content: ''; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--warn); border: 2px solid var(--bg2); }
+
+/* ---- grupo de botões (modos, vistas); chips (escolhas em lista) */
+.seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--r); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); }
+.seg button { border: 0; border-radius: 6px; background: none; padding: 4px 10px; color: var(--muted); }
+.seg button:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.seg.sm button { padding: 2px 8px; font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chips button { padding: 3px 9px; font-size: 12px; border-radius: 999px; }
+.chips button.on { background: var(--accent); color: var(--accent-ink); }
+
+/* ---- painéis laterais e cartões */
+.side { background: var(--panel); overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; border-right: 1px solid var(--line); scrollbar-width: thin; scrollbar-color: #5a3e22 transparent; }
+.side.right { border-right: 0; border-left: 1px solid var(--line); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; box-shadow: inset 0 1px 0 rgba(255, 220, 155, 0.06); }
+.card > h3 { margin-bottom: 7px; }
+.card label.lbl { display: block; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin: 8px 0 3px; }
+.card label.lbl:first-of-type { margin-top: 0; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
+.row label { color: var(--muted); }
+.row input[type='number'] { width: 66px; }
+.row input[type='range'] { flex: 1; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grid2 label { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
+
+/* ---- chaves liga/desliga (checkbox como pílula, no padrão do jogo) */
+label.tog { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 6px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); color: var(--muted); cursor: pointer; font-size: 12px; user-select: none; white-space: nowrap; }
+label.tog:hover { color: var(--text); border-color: var(--line-hi); }
+label.tog input { appearance: none; margin: 0; width: 22px; height: 12px; border-radius: 999px; background: #4a3420; position: relative; transition: background 0.15s; flex: 0 0 auto; }
+label.tog input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: #c9b08a; transition: left 0.15s, background 0.15s; }
+label.tog input:checked { background: var(--accent); }
+label.tog input:checked::after { left: 12px; background: var(--accent-ink); }
+label.tog:has(input:checked) { color: var(--text); border-color: rgba(255, 150, 46, 0.6); }
+
+/* ---- trilho de ferramentas: ícone grande com a tecla de atalho */
+.rail { display: flex; flex-direction: column; gap: 4px; padding: 8px 6px; background: var(--panel); border-right: 1px solid var(--line); }
+.rail button { position: relative; width: 44px; height: 40px; padding: 0; flex-direction: column; gap: 0; border-color: transparent; background: none; color: var(--muted); }
+.rail button:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+.rail button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent-hi); }
+.rail button .ic { width: 20px; height: 20px; }
+.rail button kbd { position: absolute; right: 3px; bottom: 2px; min-width: 0; padding: 0 3px; font-size: 9px; line-height: 1.3; border-bottom-width: 1px; background: rgba(0, 0, 0, 0.4); color: inherit; border-color: rgba(255, 255, 255, 0.15); }
+.rail button.on kbd { background: rgba(0, 0, 0, 0.18); border-color: rgba(0, 0, 0, 0.2); }
+.rail .sep { height: 1px; margin: 3px 4px; background: var(--line); }
+
+/* ---- palco (canvas) */
+.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: repeating-conic-gradient(#2d2217 0% 25%, #241b13 0% 50%) 0 0 / 16px 16px; border: 1px solid var(--line); border-radius: var(--r); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---- barra de opções acima do palco */
+.optbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 32px; }
+.optbar .group { display: inline-flex; align-items: center; gap: 4px; }
+.optbar .group > .lbl { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+.optbar input[type='number'] { width: 60px; padding: 3px 6px; }
+.optbar input:not([type]) { width: 5rem; padding: 3px 6px; }
+.hintbar { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; min-height: 24px; }
+.hintbar .ic { width: 14px; height: 14px; color: var(--info); }
+
+/* ---- listas (arquivos, itens do cenário) */
+.list { list-style: none; margin: 0; padding: 0; }
+.list li, .list button { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 0; background: none; color: inherit; font: inherit; justify-content: flex-start; }
+.list li:hover, .list button:hover { background: rgba(255, 255, 255, 0.06); }
+.list li.on, .list button.on { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.list .dir { font-weight: 700; color: var(--accent-hi); }
+.list .dir:hover { background: none; }
+.list li.on .tag, .list button.on small { color: var(--accent-ink); opacity: 0.8; }
+.list .tag { font-size: 10.5px; color: var(--warn); margin-left: auto; }
+.list .dot { margin-left: auto; color: var(--good); font-size: 9px; }
+.search { position: relative; }
+.search input { width: 100%; padding-left: 28px; }
+.search .ic { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--dim); pointer-events: none; }
+
+/* ---- dica instantânea (data-tip), sem o atraso do title nativo */
+[data-tip] { position: relative; }
+[data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%); width: max-content; max-width: 280px; white-space: normal; text-align: left; padding: 6px 9px; border-radius: 6px; background: #120b06; color: var(--text); border: 1px solid var(--line-hi); font-size: 12px; font-weight: 400; line-height: 1.35; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); z-index: 50; pointer-events: none; }
+[data-tip][data-tip-pos='right']:hover::after { left: calc(100% + 8px); bottom: auto; top: 50%; transform: translateY(-50%); }
+[data-tip][data-tip-pos='bottom']:hover::after { bottom: auto; top: calc(100% + 7px); }
+
+/* ---- diálogo de ajuda (atalhos) */
+dialog.help { background: var(--bg2); color: var(--text); border: 1px solid var(--line-hi); border-radius: 12px; padding: 0; max-width: min(92vw, 760px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); }
+dialog.help::backdrop { background: rgba(0, 0, 0, 0.55); }
+dialog.help .hd { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+dialog.help .hd b { font-size: 15px; color: var(--accent-hi); }
+dialog.help .bd { padding: 12px 16px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 24px; max-height: 70vh; overflow: auto; }
+dialog.help table { border-collapse: collapse; width: 100%; }
+dialog.help td { padding: 3px 4px; vertical-align: top; font-size: 12.5px; }
+dialog.help td:first-child { white-space: nowrap; width: 1%; padding-right: 10px; }
+dialog.help kbd { font-size: 11px; }
+
+/* ---- palco de prévia (fundo de grama, como no jogo) */
+canvas.preview { display: block; max-width: 100%; image-rendering: pixelated; background: var(--grass); border-radius: var(--r); border: 1px solid var(--line); }

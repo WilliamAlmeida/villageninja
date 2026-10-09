@@ -34,6 +34,27 @@ const MAP = {
   userplus: ['fill', 'user-plus'], lightning: ['fill', 'lightning'], tree: ['fill', 'tree'], barbell: ['fill', 'barbell'],
 };
 
+/** Só das ferramentas de desenvolvimento (tools/): não entram no jogo. nome → [peso, nome no Phosphor] */
+const TOOLS = {
+  pencil: ['fill', 'pencil-simple'], eraser: ['fill', 'eraser'], line: ['bold', 'line-segment'], bucket: ['fill', 'paint-bucket'],
+  picker: ['fill', 'eyedropper'], move: ['bold', 'arrows-out-cardinal'], crosshair: ['bold', 'crosshair-simple'], footprints: ['fill', 'footprints'],
+  undo: ['bold', 'arrow-u-up-left'], redo: ['bold', 'arrow-u-up-right'], keyboard: ['fill', 'keyboard'], image: ['fill', 'image'],
+  stack: ['fill', 'stack'], folder: ['fill', 'folder'], search: ['bold', 'magnifying-glass'], polygon: ['bold', 'polygon'],
+  wall: ['fill', 'wall'], anchor: ['fill', 'anchor-simple'], grid: ['bold', 'grid-four'], ruler: ['fill', 'ruler'],
+  person: ['fill', 'person'], palette: ['fill', 'palette'], step: ['fill', 'skip-forward'], stop: ['fill', 'stop'], hand: ['fill', 'hand'],
+};
+
+function inner(weight, src) {
+  const file = path.join(BASE, weight, `${src}${weight === 'regular' ? '' : `-${weight}`}.svg`);
+  return fs.readFileSync(file, 'utf8').replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').trim();
+}
+const tout = ['// Gerado por scripts/glyphs.mjs (Phosphor Icons, MIT): glifos só das ferramentas de desenvolvimento.', '', 'export const TOOL_GLYPHS: Record<string, string> = {'];
+for (const [name, [weight, src]] of Object.entries(TOOLS)) tout.push(`  ${name}: '${inner(weight, src).replace(/'/g, "\\'")}',`);
+tout.push('};', '');
+fs.mkdirSync(path.join(ROOT, 'tools', 'shared'), { recursive: true });
+fs.writeFileSync(path.join(ROOT, 'tools', 'shared', 'glyphs.ts'), tout.join('\n'));
+console.log(`ok tools/shared/glyphs.ts (${Object.keys(TOOLS).length} glifos)`);
+
 const out = ['// Gerado por scripts/glyphs.mjs a partir do Phosphor Icons (MIT): glifos de interface (viewBox 256).', '', 'export const GLYPHS: Record<string, string> = {'];
 for (const [name, [weight, src]] of Object.entries(MAP)) {
   const file = path.join(BASE, weight, `${src}${weight === 'regular' ? '' : `-${weight}`}.svg`);

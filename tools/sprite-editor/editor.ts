@@ -5,6 +5,7 @@
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 import { type Atlas, BADGE_RANKS, ICONS } from '../../src/ui/pxicons';
 import { shadowFrac, worldHeight } from '../../src/render/unitShape';
+import { applyIcons, helpDialog, ico } from '../shared/ui';
 import type { Layout } from '../../src/data/layout';
 
 type Layer = { name: string; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; dirty: boolean; ver: number };
@@ -744,13 +745,16 @@ async function save() {
 function setStatus(t: string) {
   const s = $('status');
   s.textContent = t;
-  s.classList.remove('dirty');
+  s.className = `status${/^Erro|Não carregou|Nada para/.test(t) ? ' err' : /^Salvo|salvos/.test(t) ? ' ok' : ''}`;
+  $('save').classList.remove('dirty');
 }
 function updateStatus() {
   const n = [...layers.values()].filter((l) => l.dirty).length;
+  const dirty = n > 0 || layoutDirty;
   const s = $('status');
-  s.textContent = n ? `${n} camada(s) não salva(s)` : layoutDirty ? 'pontos não salvos' : '';
-  s.classList.toggle('dirty', n > 0 || layoutDirty);
+  s.textContent = n ? `${n} camada(s) não salva(s)` : layoutDirty ? 'origem/pontos não salvos' : '';
+  s.className = `status${dirty ? ' dirty' : ''}`;
+  $('save').classList.toggle('dirty', dirty);
   renderLayerList();
 }
 
@@ -775,8 +779,9 @@ function renderLayerList() {
     li.classList.toggle('on', p.name === active);
     const eye = document.createElement('button');
     eye.className = 'eye';
-    eye.textContent = hiddenParts.has(p.name) ? '–' : '●';
-    eye.title = 'Mostrar/esconder';
+    eye.innerHTML = hiddenParts.has(p.name) ? ico('minus') : ico('eye');
+    eye.dataset.tip = hiddenParts.has(p.name) ? 'Mostrar' : 'Esconder';
+    eye.dataset.tipPos = 'right';
     eye.onclick = (e) => {
       e.stopPropagation();
       if (hiddenParts.has(p.name)) hiddenParts.delete(p.name);
@@ -797,7 +802,7 @@ function renderLayerList() {
       li.appendChild(d);
     }
     if (l?.dirty) li.insertAdjacentHTML('beforeend', '<span class="tag">não salva</span>');
-    else if (edited.has(p.name)) li.insertAdjacentHTML('beforeend', '<span class="tag" title="Editada à mão: o prepare-layers.py não a refaz">editada</span>');
+    else if (edited.has(p.name)) li.insertAdjacentHTML('beforeend', '<span class="tag" data-tip="Editada à mão: o prepare-layers.py não a refaz" data-tip-pos="right">editada</span>');
     li.onclick = () => {
       active = p.name;
       renderLayerList();
@@ -839,7 +844,7 @@ function renderFiles() {
       const li = document.createElement('li');
       li.className = 'dir';
       li.style.paddingLeft = `${6 + depth * 14}px`;
-      li.textContent = `${open ? '▾' : '▸'} ${d}/  (${count})`;
+      li.innerHTML = `${ico('folder')}<span class="nm">${d}/</span><small>${count}</small>`;
       li.onclick = () => {
         if (open) openDirs.delete(path);
         else openDirs.add(path);
@@ -858,8 +863,8 @@ function renderFiles() {
 
 function fileItem(name: string, label: string, depth: number) {
   const li = document.createElement('li');
-  li.textContent = label + (edited.has(name) ? ' (editada)' : '');
-  li.style.paddingLeft = `${6 + depth * 14}px`;
+  li.innerHTML = `${ico(SHEET_RE.test(name) ? 'person' : 'image')}<span class="nm">${label}</span>${edited.has(name) ? '<span class="tag">editada</span>' : ''}`;
+  li.style.paddingLeft = `${8 + depth * 14}px`;
   li.classList.toggle('on', name === fileName);
   li.onclick = async () => {
     fileName = name;
@@ -922,9 +927,24 @@ function setColor(c: string) {
   renderPalette();
 }
 
+/** Dica curta de cada ferramenta, na barra de baixo do palco. */
+const TOOL_HINT: Record<Tool, string> = {
+  pencil: 'Clique ou arraste para pintar · botão direito apaga · Alt+clique pega a cor',
+  eraser: 'Clique ou arraste para apagar',
+  line: 'Arraste do início ao fim · Shift prende na horizontal, vertical ou 45°',
+  fill: 'Clique na área contínua da mesma cor · botão direito deixa transparente',
+  picker: 'Clique numa cor para usá-la no lápis',
+  select: 'Arraste um retângulo · arraste dentro dele para mover · setas 1 px · Delete apaga · Ctrl+C/V copia e cola · Esc tira',
+  move: 'Arraste para mover a seleção ou a camada inteira · setas movem 1 px · "Vista toda" leva os 4 quadros',
+  origin: 'Clique ou arraste: origem (os pés) · Shift+clique: alto do corpo · campos acima: sombra · vale para a folha toda',
+  point: 'Clique marca o ponto deste quadro · botão direito tira · "Aplicar" copia para a vista ou para todos',
+};
 function setTool(t: Tool) {
   tool = t;
   for (const b of $('tools').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tool === t);
+  $('toolHint').textContent = TOOL_HINT[t];
+  const slot = document.querySelector<SVGElement>('.hintbar [data-ico-slot]');
+  if (slot) slot.outerHTML = ico($('tools').querySelector<HTMLElement>(`[data-tool="${t}"]`)?.dataset.ico ?? 'info').replace('class="ic"', 'class="ic" data-ico-slot');
   stage.style.cursor = t === 'move' ? 'move' : t === 'picker' ? 'copy' : t === 'select' ? 'cell' : 'crosshair';
   $('pointBox').hidden = t !== 'point';
   $('originBox').hidden = t !== 'origin';
@@ -1235,6 +1255,24 @@ for (const id of ['fCols', 'fRows'])
   };
 
 // ------------------------------------------------------------------ início
+applyIcons();
+helpDialog('Editor de sprites: atalhos', [
+  ['Ferramentas', [
+    ['B', 'Lápis'], ['E', 'Borracha'], ['L', 'Linha (Shift: reta ou 45°)'], ['G', 'Balde'], ['I | Alt+clique', 'Conta-gotas'],
+    ['S', 'Seleção'], ['M', 'Mover'], ['O', 'Origem e sombra'], ['P', 'Ponto nomeado (mão, cabo)'], ['X | botão direito', 'Apagar com lápis, linha e balde'],
+  ]],
+  ['Seleção', [
+    ['Ctrl+A', 'Seleciona o quadro inteiro'], ['Delete', 'Apaga o selecionado'], ['Ctrl+C', 'Copia (também para a área de transferência do sistema)'],
+    ['Ctrl+V', 'Cola (inclusive uma imagem do Photoshop)'], ['Setas', 'Move 1 px a seleção ou a camada'], ['Esc', 'Tira a seleção'],
+  ]],
+  ['Vista e quadros', [
+    ['Roda', 'Zoom em volta do cursor'], ['Espaço+arrastar | botão do meio', 'Rolar o palco'], ['1 | 2 | 3', 'Vista: lado, frente, costas'],
+    [', | .', 'Quadro anterior / próximo'], ['Clique na folha', 'Escolhe o quadro'],
+  ]],
+  ['Arquivo', [
+    ['Ctrl+S', 'Salvar em src/art (e os pontos/origem no layout.json)'], ['Ctrl+Z | Ctrl+Y', 'Desfazer / refazer'], ['?', 'Esta ajuda'],
+  ]],
+]);
 await refreshList();
 try {
   layoutData = await fetch('/api/layout').then((r) => r.json());

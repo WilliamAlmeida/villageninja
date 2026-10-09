@@ -4,33 +4,40 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Editor de cenário — Vila Ninja</title>
+    <link rel="stylesheet" href="../shared/tools.css" />
     <link rel="stylesheet" href="./scene.css" />
   </head>
   <body>
-    <aside id="items">
-      <header><b>Editor de cenário</b><nav><a href="/">Início</a></nav></header>
-      <input id="filter" placeholder="Filtrar…" />
-      <div id="list"></div>
-    </aside>
-    <main>
-      <div id="top">
-        <span id="title">—</span>
-        <nav class="seg" id="modes">
-          <button data-mode="pieces" class="on">Peças</button>
-          <button data-mode="tiles">Terreno</button>
-          <button data-mode="art">Arte</button>
-          <button data-mode="points">Pontos</button>
-          <button data-mode="dummies">Bonecos</button>
-        </nav>
-        <span class="grow"></span>
-        <span id="status"></span>
-        <button id="undo" title="Desfazer (Ctrl+Z)">Desfazer</button>
-        <button id="save" class="primary" title="Salvar em src/data/layout.json (Ctrl+S)">Salvar</button>
-      </div>
-      <div id="stage"><canvas id="view"></canvas><canvas id="over"></canvas></div>
-      <div id="help"></div>
-    </main>
-    <aside id="props"></aside>
+    <header class="top" id="top">
+      <a href="/" class="home" data-ico="home">Início</a>
+      <span class="sep"></span>
+      <b class="brand" data-ico="houses">Editor de cenário</b>
+      <span class="sep"></span>
+      <span id="title" class="title">—</span>
+      <nav class="seg" id="modes">
+        <button data-mode="pieces" class="on" data-ico="stack" data-tip="Peças: pedaços da arte, cada um na profundidade da sua âncora" data-tip-pos="bottom">Peças</button>
+        <button data-mode="tiles" data-ico="wall" data-tip="Terreno: muro, portão e bloqueios avulsos" data-tip-pos="bottom">Terreno</button>
+        <button data-mode="art" data-ico="image" data-tip="Arte: escala, deslocamento e profundidade do desenho" data-tip-pos="bottom">Arte</button>
+        <button data-mode="points" data-ico="crosshair" data-tip="Pontos: porta, lugares do Exame, guarda, chaminé" data-tip-pos="bottom">Pontos</button>
+        <button data-mode="dummies" data-ico="person" data-tip="Bonecos de teste: arrastar ou mandar andar pelo caminho de verdade" data-tip-pos="bottom">Bonecos</button>
+      </nav>
+      <span class="grow"></span>
+      <span id="status" class="status"></span>
+      <button id="undo" class="icon ghost" data-ico="undo" data-tip="Desfazer (Ctrl+Z)" data-tip-pos="bottom" aria-label="Desfazer"></button>
+      <button id="help" class="icon ghost" data-ico="question" data-tip="Atalhos e ajuda (?)" data-tip-pos="bottom" aria-label="Ajuda"></button>
+      <button id="save" class="primary" data-ico="save" data-tip="Salvar em src/data/layout.json (Ctrl+S)" data-tip-pos="bottom">Salvar</button>
+    </header>
+    <div class="cols">
+      <aside class="side" id="items">
+        <div class="search"><svg class="ic" viewBox="0 0 256 256" data-ico="search"></svg><input id="filter" type="search" placeholder="Buscar construção, local, objeto" /></div>
+        <div id="list" class="list"></div>
+      </aside>
+      <main>
+        <div class="hintbar"><svg class="ic" viewBox="0 0 256 256" data-ico="info"></svg><span id="hint"></span></div>
+        <div id="stage" class="stage"><canvas id="view"></canvas><canvas id="over"></canvas></div>
+      </main>
+      <aside class="side right" id="props"></aside>
+    </div>
     <script type="module" src="./scene.ts"></script>
   </body>
 </html>
