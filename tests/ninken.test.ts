@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { DAY_LENGTH, SIM_DT } from '../src/config';
+import { DAY_LENGTH, SAVE_VERSION, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { adoptDog, dogOf, freeDogs, giveDog, KENNEL_DOGS, releaseDog, sniffRange } from '../src/game/ninken';
 import { SYSTEMS } from '../src/game/systems';
 import { occupantsOf } from '../src/game/interior';
+import { migrate } from '../src/game/save';
 
 const run = (g: Game, seconds: number) => {
   for (let t = 0; t < seconds; t += SIM_DT) {
@@ -15,6 +16,20 @@ const run = (g: Game, seconds: number) => {
 };
 
 describe('ninken', () => {
+  test('migra nomes antigos de ninken nos saves', () => {
+    const old = {
+      version: SAVE_VERSION - 1,
+      units: [{ name: 'Daigo (ninken)' }, { name: 'Akira' }],
+      scene: { units: [{ name: 'Hana (ninken)' }] },
+    };
+
+    const saved = migrate(old)!;
+
+    expect(saved.units[0]!.name).toBe('Daigo');
+    expect(saved.units[1]!.name).toBe('Akira');
+    expect(saved.scene?.units[0]!.name).toBe('Hana');
+  });
+
   test('dono fora (em casa ou em expedição): de dia o cão patrulha, à noite dorme no Canil; dono volta: vai atrás', () => {
     const g = createNewGame(SYSTEMS, 125);
     Object.assign(g.state.res, { food: 999, ryo: 999 });
@@ -105,6 +120,7 @@ describe('ninken', () => {
     expect(adoptDog(g, n.id).ok).toBe(true);
     expect(adoptDog(g, n.id).ok).toBe(false); // um por ninja
     const dog = dogOf(g, n)!;
+    expect(dog.name).not.toContain('(ninken)');
     expect(dog.faction).toBe('village');
     n.dead = true;
     run(g, 0.2);

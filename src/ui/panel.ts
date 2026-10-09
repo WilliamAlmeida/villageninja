@@ -225,7 +225,7 @@ const ACTION_ICON: Record<string, string> = {
 };
 const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{barbell}', patrol: '{flag}', scout: '{eye}' };
 const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar'], ['scout', 'Explorar']];
-/** O que cada rotina faz (dica e texto abaixo dos botões). */
+/** O que cada rotina faz (dica dos botões). */
 const ROUTINE_TIP: Record<NinjaOrder, string> = {
   auto: 'Decide sozinho: acompanha o líder da equipe; sem equipe, treina na maior parte do dia e patrulha no resto. Dorme à noite.',
   train: 'Passa o dia no Campo de Treino ganhando atributos e XP. Dorme à noite.',
@@ -648,7 +648,7 @@ export class Panel {
     html += `<h4>Rotina</h4><div class="seg">`;
     for (const [k, label] of ROUTINES)
       html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
-    html += `</div><p class="hint">${ROUTINE_TIP[n.order]}</p>`;
+    html += `</div>`;
     html += `<h4>Foco do treino</h4><div class="chips">`;
     const bySensei = team?.senseiId != null && team.senseiId !== u.id;
     const auto = bySensei ? 'Sensei decide' : 'Aleatório';
@@ -656,8 +656,7 @@ export class Panel {
     html += `<button data-act="focus" data-arg="" class="${n.focus ? '' : 'on'}" ${tipAttr(auto, autoTip)}>${auto}</button>`;
     for (const k of STAT_KEYS)
       html += `<button data-act="focus" data-arg="${k}" class="${n.focus === k ? 'on' : ''}" ${tipAttr(STAT_INFO[k].label, STAT_INFO[k].desc)}>${STAT_INFO[k].label}</button>`;
-    // a explicação do foco atual fica visível (no celular não existe "passar o mouse")
-    html += `</div><p class="hint">${n.focus ? `<b>${STAT_INFO[n.focus].label}:</b> ${STAT_INFO[n.focus].desc}` : autoTip} Cada sessão no Campo de Treino sobe o atributo escolhido (até o limite da patente).</p>`;
+    html += `</div>`;
     return html + this.teamSection(u, team);
   }
 
@@ -1098,7 +1097,8 @@ export class Panel {
     if (n.contract) tiles += `<div class="ftile"><small>Contrato</small><b>${CONTRACTS[n.contract].name}</b><span>${CONTRACTS[n.contract].chakra} chakra · a cada ${CONTRACTS[n.contract].cd}s</span></div>`;
     const dog = dogOf(g, u);
     const team = teamOf(g, u);
-    if (dog) tiles += `<div class="ftile"><small>Ninken</small><b>${esc(dog.name)}</b><span>${esc(BREEDS[dog.breed ?? 'shiba'].name)} · vida ${Math.ceil(dog.hp)}/${dog.maxHp}</span><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e pode ir para outro ninja sem custo.')}>{x} Soltar</button></div>`;
+    if (dog)
+      tiles += `<div class="ftile ninkentile"><small>Ninken</small><div class="dogline"><span class="dinfo"><b>${esc(dog.name)}</b><span>${esc(BREEDS[dog.breed ?? 'shiba'].name)} · vida ${Math.ceil(dog.hp)}/${dog.maxHp}</span></span><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e pode ir para outro ninja sem custo.')}>{x} Soltar</button></div></div>`;
     if (team) {
       const role = team.senseiId === u.id ? 'Sensei' : 'Membro';
       tiles += `<div class="ftile teamtile"><small>Equipe</small><div class="teamline"><span class="tname"><span class="dot" style="--c:${team.color}"></span><b>${esc(team.name)}</b><span class="trole">· ${role}</span></span><button class="btn mini" data-act="open-team" data-arg="${team.id}">{users} Ver equipe</button></div></div>`;
@@ -1108,7 +1108,7 @@ export class Panel {
     html += `<div class="factions"><button class="btn primary" data-act="teach-open">{books} Ensinar jutsu</button>`;
     const next = nextRank(u);
     if (next === 'kage') {
-      html += `<span class="hint">{kage} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</span>`;
+      if (!currentKage(g)) html += `<span class="hint">{kage} Jounin de nível ${KAGE_MIN_LEVEL}+ pode ser eleito Kage na Residência do Hokage.</span>`;
     } else if (next) {
       const r = RANKS[next];
       const villageOk = (r.minVillageLevel ?? 0) <= g.state.level;
@@ -1485,7 +1485,7 @@ export class Panel {
       html += `<div class="bsec"><h4>{home} No Canil, sem dono <small>${free.length}</small></h4><div class="kfree scrollist">${free
         .map(
           (d) =>
-            `<button class="${d === waiting ? 'on' : ''}" data-act="dog-pick" data-arg="${d.id}">{paw} <b>${esc(d.name.replace(' (ninken)', ''))}</b><small>${esc(BREEDS[d.breed ?? 'shiba'].name)} · vida ${Math.ceil(d.hp)}/${d.maxHp}</small></button>`,
+            `<button class="${d === waiting ? 'on' : ''}" data-act="dog-pick" data-arg="${d.id}">{paw} <b>${esc(d.name)}</b><small>${esc(BREEDS[d.breed ?? 'shiba'].name)} · vida ${Math.ceil(d.hp)}/${d.maxHp}</small></button>`,
         )
         .join('')}</div></div>`;
     const without = ninjas.filter((u) => !dogOf(g, u));
@@ -1512,7 +1512,7 @@ export class Panel {
       html += `<div class="roster scrollist">`;
       for (const u of withDog.sort(byLevel).slice(0, MAX_ROWS)) {
         const d = dogOf(g, u)!;
-        html += `<div class="cand krow">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge">{paw} ${esc(d.name.replace(' (ninken)', ''))}</span><span class="badge">${esc(BREEDS[d.breed ?? 'shiba'].name)}</span></span><span class="btnrow"><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e fica esperando: dá para passá-lo a outro ninja sem custo.')}>{x} Soltar</button></span></div>`;
+        html += `<div class="cand krow">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="badge">{paw} ${esc(d.name)}</span><span class="badge">${esc(BREEDS[d.breed ?? 'shiba'].name)}</span></span><span class="btnrow"><button class="btn mini" data-act="dog-release" data-arg="${u.id}" ${tipAttr('Soltar o cão', 'O cão volta para o Canil e fica esperando: dá para passá-lo a outro ninja sem custo.')}>{x} Soltar</button></span></div>`;
       }
       html += `</div>${more(withDog.length)}`;
     }

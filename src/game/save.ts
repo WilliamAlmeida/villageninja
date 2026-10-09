@@ -209,6 +209,14 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     clear(s);
     clear(s.scene);
   },
+  27: (s) => {
+    const cleanDogNames = (st: any) => {
+      for (const u of st?.units ?? [])
+        if (typeof u.name === 'string') u.name = u.name.replace(/ \(ninken\)$/, '');
+    };
+    cleanDogNames(s);
+    cleanDogNames(s.scene);
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

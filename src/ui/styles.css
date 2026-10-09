@@ -871,6 +871,10 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .ftile .btnrow { gap: 0.25rem; }
 .ftile .spec-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .ftile .spec-buttons .btn { width: 100%; min-width: 0; justify-content: flex-start; font-size: 0.8rem; }
+.ftile.ninkentile .dogline { display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
+.ftile.ninkentile .dinfo { min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.ftile.ninkentile .dinfo b { min-width: 0; }
+.ftile.ninkentile .btn.mini { margin-top: 0; align-self: auto; }
 .ftile.teamtile .teamline { display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
 .ftile.teamtile .tname { min-width: 0; display: inline-flex; align-items: center; gap: 0.25rem; }
 .ftile.teamtile .tname b { min-width: 0; }
