@@ -1950,3 +1950,58 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   :root:has(#buildbar:not([hidden])) #banners { bottom: calc(11.6rem + var(--safe-b)); }
   #win .box { border-width: 0.73rem; border-image-width: 1.6rem; border-image-outset: 0.22rem; }
 }
+
+/* ---------- kit de interface (peças limpas em src/art/ui/kit → scripts/prepare-kit.py → src/art/ui/frame) ----------
+   ATENÇÃO: o minificador de CSS do Bun estraga border-image (no atalho some o var(), e em border-image-slice cai o
+   1º número): use as propriedades separadas e as fatias numa variável (--sl), que ele não mexe.
+   Avisos e confirmações (#alertbox): pergaminho com moldura de madeira (dialog: fatias 66 44 36 30 px, 1:1) e o título
+   numa faixa que estica (dialog-title: pontas de 26 px) por cima da borda de cima; o X da arte fecha (.x invisível
+   em cima dele). */
+#alertbox .card {
+  position: relative; width: min(28rem, 100%); overflow: visible; max-height: none;
+  padding: 0.35rem 0.55rem 0.2rem; border-radius: 0; background: none; box-shadow: none;
+  border: solid transparent; border-width: 4.125rem 2.75rem 2.25rem 1.875rem;
+  border-image-source: var(--kit-dialog); --sl: 66 44 36 30 fill; border-image-slice: var(--sl); border-image-width: 4.125rem 2.75rem 2.25rem 1.875rem; border-image-repeat: stretch;
+  filter: drop-shadow(0 1rem 1.6rem rgba(0, 0, 0, 0.6)); color: #4a2f1a;
+}
+#alertbox .card .at {
+  position: absolute; top: -4.125rem; left: 50%; transform: translateX(-50%); height: 4.125rem;
+  min-width: 11.25rem; max-width: calc(100% + 1rem); padding: 0.55rem 2rem 0; margin: 0; justify-content: center;
+  border: solid transparent; border-width: 0 1.625rem; border-image-source: var(--kit-dialog-title); --sl: 0 26 0 26 fill; border-image-slice: var(--sl); border-image-width: 0 1.625rem 0 1.625rem; border-image-repeat: stretch;
+  color: #4a2a12; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#alertbox .card.warn .at { color: #4a2a12; }
+#alertbox .card .at .ic { color: #b3261e; }
+#alertbox .card .x { position: absolute; top: -2.45rem; right: -2.7rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: none; border: 0; padding: 0; }
+#alertbox .card .x:hover { background: rgba(255, 220, 160, 0.15); }
+#alertbox .card p { color: #4a2f1a; }
+#alertbox .card p small, #alertbox .need .lbl { color: #7a5a3a; }
+#alertbox .need li { background: rgba(110, 70, 30, 0.13); color: #3b2414; }
+#alertbox .need b { color: #b3261e; }
+#alertbox .aimg { background: radial-gradient(circle at 50% 70%, rgba(120, 80, 30, 0.18), transparent 70%); }
+
+/* Alerta de inimigos: faixa vermelha com o pergaminho e o megafone à esquerda (banner: 82 | miolo | 26 px, 75 de alto). */
+.banner.danger {
+  height: 3rem; display: flex; align-items: center; padding: 0 0.6rem 0 0.2rem; border-radius: 0; background: none; box-shadow: none;
+  border: solid transparent; border-width: 0 1.04rem 0 3.28rem; border-image-source: var(--kit-banner); --sl: 0 26 0 82 fill; border-image-slice: var(--sl); border-image-width: 0 1.04rem 0 3.28rem; border-image-repeat: stretch;
+  animation: kitpulse 0.9s infinite alternate; text-shadow: 0 1px 0 #000, 0 0 3px rgba(0, 0, 0, 0.6);
+}
+@keyframes kitpulse { to { filter: brightness(1.25) drop-shadow(0 0 0.5rem rgba(255, 80, 60, 0.6)); } }
+
+/* Barras grandes (.bar): trilho de madeira com friso (bar-track: pontas 10 px; o trilho vai de 6/31 a 24/31 da altura)
+   e o preenchimento brilhante por tipo; as finas (.nc-bar) só trocam o preenchimento. */
+.bar {
+  overflow: hidden; border-radius: 0; background: none; box-shadow: none;
+  border: 0 solid transparent; border-image-source: var(--kit-track); --sl: 0 10 0 10 fill; border-image-slice: var(--sl); border-image-width: 0 0.4rem 0 0.4rem; border-image-repeat: stretch;
+}
+.bar i { top: 19%; bottom: 23%; left: 0.22rem; border-radius: 0; box-shadow: none; background: none; max-width: calc(100% - 0.44rem);
+  border: 0 solid transparent; border-image-source: var(--kit-orange); --sl: 0 4 0 4 fill; border-image-slice: var(--sl); border-image-width: 0 0.25rem 0 0.25rem; border-image-repeat: stretch; }
+.bar.hp i { border-image-source: var(--kit-red); --sl: 0 12 0 12 fill; border-image-slice: var(--sl); border-image-width: 0 0.35rem 0 0.35rem; }
+.bar.ck i { border-image-source: var(--kit-blue); --sl: 0 12 0 12 fill; border-image-slice: var(--sl); border-image-width: 0 0.35rem 0 0.35rem; }
+.nc-bar.hp i, .nc-bar.ck i, .nc-bar.xp i { background: none; border: 0 solid transparent; border-image-source: var(--kit-red); --sl: 0 12 0 12 fill; border-image-slice: var(--sl); border-image-width: 0 0.25rem 0 0.25rem; border-image-repeat: stretch; }
+.nc-bar.ck i { border-image-source: var(--kit-blue); }
+.nc-bar.xp i { border-image-source: var(--kit-orange); --sl: 0 4 0 4 fill; border-image-slice: var(--sl); border-image-width: 0 0.25rem 0 0.25rem; }
+#alertbox .card .btn { color: var(--text); }
+/* os ícones da barra de baixo saltam ~1 rem para cima: as faixas de aviso ficam acima deles */
+#banners { bottom: calc(7rem + var(--safe-b)); }
+@media (max-height: 520px) { #banners { bottom: calc(5.8rem + var(--safe-b)); } }

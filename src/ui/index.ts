@@ -17,6 +17,13 @@ import { BattleCam } from './battle';
 import { Panel, type View } from './panel';
 import dockBarUrl from '../art/ui/frame/dock-bar.png';
 import windowFrameUrl from '../art/ui/frame/window-frame.png';
+import kitDialog from '../art/ui/frame/dialog.png';
+import kitDialogTitle from '../art/ui/frame/dialog-title.png';
+import kitBanner from '../art/ui/frame/banner.png';
+import kitTrack from '../art/ui/frame/bar-track.png';
+import kitOrange from '../art/ui/frame/bar-orange.png';
+import kitRed from '../art/ui/frame/bar-red.png';
+import kitBlue from '../art/ui/frame/bar-blue.png';
 
 const isOwnNinja = (u: Unit) => !u.dead && u.kind === 'ninja' && u.faction === 'village';
 
@@ -25,6 +32,9 @@ export function createUI(app: App, root: HTMLElement) {
   // molduras 9-slice (scripts/prepare-frames.py): o CSS usa por variável (border-image)
   document.documentElement.style.setProperty('--frame-dock', `url(${dockBarUrl})`);
   document.documentElement.style.setProperty('--frame-win', `url(${windowFrameUrl})`);
+  // kit de interface (scripts/prepare-kit.py, das peças limpas em src/art/ui/kit)
+  const kit = { dialog: kitDialog, 'dialog-title': kitDialogTitle, banner: kitBanner, track: kitTrack, orange: kitOrange, red: kitRed, blue: kitBlue };
+  for (const [k, url] of Object.entries(kit)) document.documentElement.style.setProperty(`--kit-${k}`, `url(${url})`);
   installTips();
   const hud = new Hud(app);
   const panel = new Panel(app);

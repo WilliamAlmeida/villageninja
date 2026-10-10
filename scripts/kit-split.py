@@ -2,8 +2,8 @@
 # src/art/ui/kit/<grupo>-<nome>.png, para limpar o texto no editor de sprites e depois virar 9-slice / ícone no jogo.
 # Cada peça é achada pelo contorno (alfa forte, para os halos não grudarem vizinhos) e reconhecida por um ponto dela na
 # folha (tabela PIECES); as que vêm encostadas na folha têm o retângulo à mão (SPLIT). Recorta do original com 2 px de
-# folga e apaga só o halo quase invisível. Peça já editada no editor (src/art/art-edits.json) não é sobrescrita
-# (--force sobrescreve). Gera também src/art/ui/kit/LEIAME.md com o uso de cada peça.
+# folga e apaga só o halo quase invisível. Peça que já existe em src/art/ui/kit nunca é sobrescrita (pode ter sido
+# limpa à mão); --force recorta tudo de novo. Gera também src/art/ui/kit/LEIAME.md com o uso de cada peça.
 # Uso: python scripts/kit-split.py [--force]
 import json
 import os
@@ -194,7 +194,7 @@ for name, (b, use) in sorted(found.items()):
     rel = f'ui/kit/{name}.png'
     path = os.path.join(DST, f'{name}.png')
     lines.append(f'| `{name}` | {crop.width}×{crop.height} | {use} |')
-    if rel in edits and os.path.exists(path) and not FORCE:
+    if os.path.exists(path) and not FORCE:  # peça já recortada (talvez limpa à mão, no editor ou fora dele): fica
         kept += 1
         continue
     crop.save(path, optimize=True)

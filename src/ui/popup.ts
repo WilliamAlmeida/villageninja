@@ -157,7 +157,7 @@ export function showAlert(o: AlertOpts) {
   }
   const rows = o.rows?.length ? `<ul class="need">${o.rows.map((r) => `<li>${r}</li>`).join('')}</ul>` : '';
   box.innerHTML = rich(`<div class="card ${o.kind ?? 'warn'}" role="alertdialog" aria-modal="true">
-    <div class="at">${o.kind === 'info' ? '' : '{alert} '}${esc(o.title)}</div>${o.extra ?? ''}
+    <button class="x" data-close aria-label="Fechar"></button><div class="at">${o.kind === 'info' ? '' : '{alert} '}${esc(o.title)}</div>${o.extra ?? ''}
     ${o.text ? `<p>${o.text}</p>` : ''}${rows}
     <div class="ab">${o.action ? `<button class="btn primary" data-go ${o.action.disabled ? 'aria-disabled="true"' : ''}>${o.action.label}</button>` : ''}
     <button class="btn" data-close>${o.action ? 'Fechar' : 'Entendi'}</button></div></div>`);
