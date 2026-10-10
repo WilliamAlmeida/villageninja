@@ -146,7 +146,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   no jogo como 9-slice/ícone; `scripts/prepare-kit.py` monta das peças limpas a arte em `src/art/ui/frame/` — já em uso:
   pergaminho dos avisos `#alertbox` com a faixa do título à parte, faixa vermelha do alerta de inimigos, trilho e
   preenchimentos das barras `.bar`/`.nc-bar`). **Minificador de CSS do Bun estraga `border-image`**: no atalho o `var()`
-  some e em `border-image-slice` cai o 1º número — usar as propriedades separadas e as fatias numa variável (`--sl`) (`SEALS`), kunai do Hiraishin,
+  some e em `border-image-slice` cai o 1º número — usar as propriedades separadas e as fatias numa variável (`--sl`).
+  **Kit 2 (o que vale agora)**: uma peça-base de cada tipo pedida ao Codex em pixel art limpa, sem texto e pronta para
+  9-slice (`scripts/kit2-codex.sh`, referência = recorte do mockup), reduzida ao pixel real e com as cores feitas por
+  código (`scripts/prepare-kit2.py`: tinge o cinza mantendo o claro/escuro; botão escuro/laranja/vermelho, barras, selos)
+  → `src/art/ui/kit2/`, variáveis `--k2-*` (`ui/kit.ts`). Em uso: pergaminho dos avisos com faixa do título e fechar
+  redondo, `.btn`, `.bar`/`.nc-bar`, `.mpill`, `#tip` e o drawer `#panel` com o telhado (molduras 2×, controles 1×) (`SEALS`), kunai do Hiraishin,
   animais dos Sannin e cenas das estações/festival/vila (`ART`). Tokens do tema (cores, bordas âmbar, botões com relevo)
   no bloco "Tema fiel aos mockups" no fim de styles.css.
   **Atlas**: ícones (64 px) em `src/art/ui/icons.png` e selos de rank (128 px, uma linha com os 5) em `badge-ranks.png`,

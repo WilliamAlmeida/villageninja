@@ -2005,3 +2005,90 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 /* os ícones da barra de baixo saltam ~1 rem para cima: as faixas de aviso ficam acima deles */
 #banners { bottom: calc(7rem + var(--safe-b)); }
 @media (max-height: 520px) { #banners { bottom: calc(5.8rem + var(--safe-b)); } }
+
+/* ---------- kit 2: pixel art limpa do Codex (docs/arte/ui/kit2 → scripts/prepare-kit2.py → src/art/ui/kit2) ----------
+   Sobrepõe o kit 1. Molduras (pergaminho, painel) ampliadas 2×; controles (botão, barra, selo, dica) em 1×; tudo com
+   image-rendering: pixelated. Fatias em --sl (o minificador do Bun estraga border-image-slice; ver o kit 1). */
+#alertbox .card {
+  --sl: 16 16 16 16 fill; border-image-source: var(--k2-dialog); border-image-slice: var(--sl);
+  border-image-width: 32px; border-image-repeat: stretch; border-width: 28px 22px 26px 22px; image-rendering: pixelated;
+  padding: 0.4rem 0.6rem 0.3rem;
+}
+#alertbox .card > * { image-rendering: auto; }
+#alertbox .card .at {
+  --sl: 0 10 0 10 fill; top: -45px; height: 62px; min-width: 11rem; padding: 0.15rem 1.4rem 0;
+  border-image-source: var(--k2-title); border-image-slice: var(--sl); border-width: 0 20px; border-image-width: 0 20px;
+  image-rendering: pixelated; font-size: 1.05rem;
+}
+#alertbox .card .x {
+  top: -44px; right: -36px; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--k2-round) center / 100% 100% no-repeat; image-rendering: auto; display: grid; place-items: center;
+}
+#alertbox .card .x::before {
+  content: ""; width: 14px; height: 14px;
+  background: linear-gradient(45deg, transparent 42%, #f3e3c3 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, #f3e3c3 42% 58%, transparent 58%);
+}
+#alertbox .card .x:hover { background-color: transparent; filter: brightness(1.2); }
+
+/* botões: corpo pintado por cor (escuro, laranja, vermelho), cantos de 8 px em 1× */
+.btn:not(.ghost):not(.icon) {
+  --sl: 8 8 8 8 fill; border: 0 solid transparent; border-width: 3px 4px 5px; border-radius: 0; box-shadow: none; background: none;
+  border-image-source: var(--k2-button-dark); border-image-slice: var(--sl); border-image-width: 8px; border-image-repeat: stretch;
+  image-rendering: pixelated; color: #f3e3c3; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+.btn.primary:not(.ghost) { border-image-source: var(--k2-button-orange); color: #2a1406; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); box-shadow: none; background: none; }
+.btn.danger:not(.ghost) { border-image-source: var(--k2-button-red); color: #fff; box-shadow: none; background: none; }
+.btn:not(.ghost):not(.icon) > * { image-rendering: auto; }
+.btn.primary:active { box-shadow: none; transform: translateY(1px); }
+
+/* barras: trilho de madeira com aro dourado e preenchimento por tipo (vida, chakra, obra, XP) */
+.bar { --sl: 6 8 6 8 fill; border-image-source: var(--k2-bar-track); border-image-slice: var(--sl); border-image-width: 6px 8px; image-rendering: pixelated; }
+.bar i {
+  --sl: 0 6 0 6 fill; top: 4px; bottom: 4px; left: 4px; max-width: calc(100% - 8px);
+  border-image-source: var(--k2-bar-orange); border-image-slice: var(--sl); border-image-width: 0 6px; image-rendering: pixelated;
+}
+.bar.hp i { border-image-source: var(--k2-bar-red); border-image-slice: var(--sl); border-image-width: 0 6px; }
+.bar.ck i { border-image-source: var(--k2-bar-blue); border-image-slice: var(--sl); border-image-width: 0 6px; }
+.bar.xp i { border-image-source: var(--k2-bar-amber); }
+.nc-bar.hp i, .nc-bar.ck i, .nc-bar.xp i { --sl: 0 6 0 6 fill; border-image-slice: var(--sl); border-image-source: var(--k2-bar-red); image-rendering: pixelated; }
+.nc-bar.ck i { border-image-source: var(--k2-bar-blue); }
+.nc-bar.xp i { border-image-source: var(--k2-bar-amber); }
+
+/* selos de estado (.mpill): cápsula pintada por estado */
+.mpill {
+  --sl: 8 10 8 10 fill; border: 0 solid transparent; border-width: 2px 6px; border-radius: 0; background: none;
+  border-image-source: var(--k2-pill-gray); border-image-slice: var(--sl); border-image-width: 8px 10px; image-rendering: pixelated;
+  color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.75);
+}
+.mpill.safe { border-image-source: var(--k2-pill-green); color: #fff; background: none; }
+.mpill.good { border-image-source: var(--k2-pill-amber); color: #fff; background: none; }
+.mpill.risky { border-image-source: var(--k2-pill-orange); color: #fff; background: none; }
+.mpill.danger { border-image-source: var(--k2-pill-red); color: #fff; background: none; }
+.mpill.info { border-image-source: var(--k2-pill-blue); color: #fff; background: none; }
+.mpill > * { image-rendering: auto; }
+
+/* dica: caixa escura com aro dourado */
+#tip {
+  --sl: 8 8 8 8 fill; border: 0 solid transparent; border-width: 6px; border-radius: 0; background: none; box-shadow: none;
+  border-image-source: var(--k2-tooltip); border-image-slice: var(--sl); border-image-width: 8px; image-rendering: pixelated;
+  filter: drop-shadow(0 0.3rem 0.5rem rgba(0, 0, 0, 0.55));
+}
+#tip > * { image-rendering: auto; }
+
+/* drawer (#panel): painel de madeira escura com cantos dourados (2×) e o telhado vermelho em cima */
+#panel {
+  --sl: 13 13 13 13 fill; border: 0 solid transparent; border-width: 18px; border-radius: 0; background: none;
+  border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 26px; border-image-repeat: stretch;
+  image-rendering: pixelated; box-shadow: none; filter: drop-shadow(0 0.6rem 1rem rgba(0, 0, 0, 0.55));
+  top: calc(3.4rem + 34px); max-height: calc(100dvh - 3.9rem - 34px - var(--safe-b));
+}
+#panel > * { image-rendering: auto; }
+#panel::before {
+  content: ""; position: absolute; left: 50%; top: -52px; width: 326px; height: 68px; transform: translateX(-50%);
+  background: var(--k2-crest) center / 100% 100% no-repeat; image-rendering: pixelated; pointer-events: none; z-index: 2;
+}
+#panel .close { background: var(--k2-round) center / 100% 100% no-repeat; border: 0; border-radius: 50%; top: -10px; right: -10px; z-index: 3; }
+@media (max-height: 520px) {
+  #panel { top: 3.4rem; max-height: calc(100dvh - 3.9rem - var(--safe-b)); border-width: 12px; border-image-width: 14px; }
+  #panel::before { display: none; }
+}

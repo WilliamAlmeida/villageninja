@@ -15,6 +15,7 @@ import { pxIco, rich } from './icons';
 import { Menu } from './menu';
 import { BattleCam } from './battle';
 import { Panel, type View } from './panel';
+import { applyKit } from './kit';
 import dockBarUrl from '../art/ui/frame/dock-bar.png';
 import windowFrameUrl from '../art/ui/frame/window-frame.png';
 import kitDialog from '../art/ui/frame/dialog.png';
@@ -35,6 +36,7 @@ export function createUI(app: App, root: HTMLElement) {
   // kit de interface (scripts/prepare-kit.py, das peças limpas em src/art/ui/kit)
   const kit = { dialog: kitDialog, 'dialog-title': kitDialogTitle, banner: kitBanner, track: kitTrack, orange: kitOrange, red: kitRed, blue: kitBlue };
   for (const [k, url] of Object.entries(kit)) document.documentElement.style.setProperty(`--kit-${k}`, `url(${url})`);
+  applyKit();
   installTips();
   const hud = new Hud(app);
   const panel = new Panel(app);
