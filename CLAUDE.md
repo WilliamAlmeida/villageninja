@@ -155,7 +155,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   lote 2 (`scripts/kit2-codex-2.sh`): barra de cima (`hud-bar` + caixinha `hud-slot` por recurso), barra de baixo com
   telhado e lanterna nas pontas (`dock`) e um quadro por botão (`dock-slot`, ativo `dock-slot-on`), abas `.wtabs`, cartão
   de ninja com a moldura na cor da patente (`.ncard.r-<patente>`, `card-<patente>`) e retrato em quadro de bronze; ainda
-  sem uso: `row` (linha de missão), `label` (rótulo) e `divider` (`SEALS`), kunai do Hiraishin,
+  sem uso: `row` (linha de missão) e `divider`. **Passada geral** (bloco "kit 2, passada geral" no fim do styles.css):
+  todo cartão/tile/linha (`.bsec`, `.statcard`, `.tcard`, `.vperk`, `.slot`, `.inv-cell`…) = caixinha `hud-slot`; chips,
+  segmentos, `.mchip` e velocidade = botão escuro/laranja; `.mtabs` do drawer como as abas das janelas; `.iconbtn` e o
+  fechar das janelas = botão redondo; menu de pausa = `panel`; `.bcard` = `dock-slot`; todo `h4` = faixa `label`.
+  Componente novo deve entrar numa dessas listas, não ganhar caixa de CSS própria (`SEALS`), kunai do Hiraishin,
   animais dos Sannin e cenas das estações/festival/vila (`ART`). Tokens do tema (cores, bordas âmbar, botões com relevo)
   no bloco "Tema fiel aos mockups" no fim de styles.css.
   **Atlas**: ícones (64 px) em `src/art/ui/icons.png` e selos de rank (128 px, uma linha com os 5) em `badge-ranks.png`,
@@ -187,8 +191,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Equipes, Missões, Expedições, Região, Oficinas) a cada 0,5 s e as telas paradas (`STATIC_VIEWS`: Bingo Book,
   Estatísticas, Kage, Vila, Clãs) só quando `Game.rev` muda (nascer/cair, prédio, aviso, ação do jogador) ou o dia, com
   rede de 3 s; pausado, nada se remonta sozinho. Ação do jogador e troca de tela chamam `update(true)` (na hora).
-  **Padrão de botões** (panel.ts): liga/desliga = `togBtn` (rótulo curto + chave, nada de
-  "ligado/desligado" escrito: "Auto", "Auto-ensino", "Auto-sensei"); ação em lote = verbo curto + contagem ("Ensinar
+  **Padrão de botões** (panel.ts): liga/desliga = `togBtn` (rótulo curto; o botão muda de cor: ligado = verde com ✓,
+  desligado = escuro apagado; sem chavinha e nada de "ligado/desligado" escrito: "Auto", "Auto-ensino", "Auto-sensei"); ação em lote = verbo curto + contagem ("Ensinar
   (4)", "Montar (3)", "Equipar"), explicação na dica; custo = `costTag` dentro do botão; linhas de botões seguidas têm
   espaço entre si. Cão de dono treinando no campo fica escondido junto dele (estado `withOwner`).
   **Glifos de interface** (fechar, voltar, menu, relógio, cadeado, engrenagem, casa, gráfico…) vêm do Phosphor Icons

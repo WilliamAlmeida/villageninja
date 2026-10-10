@@ -2153,3 +2153,82 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 @media (max-height: 520px) {
   #dock { --dk: 0.75; }
 }
+
+/* cartão de ninja em 1× (em 2× a moldura ficava grossa e as tachas soltas das barras) */
+.ncard { border-width: 5px; border-image-width: 12px; }
+.nc-face { border-width: 3px; border-image-width: 10px; }
+
+/* liga/desliga (.btn.tog): sem chavinha; ligado = botão verde, desligado = botão escuro apagado */
+.btn.tog .sw { display: none; }
+.btn.tog { border-image-source: var(--k2-button-dark); color: #cdbba0; box-shadow: none; background: none; border-color: transparent; }
+.btn.tog.on { border-image-source: var(--k2-button-green); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6); box-shadow: none; }
+.btn.tog.on::after { content: ""; width: 0.75em; height: 0.75em; margin-left: 0.1rem; background: linear-gradient(-45deg, transparent 40%, #fff 40% 60%, transparent 60%) 0 0 / 60% 60% no-repeat; clip-path: polygon(0 55%, 40% 100%, 100% 20%, 85% 5%, 40% 70%, 15% 40%); background: #fff; }
+
+/* ---------- kit 2, passada geral: tudo que ainda era caixa de CSS vira peça do kit ---------- */
+/* cartões de seção, tiles e linhas (todos os "cartões" do jogo): caixinha de madeira com borda de bronze (hud-slot, 1×) */
+.bsec, .tcard, .xcard, .wscard, .mactive, .omem, .scard, .kcand, .ftile, .vhero, .mteam, .mrecent, .rrow, .jcard, .mcard, .lvlcard,
+.statcard, .cand, .fquick > span, .vit .vbox, .breed, .vperk, .kart, #alertbox .need li, .duel > div, .lrow, .inv-cell, .slot {
+  --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
+  image-rendering: pixelated;
+}
+.bsec > *, .tcard > *, .xcard > *, .wscard > *, .mactive > *, .omem > *, .scard > *, .kcand > *, .ftile > *, .vhero > *, .mteam > *, .mrecent > *,
+.rrow > *, .jcard > *, .mcard > *, .lvlcard > *, .statcard > *, .cand > *, .fquick > span > *, .vit .vbox > *, .breed > *, .vperk > *, .kart > *,
+#alertbox .need li > *, .duel > div > *, .lrow > *, .inv-cell > *, .slot > * { image-rendering: auto; }
+.kart b { color: var(--c); }
+
+/* chips de filtro/ordenação, etiquetas e segmentos: botão escuro; o escolhido, laranja */
+.chips button, .fchips button, .seg button, .mchip, .speed button {
+  --sl: 8 8 8 8 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 2px 4px 4px;
+  border-image-source: var(--k2-button-dark); border-image-slice: var(--sl); border-image-width: 8px; border-image-repeat: stretch;
+  image-rendering: pixelated; color: #e8d6b8;
+}
+.chips button > *, .fchips button > *, .seg button > *, .mchip > *, .speed button > * { image-rendering: auto; }
+.chips button.on, .fchips button.on, .seg button.on, .speed button.on { border-image-source: var(--k2-button-orange); color: #2a1406; background: none; font-weight: 800; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); }
+.fchips button.bad:not(.on) { color: #ff9a9a; }
+.mchip.gold { border-image-source: var(--k2-button-orange); color: #2a1406; background: none; }
+.mchip.bad { border-image-source: var(--k2-button-red); color: #fff; background: none; }
+.mchip.good { border-image-source: var(--k2-button-green); color: #fff; background: none; }
+.seg { background: none; border: 0; padding: 0; gap: 0.25rem; border-radius: 0; overflow: visible; }
+.speed { background: none; border: 0; gap: 0.2rem; }
+
+/* abas do drawer e das seções (.mtabs): como as das janelas */
+.mtabs button {
+  --sl: 8 8 8 8 fill; border-radius: 0; background: none; border: 0 solid transparent; border-width: 2px 4px 4px; margin-bottom: 0;
+  border-image-source: var(--k2-button-dark); border-image-slice: var(--sl); border-image-width: 8px; image-rendering: pixelated; color: #e8d6b8;
+}
+.mtabs button > * { image-rendering: auto; }
+.mtabs button.on { border-image-source: var(--k2-button-orange); color: #2a1406; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); }
+.mtabs { gap: 0.3rem; border-bottom: 0; }
+
+/* botões de ícone (tela cheia, menu, fechar das janelas): o botão redondo do kit */
+.iconbtn, #win .close {
+  background: var(--k2-round) center / 100% 100% no-repeat; border: 0; border-radius: 50%; width: 2.3rem; height: 2.3rem; image-rendering: pixelated;
+}
+.iconbtn > *, #win .close > * { image-rendering: auto; }
+#win .close { top: 0.4rem; right: 0.4rem; }
+
+/* menu de pausa: painel de madeira com cantos dourados (2×) */
+#modal .box.menu1 {
+  --sl: 13 13 13 13 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 18px;
+  border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 26px; border-image-repeat: stretch;
+  image-rendering: pixelated; filter: drop-shadow(0 0.8rem 1.4rem rgba(0, 0, 0, 0.6));
+}
+#modal .box.menu1 > * { image-rendering: auto; }
+
+/* cartões de construção (lista de baixo): quadro de bronze; o escolhido, dourado */
+.bcard {
+  --sl: 14 14 14 14 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 6px;
+  border-image-source: var(--k2-dock-slot); border-image-slice: var(--sl); border-image-width: 14px; border-image-repeat: stretch; image-rendering: pixelated;
+}
+.bcard > * { image-rendering: auto; }
+.bcard.on, .bcard:not(.off):hover { border-image-source: var(--k2-dock-slot-on); filter: none; }
+.bcard .c { background: linear-gradient(transparent, rgba(0, 0, 0, 0.6) 40%); }
+
+/* títulos de seção (h4) na faixa de pano com a ponta de pergaminho (label: ponta esquerda 30 px) */
+h4:not(.plain), .bsec h4, #modal .menu1 h4 {
+  --sl: 0 30 0 30 fill; display: inline-flex; align-items: center; gap: 0.35rem; min-height: 1.6rem; padding: 0 0.6rem 0 0.9rem; margin: 0.6rem 0 0.4rem;
+  border: 0 solid transparent; border-width: 0 10px 0 22px; border-image-source: var(--k2-label); border-image-slice: var(--sl);
+  border-image-width: 0 14px 0 30px; border-image-repeat: stretch; image-rendering: pixelated; color: #f3e3c3; text-transform: none; letter-spacing: 0.02em;
+}
+h4 > * { image-rendering: auto; }

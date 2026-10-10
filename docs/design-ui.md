@@ -119,6 +119,11 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Textos em português, curtos; números e selos em vez de frases.
 - Responsivo: cartões que mudam com a própria largura usam container query (ex.: expedição em duas colunas quando larga).
 
+- **Liga/desliga é um botão que muda de cor** (pedido do autor): ligado = verde com ✓, desligado = escuro apagado. Sem
+  chavinha: ocupa menos espaço e lê-se de longe.
+- **Todo componente sai do kit** (`src/art/ui/kit2`): cartão = caixinha de madeira; chip/segmento/aba = botão escuro, o
+  escolhido laranja; título de seção = faixa de pano; janela = pergaminho/painel; nada de caixa só de CSS. Conferir a
+  TELA INTEIRA depois de trocar uma peça, não só o componente.
 - **Molduras em 9-slice** (pedido do autor, inspirado em jogo de Naruto): barra de baixo de madeira escura com friso dourado
   e pergaminho enrolado nas pontas; os ícones dos botões ficam GRANDES e saltam para fora da barra (sem caixa por botão),
   com o nome em cima da madeira; botão ativo brilha. Janelas com moldura de madeira e cantoneiras douradas. Arte gerada
