@@ -15,11 +15,16 @@ import { pxIco, rich } from './icons';
 import { Menu } from './menu';
 import { BattleCam } from './battle';
 import { Panel, type View } from './panel';
+import dockBarUrl from '../art/ui/frame/dock-bar.png';
+import windowFrameUrl from '../art/ui/frame/window-frame.png';
 
 const isOwnNinja = (u: Unit) => !u.dead && u.kind === 'ninja' && u.faction === 'village';
 
 /** Monta a interface DOM sobre o canvas e conecta os toques no mapa. */
 export function createUI(app: App, root: HTMLElement) {
+  // molduras 9-slice (scripts/prepare-frames.py): o CSS usa por variável (border-image)
+  document.documentElement.style.setProperty('--frame-dock', `url(${dockBarUrl})`);
+  document.documentElement.style.setProperty('--frame-win', `url(${windowFrameUrl})`);
   installTips();
   const hud = new Hud(app);
   const panel = new Panel(app);

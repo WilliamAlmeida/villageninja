@@ -1904,3 +1904,47 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 #fps > span { font-size: 0.65rem; letter-spacing: 0.08em; color: #a89070; margin-top: -0.15rem; }
 #fps i { font-style: normal; color: #c9b08a; }
 #fps .ok { color: #7dff9a; } #fps .mid { color: #ffd34d; } #fps .bad { color: #ff6b5a; }
+
+/* ---------- molduras 9-slice (arte em src/art/ui/frame, scripts/prepare-frames.py) ----------
+   Barra de baixo: madeira laqueada com o pergaminho enrolado nas pontas (dock-bar: 38 px | miolo | 27 px, 92 de alto,
+   a barra de 24 a 73); os ícones saltam para fora dela, sem caixa, com o nome em cima da madeira.
+   Janelas: cantoneiras douradas e madeira em volta (window-frame: fatia 47 px, a madeira e o friso ocupam 28). */
+#dock {
+  --dk: 1;
+  height: calc(5.75rem * var(--dk)); gap: 0.15rem; align-items: stretch; padding: 0 0.4rem;
+  background: none; box-shadow: none; border-radius: 0;
+  border-style: solid; border-width: 0 calc(1.69rem * var(--dk)) 0 calc(2.375rem * var(--dk));
+  border-image: var(--frame-dock) 0 27 0 38 fill / 0 calc(1.69rem * var(--dk)) 0 calc(2.375rem * var(--dk)) stretch;
+  image-rendering: pixelated; filter: drop-shadow(0 0.4rem 0.5rem rgba(0, 0, 0, 0.55));
+}
+.bigbtn {
+  position: relative; width: calc(5.3rem * var(--dk)); height: auto; justify-content: flex-end; gap: 0;
+  padding-bottom: calc(1.5rem * var(--dk)); background: none; border: 0; box-shadow: none; border-radius: 0;
+  image-rendering: auto;
+}
+.bigbtn .ic { width: calc(3.1rem * var(--dk)); height: calc(3.1rem * var(--dk)); transform: translateY(-0.55rem); transition: transform 0.12s ease-out;
+  filter: drop-shadow(0 0.18rem 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0.15rem rgba(0, 0, 0, 0.6)); }
+.bigbtn span { font-size: calc(0.86rem * var(--dk)); font-weight: 800; color: #f3e3c3; line-height: 1; text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+.bigbtn:hover { filter: none; }
+.bigbtn:hover .ic { transform: translateY(-0.85rem) scale(1.06); }
+.bigbtn:active .ic { transform: translateY(-0.4rem) scale(0.97); }
+.bigbtn.on { background: none; box-shadow: none; }
+.bigbtn.on .ic { transform: translateY(-0.85rem) scale(1.06); filter: drop-shadow(0 0.18rem 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0.45rem rgba(255, 170, 60, 0.95)); }
+.bigbtn.on span { color: var(--accent-hi); }
+#buildbar { bottom: calc(6.9rem + var(--safe-b)); }
+:root:has(#buildbar:not([hidden])) #banners { bottom: calc(13.5rem + var(--safe-b)); }
+
+#win .box {
+  border-radius: 0; border: solid transparent; border-width: 1.55rem;
+  border-image: var(--frame-win) 47 / 2.6rem stretch; image-rendering: pixelated;
+  background-clip: padding-box; outline: 0;
+}
+#win .box > * { image-rendering: auto; }
+#win .wtop { border-radius: 0; }
+@media (max-height: 520px) {
+  #dock { --dk: 0.8; }
+  .bigbtn .ic { transform: translateY(-0.4rem); }
+  #buildbar { bottom: calc(5.6rem + var(--safe-b)); }
+  :root:has(#buildbar:not([hidden])) #banners { bottom: calc(11.6rem + var(--safe-b)); }
+  #win .box { border-width: 0.95rem; border-image-width: 1.6rem; }
+}

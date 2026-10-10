@@ -119,6 +119,11 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Textos em português, curtos; números e selos em vez de frases.
 - Responsivo: cartões que mudam com a própria largura usam container query (ex.: expedição em duas colunas quando larga).
 
+- **Molduras em 9-slice** (pedido do autor, inspirado em jogo de Naruto): barra de baixo de madeira escura com friso dourado
+  e pergaminho enrolado nas pontas; os ícones dos botões ficam GRANDES e saltam para fora da barra (sem caixa por botão),
+  com o nome em cima da madeira; botão ativo brilha. Janelas com moldura de madeira e cantoneiras douradas. Arte gerada
+  pelo Codex, cortada por `scripts/prepare-frames.py` (cantos fixos, bordas e miolo esticáveis).
+
 ## 8b. Ferramentas de desenvolvimento (editores)
 
 - Seguem os tons do jogo (marrom, âmbar, laranja com relevo), mas como ferramenta: barra no alto (nome · modos · estado
