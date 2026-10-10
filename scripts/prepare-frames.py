@@ -94,4 +94,4 @@ for y in range(N):
 s = small(frame)
 s.save(os.path.join(DST, 'window-frame.png'), optimize=True)
 k = s.width / frame.width
-print(f'window-frame {s.width}x{s.height}: fatia {round(corner * k)} px, borda {round(inner * k)} px')
+print(f'window-frame {s.width}x{s.height}: fatia {round(corner * k)} px, madeira começa em {round(edge * k)} px, borda (até o friso) {round(inner * k)} px')
