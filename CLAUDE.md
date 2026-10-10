@@ -140,7 +140,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   no lugar do SVG quando existe; a moeda de ryo é a referência de estilo), **molduras 9-slice** (`scripts/prepare-frames.py`:
   arte do Codex em `docs/arte/ui/frame/` → `src/art/ui/frame/`, usadas por `border-image` com as variáveis `--frame-dock` /
   `--frame-win` postas em ui/index.ts: a barra de baixo é madeira com pergaminho enrolado nas pontas e os ícones saltam
-  para fora dela, sem caixa; as janelas têm cantoneiras douradas), selos de rank (`SEALS`), kunai do Hiraishin,
+  para fora dela, sem caixa; as janelas têm cantoneiras douradas), selos de rank (**kit de interface** em andamento: `scripts/kit-split.py` separa o mockup do GPT
+  `docs/arte/ui/Atlas de Interface Ninja em Português.png` em 89 peças em `src/art/ui/kit/` com o uso de cada uma no
+  `LEIAME.md` dali; o autor limpa o texto no editor de sprites, que lista `ui/kit` e `ui/frame`, e depois elas entram
+  no jogo como 9-slice/ícone) (`SEALS`), kunai do Hiraishin,
   animais dos Sannin e cenas das estações/festival/vila (`ART`). Tokens do tema (cores, bordas âmbar, botões com relevo)
   no bloco "Tema fiel aos mockups" no fim de styles.css.
   **Atlas**: ícones (64 px) em `src/art/ui/icons.png` e selos de rank (128 px, uma linha com os 5) em `badge-ranks.png`,

@@ -19,8 +19,8 @@ const ART = join(ROOT, 'src', 'art');
 const BACKUP = join(ROOT, 'docs', 'arte', 'backup-editor');
 const EDITS = join(ART, 'art-edits.json');
 const LAYOUT = join(ROOT, 'src', 'data', 'layout.json');
-/** Arquivo editável: PNG de src/art, src/art/ui ou src/art/ui/art (o nome leva a subpasta). */
-const NAME = /^(?:ui\/(?:art\/)?)?[a-z0-9][a-z0-9-]*\.png$/;
+/** Arquivo editável: PNG de src/art, src/art/ui e das pastas dela (art, kit, frame); o nome leva a subpasta. */
+const NAME = /^(?:ui\/(?:(?:art|kit|frame)\/)?)?[a-z0-9][a-z0-9-]*\.png$/;
 const pngs = (sub: string) =>
   existsSync(join(ART, sub))
     ? readdirSync(join(ART, sub))
@@ -67,7 +67,7 @@ Bun.serve({
     },
     '/api/art': () =>
       Response.json(
-        { files: [...pngs(''), ...pngs('ui'), ...pngs('ui/art')], edited: edits() },
+        { files: [...pngs(''), ...pngs('ui'), ...pngs('ui/art'), ...pngs('ui/kit'), ...pngs('ui/frame')], edited: edits() },
         { headers: noStore },
       ),
     '/art/*': {
