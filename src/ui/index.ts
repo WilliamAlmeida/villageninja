@@ -1,5 +1,5 @@
 import type { App } from '../app';
-import { alertOpen, closeAlert, installTips } from './popup';
+import { alertOpen, closeAlert, installTips, showAlert } from './popup';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { buildingTip } from './maptip';
@@ -82,10 +82,42 @@ export function createUI(app: App, root: HTMLElement) {
       }
     }
     if (a === 'village') toggleWindow({ kind: 'village' }, VILLAGE_VIEWS);
-    if (a === 'missions') toggleWindow({ kind: 'missions' }, ['missions']);
-    if (a === 'world') toggleWindow({ kind: 'region' }, WORLD_VIEWS);
+    if (a === 'missions') {
+      if (!app.game.findBuilt('missions')) {
+        showAlert({
+          title: BUILDINGS.missions.name,
+          text: 'Construa a {scroll} Mesa de Missões (menu Construir) para abrir este quadro.',
+          kind: 'info',
+        });
+        return;
+      }
+      toggleWindow({ kind: 'missions' }, ['missions']);
+    }
+    if (a === 'world') {
+      if (!app.game.findBuilt('port')) {
+        showAlert({
+          title: BUILDINGS.port.name,
+          text: 'Construa o {ship} Porto (menu Construir) para abrir a janela Mundo.',
+          kind: 'info',
+        });
+        return;
+      }
+      toggleWindow({ kind: 'region' }, WORLD_VIEWS);
+    }
     if (a === 'roster') toggleWindow({ kind: 'roster' }, NINJA_VIEWS);
-    if (a === 'crafts') toggleWindow({ kind: 'crafts' }, ['crafts']);
+    if (a === 'crafts') {
+      const hasAnyCraft = ['forge', 'pharmacy', 'sealshop'].some((k) => app.game.state.buildings.some((b) => b.type === k));
+      if (!hasAnyCraft) {
+        showAlert({
+          title: 'Oficinas indisponíveis',
+          text: 'Construa ao menos uma oficina para abrir esta janela.',
+          rows: [`${BUILDINGS.forge.icon} ${BUILDINGS.forge.name}`, `${BUILDINGS.pharmacy.icon} ${BUILDINGS.pharmacy.name}`, `${BUILDINGS.sealshop.icon} ${BUILDINGS.sealshop.name}`],
+          kind: 'info',
+        });
+        return;
+      }
+      toggleWindow({ kind: 'crafts' }, ['crafts']);
+    }
     if (a === 'select') {
       app.selectTool = !app.selectTool;
       if (app.selectTool) {

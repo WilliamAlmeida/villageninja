@@ -84,7 +84,7 @@ import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, u
 import { atlasCell, pxIco, rich } from './icons';
 import { GLYPHS } from './glyphs';
 import { morph } from './morph';
-import { blocked, blockedClick, tipAttr } from './popup';
+import { blocked, blockedClick, showAlert, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
 type UnitTab = 'info' | 'cmd' | 'gear';
