@@ -26,6 +26,21 @@ import kPillPurple from '../art/ui/kit2/pill-purple.png';
 import kPillGray from '../art/ui/kit2/pill-gray.png';
 import kTooltip from '../art/ui/kit2/tooltip.png';
 import kTooltipArrow from '../art/ui/kit2/tooltip-arrow.png';
+import kHudBar from '../art/ui/kit2/hud-bar.png';
+import kHudSlot from '../art/ui/kit2/hud-slot.png';
+import kDock from '../art/ui/kit2/dock.png';
+import kDockSlot from '../art/ui/kit2/dock-slot.png';
+import kDockSlotOn from '../art/ui/kit2/dock-slot-on.png';
+import kPortrait from '../art/ui/kit2/portrait.png';
+import kCard from '../art/ui/kit2/card.png';
+import kCardGenin from '../art/ui/kit2/card-genin.png';
+import kCardChunin from '../art/ui/kit2/card-chunin.png';
+import kCardJounin from '../art/ui/kit2/card-jounin.png';
+import kCardSannin from '../art/ui/kit2/card-sannin.png';
+import kCardKage from '../art/ui/kit2/card-kage.png';
+import kRow from '../art/ui/kit2/row.png';
+import kLabel from '../art/ui/kit2/label.png';
+import kDivider from '../art/ui/kit2/divider.png';
 
 const KIT: Record<string, string> = {
   'dialog': kDialog,
@@ -53,6 +68,21 @@ const KIT: Record<string, string> = {
   'pill-gray': kPillGray,
   'tooltip': kTooltip,
   'tooltip-arrow': kTooltipArrow,
+  'hud-bar': kHudBar,
+  'hud-slot': kHudSlot,
+  'dock': kDock,
+  'dock-slot': kDockSlot,
+  'dock-slot-on': kDockSlotOn,
+  'portrait': kPortrait,
+  'card': kCard,
+  'card-genin': kCardGenin,
+  'card-chunin': kCardChunin,
+  'card-jounin': kCardJounin,
+  'card-sannin': kCardSannin,
+  'card-kage': kCardKage,
+  'row': kRow,
+  'label': kLabel,
+  'divider': kDivider,
 };
 
 export function applyKit() {

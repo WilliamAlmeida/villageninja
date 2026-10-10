@@ -151,7 +151,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   9-slice (`scripts/kit2-codex.sh`, referência = recorte do mockup), reduzida ao pixel real e com as cores feitas por
   código (`scripts/prepare-kit2.py`: tinge o cinza mantendo o claro/escuro; botão escuro/laranja/vermelho, barras, selos)
   → `src/art/ui/kit2/`, variáveis `--k2-*` (`ui/kit.ts`). Em uso: pergaminho dos avisos com faixa do título e fechar
-  redondo, `.btn`, `.bar`/`.nc-bar`, `.mpill`, `#tip` e o drawer `#panel` com o telhado (molduras 2×, controles 1×) (`SEALS`), kunai do Hiraishin,
+  redondo, `.btn`, `.bar`/`.nc-bar`, `.mpill`, `#tip` e o drawer `#panel` com o telhado (molduras 2×, controles 1×);
+  lote 2 (`scripts/kit2-codex-2.sh`): barra de cima (`hud-bar` + caixinha `hud-slot` por recurso), barra de baixo com
+  telhado e lanterna nas pontas (`dock`) e um quadro por botão (`dock-slot`, ativo `dock-slot-on`), abas `.wtabs`, cartão
+  de ninja com a moldura na cor da patente (`.ncard.r-<patente>`, `card-<patente>`) e retrato em quadro de bronze; ainda
+  sem uso: `row` (linha de missão), `label` (rótulo) e `divider` (`SEALS`), kunai do Hiraishin,
   animais dos Sannin e cenas das estações/festival/vila (`ART`). Tokens do tema (cores, bordas âmbar, botões com relevo)
   no bloco "Tema fiel aos mockups" no fim de styles.css.
   **Atlas**: ícones (64 px) em `src/art/ui/icons.png` e selos de rank (128 px, uma linha com os 5) em `badge-ranks.png`,

@@ -2484,7 +2484,7 @@ export class Panel {
     const rankLabel = n.sannin ? 'Sannin' : RANKS[n.rank].name;
     const [stLabel, stIc, stCls, notable] = this.ninjaStatus(u, team && onMission.has(team.id));
     const pic = unitPortrait(u, true);
-    return `<button class="ncard" data-act="pick" data-arg="${u.id}" ${team ? `style="--c:${team.color}"` : ''}>
+    return `<button class="ncard r-${rank}" data-act="pick" data-arg="${u.id}" ${team ? `style="--c:${team.color}"` : ''}>
       <span class="nc-face">${pimg(pic)}</span>
       <span class="nc-main"><span class="nc-name">${esc(u.name)}</span>
         <span class="nc-badges"><span class="rbadge r-${rank}">${rankLabel}</span><span class="lvbadge">Nv ${n.level}</span><span class="rbadge nat" style="--c:${nat.color}">${nat.kanji}</span></span>

@@ -12,7 +12,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'docs', 'arte', 'ui', 'kit2')
 DST = os.path.join(ROOT, 'src', 'art', 'ui', 'kit2')
 # tamanho do pixel de cada geração (distância mais comum entre bordas de cor na imagem)
-PX = {'dialog': 9, 'title': 4, 'panel': 5, 'crest': 5, 'button': 12, 'round': 16, 'bar': 8, 'pill': 9}
+PX = {'dialog': 9, 'title': 4, 'panel': 5, 'crest': 5, 'button': 12, 'round': 16, 'bar': 8, 'pill': 9,
+      'hudbar': 4, 'dock': 4, 'slots': 9, 'card': 8, 'row': 5, 'ribbon': 5}
 # cores por código (matiz 0–1, saturação): botões, preenchimentos e selos
 COLORS = {
     'green': (0.33, 0.62), 'red': (0.0, 0.7), 'orange': (0.085, 0.85), 'blue': (0.58, 0.7),
@@ -46,6 +47,11 @@ def split_rows(im):
                 parts.append(p.crop(p.getbbox()))
             start = None
     return parts
+
+
+def split_cols(im):
+    """Separa as peças lado a lado (colunas transparentes entre elas), da esquerda para a direita."""
+    return [p.rotate(90, expand=True) for p in split_rows(im.rotate(-90, expand=True))]
 
 
 def tint(im, hue, sat, light=1.0):
@@ -98,3 +104,23 @@ for x in range(12, box.width - 12):
     box.paste(col, (x, bottom - 4))
 save(box, 'tooltip')
 save(arrow, 'tooltip-arrow')
+
+# --- lote 2: barras do alto e de baixo, botões da barra de baixo, cartão por patente, linha de missão, rótulo, separador
+hud, slot = [small(p, PX['hudbar']) for p in split_rows(load('hudbar'))]
+save(hud, 'hud-bar')
+save(slot, 'hud-slot')
+save(small(load('dock'), PX['dock']), 'dock')
+slot_off, slot_on = [small(p, PX['slots']) for p in split_cols(load('slots'))]
+save(slot_off, 'dock-slot')
+save(slot_on, 'dock-slot-on')
+card, face = [small(p, PX['card']) for p in split_cols(load('card'))]
+save(face, 'portrait')
+# cartão pela patente (as cores dos selos de patente do jogo)
+RANK = {'genin': (0.30, 0.55), 'chunin': (0.74, 0.55), 'jounin': (0.13, 0.85), 'sannin': (0.0, 0.7), 'kage': (0.075, 0.9)}
+save(card, 'card')
+for r, (h, sat) in RANK.items():
+    save(tint(card, h, sat), f'card-{r}')
+save(small(load('row'), PX['row']), 'row')
+label, divider = [small(p, PX['ribbon']) for p in split_rows(load('ribbon'))]
+save(label, 'label')
+save(divider, 'divider')
