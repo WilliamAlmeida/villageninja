@@ -76,7 +76,7 @@ export class Hud {
     }
 
     this.alert = el('div', { id: 'banners' });
-    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, rich('{alert} Inimigos na sua vila — toque para ver'));
+    const threat = el('button', { class: 'banner danger', 'data-b': 'alert', hidden: '' }, rich('Inimigos na sua vila — toque para ver'));
     // os avisos de baixo são da vila: olhando a invasão, volta para a vila antes de levar a câmera
     const toHome = () => this.app.viewScene && this.app.setView(false);
     threat.addEventListener('click', () => {
