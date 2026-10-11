@@ -78,6 +78,7 @@ import type { Building, Cost, Expedition, Mission, NinjaOrder, Site, Team, Unit 
 import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
+import { setShown } from './anim';
 import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
@@ -431,10 +432,17 @@ export class Panel {
     if (view?.kind !== 'group') this.app.group = [];
     this.setHover(null);
     if (view?.kind !== this.view?.kind || (view && 'id' in view && this.view && 'id' in this.view && view.id !== this.view.id)) this.buildingTab = 'main';
+    // trocando de tela com o painel já aberto (aba da janela, outro prédio): o conteúdo novo entra com um esmaecer curto
+    const swap = !!view && !!this.view && !this.root.hidden && (view.kind !== this.view.kind || ('id' in view && 'id' in this.view && view.id !== this.view.id));
     this.view = view;
     this.lastHtml = '';
     this.armedDemolish = 0;
-    this.root.hidden = !view;
+    setShown(this.root, !!view);
+    if (swap) {
+      this.body.classList.remove('swap');
+      void this.body.offsetWidth; // reinicia a animação
+      this.body.classList.add('swap');
+    }
     this.body.scrollTop = 0;
     this.update(true);
   }
@@ -650,12 +658,12 @@ export class Panel {
   private ninjaOrders(u: Unit) {
     const n = u.ninja!;
     const team = teamOf(this.app.game, u);
-    let html = `<h4>Ordem direta</h4><p class="hint">Atual: <b data-t="cmd"></b></p><div class="btnrow">
+    let html = `<h4>Ordem direta ${infoTip('Ordem direta', 'Dar ordem: toque no mapa (no chão para mover/defender, num inimigo para atacar). No computador, o botão direito no mapa faz o mesmo.')}</h4><p class="hint">Atual: <b data-t="cmd"></b></p><div class="btnrow">
       <button class="btn primary" data-act="cmd-mode" data-arg="self">{pin} Dar ordem</button>`;
     if (team) html += `<button class="btn primary" data-act="cmd-mode" data-arg="team">{users} À equipe</button>`;
     html += `<button class="btn" data-act="cmd-retreat" data-arg="self">{run} Recuar</button>`;
     if (u.command) html += `<button class="btn" data-act="cmd-clear" data-arg="self">{x} Cancelar</button>`;
-    html += `</div><p class="hint">No computador: botão direito no mapa manda mover ou atacar.</p>`;
+    html += `</div>`;
     html += `<h4>Rotina</h4><div class="seg">`;
     for (const [k, label] of ROUTINES)
       html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
@@ -1107,8 +1115,12 @@ export class Panel {
     const n = u.ninja!;
     const g = this.app.game;
     let html = '';
-    if (catchingUp(g, u)) html += `<p class="hint">{up} Bem abaixo da média da vila: treina com <b>XP em dobro</b> até alcançar os outros.</p>`;
-    if (isRookie(u) && g.state.flags.shelterRookies) html += `<p class="hint">{ninja} Novato: se abriga de inimigos fortes demais (Proteger novatos, na lista de Ninjas).</p>`;
+    // estados do ninja em selos (a explicação na dica do selo)
+    const notes = [
+      catchingUp(g, u) && `<span class="mpill good" ${tipAttr('XP em dobro', 'Bem abaixo da média da vila: treina com XP em dobro até alcançar os outros.', true)}>{up} XP em dobro</span>`,
+      isRookie(u) && g.state.flags.shelterRookies && `<span class="mpill info" ${tipAttr('Novato protegido', 'Se abriga de inimigos fortes demais (Proteger novatos, na lista de Ninjas).', true)}>{ninja} Novato protegido</span>`,
+    ].filter(Boolean);
+    if (notes.length) html += `<div class="pillrow">${notes.join('')}</div>`;
     // Mostra apenas informações que já se aplicam ao ninja.
     let tiles = '';
     if (n.rank !== 'genin') {
@@ -1247,6 +1259,7 @@ export class Panel {
       html += this.upgradeSection(bd, t, b);
       if (bd.type === 'hokage') html += this.villageSummary();
       if (bd.type === 'missions') html += this.missionsSummary() + this.hireSection();
+      if (bd.type === 'port') html += `<div class="actions"><button class="btn primary" data-act="win" data-arg="region">${pxIco('map')} Abrir mapa da região</button></div>`;
       if (isWorkshop(bd.type)) html += this.workshopSection(bd, t, b);
       if (bd.type === 'arena') html += this.arenaSection(b);
       if (bd.type === 'sealshop') html += `<p class="hint">{paper} Artesão faz papel sozinho ${infoTip('Artesão', 'Sem pedidos, o artesão faz {paper} 1 com {wood} 4 a cada 8 s (se houver {wood} 30 ou mais).')}</p>`;
@@ -1545,7 +1558,7 @@ export class Panel {
     const MAX_ROWS = 20;
     const byLevel = (a: Unit, b: Unit) => b.ninja!.level - a.ninja!.level;
     html += `<div class="seg ktabs"><button data-act="kennel-tab" data-arg="without" class="${this.kennelTab === 'without' ? 'on' : ''}">{users} Sem cão ${without.length}</button><button data-act="kennel-tab" data-arg="with" class="${this.kennelTab === 'with' ? 'on' : ''}">{paw} Com cão ${withDog.length}</button></div>`;
-    const more = (n: number) => (n > MAX_ROWS ? `<p class="hint">Mostrando ${MAX_ROWS} de ${n} (os de nível mais alto). Os outros: pelo inventário/ficha de cada ninja.</p>` : '');
+    const more = (n: number) => (n > MAX_ROWS ? `<p class="hint" ${tipAttr('Lista curta', 'Só os de nível mais alto. Os outros: pela ficha de cada ninja.', true)}>${MAX_ROWS} de ${n}</p>` : '');
     if (this.kennelTab === 'without') {
       if (!without.length) return html + `<p class="hint">Todos os ninjas já têm cão.</p>`;
       html += `<div class="roster scrollist">`;
@@ -1646,8 +1659,7 @@ export class Panel {
     if (!units.length) return null;
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
-    let html = `<div class="ph"><div class="title">{select} Grupo · ${units.length} ninjas</div></div>
-      <p class="hint">Toque em "Dar ordem" e depois no mapa: no chão para mover/defender, num inimigo ou animal para atacar — mesmo antes de ele chegar à vila. No computador, basta o botão direito no mapa.</p>
+    let html = `<div class="ph"><div class="title">{select} Grupo · ${units.length} ninjas ${infoTip('Ordens do grupo', 'Toque em "Dar ordem" e depois no mapa: no chão para mover/defender, num inimigo ou animal para atacar — mesmo antes de ele chegar à vila. No computador, basta o botão direito no mapa.')}</div></div>
       <div class="btnrow"><button class="btn primary" data-act="cmd-mode" data-arg="group">{pin} Dar ordem</button>
       <button class="btn" data-act="cmd-retreat" data-arg="group">{run} Recuar</button>
       <button class="btn" data-act="cmd-clear" data-arg="group">{x} Cancelar ordens</button></div>
@@ -1705,7 +1717,7 @@ export class Panel {
     const lvl = levelOf(bd);
     let html = `<div class="bup"><div class="bup-t">{up} Melhoria <small>agora: ${esc(def.perks[lvl - 1]!)}</small></div>`;
     if (bd.upgrade != null) {
-      html += `<div class="bar pg"><i data-b="upg"></i><span data-t="upg"></span></div><div class="hint">Moradores sem emprego estão fazendo a obra; o prédio continua funcionando.</div></div>`;
+      html += `<div class="bar pg" ${tipAttr('Obra', 'Moradores sem emprego estão fazendo a obra; o prédio continua funcionando.', true)}><i data-b="upg"></i><span data-t="upg"></span></div></div>`;
       b.upg = Math.min(1, bd.upgrade / upgradeTime(bd));
       t.upg = `Obra do nível ${lvl + 1}: ${Math.floor(b.upg * 100)}%`;
       return html;
@@ -1836,8 +1848,7 @@ export class Panel {
   private clansList(): Built {
     const g = this.app.game;
     let html = this.tabs('clans');
-    html += `<p class="hint">Um Chunin+ de nível ${FOUND_MIN_LEVEL}+ pode fundar um clã com o próprio sobrenome (nível Vila). Parentes entram no clã,
-      filhos herdam a especialidade e a natureza, e em Vila Oculta o clã pode despertar uma kekkei genkai.</p>`;
+    html += `<h4>Clãs da vila ${infoTip('Clãs', `Um Chunin+ de nível ${FOUND_MIN_LEVEL}+ pode fundar um clã com o próprio sobrenome (nível Vila). Parentes entram no clã, filhos herdam a especialidade e a natureza, e em Vila Oculta o clã pode despertar uma kekkei genkai.`)}</h4>`;
     if (!g.state.clans.length) html += `<p class="hint">Nenhum clã ainda.</p>`;
     for (const c of g.state.clans) {
       const members = clanMembers(g, c);
@@ -1851,8 +1862,8 @@ export class Panel {
       if (!c.kekkei) {
         const opts = awakenOptions(g, c);
         html += `<div class="btnrow">`;
-        if (g.state.level < 2) html += `<span class="why">Kekkei genkai: requer ${levelDef(2).name}.</span>`;
-        else if (!opts.length) html += `<span class="why">Para despertar, o clã precisa de ninjas de duas naturezas compatíveis (ex.: 風+水 = 氷 Gelo).</span>`;
+        if (g.state.level < 2) html += `<span class="why">{lock} Kekkei genkai: ${levelDef(2).name}</span>`;
+        else if (!opts.length) html += `<span class="why" ${tipAttr('Despertar kekkei genkai', 'O clã precisa de ninjas de duas naturezas compatíveis (ex.: 風+水 = 氷 Gelo). Veja os pares na lista de kekkei genkai.', true)}>Falta um par de naturezas</span>`;
         else
           for (const k of opts)
             html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${blocked(g, [], AWAKEN_COST)} ${tipAttr(`Despertar ${k.name}`, `Kekkei genkai ${k.pt}.`)}>${k.kanji} Despertar ${k.name} ${costTag(AWAKEN_COST)}</button>`;
@@ -1860,9 +1871,9 @@ export class Panel {
       }
       html += `</div>`;
     }
-    html += `<h4>Kekkei genkai</h4><ul class="reqs">`;
+    html += `<h4>Kekkei genkai</h4><ul class="kklist">`;
     for (const k of KEKKEI_LIST)
-      html += `<li>${k.kanji} ${k.name} (${k.pt}) <b>${NATURES[k.natures[0]].kanji} + ${NATURES[k.natures[1]].kanji}</b></li>`;
+      html += `<li style="--c:${k.color}"><span class="kk-k">${k.kanji}</span><span>${k.name}<small>${k.pt}</small></span><b>${NATURES[k.natures[0]].kanji} + ${NATURES[k.natures[1]].kanji}</b></li>`;
     html += `</ul>`;
     return { html, t: {}, b: {} };
   }
@@ -2214,8 +2225,7 @@ export class Panel {
       return html;
     }
     const st = examStatus(g);
-    html += `<h4>Exame Chunin</h4><p class="hint">Genins de nível ${EXAM_MIN_LEVEL}+ lutam 1×1 contra colegas e convidados de outras vilas.
-      O campeão e quem tiver bom desempenho (vitórias, dano, jutsus) viram Chunin de graça. Convidados trazem ryo e reputação.</p>`;
+    html += `<h4>Exame Chunin ${infoTip('Exame Chunin', `Genins de nível ${EXAM_MIN_LEVEL}+ lutam 1×1 contra colegas e convidados de outras vilas. O campeão e quem tiver bom desempenho (vitórias, dano, jutsus) viram Chunin de graça. Convidados trazem ryo e reputação.`)}</h4>`;
     const size = examSize(g.state);
     html += `<h4>Vagas</h4><div class="seg">`;
     for (const n of [4, 8])

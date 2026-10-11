@@ -12,6 +12,7 @@ import kButtonRed from '../art/ui/kit2/button-red.png';
 import kButtonGreen from '../art/ui/kit2/button-green.png';
 import kButtonBlue from '../art/ui/kit2/button-blue.png';
 import kBarTrack from '../art/ui/kit2/bar-track.png';
+import kBarFill from '../art/ui/kit2/bar-fill.png';
 import kBarGreen from '../art/ui/kit2/bar-green.png';
 import kBarRed from '../art/ui/kit2/bar-red.png';
 import kBarOrange from '../art/ui/kit2/bar-orange.png';
@@ -55,6 +56,7 @@ const KIT: Record<string, string> = {
   'button-green': kButtonGreen,
   'button-blue': kButtonBlue,
   'bar-track': kBarTrack,
+  'bar-fill': kBarFill,
   'bar-green': kBarGreen,
   'bar-red': kBarRed,
   'bar-orange': kBarOrange,

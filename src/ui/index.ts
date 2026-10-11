@@ -1,5 +1,6 @@
 import type { App } from '../app';
 import { alertOpen, closeAlert, installTips, showAlert } from './popup';
+import { isShown } from './anim';
 import { bus } from '../core/events';
 import { BUILDINGS } from '../data/buildings';
 import { buildingTip } from './maptip';
@@ -210,6 +211,7 @@ export function createUI(app: App, root: HTMLElement) {
 
   hud.onMenu = () => menu.open();
   root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, orderBar, panel.root, win.root, menu.root);
+  hud.update(); // valores já no primeiro quadro (antes a barra de cima nascia vazia por 0,2 s)
 
   bus.on('select', (sel) => {
     if (sel) {
@@ -418,6 +420,24 @@ export function createUI(app: App, root: HTMLElement) {
   }
   panel.onHover = (id) => (app.hoverUnitId = id);
 
+  /**
+   * Drawer aberto: a barra de baixo vai para o meio do espaço livre à esquerda dele (o drawer cobria a ponta direita);
+   * se não couber (celular), encolhe até caber (no mínimo 60%), sem passar da borda esquerda da tela.
+   */
+  function shiftDock() {
+    const open = isShown(panel.root);
+    const free = open ? panel.root.getBoundingClientRect().left : window.innerWidth;
+    const fit = open ? Math.max(0.6, Math.min(1, (free - 16) / dock.offsetWidth)) : 1;
+    const sv = fit.toFixed(3);
+    if (dock.style.getPropertyValue('--dock-scale') !== sv) dock.style.setProperty('--dock-scale', sv);
+    const r = dock.getBoundingClientRect();
+    const tx = parseFloat(getComputedStyle(dock).translate) || 0; // o deslocamento atual (pode estar em transição)
+    const base = r.left - tx;
+    const shift = open ? Math.min(0, Math.max(8, free / 2 - r.width / 2) - base) : 0;
+    const v = `${Math.round(shift)}px`;
+    if (dock.style.getPropertyValue('--dock-shift') !== v) dock.style.setProperty('--dock-shift', v);
+  }
+
   let acc = 0;
   function update(dt: number, time: number) {
     panel.frame(time);
@@ -429,6 +449,7 @@ export function createUI(app: App, root: HTMLElement) {
     win.update();
     build.update();
     build.refreshGhost();
+    shiftDock();
     btnBuild.classList.toggle('on', build.open || !!app.buildType);
     btnRoster.classList.toggle('on', NINJA_VIEWS.includes(win.kind ?? ''));
     btnVillage.classList.toggle('on', VILLAGE_VIEWS.includes(win.kind ?? ''));

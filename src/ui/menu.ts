@@ -4,6 +4,7 @@ import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isSt
 import { rich } from './icons';
 import { FONT_SIZES, followCam, fontSize, QUALITIES, quality, setFollowCam, setFontSize, setQuality, setShowFps, setWeatherFxLight, showFps, weatherFxLight, type FontSize, type Quality } from './settings';
 import { bus } from '../core/events';
+import { setShown } from './anim';
 
 /** Menu de pausa: salvar, novo jogo, tela cheia e ajuda. */
 export class Menu {
@@ -82,11 +83,11 @@ export class Menu {
     this.prevSpeed = this.app.home.state.speed || 1;
     this.app.home.state.speed = 0;
     this.render();
-    this.root.hidden = false;
+    setShown(this.root, true);
   }
 
   close() {
-    this.root.hidden = true;
+    setShown(this.root, false);
     this.app.home.state.speed = this.prevSpeed;
   }
 

@@ -9,6 +9,7 @@ import { lackRows, showAlert } from './popup';
 import { el } from './dom';
 import { rich } from './icons';
 import { artUrl } from '../render/art';
+import { isShown, setShown } from './anim';
 
 /** Dica do card (texto puro): o que faz e o custo. */
 const plainInfo = (d: (typeof BUILDINGS)[BuildingType]) => `${plainTokens(d.desc)}
@@ -102,11 +103,11 @@ export class BuildUI {
   }
 
   get open() {
-    return !this.bar.hidden;
+    return isShown(this.bar);
   }
 
-  toggle(show = this.bar.hidden) {
-    this.bar.hidden = !show;
+  toggle(show = !isShown(this.bar)) {
+    setShown(this.bar, show);
     if (show) this.update();
   }
 
@@ -187,7 +188,7 @@ export class BuildUI {
   }
 
   private showPlacebar(label: string, ok: string) {
-    this.bar.hidden = true;
+    setShown(this.bar, false);
     this.place.hidden = false;
     this.place.querySelector('[data-t="name"]')!.innerHTML = rich(label);
     this.place.querySelector('[data-act="ok"]')!.innerHTML = rich(ok);

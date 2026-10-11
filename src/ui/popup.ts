@@ -8,6 +8,7 @@ import type { Game } from '../game/game';
 import { RES_INFO, RES_KEYS } from '../data/resources';
 import { el, esc } from './dom';
 import { rich } from './icons';
+import { isShown, setShown } from './anim';
 
 let tip: HTMLElement | null = null;
 let tipFor: HTMLElement | null = null;
@@ -140,10 +141,10 @@ export interface AlertOpts {
 let box: HTMLElement | null = null;
 
 export function closeAlert() {
-  if (box) box.hidden = true;
+  if (box) setShown(box, false);
 }
 
-export const alertOpen = () => !!box && !box.hidden;
+export const alertOpen = () => isShown(box);
 
 export function showAlert(o: AlertOpts) {
   hideTip();
@@ -169,7 +170,7 @@ export function showAlert(o: AlertOpts) {
       run();
     });
   }
-  box.hidden = false;
+  setShown(box, true);
   box.querySelector<HTMLElement>(o.action && !o.action.disabled ? '[data-go]' : '[data-close]')?.focus({ preventScroll: true });
 }
 

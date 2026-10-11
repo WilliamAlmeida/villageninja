@@ -2356,7 +2356,7 @@ h4 > * { image-rendering: auto; }
 @media (max-height: 520px) { #buildbar { bottom: calc(5.1rem + var(--safe-b)); } #banners { bottom: calc(5.3rem + var(--safe-b)); } }
 
 /* abas e títulos de seção só com texto (pedido do autor): o ícone sai; o "i" das dicas (.itip) fica */
-.wtabs button .ic, .mtabs button .ic, #win .tabs button .ic, h4 > .ic { display: none !important; }
+.wtabs button .ic, .mtabs button .ic, .ktabs button .ic, #win .tabs button .ic, h4 > .ic { display: none !important; }
 /* "Manter": as opções abrem ao lado do botão, na mesma linha */
 .wsr-keep[open] { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
 .wsr-keep[open] .wsr-keep-menu { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0; }
@@ -2485,3 +2485,78 @@ h4 > * { image-rendering: auto; }
    do que falta ficam em grade; nenhuma estica para a altura da vizinha */
 #alertbox .need { align-items: start; }
 #alertbox .need li:has(.lbl) { grid-column: 1 / -1; }
+
+/* ---------- abrir e fechar (ui/anim.ts: `closing` enquanto a saída anima; reabrir no meio cancela) ----------
+   Janela: o fundo escurece e o painel sobe um pouco crescendo, com um leve passo além (como pergaminho caindo no lugar);
+   ao fechar desce e some. Drawer: entra e sai pela direita. Avisos e menu: surgem crescendo, somem encolhendo. Barra de
+   construção: sobe da barra de baixo. Saídas em 0,16 s (OUT_MS). */
+@keyframes k-fade-in { from { opacity: 0; } }
+@keyframes k-fade-out { to { opacity: 0; } }
+@keyframes k-win-in { 0% { opacity: 0; transform: translateY(1.1rem) scale(0.95); } 70% { opacity: 1; transform: translateY(-0.15rem) scale(1.005); } }
+@keyframes k-win-out { to { opacity: 0; transform: translateY(0.8rem) scale(0.965); } }
+@keyframes k-pop-in { 0% { opacity: 0; transform: scale(0.88); } 70% { opacity: 1; transform: scale(1.02); } }
+@keyframes k-pop-out { to { opacity: 0; transform: scale(0.92); } }
+@keyframes k-side-in { from { opacity: 0; transform: translateX(1.6rem); } }
+@keyframes k-side-out { to { opacity: 0; transform: translateX(1.6rem); } }
+@keyframes k-up-in { from { opacity: 0; transform: translateY(1rem); } }
+@keyframes k-up-out { to { opacity: 0; transform: translateY(1rem); } }
+#win { animation: k-fade-in 0.16s ease-out; }
+#win .box { animation: k-win-in 0.24s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#win.closing { animation: k-fade-out 0.16s ease-in forwards; pointer-events: none; }
+#win.closing .box { animation: k-win-out 0.16s ease-in forwards; }
+#panel { animation: k-side-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#panel.closing { animation: k-side-out 0.16s ease-in forwards; pointer-events: none; }
+#alertbox, #modal { animation: k-fade-in 0.14s ease-out; }
+#alertbox .card, #modal .box { animation: k-pop-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#alertbox.closing, #modal.closing { animation: k-fade-out 0.16s ease-in forwards; pointer-events: none; }
+#alertbox.closing .card, #modal.closing .box { animation: k-pop-out 0.16s ease-in forwards; }
+#buildbar { animation: k-up-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#buildbar.closing { animation: k-up-out 0.16s ease-in forwards; pointer-events: none; }
+#placebar, #orderbar { animation: k-up-in-c 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+@keyframes k-up-in-c { from { opacity: 0; transform: translate(-50%, 0.8rem); } }
+@media (prefers-reduced-motion: reduce) {
+  #win, #win .box, #panel, #alertbox, #alertbox .card, #modal, #modal .box, #buildbar, #placebar, #orderbar { animation: none !important; }
+}
+/* barras finas (.nc-bar: estatísticas, marcos, atributos): trilho reto com contorno de pixel e o preenchimento com o brilho
+   da barra do kit (bar-fill, cinza) multiplicado pela cor de cada uma; sem cantos redondos */
+.nc-bar { border-radius: 0; background: #1a0f08; box-shadow: inset 0 0 0 1px #0b0604, 0 1px 0 rgba(255, 220, 160, 0.12); }
+.nc-bar > i { border-radius: 0; }
+.nc-bar > i[style*="background"] {
+  background-image: var(--k2-bar-fill) !important; background-size: 100% 100% !important; background-blend-mode: multiply; image-rendering: pixelated;
+}
+/* drawer aberto: a barra de baixo vai para o meio do espaço que sobra à esquerda (o drawer cobria a ponta direita dela) */
+#dock { transition: translate 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#dock { translate: var(--dock-shift, 0) 0; scale: var(--dock-scale, 1); transform-origin: center bottom; } /* ui/index.ts: shiftDock */
+
+/* barras de rolagem no tom da madeira (as do navegador destoavam) */
+* { scrollbar-width: thin; scrollbar-color: #8a5b25 rgba(20, 12, 6, 0.6); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(20, 12, 6, 0.6); }
+::-webkit-scrollbar-thumb { background: #8a5b25; border: 2px solid #2a1a0d; }
+::-webkit-scrollbar-thumb:hover { background: #b07a35; }
+/* selos de estado do ninja (XP em dobro, novato protegido) numa linha */
+.pillrow { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.2rem 0 0.4rem; }
+/* título de seção sempre na própria linha (inline-flex deixava dois títulos seguidos lado a lado, como na Arena) */
+h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; max-width: 100%; }
+/* lâmina lendária num selinho de texto (estoque da oficina): do tamanho de um ícone, como os outros itens */
+.badge .inv-blade { width: 1.15rem; height: 1.15rem; object-fit: contain; vertical-align: middle; margin-inline: 0.1rem; }
+/* clãs: a tabela de kekkei genkai em caixinhas (era uma lista solta) */
+.kklist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.35rem; }
+.kklist li {
+  --sl: 10 10 10 10 fill; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; padding: 0.25rem 0.5rem;
+  border: 0 solid transparent; border-width: 4px 5px; border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
+}
+.kklist li > * { image-rendering: auto; }
+.kklist .kk-k { font-size: 1.25rem; color: var(--c); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
+.kklist small { display: block; color: var(--muted); font-size: 0.72rem; }
+.kklist b { color: #e8d6b8; white-space: nowrap; }
+/* aviso: espaço em cima para a faixa do título e o fechar, que ficam fora do pergaminho (no celular saíam da tela) */
+#alertbox { padding: 3.1rem 1rem 0.6rem; }
+#alertbox .card { max-height: 100%; }
+/* troca de tela dentro da janela/drawer: o conteúdo novo esmaece de leve para dentro */
+@keyframes k-swap { from { opacity: 0.35; transform: translateY(0.25rem); } }
+.body.swap { animation: k-swap 0.18s ease-out; }
+/* retorno de clique: todo botão do kit afunda 1 px e escurece um pouco enquanto apertado */
+.btn:active:not([aria-disabled="true"]), .chips button:active, .seg button:active, .wtabs button:active, .mtabs button:active,
+.iconbtn:active, #win .close:active, #panel .close:active, .bcard:active { translate: 0 1px; filter: brightness(0.9); }
+@media (prefers-reduced-motion: reduce) { .body.swap { animation: none; } }

@@ -98,7 +98,8 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   for (const it of ITEM_LIST) if (!it.blade) s.items[it.id] = 60 + (it.id.length % 5) * 7;
   const blades: BladeId[] = ['zabuza', 'samehada', 'kusanagi', 'asuma'];
   for (const id of blades) grantBlade(g, id, 'vitrine');
-  s.jutsuOpen = JUTSU_LIST.filter((j) => !j.kekkei && !j.forbidden).map((j) => j.id);
+  // metade dos pergaminhos abertos (as duas abas da Biblioteca com conteúdo); os básicos (rank E/D) sempre
+  s.jutsuOpen = JUTSU_LIST.filter((j, i) => !j.kekkei && !j.forbidden && (j.rank <= 2 || i % 2 === 0)).map((j) => j.id);
   s.scrolls = JUTSU_LIST.filter((j) => j.forbidden).slice(0, 2).map((j) => j.id);
   s.flags.autoGear = true;
   autoEquipAll(g);
