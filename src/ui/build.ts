@@ -4,7 +4,7 @@ import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, shoreSpot } 
 import { toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
-import { UPGRADES } from '../data/upgrades';
+import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { lackRows, showAlert } from './popup';
 import { el } from './dom';
 import { rich } from './icons';
@@ -147,7 +147,8 @@ export class BuildUI {
     ].filter(Boolean);
     const lack = lackRows(g, d.cost);
     const rows = [`<span class="lbl">Custo</span> ${costLabel(d.cost)}`];
-    if (up) rows.push(`<span class="lbl">Upgrades</span> ${up.perks.map((p, i) => `Nv ${i + 1}: ${p}`).join(' · ')}`);
+    // só o que o prédio faz ao ficar pronto; os níveis seguintes aparecem no cartão de melhoria dele depois de construído
+    if (up) rows.push(`<span class="lbl">Nível 1</span> ${up.perks[0]} <small>· melhora até o nível ${MAX_BUILDING_LEVEL}</small>`);
     if (!r.ok) rows.push(...(lack.length ? lack : [`{lock} ${r.error}`]));
     const img = artUrl(type);
     const summary = `${d.desc}<br><small>${facts.join(' · ')}</small>`;
