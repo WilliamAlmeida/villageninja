@@ -50,6 +50,8 @@ import { ORG, ORG_LAIR, ORG_MEMBERS, ORG_PAIRS } from '../data/org';
 import { lairGuards, nextPair, prepareDefense } from '../game/org';
 import { SANNIN, SANNIN_PATHS, type SanninPath } from '../data/sannin';
 import { nameSannin, sanninBlock, sanninCandidates, sanninOf, sannins, statCapOf } from '../game/sannin';
+import { jinchuuriki, jinchuurikiCandidates, sealBijuu, sealBlock } from '../game/bijuu';
+import { bijuu, BIJUU, SEAL } from '../data/bijuu';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
 import { CARE, catchingUp, isRookie } from '../game/care';
 import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
@@ -330,6 +332,8 @@ export class Panel {
   private lastRev = '';
   /** Candidato escolhido em cada caminho Sannin (o "Nomear" usa este). */
   private sanninSel: Record<string, number> = {};
+  /** Aba Kage → Bestas com cauda: candidato escolhido para selar a fera do jarro. */
+  private bijuuSel: number | null = null;
   /** Raça escolhida para a próxima adoção de ninken. */
   private dogBreed: DogBreed = 'shiba';
   /** Cão sem dono escolhido no Canil para dar a um ninja (null = o da raça escolhida). */
@@ -1199,6 +1203,7 @@ export class Panel {
     // estados do ninja em selos (a explicação na dica do selo)
     const notes = [
       catchingUp(g, u) && `<span class="mpill good" ${tipAttr('XP em dobro', 'Bem abaixo da média da vila: treina com XP em dobro até alcançar os outros.', true)}>{up} XP em dobro</span>`,
+      n.bijuu && `<span class="mpill danger" ${tipAttr(`Jinchuuriki de ${bijuu(n.bijuu).name}`, `Guarda a fera de ${n.bijuu} ${n.bijuu > 1 ? 'caudas' : 'cauda'}: em combate, quando a luta aperta, veste o manto de chakra (mais dano e velocidade, segura golpes${n.bijuu >= 4 ? ', ondas de chakra em volta e risco de perder o controle' : ''}). Se cair, a fera se solta.`, true)}>{beast} Jinchuuriki · ${bijuu(n.bijuu).name}</span>`,
       isRookie(u) && g.state.flags.shelterRookies && `<span class="mpill info" ${tipAttr('Novato protegido', 'Se abriga de inimigos fortes demais (Proteger novatos, na lista de Ninjas).', true)}>{ninja} Novato protegido</span>`,
     ].filter(Boolean);
     if (notes.length) html += `<div class="pillrow">${notes.join('')}</div>`;
@@ -2024,7 +2029,7 @@ export class Panel {
     if (g.state.kageHistory.length > 1)
       html += `<p class="hint k-hist">{books} Kages: ${g.state.kageHistory.map((h) => `${esc(h.name)} (dia ${h.day})`).join(' · ')}</p>`;
     html += `</section>${this.anbuSection()}</div>`;
-    return html + this.sanninSection() + `</div>`;
+    return html + this.sanninSection() + this.bijuuSection() + `</div>`;
   }
 
   /** Ordem do Eclipse: emblema, progresso e próxima aparição, os 8 bustos com o estado, a dupla e as ações. */
@@ -2096,6 +2101,37 @@ export class Panel {
       html += `</div>`;
     }
     return html + `</div></section>`;
+  }
+
+  /**
+   * Bestas com cauda: as nove feras (a de cada cauda), cada uma solta, no jarro (vencida, esperando quem a guarde) ou
+   * selada num Jinchuuriki; no jarro, os candidatos e o botão de selar.
+   */
+  private bijuuSection() {
+    const g = this.app.game;
+    const s = g.state;
+    const hosts = jinchuuriki(g);
+    const cands = jinchuurikiCandidates(g);
+    const tip = tipAttr('Bestas com cauda', `A Fera Colossal é uma das nove bestas (mais caudas com a vila maior). Vencida, fica selada num jarro: escolha um ninja de nível ${SEAL.minLevel}+ para guardá-la. O Jinchuuriki veste o manto de chakra da fera quando a luta aperta (mais dano e velocidade, segura golpes; de 4 caudas em diante solta ondas de chakra, e quanto mais caudas mais risco de perder o controle e ferir os aliados). Se ele cair, a fera se solta.`, true);
+    let html = `<section class="kpanel bjsec"><div class="kp-head">{beast}<b ${tip}>Bestas com cauda</b><small>${hosts.length} Jinchuuriki · ${s.bijuu.jar.length} no jarro · selar: ${costLabel(SEAL.cost)}</small></div><div class="bjgrid">`;
+    for (const b of BIJUU) {
+      const host = hosts.find((u) => u.ninja!.bijuu === b.tails);
+      const jar = s.bijuu.jar.includes(b.tails);
+      const st = host ? 'host' : jar ? 'jar' : 'wild';
+      const label = host ? `{shield} ${esc(host.name.split(' ').pop()!)}` : jar ? '{scroll} No jarro' : '{alert} À solta';
+      html += `<div class="bjcard ${st}" style="--c:${b.color}" ${tipAttr(`${b.name} · ${b.tails} ${b.tails > 1 ? 'caudas' : 'cauda'}`, b.desc, true)}><span class="bj-pic">${pimg(artPortrait(`bijuu-${b.tails}`, true))}<i>${b.tails}</i></span><b>${b.name}</b><small>${label}</small></div>`;
+    }
+    html += `</div>`;
+    const jarTails = s.bijuu.jar[0];
+    if (jarTails != null) {
+      const sel = cands.find((c) => c.id === this.bijuuSel) ?? cands[0];
+      html += `<div class="bj-seal"><span class="bj-lbl">Selar ${esc(bijuu(jarTails).name)} em:</span><span class="bj-cands">`;
+      for (const c of cands.slice(0, 5))
+        html += `<button class="sc-cand ${sel?.id === c.id ? 'on' : ''}" data-act="bijuu-sel" data-arg="${c.id}">${this.face(c)}<span><b>${esc(c.name.split(' ').pop()!)}</b><small>Nv ${c.ninja!.level}</small></span></button>`;
+      if (!cands.length) html += `<small>Nenhum ninja de nível ${SEAL.minLevel}+ livre.</small>`;
+      html += `</span><button class="btn primary" data-act="bijuu-seal" data-arg="${sel?.id ?? 0}:${jarTails}" ${blocked(g, [!sel && 'Sem candidato.', sel && sealBlock(g, sel, jarTails)?.startsWith('Custa') ? null : sel && sealBlock(g, sel, jarTails)], SEAL.cost)}>{scroll} Selar</button></div>`;
+    }
+    return html + `</section>`;
   }
 
   /**
@@ -2885,6 +2921,14 @@ export class Panel {
         return this.report(dismissAnbu(g, Number(arg)));
       case 'covert':
         return this.report(startCovert(g, String(arg)));
+      case 'bijuu-sel':
+        this.bijuuSel = Number(arg);
+        this.update(true);
+        return;
+      case 'bijuu-seal': {
+        const [id, tails] = String(arg).split(':');
+        return this.report(sealBijuu(g, Number(id), Number(tails)));
+      }
       case 'sannin-sel': {
         const [path, id] = arg.split(':');
         this.sanninSel[path!] = Number(id);

@@ -1,4 +1,5 @@
 // Criação das ameaças chefes (o agendamento fica em systems/bosses.ts).
+import { bijuuDefeated, makeBijuu, pickBijuu } from './bijuu';
 import { rand } from '../core/rng';
 import { BOSSES, type BossKind } from '../data/bosses';
 import { randomGiven } from '../data/names';
@@ -16,6 +17,7 @@ export function spawnBoss(g: Game, kind: BossKind, x: number, y: number): Unit[]
     case 'titan': {
       const u = createAnimal(g, 'titan', x, y);
       u.maxHp = u.hp = Math.round(u.maxHp * (1 + 0.5 * lvl));
+      makeBijuu(u, pickBijuu(g)); // a Fera Colossal é uma das bestas com cauda (data/bijuu.ts)
       u.boss = true;
       u.life = 1e9; // não vai embora sozinha
       u.state = 'rampage';
@@ -71,6 +73,7 @@ export function bossDefeated(g: Game, u: Unit) {
   g.state.res.ryo += ryo;
   g.state.reputation += 5;
   g.state.stats.bossesDefeated++;
+  if (u.bijuu) bijuuDefeated(g, u); // a fera vai para o jarro
   fx(g, 'ring', u.x, u.y, { r: 50, color: '#ffd34d', life: 1 });
   g.toast(`{trophy} ${u.name} foi derrotado(a)!${ryo ? ` {ryo} +${ryo}` : ''} +5 reputação`, 'good', u);
 }

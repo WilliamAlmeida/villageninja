@@ -420,6 +420,15 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`teamFrom`); no desktop largo (`SIDE_BY_SIDE` em ui/dom.ts) a janela não fecha: encolhe para a esquerda e o painel
   lateral abre ao lado. Desktop: mouse parado sobre um prédio mostra a dica (`ui/maptip.ts`, `#maptip`), fixa onde surgiu.
   A lista de construção (`#buildbar`) é uma faixa logo acima dos botões de baixo.
+- **Bestas com cauda (Bijuu)** (`data/bijuu.ts`, `game/bijuu.ts`, seção na aba Kage; arte `bijuu-1..9`, folhas de bicho do
+  Codex): a Fera Colossal (chefe `titan`) é uma das nove, até o limite de caudas do nível da vila (`BIJUU_MAX_TAILS`,
+  `pickBijuu` prefere as maiores e pula as que a vila já tem); vencida vai para o jarro (`state.bijuu.jar`) e o Kage sela
+  num ninja de nível 12+ (`sealBijuu`): o Jinchuuriki (`NinjaInfo.bijuu`) veste o manto da fera quando a luta aperta.
+  Jinchuuriki que cai solta a fera (`hostFell`). **Modos de combate** (`game/modes.ts`, `Unit.mode`, um por vez): manto
+  da fera (mais dano por cauda, segura golpes, regenera; 4+ caudas soltam ondas de chakra; descontrolado, pegam aliados),
+  Oito Portões (jutsu `hachimon`: muito dano e velocidade, a vida escorre) e manto de Raiton (jutsu `raitonyoroi`:
+  rápido e esquiva). Bônus em `modeDamage/modeGuard/modeDodge/modeSpeed`; desenho: caudas de chakra (`bijuuTails`),
+  aura pela silhueta (`sageGlow` com cores), vapor e raios. Laboratório: grupo "Bestas com cauda (manto)".
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em
@@ -476,7 +485,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v27.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v29.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

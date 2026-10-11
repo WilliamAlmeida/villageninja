@@ -21,6 +21,8 @@ import { projectileSystem } from '../../src/game/systems/projectiles';
 import { statusSystem } from '../../src/game/systems/status';
 import { techniqueSystem } from '../../src/game/systems/techniques';
 import { shunshin, tryKawarimi } from '../../src/game/techniques';
+import { enterMode, modeTick } from '../../src/game/modes';
+import { BIJUU } from '../../src/data/bijuu';
 import type { Unit } from '../../src/game/types';
 import { CENTER_TX, CENTER_TY } from '../../src/game/world';
 import { preloadArt } from '../../src/render/art';
@@ -52,6 +54,8 @@ function labSystem(g: Game, dt: number) {
     u.dead = false;
   }
   caster.chakra = caster.maxChakra;
+  // manto da fera e os outros modos (no jogo roda no sistema dos ninjas, que o laboratório não usa)
+  modeTick(g, caster, dt);
   if (enemy) enemy.chakra = enemy.maxChakra;
   // sempre "em combate": fora de combate o jogo larga os selos (status.ts) e o jutsu do ritmo tático nunca saía
   for (const u of [caster, dummy, ally, enemy]) if (u) u.combatTimer = Math.max(u.combatTimer, 3);
@@ -132,6 +136,8 @@ function cast(who: 'ninja' | 'enemy') {
   n.rank = 'jounin';
   n.sannin = undefined;
   n.kageArt = undefined;
+  n.bijuu = undefined;
+  caster.mode = undefined;
   caster.sage = 0;
   caster.mark = undefined;
   caster.hidden = who === 'enemy';
@@ -297,6 +303,20 @@ const sanninActs: Act[] = [
   },
 ];
 
+/** Manto da fera do Jinchuuriki: o ninja guarda a fera de tantas caudas e veste o manto (o normal e o descontrolado). */
+const bijuuActs: Act[] = [...BIJUU.map((b) => ({ b, wild: false })), { b: BIJUU[8]!, wild: true }].map(({ b, wild }) => ({
+  label: wild ? `${b.name} descontrolado` : `${b.tails} · ${b.name}`,
+  color: b.color,
+  tip: `Manto de chakra de ${b.name} (${b.tails} ${b.tails > 1 ? 'caudas' : 'cauda'})${b.tails >= 4 ? ': solta ondas de chakra em volta' : ''}${wild ? '; descontrolado, as ondas pegam os aliados' : ''}.`,
+  run: () => {
+    strike(null, 6, 30); // limpa o ninja (cast) e golpeia o boneco por uns segundos
+    caster.ninja!.bijuu = b.tails;
+    enterMode(g, caster, 'bijuu', b.tails);
+    caster.mode!.wild = wild;
+    caster.mode!.t = 12;
+  },
+}));
+
 const orgActs: Act[] = (Object.keys(ORG_MEMBERS) as OrgMemberId[]).map((id) => ({
   label: ORG_MEMBERS[id].art,
   tip: `${ORG_MEMBERS[id].name}, ${ORG_MEMBERS[id].title}`,
@@ -346,6 +366,7 @@ const GROUPS: [string, Act[], string?][] = [
   ['Golpes', strikeActs],
   ['Lâminas lendárias', bladeActs, 'Equipa a lâmina e golpeia o boneco por uns segundos.'],
   ['Sannin', sanninActs],
+  ['Bestas com cauda (manto)', bijuuActs, 'O ninja vira Jinchuuriki e veste o manto da fera; golpeia o boneco por uns segundos.'],
   ['Ordem do Eclipse', orgActs, 'O membro usa a técnica num aliado da vila.'],
   ['Quinteto do Som', soundActs],
   ['Estilo de luta', duelActs],

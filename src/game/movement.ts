@@ -1,6 +1,7 @@
 import { TILE } from '../config';
 import { weatherSpeed } from './mood';
 import { sageSpeed } from './sannin';
+import { modeSpeed } from './modes';
 import { bladeMove } from './blades';
 import type { Game } from './game';
 import { findPathPx } from './pathfinding';
@@ -55,7 +56,7 @@ export function followPath(g: Game, u: Unit, dt: number, mult = 1): boolean {
   const dx = tx - u.x;
   const dy = ty - u.y;
   const d = Math.hypot(dx, dy);
-  const step = u.speed * mult * weatherSpeed(g.state, u.x, u.y) * sageSpeed(u) * bladeMove(u) * dt;
+  const step = u.speed * mult * weatherSpeed(g.state, u.x, u.y) * sageSpeed(u) * modeSpeed(u) * bladeMove(u) * dt;
   if (d <= step) {
     u.x = tx;
     u.y = ty;
@@ -95,7 +96,7 @@ export function chase(g: Game, u: Unit, x: number, y: number, dt: number, stop: 
     return true;
   }
   if (clearLine(g, u.x, u.y, x, y)) {
-    const step = Math.min(u.speed * weatherSpeed(g.state, u.x, u.y) * sageSpeed(u) * bladeMove(u) * dt, d - stop);
+    const step = Math.min(u.speed * weatherSpeed(g.state, u.x, u.y) * sageSpeed(u) * modeSpeed(u) * bladeMove(u) * dt, d - stop);
     u.x += (dx / d) * step;
     u.y += (dy / d) * step;
     u.facing = Math.atan2(dy, dx);

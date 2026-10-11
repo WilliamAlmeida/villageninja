@@ -12,6 +12,7 @@ import { ART_SIZE } from './unitShape';
 import { STRIKE_ANIM } from '../game/combat';
 import dollPoses from '../data/doll-poses.json';
 import { JUTSUS } from '../data/jutsus';
+import { bijuu, bijuuScale } from '../data/bijuu';
 import { MOVE_SEQS, type MoveFx, moveAt, movesTime } from '../data/moves';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
@@ -175,6 +176,7 @@ const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'ha
  */
 function unitPic(u: Unit, noSword = false, pose?: DollPose) {
   if (u.animal === 'dog') return art(breedArt(u.breed)) ?? art('dog');
+  if (u.animal === 'titan' && u.bijuu) return art(`bijuu-${u.bijuu}`); // a fera de tantas caudas (sem arte: o desenho)
   if (u.animal) return art(u.animal);
   if (u.org) return art(`org-${u.org}`) ?? art('rogue'); // Ordem do Eclipse: arte própria de cada membro
   if (u.sound) return art(`sound-${u.sound}`) ?? art('rogue'); // Quinteto do Som
@@ -396,10 +398,10 @@ function drawSlash(ctx: Ctx, u: Unit, pic: HTMLImageElement | HTMLCanvasElement,
  * Modo Sábio, atrás do boneco: a silhueta dele em laranja, um pouco maior em volta (contorno de energia que pulsa) e
  * um brilho amarelo mais justo. Segue o desenho (pose, quadro, direção) em vez de um aro geométrico.
  */
-function sageGlow(ctx: Ctx, pic: HTMLImageElement | HTMLCanvasElement, x: number, y: number, h: number, flip: boolean, frame: number, row: number, t: number) {
+function sageGlow(ctx: Ctx, pic: HTMLImageElement | HTMLCanvasElement, x: number, y: number, h: number, flip: boolean, frame: number, row: number, t: number, outerColor = '#ff7a1a', innerColor = '#ffd34d') {
   const pulse = 0.5 + Math.sin(t * 6) * 0.5;
-  const outer = solidArt(pic, '#ff7a1a');
-  const inner = solidArt(pic, '#ffd34d');
+  const outer = solidArt(pic, outerColor);
+  const inner = solidArt(pic, innerColor);
   ctx.save();
   ctx.globalAlpha *= 0.35 + pulse * 0.25;
   const r = 1.6 + pulse * 0.6;
@@ -416,17 +418,17 @@ function sageGlow(ctx: Ctx, pic: HTMLImageElement | HTMLCanvasElement, x: number
 }
 
 /** Modo Sábio, atrás do boneco: chamas de energia natural subindo pelas bordas do corpo (laranja → amarelo, somem no alto). */
-function sageWisps(ctx: Ctx, u: Unit, t: number) {
+function sageWisps(ctx: Ctx, u: Unit, t: number, low = '#ff8a2b', high = '#ffd34d', rise = 30) {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 7; i++) {
     const k = (t * 0.9 + i / 7 + u.id * 0.13) % 1; // 0 = nasce embaixo, 1 = some no alto
     const side = (i % 2 ? 1 : -1) * (7 + (i % 3) * 1.8); // pelas bordas, não pelo meio do corpo
     const x = u.x + side * (1 - k * 0.4) + Math.sin(t * 5 + i) * 1.5;
-    const y = u.y + 4 - k * 30;
+    const y = u.y + 4 - k * rise;
     const s = (1 - k) * 2.6 + 0.6;
     ctx.globalAlpha = (1 - k) * 0.85;
-    ctx.fillStyle = k < 0.4 ? '#ff8a2b' : '#ffd34d';
+    ctx.fillStyle = k < 0.4 ? low : high;
     // gota de chama: redonda embaixo, ponta para cima
     ctx.beginPath();
     ctx.moveTo(x, y - s * 2.2);
@@ -468,7 +470,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // espião invisível: só um vulto tremulando
   if (u.cloak) ctx.globalAlpha = u.faction === 'village' ? 0.45 : 0.14 + Math.sin(t * 6 + u.id) * 0.05; // ANBU da vila: meio transparente
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
-  const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
+  const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1) * (u.bijuu ? bijuuScale(u.bijuu).size : 1);
   // golpe: avança um passo curto na direção do alvo e volta (sem quadro de ataque na folha)
   const lunge = !action && !posed && u.anim > 0 && !u.moving ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
   const ux = u.x + dx * lunge;
@@ -498,12 +500,24 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     sageWisps(ctx, u, t);
     sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t);
   }
+  // modos de combate (game/modes.ts): manto da fera com as caudas, vapor verde dos Portões, raios do Raiton
+  const md = u.mode;
+  if (md?.kind === 'bijuu') {
+    const c = md.wild ? '#5a0a2a' : bijuu(md.tails ?? 1).color;
+    bijuuTails(ctx, ux, uy, md.tails ?? 1, c, flip, t, u.id);
+    sageWisps(ctx, u, t, md.wild ? '#7a1a3a' : '#ff3a1a', c, 26);
+    sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, md.wild ? '#3a0a1a' : '#ff2a0a', c);
+  } else if (md?.kind === 'gates') {
+    sageWisps(ctx, u, t, '#5fe07a', '#d8ffe0', 40);
+    sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, '#2fa04a', '#9fffb0');
+  } else if (md?.kind === 'raiton') sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, '#4ab0ff', '#fff6a0');
   drawArt(ctx, pic, ux, uy, height, flip, frame, row);
   // clarão branco de quem levou dano
   if (u.hitFlash > 0) {
     ctx.globalAlpha *= Math.min(1, u.hitFlash / 0.15) * 0.85;
     drawArt(ctx, whiteArt(pic), ux, uy, height, flip, frame, row);
   }
+  if (md?.kind === 'raiton') raitonSparks(ctx, ux, uy, height, t, u.id);
   // Rasengan: a esfera de chakra girando na mão, na corrida e no golpe
   const orbJ = u.dash?.id ?? (u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
   const orb = orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
@@ -550,6 +564,57 @@ function poseOf(u: Unit, t: number): PoseNow | null {
     return { pose: 'strike', frame: u.anim > 0.28 ? 2 : 3, h: 0 };
   }
   return null;
+}
+
+/** Caudas de chakra do manto da fera: uma curva por cauda saindo das costas, balançando como chama. */
+function bijuuTails(ctx: Ctx, x: number, y: number, n: number, color: string, flip: boolean, t: number, id: number) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  const back = flip ? 1 : -1; // as caudas saem para trás de quem olha
+  const bx = x + back * 3;
+  const by = y - 10;
+  for (let i = 0; i < n; i++) {
+    const spread = n > 1 ? i / (n - 1) - 0.5 : 0;
+    const sway = Math.sin(t * 3 + i * 1.3 + id) * 3;
+    const ex = bx + back * (12 + Math.abs(spread) * 6) + sway;
+    const ey = by - 6 - spread * 22 + Math.cos(t * 2.4 + i) * 2;
+    const cx = bx + back * 10 + sway * 0.5;
+    const cy = by + 6 - spread * 8;
+    for (const [w, a] of [[5, 0.35], [2.6, 0.9]] as const) {
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(cx, cy, ex, ey);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/** Manto de Raiton: raios curtos em zigue-zague pulando em volta do corpo. */
+function raitonSparks(ctx: Ctx, x: number, y: number, h: number, t: number, id: number) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = '#fff6a0';
+  ctx.lineWidth = 0.9;
+  const seed = Math.floor(t * 14) + id;
+  for (let i = 0; i < 3; i++) {
+    const r = ((seed * 9301 + i * 49297) % 233280) / 233280;
+    const a = r * TAU;
+    let px = x + Math.cos(a) * 7;
+    let py = y - h * 0.5 + Math.sin(a) * h * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    for (let k = 0; k < 3; k++) {
+      px += Math.cos(a + (k % 2 ? 1 : -1)) * 3;
+      py += Math.sin(a + (k % 2 ? 1 : -1)) * 3;
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /** Esfera de chakra girando (Rasengan): brilho, anel claro e riscos em espiral. */

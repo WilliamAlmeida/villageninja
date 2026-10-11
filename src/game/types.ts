@@ -1,4 +1,5 @@
 // Todo o estado do jogo é dado puro (serializável em JSON).
+import type { ModeKind } from '../data/bijuu';
 import type { KageArtId } from '../data/kageArts';
 import type { SanninPath } from '../data/sannin';
 import type { DogBreed } from '../data/breeds';
@@ -73,6 +74,8 @@ export interface NinjaInfo {
   kageArt?: KageArtId;
   /** Um dos Três Sannin (caminho do sapo, da serpente ou da lesma). */
   sannin?: SanninPath;
+  /** Jinchuuriki: as caudas da fera selada nele (data/bijuu.ts). */
+  bijuu?: number;
   /** Nomeado para a ANBU pelo Kage (game/anbu.ts): uniforme, máscara e furtividade. */
   anbu?: boolean;
   /** Animal da máscara da ANBU (escolhido ao nomear; sem = o do melhor atributo, saves antigos). */
@@ -222,6 +225,13 @@ export interface Unit {
   /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
   sage?: number;
   sanninCd?: number;
+  /** Modo de combate ativo (manto da fera, Oito Portões, manto de Raiton; game/modes.ts): segundos, caudas do manto,
+   *  descontrolado (as ondas pegam aliados) e a próxima onda de chakra. */
+  mode?: { kind: ModeKind; t: number; tails?: number; wild?: boolean; blast?: number };
+  /** Recarga do manto da fera do Jinchuuriki. */
+  modeCd?: number;
+  /** Fera Colossal: quantas caudas (qual Bijuu, data/bijuu.ts). */
+  bijuu?: number;
   /** Cópia num mapa de missão: id do ninja original na vila (o resultado volta para ele). */
   origin?: number;
   /** Campo de Treino em que está treinando (ou indo treinar): ocupa uma vaga. */
@@ -541,6 +551,8 @@ export interface GameState {
   ceremony: { candidateId: number; timer: number } | null;
   /** Segundos até a próxima ameaça chefe e a que está a caminho. */
   bossTimer: number;
+  /** Bestas com cauda vencidas e seladas num jarro, esperando um Jinchuuriki (caudas de cada uma). */
+  bijuu: { jar: number[] };
   pendingBoss: { kind: BossKind; x: number; y: number; t: number } | null;
   /** Dia a partir do qual um novo Exame Chunin pode ser convocado. */
   examNextDay: number;

@@ -57,11 +57,13 @@ SHEETS = {'villager': (56, 'biped'), 'rogue': (56, 'biped'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
           'dog': (44, 'quadruped'), 'dog-white': (44, 'quadruped'), 'dog-pug': (44, 'quadruped'), 'dog-bull': (44, 'quadruped'),
           'toad': (64, 'quadruped'), 'slug': (52, 'quadruped'),
+          # bestas com cauda (a Fera Colossal de cada cauda, data/bijuu.ts)
+          **{f'bijuu-{n}': (80, 'quadruped') for n in range(1, 10)},
           **{f'org-{m}': (56, 'biped') for m in ('goen', 'tetsuo', 'mizuchi', 'raiga', 'kagero', 'shiryo', 'tsuchigumo', 'yomi')},
           **{f'sound-{m}': (56, 'biped') for m in ('iwao', 'kumomaru', 'kanade', 'sokon', 'hakkotsu')}}
 # natureza: isométrica (docs/arte/iso), menos as ervas (docs/arte/pixel)
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
-TRUST_FACING = {'spider', 'slug', 'dog-white'}
+TRUST_FACING = {'spider', 'slug', 'dog-white', *(f'bijuu-{n}' for n in range(1, 10))}
 SAME_SCALE = {'chest-open': 'chest'}
 SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3

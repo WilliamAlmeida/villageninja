@@ -4,6 +4,7 @@ import type { KekkeiId } from './kekkei';
 import type { StatKey, Stats } from './ninja';
 import type { Vfx } from './vfx';
 import type { JutsuMove } from './moves';
+import type { ModeKind } from './bijuu';
 
 export type JutsuType = 'ninjutsu' | 'taijutsu' | 'genjutsu' | 'iryo';
 export type JutsuEffect =
@@ -16,7 +17,8 @@ export type JutsuEffect =
   | 'clone' // invoca clones temporários
   | 'heal' // cura um aliado
   | 'shield' // reduz dano recebido
-  | 'bind'; // dano + prende o alvo (Mokuton)
+  | 'bind' // dano + prende o alvo (Mokuton)
+  | 'mode'; // veste um modo de combate (Oito Portões, manto de Raiton; game/modes.ts)
 
 export interface JutsuDef {
   id: string;
@@ -63,6 +65,8 @@ export interface JutsuDef {
   dashRadius?: number;
   /** Corpo a corpo/investida: o alvo é lançado ao alto (reação `hurt-launch`) e fica atordoado `stun` s. */
   launch?: boolean;
+  /** Efeito 'mode': qual modo veste. */
+  mode?: ModeKind;
   /** Esfera de chakra na mão durante a investida (Rasengan): a cor dela. */
   handOrb?: string;
 }
@@ -304,6 +308,19 @@ const LIST: JutsuDef[] = [
     nature: 'raiton', type: 'taijutsu', rank: 4, chakra: 32, cooldown: 12, range: 150, power: 54, effect: 'dash', stun: 0.5,
     moves: [['strike', 2, 0.3], ['strike', 3, 0.15]],
     color: '#ffe066', req: { taijutsu: 6, forca: 6, velocidade: 5 }, cost: { ryo: 340 }, learnTime: 60,
+  },
+  // ---- modos (manto de chakra)
+  {
+    id: 'hachimon', name: 'Kinjutsu: Hachimon Tonkō', shout: 'Portões, abram!', desc: 'Abre os Oito Portões: força e velocidade enormes, mas a vida escorre.',
+    nature: null, type: 'taijutsu', rank: 5, chakra: 30, cooldown: 40, range: 0, power: 0, effect: 'mode', mode: 'gates', forbidden: true, vfx: 'blood',
+    moves: [['cast', 1, 0.3], ['cast', 3, 0.25]],
+    color: '#5fe07a', req: { taijutsu: 8, stamina: 7 }, cost: { ryo: 500, herbs: 15 }, learnTime: 80,
+  },
+  {
+    id: 'raitonyoroi', name: 'Raiton no Yoroi', shout: 'Raiton no Yoroi!', desc: 'Cobre o corpo de raios: rápido e difícil de acertar.',
+    nature: 'raiton', type: 'taijutsu', rank: 4, chakra: 28, cooldown: 30, range: 0, power: 0, effect: 'mode', mode: 'raiton',
+    moves: [['cast', 0, 0.3], ['cast', 3, 0.2]],
+    color: '#ffe066', req: { taijutsu: 6, ninjutsu: 5, velocidade: 5 }, cost: { ryo: 380 }, learnTime: 66,
   },
   // ---- Rasengan
   {

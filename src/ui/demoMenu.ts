@@ -7,6 +7,7 @@ import { BUILDINGS, BUILDING_LIST, type BuildingType } from '../data/buildings';
 import { emptyRes } from '../data/resources';
 import { spawnBoss } from '../game/bosses';
 import { startExam } from '../game/exam';
+import { enterMode } from '../game/modes';
 import { createMineScene, createVillageScene } from '../game/scene';
 import type { Expedition } from '../game/types';
 import { doorPos } from '../game/world';
@@ -70,6 +71,15 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
       unit('n-serpente', 'Sannin (serpente)', (u) => u.ninja!.sannin === 'snake'),
       unit('n-anbu', 'ANBU', (u) => !!u.ninja!.anbu),
       unit('n-jounin', 'Jounin', (u) => rank(u) === 'jounin' && !u.ninja!.sannin && !u.ninja!.anbu && !away(u)),
+      unit('n-jinchuuriki', 'Jinchuuriki', (u) => !!u.ninja!.bijuu),
+      {
+        key: 'n-manto', label: 'Manto da fera (9 caudas)', run: () => {
+          const u = ninjas.find((x) => x.ninja!.bijuu);
+          if (!u) return;
+          enterMode(g, u, 'bijuu', u.ninja!.bijuu);
+          ui.show({ kind: 'unit', id: u.id });
+        },
+      },
       unit('n-medico', 'Chunin médico', (u) => u.ninja!.spec === 'medic'),
       unit('n-cao', 'Chunin com cão', (u) => rank(u) === 'chunin' && s.units.some((d) => d.ownerId === u.id && !d.ninja)),
       unit('n-estudando', 'Genin estudando', (u) => !!u.ninja!.learning),
@@ -139,6 +149,7 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
       { key: 'f-inimigos', label: 'Faixa: inimigos', run: () => (s.flags.alert = true) },
       { key: 'f-chefe-vem', label: 'Faixa: chefe chegando', run: () => (s.pendingBoss = { kind: 'titan', x: 40, y: 40, t: 45 }) },
       { key: 'f-chefe', label: 'Faixa: chefe', run: () => void (hk && spawnBoss(g, 'hydra', hk.x + 400, hk.y + 300)) },
+      { key: 'f-fera', label: 'Fera Colossal (Bijuu)', run: () => void (hk && spawnBoss(g, 'titan', hk.x + 380, hk.y + 260)) },
       {
         key: 'f-exame', label: 'Faixa: Exame Chunin', run: () => {
           s.examNextDay = 0; // a vitrine segura o exame para não começar sozinho

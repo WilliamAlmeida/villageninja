@@ -35,6 +35,7 @@ export function baseState(seed: number): GameState {
     kageHistory: [],
     ceremony: null,
     bossTimer: DAY_LENGTH * 6,
+    bijuu: { jar: [] },
     pendingBoss: null,
     examNextDay: 0,
     lastExam: null,

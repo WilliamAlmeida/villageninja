@@ -1,4 +1,5 @@
 // Profissões e invocações dos ninjas da vila em combate: médico cura, espião marca e revela, marionetista monta um
+import { modeTick } from './modes';
 import { SANNIN } from '../data/sannin';
 import { sanninTick } from './sannin';
 import { anbuTick } from './anbu';
@@ -45,6 +46,7 @@ export function learnSpec(g: Game, unitId: number, kind: SpecKind): Result {
 export function specTick(g: Game, u: Unit, dt: number) {
   const n = u.ninja!;
   sanninTick(g, u); // técnica lendária dos Sannin
+  modeTick(g, u, dt); // manto da fera (Jinchuuriki), Oito Portões, manto de Raiton
   anbuTick(g, u, dt); // ANBU: invisibilidade e guarda do Kage
   bladeTick(g, u); // Raijin no Ken: raio de longe
   if (n.spec || n.contract) u.abilityCd = (u.abilityCd ?? 0) - dt;

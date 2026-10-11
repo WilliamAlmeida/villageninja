@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { DAY_LENGTH, SAVE_VERSION, SIM_DT } from '../src/config';
+import { DAY_LENGTH, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
@@ -32,7 +32,7 @@ describe('ninken', () => {
 
   test('migra nomes antigos de ninken nos saves', () => {
     const old = {
-      version: SAVE_VERSION - 1,
+      version: 27,
       units: [{ name: 'Daigo (ninken)' }, { name: 'Akira' }],
       scene: { units: [{ name: 'Hana (ninken)' }] },
     };

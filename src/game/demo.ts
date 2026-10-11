@@ -90,6 +90,10 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
     nameSannin(g, u.id, paths[i]!);
   });
   jounins.slice(4, 6).forEach((u) => appointAnbu(g, u.id));
+  // bestas com cauda: um Jinchuuriki da raposa e uma fera no jarro esperando quem a guarde
+  const host = jounins[6];
+  if (host) host.ninja!.bijuu = 9;
+  s.bijuu.jar = [1];
   ninjas.filter((u) => u.ninja!.rank === 'chunin').slice(0, 3).forEach((u, i) => learnSpec(g, u.id, (['medic', 'spy', 'puppeteer'] as const)[i]!));
   for (const u of ninjas) refreshDerived(u);
   for (const u of jounins.slice(6)) if (s.clans.length < 3) foundClan(g, u.id);

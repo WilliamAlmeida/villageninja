@@ -742,7 +742,70 @@
   "layer-coat-sannin": {},
   "layer-hair-buns": {},
   "layer-hair-long": {},
-  "puppetshop": {}
+  "puppetshop": {},
+  "bijuu-1": {
+   "body": 80,
+   "foot": [
+    77.5,
+    104
+   ]
+  },
+  "bijuu-2": {
+   "body": 80,
+   "foot": [
+    69.5,
+    104
+   ]
+  },
+  "bijuu-3": {
+   "body": 80,
+   "foot": [
+    75.0,
+    104
+   ]
+  },
+  "bijuu-4": {
+   "body": 80,
+   "foot": [
+    74.5,
+    104
+   ]
+  },
+  "bijuu-5": {
+   "body": 80,
+   "foot": [
+    68.5,
+    104
+   ]
+  },
+  "bijuu-6": {
+   "body": 80,
+   "foot": [
+    79.0,
+    104
+   ]
+  },
+  "bijuu-7": {
+   "body": 80,
+   "foot": [
+    71.5,
+    104
+   ]
+  },
+  "bijuu-8": {
+   "body": 80,
+   "foot": [
+    69.0,
+    104
+   ]
+  },
+  "bijuu-9": {
+   "body": 80,
+   "foot": [
+    66.0,
+    104
+   ]
+  }
  },
  "types": {
   "arena": {

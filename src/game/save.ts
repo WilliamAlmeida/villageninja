@@ -217,6 +217,11 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     cleanDogNames(s);
     cleanDogNames(s.scene);
   },
+  // Bestas com cauda: o jarro das feras vencidas esperando um Jinchuuriki
+  28: (s) => {
+    s.bijuu = { jar: [] };
+    if (s.scene) s.scene.bijuu = { jar: [] };
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

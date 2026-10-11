@@ -20,6 +20,9 @@ import type { Game } from './game';
 import { chase, push } from './movement';
 import { noteHit, shareXp, tryRescue } from './care';
 import { sageDamage, sanninSurvive } from './sannin';
+import { enterMode, modeDamage, modeDodge, modeGuard } from './modes';
+import { hostFell } from './bijuu';
+import { bijuuScale } from '../data/bijuu';
 import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
 import { wearOut } from './wear';
@@ -46,7 +49,7 @@ export const MELEE_RANGE = 22;
 function meleeStats(u: Unit) {
   if (u.animal) {
     const d = ANIMALS[u.animal];
-    return { dmg: d.damage * (u.breed ? BREEDS[u.breed].damage : 1), cd: d.attackCd, range: d.range };
+    return { dmg: d.damage * (u.breed ? BREEDS[u.breed].damage : 1) * (u.bijuu ? bijuuScale(u.bijuu).damage : 1), cd: d.attackCd, range: d.range };
   }
   if (u.ninja) {
     const d = derive(u.ninja.stats);
@@ -198,6 +201,9 @@ function pickJutsu(g: Game, u: Unit, t: Unit, d: number): number {
         break;
       case 'melee':
         if (d <= def.range + 6) score = jutsuPower(def, n.stats);
+        break;
+      case 'mode':
+        if (!u.mode && d < 140) score = 70; // veste o manto quando a luta começa
         break;
       default:
         if (d <= def.range) score = jutsuPower(def, n.stats) * natureMultiplier(def.nature, t.ninja?.nature);
@@ -352,6 +358,9 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       break;
     case 'heal':
       break;
+    case 'mode':
+      if (def.mode) enterMode(g, u, def.mode);
+      break;
   }
   // golpe de longe, área e escudo com coreografia (Hirudora, Asa Kujaku, Kaiten…): toca ao soltar
   if (def.moves?.length && def.effect !== 'melee' && def.effect !== 'dash') playMoves(u, def, 0.4);
@@ -448,7 +457,7 @@ interface DamageOpts {
 
 export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, nature: Nature | null, opts: DamageOpts) {
   if (t.dead) return;
-  if (opts.melee && t.ninja && chance(derive(t.ninja.stats).dodge)) {
+  if (opts.melee && t.ninja && chance(derive(t.ninja.stats).dodge + modeDodge(t))) {
     fxText(g, t.x, t.y - 20, 'Esquiva!', '#cfe8ff');
     return;
   }
@@ -460,6 +469,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (src?.faction === 'village' && src.ninja && !src.arenaSide && g.state.kageId != null && !g.unit(g.state.kageId)?.dead) dmg *= KAGE_DAMAGE_BONUS;
   // Modo Sábio (Sannin dos Sapos)
   dmg *= sageDamage(src);
+  // manto da fera, Oito Portões, manto de Raiton (game/modes.ts): bate mais forte e segura parte do golpe
+  dmg *= modeDamage(src) * modeGuard(t);
   // clima: algumas naturezas ficam mais fortes (chuva, tempestade, neve, sol)
   dmg *= natureWeather(g.state, nature, t.x, t.y);
   // espião da vila por perto marca o alvo
@@ -576,6 +587,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
       if (killer?.ninja) killer.ninja.kills++;
     }
   } else {
+    hostFell(g, t); // Jinchuuriki caído solta a fera
     g.state.stats.lost++;
     g.state.grief = Math.min(30, g.state.grief + 8); // a vila fica de luto
     g.toast(t.kind === 'ninja' ? `{skull} O ninja ${t.name} caiu em combate!` : `{skull} ${t.name} foi morto(a).`, 'danger', t);

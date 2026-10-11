@@ -2729,3 +2729,25 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
   /* com a barra do mapa jogável aberta, os avisos descem para baixo dela (não cobrem o título) */
   body:has(#scenebar:not([hidden]):not(.mini)) #toasts { top: 6.9rem; }
 }
+/* aba Kage → Bestas com cauda: as nove feras em cartões (retrato, número de caudas, nome e situação) e a selagem */
+.bjsec { grid-column: 1 / -1; }
+.bjgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr)); gap: 0.4rem; }
+.bjcard {
+  display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.35rem 0.3rem 0.4rem; text-align: center;
+  --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 5px 7px; border-radius: 0;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
+}
+.bjcard > * { image-rendering: auto; }
+.bjcard .bj-pic { position: relative; width: 4.6rem; height: 3.6rem; display: grid; place-items: center; border-radius: 0.4rem; background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--c) 35%, transparent), rgba(0, 0, 0, 0.35) 75%); }
+.bjcard .bj-pic { overflow: hidden; }
+.bjcard .bj-pic img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.bjcard .bj-pic i { position: absolute; right: 0.15rem; top: 0.1rem; min-width: 1.1rem; height: 1.1rem; display: grid; place-items: center; border-radius: 50%; background: var(--c); color: #1a0d06; font-style: normal; font-weight: 900; font-size: 0.7rem; box-shadow: 0 0 0 1px #000; }
+.bjcard b { font-size: 0.82rem; }
+.bjcard small { font-size: 0.7rem; color: var(--muted); display: inline-flex; align-items: center; gap: 0.15rem; }
+.bjcard.wild .bj-pic img { filter: grayscale(0.7) brightness(0.55); }
+.bjcard.host { border-image-source: var(--k2-dock-slot-on); }
+.bjcard.host small { color: #ffb0a0; font-weight: 700; }
+.bjcard.jar small { color: #ffd34d; font-weight: 700; }
+.bj-seal { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.5rem; }
+.bj-seal .bj-lbl { font-weight: 700; }
+.bj-seal .bj-cands { display: flex; flex-wrap: wrap; gap: 0.3rem; flex: 1 1 auto; }
