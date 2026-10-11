@@ -154,7 +154,7 @@ export class Hud {
     warn.hidden = !s.pendingBoss;
     if (s.pendingBoss) {
       const d = BOSSES[s.pendingBoss.kind];
-      const label = `{bell} ${d.icon} ${d.name} chega em ${Math.ceil(s.pendingBoss.t)}s — ver`;
+      const label = `${d.name} chega em ${Math.ceil(s.pendingBoss.t)}s — ver`; // a faixa já tem o desenho de alerta
       this.html(warn, label);
     }
     const bosses = s.units.filter((u) => u.boss && !u.dead);

@@ -473,5 +473,5 @@ export function createUI(app: App, root: HTMLElement) {
     }
   }
 
-  return { onTap, onContext, onBox, onHover, update, show };
+  return { onTap, onContext, onBox, onHover, update, show, build, menu };
 }

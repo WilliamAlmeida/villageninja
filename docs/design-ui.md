@@ -179,3 +179,10 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Linha solta de separação (`border-top: 1px`) não existe mais: o espaço separa. O `divider` do kit tem ornamento no meio e
   não estica, então só serve entre blocos grandes.
 - Cuidado: um `border:` (atalho) declarado depois apaga o `border-image`; repetir `border-image-source/slice/width` na regra nova.
+- Linhas sobre pergaminho (o que falta, custo e upgrades nos avisos) = `row-plain` (a `row` sem o marcador vermelho, que
+  esticava junto; feita pelo `prepare-kit2.py`), texto escuro. Na ficha de construção, linhas com rótulo ocupam a largura toda.
+- Barras de posicionar prédio, de ordem e da cena = madeira da barra de cima (`hud-bar`), sempre ACIMA da barra de baixo.
+- Notificações = `hud-slot` com a listrinha do tipo por dentro; faixa do Exame = selo âmbar; Bingo Book: a Ordem na moldura
+  vermelha (`card-sannin`), aprovada pelo autor.
+- Vitrine: grupos "Construção" (barra, posicionar, mover, detalhes de cada prédio) e "Avisos, faixas e diálogos" (zerar
+  recursos, avisos, notificações, faixas, menu de pausa).

@@ -39,6 +39,7 @@ import kCardJounin from '../art/ui/kit2/card-jounin.png';
 import kCardSannin from '../art/ui/kit2/card-sannin.png';
 import kCardKage from '../art/ui/kit2/card-kage.png';
 import kRow from '../art/ui/kit2/row.png';
+import kRowPlain from '../art/ui/kit2/row-plain.png';
 import kLabel from '../art/ui/kit2/label.png';
 import kDivider from '../art/ui/kit2/divider.png';
 
@@ -81,6 +82,7 @@ const KIT: Record<string, string> = {
   'card-sannin': kCardSannin,
   'card-kage': kCardKage,
   'row': kRow,
+  'row-plain': kRowPlain,
   'label': kLabel,
   'divider': kDivider,
 };

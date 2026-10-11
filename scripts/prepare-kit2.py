@@ -120,7 +120,12 @@ RANK = {'genin': (0.30, 0.55), 'chunin': (0.74, 0.55), 'jounin': (0.13, 0.85), '
 save(card, 'card')
 for r, (h, sat) in RANK.items():
     save(tint(card, h, sat), f'card-{r}')
-save(small(load('row'), PX['row']), 'row')
+row = small(load('row'), PX['row'])
+save(row, 'row')
+# linha lisa (sem o marcador vermelho do canto, que estica junto com a linha): o canto esquerdo vira o espelho do direito
+plain = row.copy()
+plain.paste(row.crop((row.width - 26, 0, row.width, row.height)).transpose(Image.FLIP_LEFT_RIGHT), (0, 0))
+save(plain, 'row-plain')
 label, divider = [small(p, PX['ribbon']) for p in split_rows(load('ribbon'))]
 save(label, 'label')
 save(divider, 'divider')

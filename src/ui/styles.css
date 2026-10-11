@@ -2231,7 +2231,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 /* ---------- kit 2, passada geral: tudo que ainda era caixa de CSS vira peça do kit ---------- */
 /* cartões de seção, tiles e linhas (todos os "cartões" do jogo): caixinha de madeira com borda de bronze (hud-slot, 1×) */
 .bsec, .tcard, .xcard, .wscard, .mactive, .omem, .scard, .kcand, .ftile, .vhero, .mteam, .mrecent, .rrow, .jcard, .mcard, .lvlcard,
-.statcard, .cand, .fquick > span, .vit .vbox, .breed, .vperk, .kart, #alertbox .need li, .duel > div, .lrow, .inv-cell, .slot {
+.statcard, .cand, .fquick > span, .vit .vbox, .breed, .vperk, .kart, .duel > div, .lrow, .inv-cell, .slot {
   --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
   image-rendering: pixelated;
@@ -2389,10 +2389,10 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-dock-slot-on); border-image-slice: var(--sl); border-image-width: 14px; image-rendering: pixelated;
 }
 .bup > *, .vmark.done > * { image-rendering: auto; }
-/* Bingo Book: as organizações na mesma caixinha (a moldura vermelha antiga era CSS) */
+/* Bingo Book: as organizações inimigas na moldura vermelha (o cartão de patente tingido de vermelho) */
 .kpanel.ocard, .kfill .ocard {
-  --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 4px 5px; box-shadow: none;
-  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
+  --sl: 12 12 12 12 fill; border: 0 solid transparent; border-width: 6px; box-shadow: none;
+  border-image-source: var(--k2-card-sannin); border-image-slice: var(--sl); border-image-width: 12px; border-image-repeat: stretch;
 }
 /* o miolo do Kage já está dentro do painel: sem segunda caixa */
 .kbody { border: 0; background: none; padding: 0; }
@@ -2434,3 +2434,54 @@ h4 > * { image-rendering: auto; }
 }
 .o-next > *, .lchip > *, .sc-tag > * { image-rendering: auto; }
 .nc-line { border: 0; }
+/* avisos: o texto não encosta na moldura (o desenho dela entra 10 px além da borda); linhas do que falta na linha de
+   pergaminho do kit (row-plain: a row sem o marcador vermelho, que esticava junto), texto escuro */
+#alertbox .card { padding: 0.45rem calc(10px + 0.6rem) 0.35rem; }
+#alertbox .need li {
+  --sl: 7 7 7 7 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 6px;
+  border-image-source: var(--k2-row-plain); border-image-slice: var(--sl); border-image-width: 7px; border-image-repeat: stretch;
+  image-rendering: pixelated; color: #2f1a0d; padding: 0.15rem 0.45rem;
+}
+/* barras de posicionar prédio e de dar ordem: logo acima da barra de baixo (que cresceu com o kit e passou a ser tampada
+   por elas) e na madeira da barra de cima; a dica do prédio no mapa na caixinha */
+#placebar, #orderbar, #scenebar {
+  --sl: 8 14 8 14 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 6px 14px;
+  border-image-source: var(--k2-hud-bar); border-image-slice: var(--sl); border-image-width: 16px 28px; border-image-repeat: stretch;
+  image-rendering: pixelated; filter: drop-shadow(0 0.4rem 0.8rem rgba(0, 0, 0, 0.5));
+}
+#placebar > *, #orderbar > *, #scenebar > * { image-rendering: auto; }
+#placebar, #orderbar { bottom: calc(6.6rem + var(--safe-b)); }
+#placebar .hint, #orderbar .hint { color: #f3e3c3; }
+@media (max-height: 520px) { #placebar, #orderbar { bottom: calc(5.3rem + var(--safe-b)); } }
+#maptip {
+  --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
+}
+#maptip > * { image-rendering: auto; }
+/* cartão de construção sem recurso/requisito: escurecido mas opaco (transparente, o mapa aparecia através da moldura) */
+.bcard.off { opacity: 1; filter: grayscale(0.75) brightness(0.62); }
+/* notificações: caixinha do kit; o tipo (bom, atenção, perigo) numa listrinha à esquerda, dentro da moldura */
+.toast {
+  --sl: 10 10 10 10 fill; position: relative; border-radius: 0; background: none; border: 0 solid transparent; border-width: 4px 5px;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
+  image-rendering: pixelated; padding: 0.25rem 0.6rem 0.25rem 0.85rem; box-shadow: none; filter: drop-shadow(0 0.25rem 0.5rem rgba(0, 0, 0, 0.45));
+}
+.toast > * { image-rendering: auto; }
+.toast::before { content: ""; position: absolute; left: 3px; top: 3px; bottom: 3px; width: 3px; background: var(--muted); }
+.toast.good::before { background: var(--good); }
+.toast.warn::before { background: var(--warn); }
+.toast.danger::before { background: var(--bad); }
+/* faixa do Exame Chunin: o selo âmbar do kit (a do chefe usa o vermelho) */
+.banner.exam {
+  --sl: 8 10 8 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 8px;
+  border-image-source: var(--k2-pill-amber); border-image-slice: var(--sl); border-image-width: 8px 10px; border-image-repeat: stretch;
+  image-rendering: pixelated; color: #2a1406; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); font-weight: 800; padding: 0.35rem 0.9rem;
+}
+.banner.exam > * { image-rendering: auto; }
+/* minas conhecidas: a moldura come um pouco da largura; cartão um pouco mais largo para "Equipe lá dentro" caber */
+.xmines { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.xmine { padding: 0.3rem 0.55rem; }
+/* ficha de construção: "Custo" e "Upgrades" na largura toda (lado a lado esticavam e quebravam o custo); só as linhas
+   do que falta ficam em grade; nenhuma estica para a altura da vizinha */
+#alertbox .need { align-items: start; }
+#alertbox .need li:has(.lbl) { grid-column: 1 / -1; }
