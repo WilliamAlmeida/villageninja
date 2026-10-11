@@ -2553,10 +2553,11 @@ h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; 
 /* aviso: espaço em cima para a faixa do título e o fechar, que ficam fora do pergaminho (no celular saíam da tela) */
 #alertbox { padding: 3.1rem 1rem 0.6rem; }
 #alertbox .card { max-height: 100%; }
-/* troca de tela dentro da janela/drawer: o conteúdo novo esmaece de leve para dentro */
+/* troca de tela dentro da janela/drawer: o conteúdo novo esmaece de leve para dentro. Só o conteúdo: o cabeçalho fixo
+   (.wtop, que sobe por cima da margem do corpo) fica parado — animando o corpo todo, a faixa de cima dele sumia e voltava */
 @keyframes k-swap { from { opacity: 0.35; transform: translateY(0.25rem); } }
-.body.swap { animation: k-swap 0.18s ease-out; }
+.body.swap > :not(.wtop) { animation: k-swap 0.18s ease-out; }
 /* retorno de clique: todo botão do kit afunda 1 px e escurece um pouco enquanto apertado */
 .btn:active:not([aria-disabled="true"]), .chips button:active, .seg button:active, .wtabs button:active, .mtabs button:active,
 .iconbtn:active, #win .close:active, #panel .close:active, .bcard:active { translate: 0 1px; filter: brightness(0.9); }
-@media (prefers-reduced-motion: reduce) { .body.swap { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .body.swap > * { animation: none; } }
