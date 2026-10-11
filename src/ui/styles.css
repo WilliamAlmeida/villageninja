@@ -2567,3 +2567,8 @@ h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; 
 }
 /* formação da equipe: os 4 cartões com o mesmo espaço entre si e até as bordas (estavam juntos no meio) */
 .tform { justify-content: space-evenly; column-gap: 0; }
+/* ritmo vertical das seções: espaço maior ANTES de cada título (separa o bloco anterior) e menor entre o título e o
+   conteúdo dele. Na grade de controles da equipe o espaço vem da grade (os títulos do topo de cada célula sem margem) */
+h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
+.td-ctl { row-gap: 0.95rem; column-gap: 0.8rem; margin-top: 0.95rem; }
+.td-ctl > * > h4:first-child { margin-top: 0; }
