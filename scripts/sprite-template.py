@@ -206,7 +206,95 @@ def kick(d, cx, row, col):
     limb(d, sh, (cx + 30 + lean, neck_y + 40), NEAR, 14)
 
 
-for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast), ('kick', kick)):
+def _head(d, cx, row, y, dx=0):
+    head = (cx + (6 if row == 0 else 0) + dx, y)
+    d.ellipse([head[0] - 70, head[1] - 66, head[0] + 70, head[1] + 66], fill=BODY)
+    if row == 0:
+        d.polygon([(head[0] + 66, head[1] - 6), (head[0] + 90, head[1] + 6), (head[0] + 66, head[1] + 18)], fill=NEAR)
+    elif row == 1:
+        for ex in (-26, 26):
+            d.ellipse([head[0] + ex - 9, head[1] - 4, head[0] + ex + 9, head[1] + 14], fill=(255, 255, 255))
+
+
+def air(d, cx, row, col):
+    """Salto (a altura é feita pelo jogo: aqui os pés ficam na linha). 0 agacha para pular (joelhos dobrados, braços
+    atrás) · 1 encolhido no ar (joelhos no peito, braços em volta) · 2 chute voador (perna da frente esticada para baixo e
+    adiante, a outra dobrada) · 3 aterrissa agachado com uma mão no chão. Pé vermelho = o do chute."""
+    red = (200, 60, 60)
+    if col == 0:
+        hip = (cx - 10, BASE - 60)
+        limb(d, hip, (cx + 30, BASE - 30), NEAR)
+        limb(d, (cx + 30, BASE - 30), (cx + 10, BASE), NEAR)
+        limb(d, hip, (cx - 40, BASE - 25), FAR)
+        limb(d, (cx - 40, BASE - 25), (cx - 30, BASE), FAR)
+        d.rounded_rectangle([cx - 40, BASE - 140, cx + 20, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 195, -6)
+        limb(d, (cx - 10, BASE - 120), (cx - 70, BASE - 80), NEAR, 14)
+    elif col == 1:
+        hip = (cx, BASE - 70)
+        limb(d, hip, (cx + 45, BASE - 110), NEAR)
+        limb(d, (cx + 45, BASE - 110), (cx + 30, BASE - 40), NEAR)
+        limb(d, hip, (cx + 30, BASE - 95), FAR)
+        limb(d, (cx + 30, BASE - 95), (cx + 10, BASE - 30), FAR)
+        d.ellipse([cx + 10 - 14, BASE - 30 - 14, cx + 10 + 14, BASE - 30 + 14], fill=NEAR)
+        d.rounded_rectangle([cx - 35, BASE - 160, cx + 30, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 215)
+        limb(d, (cx, BASE - 140), (cx + 40, BASE - 100), NEAR, 14)
+    elif col == 2:
+        hip = (cx - 10, BASE - 95)
+        limb(d, hip, (cx - 35, BASE - 60), FAR)
+        limb(d, (cx - 35, BASE - 60), (cx - 60, BASE - 40), FAR)
+        tip = (cx + 110, BASE) if row == 0 else (cx + 60, BASE)
+        limb(d, hip, tip, NEAR)
+        d.ellipse([tip[0] - 16, tip[1] - 16, tip[0] + 16, tip[1] + 16], fill=red)
+        d.rounded_rectangle([cx - 46, BASE - 175, cx + 26, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 237, -10)
+        limb(d, (cx - 20, BASE - 155), (cx - 75, BASE - 175), NEAR, 14)
+    else:
+        hip = (cx, BASE - 55)
+        limb(d, hip, (cx + 40, BASE - 30), NEAR)
+        limb(d, (cx + 40, BASE - 30), (cx + 40, BASE), NEAR)
+        limb(d, hip, (cx - 35, BASE), FAR)
+        d.rounded_rectangle([cx - 30, BASE - 135, cx + 34, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 190, 8)
+        limb(d, (cx + 10, BASE - 115), (cx + 70, BASE), NEAR, 14)  # mão no chão
+        d.ellipse([cx + 70 - 14, BASE - 14, cx + 70 + 14, BASE + 14], fill=red)
+
+
+def hurt(d, cx, row, col):
+    """Levando golpe. 0 recua (tronco dobrado para trás, braços na frente protegendo) · 1 arremessado para trás (inclinado
+    quase deitado, braços soltos) · 2 caído deitado de costas no chão · 3 levantando (um joelho no chão, mão no joelho)."""
+    if col == 0:
+        hip = (cx - 10, BASE - 95)
+        limb(d, hip, (cx - 30, BASE), NEAR)
+        limb(d, hip, (cx + 20, BASE), FAR)
+        d.rounded_rectangle([cx - 50, BASE - 175, cx + 10, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 228, -26)
+        limb(d, (cx - 20, BASE - 155), (cx + 40, BASE - 175), NEAR, 14)
+    elif col == 1:
+        cx += 60  # o corpo inclinado vai para a esquerda: começa mais à direita para caber na casa
+        hip = (cx - 20, BASE - 80)
+        limb(d, hip, (cx + 20, BASE), NEAR)
+        limb(d, hip, (cx + 50, BASE - 20), FAR)
+        d.polygon([(cx - 30, hip[1] + 10), (cx - 10, hip[1] - 10), (cx - 95, BASE - 150), (cx - 115, BASE - 130)], fill=BODY)
+        _head(d, cx, row, BASE - 170, -130)
+        limb(d, (cx - 80, BASE - 140), (cx - 40, BASE - 190), NEAR, 14)
+    elif col == 2:
+        d.rounded_rectangle([cx - 100, BASE - 50, cx + 20, BASE - 8], 16, fill=BODY)
+        limb(d, (cx + 15, BASE - 25), (cx + 120, BASE - 12), NEAR)
+        d.ellipse([cx - 175, BASE - 90, cx - 85, BASE - 2], fill=BODY)
+        limb(d, (cx - 60, BASE - 30), (cx - 30, BASE - 70), NEAR, 14)
+    else:
+        hip = (cx, BASE - 60)
+        limb(d, hip, (cx + 40, BASE - 50), NEAR)
+        limb(d, (cx + 40, BASE - 50), (cx + 45, BASE), NEAR)
+        limb(d, hip, (cx - 35, BASE - 5), FAR)
+        d.rounded_rectangle([cx - 34, BASE - 140, cx + 30, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 195, 10)
+        limb(d, (cx + 10, BASE - 120), (cx + 40, BASE - 55), NEAR, 14)
+
+
+for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast), ('kick', kick), ('air', air), ('hurt', hurt)):
     im = Image.new('RGB', (W, H), (255, 255, 255))
     d = ImageDraw.Draw(im)
     for r in range(ROWS):

@@ -26,8 +26,8 @@ const sheet = flag('--sheet');
 const refs = (flag('--ref') ?? '').split(',').filter(Boolean);
 const size = flag('--size') ?? (sheet ? '1536x1024' : '1024x1024');
 const [out, desc] = args;
-if (!out || !desc || (sheet && !['biped', 'quadruped', 'action', 'strike', 'cast', 'kick'].includes(sheet))) {
-  console.error('uso: node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size LxA] [--sheet biped|quadruped|action|strike|cast|kick]');
+if (!out || !desc || (sheet && !['biped', 'quadruped', 'action', 'strike', 'cast', 'kick', 'air', 'hurt'].includes(sheet))) {
+  console.error('uso: node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size LxA] [--sheet biped|quadruped|action|strike|cast|kick|air|hurt]');
   process.exit(1);
 }
 
@@ -43,10 +43,16 @@ const views = {
   biped: 'Row 1: side view walking, facing RIGHT. Row 2: front view walking toward the viewer. Row 3: back view walking away (only the back of the head visible).',
   action: 'Row 1: side view facing RIGHT, striking to the right. Row 2: front view facing the viewer, striking down in front. Row 3: back view, striking down away from the viewer.',
   strike: 'Row 1: side view facing RIGHT, punching to the right. Row 2: front view facing the viewer, punching toward the viewer. Row 3: back view, punching away from the viewer.',
+  air: 'Row 1: side view facing RIGHT. Row 2: front view facing the viewer. Row 3: back view (only the back of the head visible).',
+  hurt: 'Row 1: side view facing RIGHT (the hit comes from the right, the body is pushed to the left). Row 2: front view facing the viewer (pushed backward). Row 3: back view (pushed toward the viewer).',
   kick: 'Row 1: side view facing RIGHT, kicking to the right. Row 2: front view facing the viewer, kicking toward the viewer. Row 3: back view, kicking away from the viewer.',
   cast: 'Row 1: side view facing RIGHT. Row 2: front view facing the viewer. Row 3: back view (only the back of the head visible).',
 }[sheet ?? 'biped'];
-const cycle = sheet === 'kick'
+const cycle = sheet === 'air'
+  ? 'Columns are a ninja jump attack in order, following the guide: 1 crouching to jump (knees deeply bent, arms swung back), 2 tucked in mid-air (both knees pulled up to the chest, compact ball), 3 flying kick (front leg stretched straight down and forward with the RED foot, the other leg bent back, arms out for balance), 4 landing crouched with one hand touching the ground. Draw every pose with the lowest point on the red baseline (the game lifts the jump by code). The red foot and hand are normal, not red.'
+  : sheet === 'hurt'
+  ? 'Columns are taking a hit in order, following the guide: 1 flinching (torso bent back, head down, arms raised in front to protect), 2 knocked back off balance (body leaning far back almost falling, arms flailing, one foot off the ground), 3 knocked down lying flat on the back on the ground (seen from the side in every view), 4 getting up (one knee on the ground, a hand on the other knee). Feet or body touching the red baseline.'
+  : sheet === 'kick'
   ? 'Columns are a spinning martial arts kick combo (like the Leaf Whirlwind of Rock Lee), following the leg with the RED foot of the guide: 1 wind-up (torso twisting, kicking knee raised high and bent, fists in guard), 2 HIGH roundhouse kick (kicking leg fully stretched at head height, body leaning back on the other leg), 3 LOW sweeping kick (crouched low on one bent leg, the other leg stretched straight along the ground), 4 recover (back in a fighting stance, both feet on the ground). The red foot is a normal sandal, not red.'
   : sheet === 'strike'
   ? 'Columns are one fighting punch in order, following the arm with the RED fist of the guide: 1 wind-up (fist pulled back), 2 lunge (fist moving forward), 3 impact (arm fully extended, body leaning in), 4 recover (fist coming back to guard). Feet planted wide in a fighting stance; the other arm stays in guard. The red fist is a normal hand, not red.'

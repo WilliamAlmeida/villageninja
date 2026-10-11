@@ -9,6 +9,7 @@ import { spyNinjaNear } from './specs';
 import { natureWeather } from './mood';
 import { createAnimal } from './entities';
 import { isRangedJutsu, JUTSUS, jutsuChakra, jutsuCooldown, jutsuDuration, jutsuPower, type JutsuDef } from '../data/jutsus';
+import { MOVE_SEQS, movesTime } from '../data/moves';
 import { natureMultiplier, type Nature } from '../data/natures';
 import { derive } from '../data/ninja';
 import { createClone } from './entities';
@@ -276,7 +277,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'projectile':
       spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
         damage: power, radius: def.radius ?? 0, nature: def.nature, color: def.color,
-        size: def.radius ? 9 : 6, speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx,
+        size: def.projSize ?? (def.radius ? 9 : 6), speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx,
       });
       break;
     case 'multi': {
@@ -306,7 +307,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'melee':
       fx(g, 'slash', t.x, t.y, { r: 24, color: def.color, life: 0.35 });
       fx(g, 'hit', t.x, t.y - 8, { r: 16, color: def.color, life: 0.3, vfx: vfx ?? 'impact' });
-      applyDamage(g, u, t, power, def.nature, { knock: 22 });
+      applyDamage(g, u, t, power, def.nature, { knock: def.launch ? 30 : 22, stun: def.stun, launch: def.launch });
       playMoves(u, def, 0.4); // taijutsu: o golpe no alvo (coreografia do jutsu), não a mão aberta de soltar jutsu
       break;
     case 'stun': {
@@ -352,6 +353,8 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'heal':
       break;
   }
+  // golpe de longe, área e escudo com coreografia (Hirudora, Asa Kujaku, Kaiten…): toca ao soltar
+  if (def.moves?.length && def.effect !== 'melee' && def.effect !== 'dash') playMoves(u, def, 0.4);
 }
 
 /** Ninjas médicos curam aliados feridos próximos. */
@@ -439,6 +442,8 @@ interface DamageOpts {
   stunVfx?: Vfx;
   knock?: number;
   from?: { x: number; y: number };
+  /** Lança o alvo ao alto (só desenho: reação `hurt-launch`). */
+  launch?: boolean;
 }
 
 export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, nature: Nature | null, opts: DamageOpts) {
@@ -498,6 +503,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
     const a = Math.atan2(t.y - from.y, t.x - from.x);
     push(g, t, Math.cos(a) * opts.knock, Math.sin(a) * opts.knock);
   }
+  playHurt(t, dmg, opts, opts.from ?? src);
   // quem apanha revida
   if (src && !src.dead && t.faction !== 'village' && t.targetId == null) t.targetId = src.id;
   if (t.hp <= 0) {
@@ -597,13 +603,35 @@ const DASH_SPEED = 480;
 /** Toca a coreografia do jutsu (`moves`, só desenho); sem ela, o quadro de impacto do soco por `fallback` s. */
 function playMoves(u: Unit, def: JutsuDef | undefined, fallback: number) {
   if (def?.moves?.length) {
-    u.anim = def.moves.reduce((a, m) => a + m[2], 0);
+    u.anim = movesTime(def.moves);
     u.animKind = 'moves';
     u.moveJutsu = def.id;
   } else {
     u.anim = fallback;
     u.animKind = 'impact';
   }
+}
+
+/**
+ * Reação ao golpe no ninja em camadas (só desenho, data/moves.ts): golpe leve recua; forte (um quarto da vida, empurrão
+ * grande) é jogado para trás, cai e levanta; lançado sobe antes de cair. Não corta os selos (o golpe já os quebra) nem
+ * a investida, e golpe leve não atrapalha a coreografia de quem está golpeando.
+ */
+function playHurt(t: Unit, dmg: number, opts: DamageOpts, from: { x: number; y: number } | null) {
+  if (!t.ninja && !t.swordsman) return;
+  if (t.cast || t.dash || t.dead) return;
+  const heavy = !!opts.launch || dmg >= t.maxHp * 0.25 || (opts.knock ?? 0) >= 26;
+  const light = heavy || dmg >= t.maxHp * 0.06 || (opts.knock ?? 0) > 0;
+  if (!light) return;
+  const busy = t.anim > 0 && t.animKind === 'moves' && !t.moveJutsu?.startsWith('hurt');
+  if (busy && !heavy) return;
+  const key = opts.launch ? 'hurt-launch' : heavy ? 'hurt-down' : 'hurt-light';
+  t.anim = movesTime(MOVE_SEQS[key]!);
+  t.animKind = 'moves';
+  t.moveJutsu = key;
+  if (heavy) t.strike = undefined;
+  // a folha de dano é desenhada empurrada para trás: vira para quem bateu
+  if (from && !t.moving) t.facing = Math.atan2(from.y - t.y, from.x - t.x);
 }
 
 export function dashTick(g: Game, u: Unit, dt: number) {
@@ -626,8 +654,14 @@ export function dashTick(g: Game, u: Unit, dt: number) {
     dashTrail(g, u, d);
     fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx });
     fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
-    applyDamage(g, u, t, d.power, d.nature, { knock: 26 });
-    playMoves(u, d.id ? JUTSUS[d.id] : undefined, 0.45); // chegada da investida: o golpe no alvo e recupera (desenho)
+    const def = d.id ? JUTSUS[d.id] : undefined;
+    if (def?.dashRadius) {
+      // chega e o golpe pega todos em volta (calcanhar da Tsunade, Ōkashō, Nikudan Sensha)
+      fx(g, 'ring', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5 });
+      fx(g, 'wave', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5, vfx: d.vfx });
+      areaDamage(g, u, u.faction, t.x, t.y, def.dashRadius, d.power, d.nature, 40, def.stun ?? 0);
+    } else applyDamage(g, u, t, d.power, d.nature, { knock: def?.launch ? 30 : 26, stun: def?.stun, launch: def?.launch });
+    playMoves(u, def, 0.45); // chegada da investida: o golpe no alvo e recupera (desenho)
     return;
   }
   const step = Math.min(dist - 16, DASH_SPEED * dt);

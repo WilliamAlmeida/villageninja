@@ -3,6 +3,7 @@ import type { Nature } from './natures';
 import type { KekkeiId } from './kekkei';
 import type { StatKey, Stats } from './ninja';
 import type { Vfx } from './vfx';
+import type { JutsuMove } from './moves';
 
 export type JutsuType = 'ninjutsu' | 'taijutsu' | 'genjutsu' | 'iryo';
 export type JutsuEffect =
@@ -40,6 +41,8 @@ export interface JutsuDef {
   stun?: number;
   projSpeed?: number;
   projKind?: ProjectileKind;
+  /** Tamanho do projétil (sem: 9 com área, 6 sem). */
+  projSize?: number;
   color: string;
   /** Atributos mínimos para aprender. */
   req: Partial<Record<StatKey, number>>;
@@ -51,14 +54,19 @@ export interface JutsuDef {
   /** Estilo visual (rastro, impacto, estado). Sem: o da natureza (`jutsuVfx`). */
   vfx?: Vfx;
   /**
-   * Coreografia do golpe no ninja em camadas (só desenho): quadros das folhas de pose já existentes (`strike` soco,
-   * `kick` chute, `cast` selos) em sequência, cada um por tantos segundos. Taijutsu: toca ao acertar; investida: ao chegar.
+   * Coreografia do golpe no ninja em camadas (só desenho, data/moves.ts): quadros das folhas de pose em sequência, com
+   * altura (salto) e giro. Taijutsu: toca ao acertar; investida: o 1º passo na corrida, a coreografia ao chegar;
+   * projétil/área: ao soltar.
    */
   moves?: JutsuMove[];
+  /** Investida: ao chegar, o golpe pega todos em volta neste raio (calcanhar da Tsunade, Ōkashō, Nikudan Sensha). */
+  dashRadius?: number;
+  /** Corpo a corpo/investida: o alvo é lançado ao alto (reação `hurt-launch`) e fica atordoado `stun` s. */
+  launch?: boolean;
+  /** Esfera de chakra na mão durante a investida (Rasengan): a cor dela. */
+  handOrb?: string;
 }
 
-/** Um passo da coreografia: folha de pose, quadro (0–3) e duração (s). */
-export type JutsuMove = ['strike' | 'kick' | 'cast', number, number];
 
 /** Chance de o ninja ficar com sequela (perde Stamina) ao terminar de aprender um jutsu proibido. */
 export const FORBIDDEN_RISK = 0.35;
@@ -181,6 +189,134 @@ const LIST: JutsuDef[] = [
     id: 'senbari', name: 'Kinjutsu: Mil Agulhas', shout: 'Mil Agulhas!', desc: 'Chuva de agulhas de chakra que cobre uma área inteira.',
     nature: null, type: 'ninjutsu', rank: 4, chakra: 46, cooldown: 12, range: 170, power: 13, effect: 'multi', forbidden: true,
     count: 10, projSpeed: 380, projKind: 'needle', color: '#d9d9ff', req: { ninjutsu: 5, selos: 4 }, cost: { ryo: 300, paper: 10 }, learnTime: 60, vfx: 'needle',
+  },
+  // ---- taijutsu do anime (coreografias com as folhas de soco, chute, no ar e selos; ver docs/taijutsu.md)
+  {
+    id: 'reppuu', name: 'Konoha Reppuu', shout: 'Konoha Reppuu!', desc: 'Rasteira giratória que derruba o alvo.',
+    nature: null, type: 'taijutsu', rank: 0, chakra: 4, cooldown: 3, range: 26, power: 10, effect: 'melee', stun: 0.6,
+    moves: [['kick', 0, 0.08], ['kick', 2, 0.22], ['kick', 3, 0.12]],
+    color: '#ffb067', req: { taijutsu: 2 }, cost: { ryo: 30 }, learnTime: 12,
+  },
+  {
+    id: 'shofu', name: 'Konoha Shōfū', shout: 'Konoha Shōfū!', desc: 'Chute de baixo para cima que lança o alvo ao alto.',
+    nature: null, type: 'taijutsu', rank: 1, chakra: 8, cooldown: 4.5, range: 26, power: 18, effect: 'melee', stun: 0.9, launch: true,
+    moves: [['kick', 2, 0.1], ['kick', 1, 0.22, 4], ['kick', 3, 0.14]],
+    color: '#ffb067', req: { taijutsu: 3, forca: 2 }, cost: { ryo: 60 }, learnTime: 18,
+  },
+  {
+    id: 'daisenpuu', name: 'Konoha Daisenpuu', shout: 'Konoha Daisenpuu!', desc: 'Furacão de chutes girando que acerta todos em volta.',
+    nature: null, type: 'taijutsu', rank: 2, chakra: 14, cooldown: 7, range: 34, power: 20, effect: 'aoe', radius: 40, vfx: 'impact',
+    moves: [['kick', 1, 0.12, 0, 'spin'], ['kick', 2, 0.12, 0, 'spin'], ['kick', 1, 0.12, 0, 'spin'], ['kick', 2, 0.12, 0, 'spin'], ['kick', 3, 0.12]],
+    color: '#ffb067', req: { taijutsu: 4, velocidade: 3 }, cost: { ryo: 110 }, learnTime: 28,
+  },
+  {
+    id: 'dynamic', name: 'Dainamikku Entorī', shout: 'Dynamic Entry!', desc: 'Entra voando com um chute no alvo.',
+    nature: null, type: 'taijutsu', rank: 2, chakra: 12, cooldown: 7, range: 140, power: 26, effect: 'dash',
+    moves: [['air', 2, 0.2, 9], ['air', 3, 0.2]],
+    color: '#5fbf5f', req: { taijutsu: 4, velocidade: 3 }, cost: { ryo: 120 }, learnTime: 30,
+  },
+  {
+    id: 'shishi', name: 'Shishi Rendan', shout: 'Shishi Rendan!', desc: 'Lança o alvo ao alto e termina o combo com o calcanhar.',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 18, cooldown: 8, range: 28, power: 34, effect: 'melee', stun: 1, launch: true,
+    moves: [['kick', 2, 0.1], ['air', 1, 0.16, 14], ['kick', 1, 0.16, 18], ['air', 2, 0.18, 10], ['air', 3, 0.16]],
+    color: '#6a8cff', req: { taijutsu: 5, velocidade: 4 }, cost: { ryo: 180 }, learnTime: 40,
+  },
+  {
+    id: 'okasho', name: 'Ōkashō', shout: 'Shannaro!', desc: 'Soco no chão que racha a terra e acerta todos em volta.',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 9, range: 120, power: 36, effect: 'dash', dashRadius: 46, stun: 0.5, vfx: 'earth',
+    moves: [['strike', 0, 0.12], ['strike', 2, 0.3], ['strike', 3, 0.14]],
+    color: '#ff8fb0', req: { taijutsu: 4, forca: 5 }, cost: { ryo: 200 }, learnTime: 42,
+  },
+  {
+    id: 'tsutenkyaku', name: 'Tsūtenkyaku', shout: 'Tsūtenkyaku!', desc: 'Salta e desce o calcanhar rachando o chão em volta.',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 28, cooldown: 11, range: 130, power: 46, effect: 'dash', dashRadius: 54, stun: 0.7, vfx: 'earth',
+    moves: [['air', 1, 0.18, 16], ['kick', 1, 0.16, 12], ['air', 3, 0.28]],
+    color: '#ff8fb0', req: { taijutsu: 6, forca: 6 }, cost: { ryo: 320 }, learnTime: 58,
+  },
+  {
+    id: 'omoterenge', name: 'Omote Renge', shout: 'Omote Renge!', desc: 'Chuta o alvo para o alto, agarra e crava de cabeça no chão.',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 30, cooldown: 12, range: 28, power: 52, effect: 'melee', stun: 1.4, launch: true,
+    moves: [['kick', 2, 0.1], ['air', 1, 0.24, 20], ['air', 2, 0.24, 12], ['air', 3, 0.24]],
+    color: '#5fbf5f', req: { taijutsu: 6, velocidade: 5, stamina: 5 }, cost: { ryo: 340 }, learnTime: 60,
+  },
+  {
+    id: 'urarenge', name: 'Kinjutsu: Ura Renge', shout: 'Ura Renge!', desc: 'Abre os portões e despeja golpes rápidos demais para os olhos.',
+    nature: null, type: 'taijutsu', rank: 5, chakra: 40, cooldown: 16, range: 120, power: 76, effect: 'dash', forbidden: true, stun: 1, launch: true, vfx: 'blood',
+    moves: [['strike', 1, 0.06, 6], ['strike', 2, 0.06, 6], ['strike', 1, 0.06, 10], ['strike', 2, 0.06, 10], ['kick', 1, 0.16, 12], ['air', 3, 0.22]],
+    color: '#c0182b', req: { taijutsu: 7, velocidade: 7, stamina: 6 }, cost: { ryo: 420, herbs: 12 }, learnTime: 70,
+  },
+  {
+    id: 'asakujaku', name: 'Asa Kujaku', shout: 'Asa Kujaku!', desc: 'Centenas de socos tão rápidos que pegam fogo, num leque.',
+    nature: null, type: 'taijutsu', rank: 5, chakra: 36, cooldown: 13, range: 110, power: 12, effect: 'multi', count: 9, projSpeed: 300, projKind: 'orb', vfx: 'fire',
+    moves: [['strike', 1, 0.05], ['strike', 2, 0.05], ['strike', 1, 0.05], ['strike', 2, 0.05], ['strike', 1, 0.05], ['strike', 2, 0.1], ['strike', 3, 0.12]],
+    color: '#ff7a3b', req: { taijutsu: 7, velocidade: 6 }, cost: { ryo: 400 }, learnTime: 66,
+  },
+  {
+    id: 'hirudora', name: 'Hirudora', shout: 'Hirudora!', desc: 'Um soco solta um tigre de ar comprimido que explode no alvo.',
+    nature: null, type: 'taijutsu', rank: 5, chakra: 42, cooldown: 16, range: 160, power: 66, effect: 'projectile', radius: 56, projSpeed: 210, projKind: 'orb', projSize: 13, vfx: 'wind',
+    moves: [['cast', 0, 0.2], ['strike', 2, 0.35], ['strike', 3, 0.15]],
+    color: '#d8f0ff', req: { taijutsu: 8, forca: 7 }, cost: { ryo: 480 }, learnTime: 75,
+  },
+  {
+    id: 'sekizo', name: 'Sekizō', shout: 'Sekizō!', desc: 'Cinco socos que viram colunas de ar.',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 30, cooldown: 12, range: 140, power: 22, effect: 'multi', count: 5, projSpeed: 280, projKind: 'jet', vfx: 'wind',
+    moves: [['strike', 0, 0.06], ['strike', 2, 0.08], ['strike', 0, 0.06], ['strike', 2, 0.08], ['strike', 2, 0.14], ['strike', 3, 0.12]],
+    color: '#d8f0ff', req: { taijutsu: 7, forca: 6 }, cost: { ryo: 360 }, learnTime: 62,
+  },
+  {
+    id: 'kusho', name: 'Hakke Kūshō', shout: 'Hakke Kūshō!', desc: 'Palma que dispara um golpe de ar à distância.',
+    nature: null, type: 'taijutsu', rank: 2, chakra: 12, cooldown: 5, range: 130, power: 20, effect: 'projectile', projSpeed: 380, projKind: 'jet', stun: 0.3, vfx: 'wind',
+    moves: [['cast', 3, 0.3], ['strike', 3, 0.12]],
+    color: '#bfe0ff', req: { taijutsu: 3, inteligencia: 3 }, cost: { ryo: 100 }, learnTime: 26,
+  },
+  {
+    id: 'rokujuyon', name: 'Hakke Rokujūyon Shō', shout: '64 Palmas!', desc: 'Golpes de palma nos pontos de chakra: o alvo fica travado.',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 26, cooldown: 12, range: 28, power: 40, effect: 'melee', stun: 1.6, vfx: 'wind',
+    moves: [['cast', 3, 0.06], ['strike', 1, 0.06], ['cast', 3, 0.06], ['strike', 1, 0.06], ['cast', 3, 0.06], ['strike', 1, 0.06], ['cast', 3, 0.16], ['strike', 3, 0.12]],
+    color: '#bfe0ff', req: { taijutsu: 6, inteligencia: 5 }, cost: { ryo: 320 }, learnTime: 58,
+  },
+  {
+    id: 'kaiten', name: 'Hakkeshō Kaiten', shout: 'Kaiten!', desc: 'Gira soltando chakra: um domo que segura os golpes.',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 14, range: 0, power: 0, effect: 'shield', duration: 2.5, vfx: 'wind',
+    moves: [['cast', 1, 0.9, 0, 'spin'], ['cast', 3, 0.15]],
+    color: '#bfe0ff', req: { taijutsu: 5, inteligencia: 4, stamina: 4 }, cost: { ryo: 220 }, learnTime: 44,
+  },
+  {
+    id: 'soshiken', name: 'Jūho Sōshiken', shout: 'Sōshiken!', desc: 'Punhos de leão de chakra que travam o alvo.',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 28, cooldown: 11, range: 28, power: 44, effect: 'melee', stun: 0.6, vfx: 'wind',
+    moves: [['strike', 0, 0.1], ['strike', 2, 0.16], ['strike', 0, 0.08], ['strike', 2, 0.18], ['strike', 3, 0.12]],
+    color: '#7fb0ff', req: { taijutsu: 6, inteligencia: 5 }, cost: { ryo: 330 }, learnTime: 58,
+  },
+  {
+    id: 'gatsuga', name: 'Gatsūga', shout: 'Gatsūga!', desc: 'Gira como uma broca e atravessa o alvo.',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 18, cooldown: 8, range: 150, power: 38, effect: 'dash', vfx: 'impact',
+    moves: [['air', 1, 0.25, 4, 'roll'], ['air', 3, 0.2]],
+    color: '#c8a070', req: { taijutsu: 5, velocidade: 5 }, cost: { ryo: 200 }, learnTime: 42,
+  },
+  {
+    id: 'nikudan', name: 'Nikudan Sensha', shout: 'Nikudan Sensha!', desc: 'Vira uma bola gigante e rola por cima de todos.',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 10, range: 140, power: 32, effect: 'dash', dashRadius: 34, vfx: 'impact',
+    moves: [['air', 1, 0.3, 0, 'roll'], ['air', 3, 0.2]],
+    color: '#c8a070', req: { taijutsu: 4, stamina: 6 }, cost: { ryo: 190 }, learnTime: 40,
+  },
+  {
+    id: 'lariat', name: 'Raiton: Lariat', shout: 'Lariat!', desc: 'Corre coberto de raios e acerta com o braço esticado.',
+    nature: 'raiton', type: 'taijutsu', rank: 4, chakra: 32, cooldown: 12, range: 150, power: 54, effect: 'dash', stun: 0.5,
+    moves: [['strike', 2, 0.3], ['strike', 3, 0.15]],
+    color: '#ffe066', req: { taijutsu: 6, forca: 6, velocidade: 5 }, cost: { ryo: 340 }, learnTime: 60,
+  },
+  // ---- Rasengan
+  {
+    id: 'rasengan', name: 'Rasengan', shout: 'Rasengan!', desc: 'Esfera de chakra girando na palma, cravada no alvo.',
+    nature: null, type: 'ninjutsu', rank: 4, chakra: 40, cooldown: 11, range: 130, power: 56, effect: 'dash', launch: true, stun: 0.6, vfx: 'wind', handOrb: '#5fb4ff',
+    moves: [['cast', 3, 0.3], ['strike', 3, 0.15]],
+    color: '#7fc8ff', req: { ninjutsu: 6, inteligencia: 4 }, cost: { ryo: 360 }, learnTime: 64,
+  },
+  {
+    id: 'rasenshuriken', name: 'Fuuton: Rasenshuriken', shout: 'Rasenshuriken!', desc: 'Rasengan de vento em forma de shuriken: corta tudo numa área enorme.',
+    nature: 'fuuton', type: 'ninjutsu', rank: 5, chakra: 60, cooldown: 18, range: 170, power: 80, effect: 'projectile', radius: 70, projSpeed: 200, projKind: 'spinner', projSize: 14,
+    moves: [['cast', 1, 0.35], ['cast', 3, 0.3]],
+    color: '#bff0ff', req: { ninjutsu: 8, inteligencia: 6, selos: 6 }, cost: { ryo: 560 }, learnTime: 85,
   },
 ];
 

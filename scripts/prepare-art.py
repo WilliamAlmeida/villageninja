@@ -51,7 +51,7 @@ for _name in list(BUILDINGS):
 SHEETS = {'villager': (56, 'biped'), 'rogue': (56, 'biped'),
           'ninja-base': (56, 'biped'),  # corpo-base das camadas: vai para docs/arte/layers (entrada do prepare-layers.py)
           # poses do corpo-base: golpe de mão e selos (gabaritos strike/cast); o mesmo destino
-          'ninja-base-strike': (56, 'strike'), 'ninja-base-cast': (56, 'cast'), 'ninja-base-kick': (56, 'kick'),
+          'ninja-base-strike': (56, 'strike'), 'ninja-base-cast': (56, 'cast'), 'ninja-base-kick': (56, 'kick'), 'ninja-base-air': (56, 'air'), 'ninja-base-hurt': (56, 'hurt'),
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
@@ -65,9 +65,9 @@ TRUST_FACING = {'spider', 'slug', 'dog-white'}
 SAME_SCALE = {'chest-open': 'chest'}
 SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3
-TOOL_ONLY = {'ninja-base', 'ninja-base-strike', 'ninja-base-cast', 'ninja-base-kick'}
+TOOL_ONLY = {'ninja-base', 'ninja-base-strike', 'ninja-base-cast', 'ninja-base-kick', 'ninja-base-air', 'ninja-base-hurt'}
 # folhas de ação: braço e ferramenta confundem a detecção de direção e a ordem do ciclo de caminhada (confira a olho)
-ACTIONLIKE = ('action', 'strike', 'cast', 'kick')
+ACTIONLIKE = ('action', 'strike', 'cast', 'kick', 'air', 'hurt')
 problems: list[str] = []
 
 
@@ -264,14 +264,14 @@ for name, (frame_h, kind) in SHEETS.items():
     k = frame_h / max(f.height for row in grid for f in row)
     frames = [[f.resize((max(1, round(f.width * k)), max(1, round(f.height * k))), Image.BOX) for f in row] for row in grid]
     fw = max(f.width for row in frames for f in row)
-    if kind in ('strike', 'cast', 'kick'):  # centrado pelas pernas: largura que cabe o lado mais comprido dos dois
+    if kind in ('strike', 'cast', 'kick', 'air', 'hurt'):  # centrado pelas pernas: largura que cabe o lado mais comprido dos dois
         fw = max(2 * max(legs_center(f), f.width - legs_center(f)) for row in frames for f in row)
         fw = int(fw) + 2
     sheet = Image.new('RGBA', (fw * COLS, frame_h * ROWS), (0, 0, 0, 0))
     for r, row in enumerate(frames):
         for c, f in enumerate(row):  # centrado na horizontal, pés na base da célula
             # poses do corpo-base: centradas pelas pernas (o braço esticado não pode empurrar o corpo para o lado)
-            cx = legs_center(f) if kind in ('strike', 'cast', 'kick') else f.width / 2
+            cx = legs_center(f) if kind in ('strike', 'cast', 'kick', 'air', 'hurt') else f.width / 2
             sheet.paste(f, (c * fw + round(fw / 2 - cx), (r + 1) * frame_h - f.height))
     if name in TOOL_ONLY or name == 'ninja-base':
         save(sheet, name)

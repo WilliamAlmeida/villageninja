@@ -13,7 +13,7 @@
 #   python scripts/prepare-layers.py tpl <peça>    grava os moldes da peça (docs/arte/layers/tpl-<peça>[-side].png)
 #   bash scripts/layer-pieces.sh <peça>            gera a peça no Codex (folha inteira + vista de lado 2×2)
 #   python scripts/preview-layers.py               prévia recolorida
-#   ... --pose strike|cast|kick                         o mesmo para as poses de golpe e selos (só POSE_PIECES)
+#   ... --pose strike|cast|kick|air|hurt                         o mesmo para as poses de golpe e selos (só POSE_PIECES)
 import sys
 from collections import deque
 from pathlib import Path
@@ -31,7 +31,7 @@ COLS, ROWS = 4, 3
 POSE = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--pose'), '')
 SFX = f'-{POSE}' if POSE else ''
 POSE_PIECES = ['outfit-genin', 'vest-chunin', 'vest-jounin', 'coat-sannin', 'cloak-kage', 'outfit-anbu']
-POSES = ['strike', 'cast', 'kick']
+POSES = ['strike', 'cast', 'kick', 'air', 'hurt']
 BASE = SRC / f'ninja-base{SFX}.png'  # gerado pelo prepare-art.py (não vai para o jogo)
 BODY = OUT / f'ninja-body{SFX}.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
 WALK_BODY = OUT / 'ninja-body.png'
@@ -270,7 +270,9 @@ def body_sheet():
         return
     raw = Image.open(BASE).convert('RGBA')
     rh, rw = raw.height // ROWS, raw.width // COLS
-    cw = WALK_RAW_W + 2 * PADX  # a mesma célula da caminhada (o jogo troca de folha sem mudar a origem)
+    # a mesma célula da caminhada (o jogo troca de folha sem mudar a origem); pose mais larga (caído no chão) ganha
+    # célula maior, centrada: o jogo desenha pelo meio da base, então a origem não muda
+    cw = max(WALK_RAW_W + 2 * PADX, rw + 8)
     base = Image.new('RGBA', (cw * COLS, (rh + PAD) * ROWS), (0, 0, 0, 0))
     for r in range(ROWS):
         for c in range(COLS):
@@ -367,6 +369,20 @@ def head_box(a):
     return (hx.min() + hx.max()) / 2, f[1]
 
 
+# giro da cabeça (graus, anti-horário = negativo) por quadro, nas poses em que ela inclina: linhas lado, frente, costas
+HEAD_ROT = {'hurt': [[0, -40, -90, 0], [0, -15, 0, 0], [0, -40, -90, 0]]}
+
+
+def head_center(a):
+    """Meio da cabeça: a maior mancha de pele do quadro (a cabeça chibi é bem maior que as mãos)."""
+    sk = skin_mask(a)
+    best = max(islands(sk), key=len, default=None)
+    if not best:
+        return None
+    ys, xs = zip(*best)
+    return [round(sum(xs) / len(xs), 1), round(sum(ys) / len(ys), 1)]
+
+
 def pose_offsets():
     """Deslocamento da cabeça de cada quadro de cada pose em relação ao quadro parado da caminhada da mesma vista:
     as peças da cabeça e das costas (sem arte própria da pose) vão junto com ela."""
@@ -374,6 +390,7 @@ def pose_offsets():
     walk = cells(Image.open(WALK_BODY).convert('RGBA'))
     out = {}
     hands = {}
+    tilt = {}
     for pose in POSES:
         path = OUT / f'ninja-body-{pose}.png'
         if not path.exists():
@@ -384,7 +401,8 @@ def pose_offsets():
             w = head_box(np.array(walk[r][1]))
             for c in range(COLS):
                 h = head_box(np.array(pc[r][c]))
-                offs.append([round(h[0] - w[0]), round(h[1] - w[1])] if h and w else [0, 0])
+                # relativo ao meio da célula (a da pose pode ser mais larga que a da caminhada)
+                offs.append([round((h[0] - pc[r][c].width / 2) - (w[0] - walk[r][1].width / 2)), round(h[1] - w[1])] if h and w else [0, 0])
         out[pose] = offs
         # a mão que golpeia (pele mais à direita abaixo da cabeça): a lâmina lendária gira em volta dela (drawSlash)
         hand = []
@@ -398,8 +416,17 @@ def pose_offsets():
                 ys, xs = np.nonzero(sk)
                 hand.append([int(xs.max()), int(ys[xs == xs.max()].mean())] if len(xs) else None)
         hands[pose] = hand
+        # cabeça inclinada ou deitada (atingido): as peças da cabeça giram junto, em volta do meio da cabeça
+        if pose in HEAD_ROT:
+            tilt[pose] = []
+            for r in range(ROWS):
+                wc = head_center(np.array(walk[r][1]))
+                for c in range(COLS):
+                    ang = HEAD_ROT[pose][r][c]
+                    pcen = head_center(np.array(pc[r][c])) if ang else None
+                    tilt[pose].append([ang, *pcen, *wc] if ang and pcen and wc else None)
     dest = ROOT / 'src' / 'data' / 'doll-poses.json'
-    dest.write_text(json.dumps({'pieces': POSE_PIECES, 'offsets': out, 'hand': hands}) + chr(10), encoding='utf8')
+    dest.write_text(json.dumps({'pieces': POSE_PIECES, 'offsets': out, 'hand': hands, 'tilt': tilt}) + chr(10), encoding='utf8')
     print('doll-poses.json', {k: v[:4] for k, v in out.items()})
 
 

@@ -61,8 +61,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo precisa da camada. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
   **Poses além da caminhada** (mesma grade 4×3 e mesma célula 63×80): golpe de mão (`strike`: prepara · avança · impacto ·
-  recupera), chute (`kick`: joelho erguido · chute alto · rasteira · guarda) e selos (`cast`: três selos · solta o jutsu),
-  gabaritos `docs/arte/gabarito-strike|kick|cast.png`. Golpe novo = coreografia em `JutsuDef.moves` (`[pose, quadro, s]`,
+  recupera), chute (`kick`: joelho erguido · chute alto · rasteira · guarda), selos (`cast`: três selos · solta o jutsu), no ar (`air`:
+  agacha · encolhido · chute voador · aterrissa) e atingido (`hurt`: recua · arremessado · caído · levantando; célula mais
+  larga, centrada), gabaritos `docs/arte/gabarito-<pose>.png`. Passo = `[pose, quadro, s, altura?, 'spin'|'roll'?]`
+  (`data/moves.ts`); a altura levanta o corpo e deixa a sombra no chão. Reação ao dano (`MOVE_SEQS`, `playHurt`). Golpe novo = coreografia em `JutsuDef.moves` (`[pose, quadro, s]`,
   tocada por `playMoves` em combat.ts e `poseOf` em sprites.ts), sem sprite nova; o mapa dos taijutsu do anime e de quais
   folhas faltam está em `docs/taijutsu.md`. Corpo-base da pose
   pelo Codex (`--sheet strike|cast`, fatiado pelo prepare-art centrando pelas pernas → `ninja-body-<pose>.png` pelo

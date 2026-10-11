@@ -12,6 +12,7 @@ import { ART_SIZE } from './unitShape';
 import { STRIKE_ANIM } from '../game/combat';
 import dollPoses from '../data/doll-poses.json';
 import { JUTSUS } from '../data/jutsus';
+import { MOVE_SEQS, type MoveFx, moveAt, movesTime } from '../data/moves';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -454,9 +455,12 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   const sheet = artFrames(pic);
   // trabalhando: ciclo do golpe; andando: ciclo de caminhada; parado: quadro de descanso
   const frame = action ? workFrame(u, t, sheet.frames) : posed ? pz!.frame : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  // salto (coreografia com altura): o corpo sobe e a sombra fica no chão, menor e mais clara quanto mais alto
+  const lift = posed ? pz!.h : 0;
+  const far = Math.min(0.6, lift / 40);
+  ctx.fillStyle = `rgba(0,0,0,${0.28 * (1 - far * 0.6)})`;
   const shadow = artLayout(pic.dataset.name ?? '')?.shadow ?? [1, 1]; // ajuste da sombra no editor de sprites
-  ellipse(ctx, u.x, base - 1.5, (u.animal ? size * 1.2 : 8) * shadow[0], (u.animal ? size * 0.4 : 3.5) * shadow[1]);
+  ellipse(ctx, u.x, base - 1.5, (u.animal ? size * 1.2 : 8) * shadow[0] * (1 - far * 0.5), (u.animal ? size * 0.4 : 3.5) * shadow[1] * (1 - far * 0.5));
   ctx.save();
   if (u.kind === 'clone') ctx.globalAlpha = 0.75;
   // tigre das sombras: quase some no escuro até entrar em combate
@@ -466,11 +470,13 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
   const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
   // golpe: avança um passo curto na direção do alvo e volta (sem quadro de ataque na folha)
-  const lunge = !action && u.anim > 0 && !u.moving && pz?.pose !== 'cast' ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
+  const lunge = !action && !posed && u.anim > 0 && !u.moving ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
   const ux = u.x + dx * lunge;
-  const uy = base + dy * lunge * 0.5;
+  const uy = base + dy * lunge * 0.5 - lift;
   const height = (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale;
-  const flip = row === SHEET_ROWS.side && dx < 0;
+  // giro (Kaiten, Daisenpuu): espelha o lado num ritmo rápido
+  const spin = posed && pz!.fx === 'spin' && Math.floor(t * 18) % 2 === 1;
+  const flip = (row === SHEET_ROWS.side && dx < 0) !== spin;
   // "esmaga e estica": logo depois de um empurrão e ao pousar do Shunshin (largo e baixo, voltando ao normal)
   const knock = u.knockT ? Math.max(0, (u.knockT - 0.38) / 0.12) : 0;
   const land = u.landT && u.ninja ? Math.min(1, u.landT / 0.18) : 0;
@@ -479,6 +485,13 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     ctx.translate(ux, uy);
     ctx.scale(1 + 0.25 * sq, 1 - 0.2 * sq);
     ctx.translate(-ux, -uy);
+  }
+  // rolar (Gatsūga, Nikudan Sensha): o desenho gira em volta do meio do corpo
+  if (posed && pz!.fx === 'roll') {
+    const cyy = uy - height * 0.45;
+    ctx.translate(ux, cyy);
+    ctx.rotate(t * 22 * (dx < 0 ? -1 : 1));
+    ctx.translate(-ux, -cyy);
   }
   if (slash && row === SHEET_ROWS.back) drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
   if (u.sage) {
@@ -491,6 +504,10 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     ctx.globalAlpha *= Math.min(1, u.hitFlash / 0.15) * 0.85;
     drawArt(ctx, whiteArt(pic), ux, uy, height, flip, frame, row);
   }
+  // Rasengan: a esfera de chakra girando na mão, na corrida e no golpe
+  const orbJ = u.dash?.id ?? (u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
+  const orb = orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
+  if (orb) handOrb(ctx, ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4), uy - 13 + (row === SHEET_ROWS.back ? -2 : 0), orb, t);
   if (slash && row !== SHEET_ROWS.back) {
     ctx.globalAlpha = 1;
     drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
@@ -503,43 +520,63 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
  * Pose do ninja em camadas agora (só desenho): selos = os três selos em ciclo e, ao soltar o jutsu, o braço esticado;
  * golpe de mão = prepara, avança, IMPACTO (quando o dano entra) e recupera; arremesso = braço esticado e recupera.
  */
-function poseOf(u: Unit, t: number): { pose: DollPose; frame: number } | null {
+function poseOf(u: Unit, t: number): PoseNow | null {
   if (!u.ninja && !u.swordsman) return null;
   if (u.cast) {
     // os três selos pelo andamento (selo curto também passa pelos três); sem o total (save antigo), em ciclo
     const k = u.cast.total ? 1 - u.cast.t / u.cast.total : (t * 5 + u.id) % 3 / 3;
-    return { pose: 'cast', frame: Math.min(2, Math.floor(k * 3)) };
+    return { pose: 'cast', frame: Math.min(2, Math.floor(k * 3)), h: 0 };
   }
-  // investida (Chidori, Passo de Sangue): avança com o braço adiante em vez de caminhar
+  // investida: o 1º passo da coreografia na corrida (chute voador, bola rolando…); sem coreografia, avanço do soco
   if (u.dash) {
-    const first = u.dash.id ? JUTSUS[u.dash.id]?.moves?.[0] : undefined; // o 1º passo da coreografia (chute voador…)
-    return first ? { pose: first[0], frame: first[1] } : { pose: 'strike', frame: 1 };
+    const first = u.dash.id ? JUTSUS[u.dash.id]?.moves?.[0] : undefined;
+    return first ? { pose: first[0], frame: first[1], h: first[3] ?? 0, fx: first[4] } : { pose: 'strike', frame: 1, h: 0 };
   }
+  // nocaute do duelo: caído no chão
+  if (u.state === 'ko') return { pose: 'hurt', frame: 2, h: 0 };
   if (u.anim <= 0 || u.moving) return null;
-  if (u.animKind === 'moves') {
-    // coreografia do jutsu: o passo em que o tempo decorrido cai
-    const seq = u.moveJutsu ? JUTSUS[u.moveJutsu]?.moves : undefined;
-    if (seq) {
-      let left = seq.reduce((a, m) => a + m[2], 0) - u.anim;
-      for (const [pose, frame, d] of seq) {
-        if (left < d) return { pose, frame };
-        left -= d;
-      }
-      return { pose: seq.at(-1)![0], frame: seq.at(-1)![1] };
-    }
+  if (u.animKind === 'moves' && u.moveJutsu) {
+    const seq = MOVE_SEQS[u.moveJutsu] ?? JUTSUS[u.moveJutsu]?.moves;
+    if (seq) return moveAt(seq, movesTime(seq) - u.anim);
   }
-  if (u.animKind === 'impact') return { pose: 'strike', frame: u.anim > 0.15 ? 2 : 3 };
-  if (u.animKind === 'release') return { pose: 'cast', frame: 3 };
+  if (u.animKind === 'impact') return { pose: 'strike', frame: u.anim > 0.15 ? 2 : 3, h: 0 };
+  if (u.animKind === 'release') return { pose: 'cast', frame: 3, h: 0 };
   // ritmo rápido: um selo relâmpago (mãos juntas) e o braço esticado soltando
-  if (u.animKind === 'cast') return { pose: 'cast', frame: u.anim > 0.28 ? 1 : 3 };
-  if (u.animKind === 'throw') return { pose: 'strike', frame: u.anim > 0.1 ? 2 : 3 };
+  if (u.animKind === 'cast') return { pose: 'cast', frame: u.anim > 0.28 ? 1 : 3, h: 0 };
+  if (u.animKind === 'throw') return { pose: 'strike', frame: u.anim > 0.1 ? 2 : 3, h: 0 };
   if (u.animKind === 'strike') {
     const s = u.strike;
-    if (s && !s.hit) return { pose: 'strike', frame: s.t > STRIKE_ANIM / 4 ? 0 : 1 };
-    return { pose: 'strike', frame: u.anim > 0.28 ? 2 : 3 };
+    if (s && !s.hit) return { pose: 'strike', frame: s.t > STRIKE_ANIM / 4 ? 0 : 1, h: 0 };
+    return { pose: 'strike', frame: u.anim > 0.28 ? 2 : 3, h: 0 };
   }
   return null;
 }
+
+/** Esfera de chakra girando (Rasengan): brilho, anel claro e riscos em espiral. */
+function handOrb(ctx: Ctx, x: number, y: number, color: string, t: number) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const gr = ctx.createRadialGradient(x, y, 0, x, y, 9);
+  gr.addColorStop(0, 'rgba(255,255,255,0.95)');
+  gr.addColorStop(0.35, color);
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gr;
+  ctx.beginPath();
+  ctx.arc(x, y, 9, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(230,248,255,0.8)';
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < 3; i++) {
+    const a = t * 14 + (i * TAU) / 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 4.5, a, a + 1.6);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Pose agora: folha, quadro, altura do corpo acima do chão e efeito (girar, rolar). */
+type PoseNow = { pose: DollPose; frame: number; h: number; fx?: MoveFx };
 
 /** Animação de trabalho do morador (folhas villager-<ação>). */
 export type WorkAction = 'chop' | 'mine' | 'farm';
@@ -1558,6 +1595,38 @@ export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
   const dx = p.vx / sp;
   const dy = p.vy / sp;
   switch (p.kind) {
+    case 'spinner': {
+      // Rasenshuriken: quatro lâminas de vento girando em volta da esfera azul, com o zumbido em anéis
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      const r = p.size * 1.6;
+      ctx.rotate(t * 18);
+      ctx.fillStyle = 'rgba(210,245,255,0.55)';
+      for (let i = 0; i < 4; i++) {
+        ctx.rotate(TAU / 4);
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.18);
+        ctx.quadraticCurveTo(r * 0.55, -r * 0.5, r * 1.05, -r * 0.05);
+        ctx.quadraticCurveTo(r * 0.5, r * 0.05, 0, r * 0.18);
+        ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.75, 0, TAU);
+      ctx.stroke();
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size * 0.7);
+      gr.addColorStop(0, '#ffffff');
+      gr.addColorStop(0.5, '#5fb4ff');
+      gr.addColorStop(1, 'rgba(60,140,255,0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size * 0.7, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     case 'kunai':
       ctx.save();
       ctx.translate(p.x, p.y);

@@ -13,6 +13,8 @@ visual (vfx) que já existe — sem sprite nova.
 | `strike` (soco) | prepara, punho atrás | avança | **impacto**, braço todo esticado | recupera |
 | `kick` (chute) | joelho erguido | **chute alto** | **rasteira** agachado | guarda |
 | `cast` (selos) | selo no peito | selo no queixo | selo dedos cruzados | **solta**, palma aberta à frente |
+| `air` (no ar) | agacha para pular | encolhido no ar | **chute voador** | aterrissa com a mão no chão |
+| `hurt` (atingido) | recua | arremessado | **caído** no chão | levantando |
 
 Truques de código que multiplicam os quadros (só desenho, `drawUnitArt`): alternar dois quadros rápido (rajada),
 espelhar o lado a cada passo (giro), deslocar o sprite para cima (salto/no ar), avanço curto (lunge), investida
@@ -45,7 +47,16 @@ espelhar o lado a cada passo (giro), deslocar o sprite para cima (salto/no ar), 
 | Kawazu Kumite (Naruto Sábio) | golpes com energia natural ao redor | strike/kick normais + `sageGlow` (já existe) |
 | Hachimon (Lee/Gai) | abre os portões: aura e força | estado (buff) com aura verde/vermelha; usa as outras |
 
-## O que falta para cobrir quase tudo
+## Feito
+
+Todos os golpes da tabela entraram como jutsu (`data/jutsus.ts`, fim da lista), menos Kawazu Kumite (já é o Modo
+Sábio) e Hachimon (fica para um estado de "portões"); mais Rasengan (investida com a esfera na mão, `handOrb`) e
+Rasenshuriken (projétil `spinner`). Altura do salto: 4º campo do passo (`moves`), o corpo sobe e a sombra fica no
+chão. Efeito: 5º campo, `spin` (giro espelhando) ou `roll` (bola girando). Investida com área ao chegar: `dashRadius`.
+Alvo lançado ao alto: `launch`. Reação ao dano: `MOVE_SEQS` (`hurt-light`, `hurt-down`, `hurt-launch`), por
+`playHurt` em combat.ts; o duelo do Exame em nocaute fica caído.
+
+## Antes (o que faltava)
 
 Com soco, chute e selos dá para ~80% da lista. Uma folha a mais destravaria o resto:
 

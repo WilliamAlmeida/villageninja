@@ -33,7 +33,7 @@ export type FlickerStyle = 'leaf' | 'mist' | 'water' | 'sand' | 'smoke' | 'flash
 export type CombatPace = 'fast' | 'tactical';
 export type NinjaOrder = 'auto' | 'train' | 'patrol' | 'scout';
 /** `jet` jato d'água, `shard` gelo, `needle` agulha, `arrow` flecha (desenho em render/sprites.ts). */
-export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai' | 'jet' | 'shard' | 'needle' | 'arrow';
+export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai' | 'jet' | 'shard' | 'needle' | 'arrow' | 'spinner';
 
 export interface Look {
   skin: string;
