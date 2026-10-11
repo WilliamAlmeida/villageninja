@@ -186,3 +186,6 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
   vermelha (`card-sannin`), aprovada pelo autor.
 - Vitrine: grupos "Construção" (barra, posicionar, mover, detalhes de cada prédio) e "Avisos, faixas e diálogos" (zerar
   recursos, avisos, notificações, faixas, menu de pausa).
+- Animação de troca (`Panel.show`): só quando o conteúdo é outro de verdade — trocar de aba da janela (o conteúdo abaixo
+  do cabeçalho fixo), escolher outra equipe (só o detalhe ao lado da lista) ou abrir outro ninja/prédio no drawer. Ação
+  dentro da tela (botões, filtros, ordens) nunca anima o painel. Abrir/fechar: `ui/anim.ts` (`setShown`).

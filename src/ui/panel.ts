@@ -432,19 +432,30 @@ export class Panel {
     if (view?.kind !== 'group') this.app.group = [];
     this.setHover(null);
     if (view?.kind !== this.view?.kind || (view && 'id' in view && this.view && 'id' in this.view && view.id !== this.view.id)) this.buildingTab = 'main';
-    // trocando de tela com o painel já aberto (aba da janela, outro prédio): o conteúdo novo entra com um esmaecer curto
-    const swap = !!view && !!this.view && !this.root.hidden && (view.kind !== this.view.kind || ('id' in view && 'id' in this.view && view.id !== this.view.id));
+    // Esmaecer de troca: só quando o conteúdo é outro de verdade, nunca a cada ação. Janela: ao trocar de aba (a equipe
+    // aberta fica sob a aba Equipes; escolher outra equipe anima só o detalhe ao lado da lista). Drawer: outro ninja,
+    // prédio ou local. A rolagem só volta ao topo quando a aba/alvo muda.
+    const prev = this.view;
+    const open = !!prev && !!view && !this.root.hidden;
+    const tabOf = (v: View) => (v.kind === 'team' ? 'teams' : v.kind);
+    const idOf = (v: View) => ('id' in v ? v.id : null);
+    let swap: 'all' | 'detail' | null = null;
+    if (open && this.mode === 'window') {
+      if (tabOf(view!) !== tabOf(prev!)) swap = 'all';
+      else if (view!.kind === 'team' && idOf(view!) !== idOf(prev!)) swap = 'detail';
+    } else if (open && (view!.kind !== prev!.kind || idOf(view!) !== idOf(prev!))) swap = 'all';
     this.view = view;
     this.lastHtml = '';
     this.armedDemolish = 0;
     setShown(this.root, !!view);
-    if (swap) {
-      this.body.classList.remove('swap');
-      void this.body.offsetWidth; // reinicia a animação
-      this.body.classList.add('swap');
-    }
-    this.body.scrollTop = 0;
+    if (!open || swap === 'all') this.body.scrollTop = 0;
     this.update(true);
+    if (swap) {
+      // Web Animations (não classe: o morph tiraria a classe na próxima atualização); o cabeçalho fixo fica parado
+      const els = swap === 'all' ? [...this.body.children].filter((e) => !e.classList.contains('wtop')) : [...this.body.querySelectorAll('.tdetail')];
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
+        for (const e of els) e.animate([{ opacity: 0.35, transform: 'translateY(0.25rem)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' });
+    }
   }
 
   /**
