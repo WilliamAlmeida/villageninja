@@ -149,11 +149,11 @@ export class BuildUI {
     if (up) rows.push(`<span class="lbl">Upgrades</span> ${up.perks.map((p, i) => `Nv ${i + 1}: ${p}`).join(' · ')}`);
     if (!r.ok) rows.push(...(lack.length ? lack : [`{lock} ${r.error}`]));
     const img = artUrl(type);
+    const summary = `${d.desc}<br><small>${facts.join(' · ')}</small>`;
     showAlert({
       kind: 'info',
       title: `${d.name}`,
-      extra: img ? `<div class="aimg"><img src="${img}" alt=""></div>` : '',
-      text: `${d.desc}<br><small>${facts.join(' · ')}</small>`,
+      extra: `<div class="binfo">${img ? `<div class="aimg build"><img src="${img}" alt=""></div>` : ''}<div class="ainfo"><p>${summary}</p></div></div>`,
       rows,
       action: { label: '{hammer} Construir', run: () => this.start(type), disabled: !r.ok },
     });

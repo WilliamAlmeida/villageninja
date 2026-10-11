@@ -57,6 +57,7 @@ function syncAttrs(el: Element, next: Element) {
     if (name === 'class' && el.tagName === 'IMG' && el.classList.contains('ok')) v = `${value} ok`;
     if (el.getAttribute(name) !== v) el.setAttribute(name, v);
   }
-  for (const { name } of Array.from(el.attributes)) if (!next.hasAttribute(name)) el.removeAttribute(name);
+  // `open` de <details> é estado do usuário (dropdown aberto): a atualização periódica não fecha
+  for (const { name } of Array.from(el.attributes)) if (!next.hasAttribute(name) && !(name === 'open' && el.tagName === 'DETAILS')) el.removeAttribute(name);
   // o texto das barras/números dinâmicos é escrito depois (data-t/data-b): não apagar o estilo calculado
 }

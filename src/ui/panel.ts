@@ -1379,11 +1379,11 @@ export class Panel {
     const on = !!g.state.flags.autoGear;
     const chip = (n: number, ic: string, label: string) => `<span class="mchip ${n ? 'bad' : ''}">${ic} ${n} ${label}</span>`;
     let html = this.winTop(
-      '{anvil} Oficinas',
+      'Oficinas',
       `<span class="mchip">{ninja} ${ninjas.length}</span>${chip(lack('weapon'), '{kunai}', '')}${chip(lack('armor'), '{vest}', '')}${chip(lack('item'), '{pill}', '')}`,
       `<button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
        ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}`,
-      (['forge', 'pharmacy', 'sealshop'] as const).map((k): [string, string, boolean, string] => [k, `${BUILDINGS[k].icon} ${k === 'sealshop' ? 'Selos' : BUILDINGS[k].name}`, this.craftTab === k, 'craft-tab']),
+      (['forge', 'pharmacy', 'sealshop'] as const).map((k): [string, string, boolean, string] => [k, k === 'sealshop' ? 'Selos' : BUILDINGS[k].name, this.craftTab === k, 'craft-tab']),
     );
     // uma oficina por vez (menos coisa atualizando o tempo todo e mais espaço para as receitas)
     html += `<div class="craftone">${this.craftCard(this.craftTab, t, b)}</div>`;
@@ -1400,8 +1400,9 @@ export class Panel {
     const bd = g.state.buildings.find((x) => x.type === type);
     const lvl = bd ? levelOf(bd) : 1;
     const url = (lvl > 1 && artUrl(`${type}-${lvl}`)) || artUrl(type);
+    const wsLabel = type === 'pharmacy' ? `${pxIco('pill')} ${esc(d.name)}` : esc(d.name);
     let html = `<div class="wscard"><div class="wshead"><span class="ws-art">${url ? pimg(url) : d.icon}</span><div class="ws-hmain">
-      <span class="wsname">${d.icon} ${esc(d.name)}</span>`;
+      <span class="wsname">${wsLabel}</span>`;
     if (!bd) return html + `</div></div><p class="why">Ainda não construída. Abra Construir (B) para erguer: ${esc(d.name)}.</p></div>`;
     html += `<span class="mchip">Nv ${lvl}</span>`;
     if (!bd.built) return html + `</div></div><p class="hint">{hammer} Em obra…</p></div>`;
@@ -1411,7 +1412,7 @@ export class Panel {
     html += `</div></div>`;
     const recipes = recipesOf(type);
     // estoque (consumíveis: e quanto se gastou na semana)
-    html += `<div class="ws-sec ws-a"><h4>{luggage} Estoque${type === 'forge' ? '' : ` ${infoTip('Gasto na semana', 'Quantos foram usados em combate nos últimos 7 dias: ajuda a escolher quanto manter.')}`}</h4><div class="ws-stock">${recipes
+    html += `<div class="ws-sec ws-a"><h4>Estoque${type === 'forge' ? '' : ` ${infoTip('Gasto na semana', 'Quantos foram usados em combate nos últimos 7 dias: ajuda a escolher quanto manter.')}`}</h4><div class="ws-stock">${recipes
       .map((r) => {
         const week = r.slot === 'item' ? weekUse(g.state, r.id) : -1;
         return `<span class="ws-it" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`, true)}><span class="ws-ic">${itemPx(r)}</span><span>${esc(r.name)}${week >= 0 ? `<small class="ws-week">${week} na semana</small>` : ''}</span><b>${stock(g, r.id)}</b></span>`;
@@ -1422,7 +1423,7 @@ export class Panel {
     const q = bd.queue ?? [];
     const used = q.length + (bd.craft ? 1 : 0);
     const max = queueMax(bd);
-    html += `<div class="ws-sec ws-b"><h4>{hammer} Produção atual</h4>`;
+    html += `<div class="ws-sec ws-b"><h4>Produção atual</h4>`;
     if (bd.craft) {
       const it = ITEMS[bd.craft.itemId]!;
       const k = `cr${bd.id}`;
@@ -1430,7 +1431,7 @@ export class Panel {
       t[k] = `${Math.floor(b[k] * 100)}%`;
       html += `<div class="ws-now"><span class="ws-ic big">${itemPx(it)}</span><div><b>${esc(it.name)}</b><div class="xc-prog"><div class="nc-bar xp"><i data-b="${k}"></i></div><span data-t="${k}"></span></div></div></div>`;
     } else html += `<div class="ws-now idle"><span class="ws-ic big">{gear}</span><b>Nada em produção</b></div>`;
-    html += `<h4>{todo} Fila de produção <small>${used}/${max}</small></h4><div class="ws-queue">`;
+    html += `<h4>Fila de produção <small>${used}/${max}</small></h4><div class="ws-queue">`;
     for (let i = 0; i < max; i++) {
       const id = i === 0 ? bd.craft?.itemId : q[bd.craft ? i - 1 : i];
       html += id ? `<span class="ws-slot on" ${tipAttr(ITEMS[id]!.name, i === 0 && bd.craft ? 'Em produção.' : 'Na fila.', true)}>${itemPx(ITEMS[id]!)}</span>` : `<span class="ws-slot"></span>`;
@@ -1439,7 +1440,7 @@ export class Panel {
     html += `</div></div>`;
     // receitas
     const auto = canAutoCraft(bd);
-    html += `<div class="ws-sec ws-r"><h4>{scroll} Receitas</h4><div class="scrollist">`;
+    html += `<div class="ws-sec ws-r"><h4>Receitas</h4><div class="scrollist">`;
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
       const keep = bd.keep?.[r.id] ?? 0;
@@ -1456,9 +1457,9 @@ export class Panel {
         const full = used >= max && `A fila está cheia (máximo ${max}).`;
         html += `<div class="wsr-acts"><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [full], r.cost)}>+1</button><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:5" ${blocked(g, [full], r.cost)}>+5</button>`;
         html += auto
-          ? `<span class="chips wsr-keep"><span class="hint">Manter</span>${[0, 3, 5, 10, 20]
-              .map((n) => `<button data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}" class="${keep === n ? 'on' : ''}">${n || 'não'}</button>`)
-              .join('')}</span>`
+          ? `<details class="wsr-keep"><summary class="wsr-keep-head">Manter <b>${keep || 'não'}</b></summary><div class="wsr-keep-menu">${[0, 3, 5, 10, 20]
+              .map((n) => `<button class="wsr-keep-item ${keep === n ? 'on' : ''}" data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}">${n || 'não'}</button>`)
+              .join('')}</div></details>`
           : `<span class="ws-lock">{lock} Nv ${AUTO_CRAFT_LEVEL} libera Manter</span>`;
         html += `</div>`;
       }
@@ -1689,7 +1690,7 @@ export class Panel {
     //   return chip('{ninja}', `${ninjas.length}`) + chip('{users}', `${s.teams.length} equipes`) + (hurt ? chip('{medic}', `${hurt} feridos`, 'bad') : '');
     // }
     if (group === 'village')
-      return chip('{star}', `Reputação ${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`);
+      return chip('{star}', `${s.reputation}`, 'gold') + chip('{calendar}', `Dia ${s.day}`);
     if (group === 'world') {
       const exps = s.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost').length;
       return chip('{star}', `Honra ${s.honor}`, 'gold') + chip('{skull}', `Infâmia ${s.infamy}`, s.infamy ? 'bad' : '') + chip('{flag}', `Expedições ${exps}`);
@@ -2431,10 +2432,11 @@ export class Panel {
       if (!n && k !== this.rosterFilter && k !== 'all' && !RANK_FILTERS.includes(k)) continue;
       html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''} ${k === 'hurt' || k === 'worn' ? 'bad' : ''}">${label} <small>${n}</small></button>`;
     }
-    html += `</div><div class="fchips rsort"><span class="lbl">Ordenar</span>`;
+    const sortLabel = ROSTER_SORTS.find(([key]) => key === this.rosterSort)?.[1] ?? 'Nível';
+    html += `</div><details class="rsort"><summary class="rsort-head" ${tipAttr('Ordenar lista', 'Toque para escolher como ordenar os ninjas.', true)}><span class="lbl">Ordenar</span><b>${sortLabel}</b></summary><div class="rsort-menu">`;
     for (const [k, label, tip] of ROSTER_SORTS)
-      html += `<button data-act="r-sort" data-arg="${k}" class="${this.rosterSort === k ? 'on' : ''}" ${tipAttr(label, tip)}>${label}</button>`;
-    html += `</div></div>`;
+      html += `<button class="rsort-item ${this.rosterSort === k ? 'on' : ''}" data-act="r-sort" data-arg="${k}" ${tipAttr(label, tip)}>${label}</button>`;
+    html += `</div></details></div>`;
     const RANK_N: Record<string, number> = { genin: 0, chunin: 1, jounin: 2, kage: 3 };
     const by: Record<RosterSort, (a: Unit, z: Unit) => number> = {
       level: (a, z) => z.ninja!.level - a.ninja!.level || z.ninja!.xp - a.ninja!.xp,
@@ -2734,6 +2736,7 @@ export class Panel {
         return this.report(cancelCraft(g, Number(arg)));
       case 'ws-keep': {
         const [bid, id, n] = String(arg).split(':');
+        (btn.closest('details.wsr-keep') as HTMLDetailsElement | null)?.removeAttribute('open');
         return this.report(setKeep(g, Number(bid), id!, Number(n)));
       }
       case 'ws-worker':
@@ -2974,6 +2977,7 @@ export class Panel {
         return this.report({ ok: true });
       case 'r-sort':
         this.rosterSort = arg as RosterSort;
+        (btn.closest('details.rsort') as HTMLDetailsElement | null)?.removeAttribute('open');
         return this.report({ ok: true });
       case 'team-auto': {
         const r = autoTeams(g);

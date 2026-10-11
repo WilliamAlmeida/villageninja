@@ -16,7 +16,7 @@ PX = {'dialog': 9, 'title': 4, 'panel': 5, 'crest': 5, 'button': 12, 'round': 16
       'hudbar': 4, 'dock': 4, 'slots': 9, 'card': 8, 'row': 5, 'ribbon': 5}
 # cores por código (matiz 0–1, saturação): botões, preenchimentos e selos
 COLORS = {
-    'green': (0.33, 0.62), 'red': (0.0, 0.7), 'orange': (0.085, 0.85), 'blue': (0.58, 0.7),
+    'green': (0.36, 0.5, 0.9), 'red': (0.0, 0.7), 'orange': (0.085, 0.85), 'blue': (0.58, 0.7),
     'dark': (0.07, 0.4, 0.42), 'gray': (0.0, 0.0), 'purple': (0.76, 0.5), 'amber': (0.11, 0.75),
 }
 
