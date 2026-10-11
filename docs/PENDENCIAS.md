@@ -4,13 +4,13 @@ Tudo o que foi combinado com o autor e ainda falta. Marcar `[x]` ao terminar (co
 Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lista de jutsus aprovada.
 
 ## 1. Jutsus que faltam (aprovados)
-- [x] Kage Mane (sombra que prende; Nara)
-- [x] Shintenshin (troca de mente: o alvo luta pelo lado de quem usou por uns segundos; Yamanaka)
-- [x] Chidori Nagashi (raio em volta do corpo, área curta que paralisa)
-- [x] Kirin (raio do céu em área grande; precisa de tempestade/nuvem ou carrega muito)
-- [x] Ōdama Rasengan (Rasengan gigante, área ao chegar)
-- [x] Areia do Gaara: escudo de areia automático + Sabaku Kyū (caixão de areia que prende e esmaga)
-- [x] Edo Tensei (proibido: traz de volta por um tempo um ninja caído da vila para lutar)
+- [x] Kage Mane (sombra que prende; Nara) (9ae9b56)
+- [x] Shintenshin (troca de mente: o alvo luta pelo lado de quem usou por uns segundos; Yamanaka) (9ae9b56)
+- [x] Chidori Nagashi (raio em volta do corpo, área curta que paralisa) (9ae9b56)
+- [x] Kirin (raio do céu em área grande; precisa de tempestade/nuvem ou carrega muito) (9ae9b56)
+- [x] Ōdama Rasengan (Rasengan gigante, área ao chegar) (9ae9b56)
+- [x] Areia do Gaara: escudo de areia automático + Sabaku Kyū (caixão de areia que prende e esmaga) (9ae9b56)
+- [x] Edo Tensei (proibido: traz de volta por um tempo um ninja caído da vila para lutar) (9ae9b56)
 
 ## 2. Cenário
 - [ ] Decorações (categoria nova na construção: pagode, santuários, lanternas, cerejeiras que florescem na
