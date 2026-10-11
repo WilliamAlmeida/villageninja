@@ -20,17 +20,19 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Pedra Memorial com os nomes dos ninjas caídos (6178536)
 - [x] Mapa jogável temático da Vila dos Pescadores (palafitas, cais, barcos, redes) + enfeites no Porto (d3ae338)
 - [x] Mapa jogável temático da Cidade dos Mercadores (deserto, tendas, muralha, poço) (d3ae338)
-- [ ] Arte nova da ruína e da entrada da mina
-- [ ] Penhascos e escadas (primeiro nos mapas jogáveis, ex.: prova do Monte dos Sapos)
+- [~] Arte nova da ruína e da entrada da mina — as do jogo foram editadas à mão pelo autor e não foram trocadas; versões
+      novas do Codex prontas em docs/arte/iso/ruin-alt.png e cave-alt.png (trocar só se o autor quiser)
+- [x] Penhascos e escadas (primeiro nos mapas jogáveis, ex.: prova do Monte dos Sapos)
 
 ## 3. Telas (dos mockups)
-- [ ] Ninjas: cartões em grade (retrato, patente, nível, vida, 2 jutsus) com a faixa da equipe/missão
-- [ ] Ficha do ninja: barra de atributo com a cor de cada um; jutsus em cartões com selo de kanji; contrato em cartão
-- [ ] Equipes: formação em cartões com retrato e vida; rotina/tática/ordens em botões
-- [ ] Clãs: estandarte ilustrado com o emblema de cada clã
-- [ ] Missões: ilustração do alvo em cada contrato e recompensas em caixinhas
-- [ ] Kit 2 sem uso: linha de missão (`row`), rótulo com ponta de pergaminho, separador (`divider`)
-- [ ] Ícones de interface redesenhados em pixel art (botões redondos com símbolo, ícones em quadro, bandeiras, emblemas)
+- [x] Ninjas: cartões em grade (retrato, patente, nível, vida, 2 jutsus) com a faixa da equipe/missão
+- [x] Ficha do ninja: barra de atributo com a cor de cada um; jutsus em cartões com selo de kanji; contrato em cartão
+- [x] Equipes: formação em cartões com retrato e vida; rotina/tática/ordens em botões (já estava no jogo)
+- [x] Clãs: estandarte ilustrado com o emblema de cada clã
+- [x] Missões: ilustração do alvo em cada contrato e recompensas em caixinhas
+- [x] Kit 2 sem uso: linha de missão (`row`), rótulo com ponta de pergaminho, separador (`divider`)
+- [?] Ícones de interface redesenhados em pixel art (botões redondos com símbolo, ícones em quadro, bandeiras, emblemas) —
+      contraria a regra combinada antes (interface = glifo Phosphor; pixel art só para recursos, itens, retratos): perguntar ao autor
 
 ## 4. Ninja e retratos
 - [ ] Sharingan/Byakugan pintados nos retratos (bustos)

@@ -25,6 +25,9 @@ ITEMS = [
     ('flowers', 'a small square raised flower bed with a wooden border full of colorful flowers (red, yellow, purple)'),
     ('pond', 'a small irregular koi pond with clear blue water, two orange koi fish, round stones around the edge and a tiny wooden bridge'),
     ('banner', 'a tall wooden pole with a long vertical red cloth banner with a white spiral emblem, on a small stone base'),
+    # alternativas para os locais do mapa (a ruína e a mina do jogo foram editadas à mão pelo autor; estas ficam à parte)
+    ('ruin-alt', 'ancient ninja temple ruins: three broken grey stone pillars, a collapsed weathered red torii gate, a cracked stone floor with moss and vines, and a small stone altar with a sealed glowing scroll'),
+    ('cave-alt', 'a mine entrance dug into a small rocky hill with grass on top: a dark tunnel with a sturdy wooden beam frame, rail tracks coming out with a wooden mine cart full of ore, a hanging lantern and a few rocks'),
     # Pedra Memorial (prédio único, não decoração)
     ('memorial', 'a ninja memorial stone: a tall dark grey polished stone slab with many tiny engraved name lines, on a two-step stone base, with a small incense burner smoking, white flowers and a few kunai left at its foot'),
 ]

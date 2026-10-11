@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { createNewGame } from '../src/game/newGame';
-import { createVillageScene } from '../src/game/scene';
+import { createTrialScene, createVillageScene, PLATEAU_R } from '../src/game/scene';
+import { findPath } from '../src/game/pathfinding';
+import { Game } from '../src/game/game';
+import { CENTER_TX, CENTER_TY } from '../src/game/world';
 import { SYSTEMS } from '../src/game/systems';
 import type { Expedition, GameState } from '../src/game/types';
 import { MAP_H, MAP_W } from '../src/config';
@@ -30,6 +33,15 @@ describe('mapas temáticos', () => {
     expect(s.sceneInfo!.theme).toBe('desert');
     expect(share(s, T.SAND) + share(s, T.DIRT)).toBeGreaterThan(0.6);
     expect(s.nodes.some((n) => n.type === 'tree')).toBe(false);
+  });
+
+  test('prova do contrato: clareira num platô de penhasco, com a escada como passagem', () => {
+    const home = createNewGame(SYSTEMS, 303);
+    const s = createTrialScene(home, { id: 9998, kind: 'region', node: 'sapos', action: 'contract', teamId: -1 } as unknown as Expedition);
+    expect(s.sceneInfo!.theme).toBe('cliff');
+    expect(s.tiles[CENTER_TY * MAP_W + CENTER_TX + PLATEAU_R]).toBe(T.ROCK);
+    const g = new Game(s, []);
+    expect(findPath(g.world, CENTER_TX, CENTER_TY + PLATEAU_R + 3, CENTER_TX, CENTER_TY)).not.toBeNull();
   });
 
   test('outros vilarejos seguem o mapa comum', () => {

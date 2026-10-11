@@ -672,6 +672,7 @@ export class Panel {
       }
       html += `</div>` + this.basicTechniques(u, t);
       if (isOwn) html += this.fichaTeam(u);
+      if (isOwn) html += `<div class="k2div"></div>`; // separador do kit 2 antes da carreira
       if (n.learning) {
         const d = JUTSUS[n.learning.jutsuId]!;
         html += `<h4>Estudando</h4><div class="hint">${esc(d.name)} → slot ${n.learning.slot + 1}</div><div class="bar pg"><i data-b="learn"></i><span data-t="learn"></span></div>`;
@@ -1975,7 +1976,9 @@ export class Panel {
       const members = clanMembers(g, c);
       const ninjas = members.filter((u) => u.ninja);
       const nat = NATURES[c.nature];
-      html += `<div class="mcard" style="--c:${c.color}"><div class="mt"><span class="dot"></span>Clã ${esc(c.name)}
+      // estandarte do clã: pano na cor dele com o emblema (a kekkei genkai despertada, senão a natureza do fundador)
+      const emblem = c.kekkei ? KEKKEI[c.kekkei].kanji : nat.kanji;
+      html += `<div class="mcard clancard" style="--c:${c.color}"><div class="clanban" ${tipAttr(`Clã ${c.name}`, c.kekkei ? `Emblema: ${KEKKEI[c.kekkei].name}.` : `Emblema: ${nat.name}, a natureza do clã.`, true)}><i>${emblem}</i><span>${esc(c.name)}</span></div><div class="clanbody"><div class="mt"><span class="dot"></span>Clã ${esc(c.name)}
         ${c.kekkei ? `<span class="badge nat" style="--c:${KEKKEI[c.kekkei].color}">${KEKKEI[c.kekkei].kanji} ${KEKKEI[c.kekkei].name}</span>` : ''}</div>
         <div class="jm">Fundador: ${esc(c.founderName)} (dia ${c.day}) · ${members.length} membro(s), ${ninjas.length} ninja(s)</div>
         <div class="jd">Especialidade: ${STAT_INFO[c.specialty].label} · natureza ${nat.kanji} ${nat.name}</div>
@@ -1990,7 +1993,7 @@ export class Panel {
             html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${blocked(g, [], AWAKEN_COST)} ${tipAttr(`Despertar ${k.name}`, `Kekkei genkai ${k.pt}.`)}>${k.kanji} Despertar ${k.name} ${costTag(AWAKEN_COST)}</button>`;
         html += `</div>`;
       }
-      html += `</div>`;
+      html += `</div></div>`;
     }
     html += `<h4>Kekkei genkai</h4><ul class="kklist">`;
     for (const k of KEKKEI_LIST)
@@ -2485,13 +2488,14 @@ export class Panel {
     const r = MISSION_RANKS[m.rank]!;
     const need = missionPower(m);
     const reward = missionReward(tpl);
+    // recompensas em caixinhas (ícone em cima, número embaixo), como no mockup
     const chips = RES_KEYS.filter((k) => reward[k])
-      .map((k) => `<span class="mchip">${RES_INFO[k].icon} ${reward[k]}</span>`)
+      .map((k) => `<span class="mrw" ${tipAttr(RES_INFO[k].name, `${reward[k]} de ${RES_INFO[k].name.toLowerCase()} ao cumprir.`, true)}>${RES_INFO[k].icon}<b>${reward[k]}</b></span>`)
       .join('');
-    let html = `<div class="mcontract" style="--c:${r.color}">${this.seal(r.label, r.color)}
+    let html = `<div class="mcontract" style="--c:${r.color}">${this.seal(r.label, r.color)}${this.missionTarget(tpl)}
       <div class="mc-body"><div class="mc-top"><div class="mc-head"><div class="mc-title">${esc(m.title)}</div>
         <div class="mc-meta"><strong>${MISSION_TYPE_LABEL[m.type]}</strong> · Dificuldade ${need} · ${Math.round(MISSION_TIME)}s</div></div>
-        <div class="mc-reward">${chips}<span class="mchip">{star} +${r.xp} XP</span></div></div>
+        <div class="mc-reward">${chips}<span class="mrw" ${tipAttr('XP', `+${r.xp} de XP para cada ninja da equipe.`, true)}>{star}<b>+${r.xp}</b></span></div></div>
         <div class="mc-desc">${esc(tpl.desc)}</div><div class="mc-foot">`;
     const rec = recommendTeam(g, m);
     if (full) html += `<span class="why">Limite de missões simultâneas atingido.</span>`;
@@ -2510,6 +2514,13 @@ export class Panel {
       html += `</div>`;
     }
     return html + `</div></div>`;
+  }
+
+  /** Ilustração do alvo do contrato: o bicho a caçar, o renegado, as ervas ou a carroça da escolta. */
+  private missionTarget(tpl: ReturnType<typeof templateOf>) {
+    const pic = tpl.animals ? artPortrait(tpl.animals.type, true) : tpl.enemies?.length ? artPortrait('rogue', true) : undefined;
+    if (pic !== undefined) return `<span class="mc-target">${pimg(pic)}</span>`;
+    return `<span class="mc-target ico">${pxIco(tpl.herbs ? 'herbs' : tpl.ambush ? 'ryo' : 'map')}</span>`;
   }
 
   private riskPill(r: MissionRisk) {

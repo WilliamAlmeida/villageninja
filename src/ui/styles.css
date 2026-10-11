@@ -2785,3 +2785,33 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .fteam { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.5rem; border-radius: var(--r); background: rgba(0,0,0,0.25); border: 1px solid var(--line); }
 .fteam .dot { background: var(--c); }
 .rs-face.me { outline: 2px solid var(--c, #ffd34d); }
+
+/* contrato de missão: ilustração do alvo e recompensas em caixinhas */
+.mc-target { flex: 0 0 auto; width: 3.6rem; height: 3.6rem; border-radius: 0.4rem; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 50% 60%, rgba(255, 230, 180, 0.35), rgba(60, 40, 20, 0.25)); border: 1px solid rgba(120, 80, 40, 0.5); }
+.mc-target img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.mc-target.ico .ic, .mc-target.ico img { width: 2.4rem; height: 2.4rem; }
+.mc-reward { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.mrw { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 2.6rem; padding: 0.2rem 0.3rem; border-radius: 0.35rem; background: rgba(40, 26, 14, 0.18); border: 1px solid rgba(120, 80, 40, 0.45); line-height: 1.05; }
+.mrw .ic { width: 1.3rem; height: 1.3rem; margin: 0; }
+.mrw b { font-size: 0.8rem; }
+@media (max-height: 520px) { .mc-target { width: 2.8rem; height: 2.8rem; } }
+/* clãs: estandarte com o emblema ao lado do cartão */
+.clancard { display: flex; gap: 0.7rem; align-items: stretch; }
+.clanbody { flex: 1 1 auto; min-width: 0; }
+.clanban { position: relative; flex: 0 0 auto; width: 3.4rem; padding: 0.55rem 0 1.1rem; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 70%, #000)); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%); box-shadow: inset 0 3px 0 rgba(255,255,255,0.18); }
+.clanban::before { content: ''; position: absolute; top: -0.3rem; left: -0.25rem; right: -0.25rem; height: 0.4rem; border-radius: 0.2rem; background: #6a4422; }
+.clanban i { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: rgba(255, 248, 230, 0.92); color: var(--c); font-style: normal; font-size: 1.35rem; font-weight: 800; box-shadow: 0 0 0 2px rgba(0,0,0,0.25); }
+.clanban span { writing-mode: vertical-rl; font-size: 0.72rem; font-weight: 700; color: #fff8e8; letter-spacing: 0.08em; text-shadow: 0 1px 2px #000; max-height: 6rem; overflow: hidden; }
+
+/* kit 2: linha de pergaminho (row, com o marcador vermelho) na lista da Pedra Memorial e do Monte; separador (divider)
+   entre seções da ficha (o ornamento no meio, a linha dourada esticando dos lados) */
+.memlist li {
+  --sl: 9 8 8 18 fill; background: none; border-radius: 0; border: 0 solid transparent; border-width: 5px 6px 5px 14px;
+  border-image-source: var(--k2-row); border-image-slice: var(--sl); border-image-width: 9px 8px 8px 18px; border-image-repeat: stretch;
+  image-rendering: pixelated; color: #2f1a0d; padding: 0.1rem 0.35rem;
+}
+.memlist li span, .memlist li small { color: #6a4a2a; }
+.k2div { position: relative; height: 18px; margin: 0.5rem 0 0.3rem; background: var(--k2-divider) center / auto 18px no-repeat; image-rendering: pixelated; }
+.k2div::before, .k2div::after { content: ''; position: absolute; top: 8px; height: 2px; width: calc(50% - 93px); background: linear-gradient(90deg, transparent, #b8862e); }
+.k2div::before { left: 0; }
+.k2div::after { right: 0; transform: scaleX(-1); }

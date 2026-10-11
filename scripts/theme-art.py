@@ -1,5 +1,5 @@
-# Mapas jogáveis temáticos (game/scene.ts → `SceneInfo.theme`): a Vila dos Pescadores (palafitas, cais, barcos) e a
-# Cidade dos Mercadores (deserto, tendas, muralha). Duas gerações do Codex:
+# Mapas jogáveis temáticos (game/scene.ts → `SceneInfo.theme`): a Vila dos Pescadores (palafitas, cais, barcos), a
+# Cidade dos Mercadores (deserto, tendas, muralha) e o platô de penhasco da prova do contrato (escada de pedra). Duas gerações do Codex:
 #  1. prédios no tema (casa, mercado, torre), referência = a casa da vila → docs/arte/iso/<tipo>-<tema>.png, preparados
 #     pelo prepare-art.py com a largura do prédio comum (o jogo troca a arte no mapa do tema: Renderer.artBox);
 #  2. enfeites (barcos, redes, palmeiras, poço…) → docs/arte/theme/<nome>.png e o atlas src/art/theme-props.png
@@ -37,6 +37,11 @@ PROPS = [
     ('tent', 'a small desert cloth tent with red and white stripes'),
     ('cactus', 'a tall green desert cactus with two arms and a small rock'),
     ('pots', 'a group of clay pots and amphoras with two burlap spice sacks'),
+    # penhasco e escada (prova do contrato: a clareira do guardião num platô)
+    ('cliff-a', 'one block of a steep grey rocky cliff wall, as tall as it is wide, with moss and grass on its flat top edge'),
+    ('cliff-b', 'one block of a steep grey rocky cliff wall with cracks and a small bush on its flat mossy top, slightly different from the previous'),
+    ('cliff-c', 'one block of a steep grey rocky cliff wall with a few hanging vines and a flat grassy top'),
+    ('stairs', 'a stone stairway of grey rock steps going UP toward the top-right of the image, carved into a rocky cliff, with moss between the steps'),
 ]
 COLS = 4
 
@@ -91,7 +96,7 @@ def grid(items, out, kind, rows):
 
 if '--pack' not in sys.argv:
     grid(BUILDINGS, ISO, 'buildings', 2)
-    grid(PROPS, SRC, 'props', 3)
+    grid(PROPS, SRC, 'props', 3 if len([1 for n, _ in PROPS if not os.path.exists(os.path.join(SRC, f'{n}.png'))]) > 8 else 2)
 
 atlas = Image.new('RGBA', (CELL * len(PROPS), CELL), (0, 0, 0, 0))
 for i, (name, _) in enumerate(PROPS):

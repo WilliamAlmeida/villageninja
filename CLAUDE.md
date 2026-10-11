@@ -169,8 +169,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   redondo, `.btn`, `.bar`/`.nc-bar`, `.mpill`, `#tip` e o drawer `#panel` com o telhado (molduras 2×, controles 1×);
   lote 2 (`scripts/kit2-codex-2.sh`): barra de cima (`hud-bar` + caixinha `hud-slot` por recurso), barra de baixo com
   telhado e lanterna nas pontas (`dock`) e um quadro por botão (`dock-slot`, ativo `dock-slot-on`), abas `.wtabs`, cartão
-  de ninja com a moldura na cor da patente (`.ncard.r-<patente>`, `card-<patente>`) e retrato em quadro de bronze; ainda
-  sem uso: `row` (linha de missão) e `divider`. **Passada geral** (bloco "kit 2, passada geral" no fim do styles.css):
+  de ninja com a moldura na cor da patente (`.ncard.r-<patente>`, `card-<patente>`) e retrato em quadro de bronze; `row` na lista da Pedra Memorial/Monte (`.memlist`) e
+  `divider` como separador `.k2div` na ficha. **Passada geral** (bloco "kit 2, passada geral" no fim do styles.css):
   todo cartão/tile/linha (`.bsec`, `.statcard`, `.tcard`, `.vperk`, `.slot`, `.inv-cell`…) = caixinha `hud-slot`; chips,
   segmentos, `.mchip` e velocidade = botão escuro/laranja; `.mtabs` do drawer como as abas das janelas; `.iconbtn` e o
   fechar das janelas = botão redondo; menu de pausa = `panel`; `.bcard` = `dock-slot`; todo `h4` = faixa `label`.
@@ -462,7 +462,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - **Mapas temáticos** (`SceneInfo.theme`, `shapeTheme` em game/scene.ts): saque/anexação da Vila dos Pescadores (`pesca`:
   mar ao sul com praia e o Porto) e da Cidade dos Mercadores (`mercadores`: deserto com oásis, sem árvores). Casa, mercado
   e torre trocam para `<tipo>-<tema>` no desenho e os enfeites vêm de `render/themeProps.ts` (atlas `theme-props`,
-  `scripts/theme-art.py`). Vitrine: `cena-pesca`, `cena-deserto`.
+  `scripts/theme-art.py`). Vitrine: `cena-pesca`, `cena-deserto`. A prova do contrato (`createTrialScene`) põe a clareira num platô cercado de
+  penhasco (anel de `T.ROCK` de raio `PLATEAU_R`) com a escada de pedra na abertura ao sul (`isStairs`; tema `cliff`, blocos
+  `cliff-a/b/c` e `stairs` no mesmo atlas).
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em

@@ -6,6 +6,7 @@ import { mulberry32 } from '../core/rng';
 import { BUILDINGS } from '../data/buildings';
 import type { GameState } from '../game/types';
 import { CENTER_TX, CENTER_TY, idx, inBounds, T } from '../game/world';
+import { isStairs, PLATEAU_R } from '../game/scene';
 import { art, smoothIfShrunk } from './art';
 
 type Ctx = CanvasRenderingContext2D;
@@ -24,6 +25,10 @@ export const THEME_PROPS: { name: string; h: number; water?: boolean }[] = [
   { name: 'tent', h: 40 },
   { name: 'cactus', h: 36 },
   { name: 'pots', h: 24 },
+  { name: 'cliff-a', h: 46 },
+  { name: 'cliff-b', h: 46 },
+  { name: 'cliff-c', h: 46 },
+  { name: 'stairs', h: 58 },
 ];
 const P = Object.fromEntries(THEME_PROPS.map((p, i) => [p.name, i])) as Record<string, number>;
 
@@ -60,6 +65,21 @@ export function themeDecos(s: GameState): ThemeDeco[] {
   };
   const entry = s.sceneInfo!.entry;
   const out: ThemeDeco[] = [];
+  if (theme === 'cliff') {
+    // platô da prova: um bloco de penhasco por tile do anel e a escada de pedra na abertura
+    for (let ty = CENTER_TY - PLATEAU_R - 1; ty <= CENTER_TY + PLATEAU_R + 1; ty++)
+      for (let tx = CENTER_TX - PLATEAU_R - 1; tx <= CENTER_TX + PLATEAU_R + 1; tx++) {
+        const d = Math.hypot(tx - CENTER_TX, ty - CENTER_TY);
+        if (d < PLATEAU_R - 0.5 || d > PLATEAU_R + 0.5) continue;
+        const x = tx * TILE + TILE / 2;
+        const y = ty * TILE + TILE / 2;
+        if (isStairs(tx, ty)) {
+          if (tx === CENTER_TX) out.push({ prop: P.stairs!, x, y: y + 6, flip: false });
+        } else if (tile(tx, ty) === T.ROCK) out.push({ prop: P[['cliff-a', 'cliff-b', 'cliff-c'][Math.floor(rnd() * 3)]!]!, x, y, flip: rnd() < 0.5 });
+      }
+    cache.set(s, out);
+    return out;
+  }
   let well = theme !== 'desert';
   for (let i = 0; i < s.tiles.length; i++) {
     const tx = i % MAP_W;

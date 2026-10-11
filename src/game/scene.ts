@@ -186,6 +186,11 @@ export function createVillageScene(home: Game, e: Expedition): GameState {
   return s;
 }
 
+/** Raio (tiles) do penhasco em volta da clareira da prova do contrato. */
+export const PLATEAU_R = 7;
+/** Escada do platô: a abertura no anel do penhasco, ao sul (3 tiles de largura). */
+export const isStairs = (tx: number, ty: number) => ty > CENTER_TY && Math.abs(tx - CENTER_TX) <= 1;
+
 /** Vilarejos com mapa no tema deles (a arte dos prédios e os enfeites mudam no desenho: Renderer.artBox, themeProps). */
 const THEMES: Record<string, SceneTheme> = { pesca: 'fishing', mercadores: 'desert' };
 /** Pescadores: daqui para baixo é mar (com uma faixa de areia antes). */
@@ -554,8 +559,17 @@ export function createTrialScene(home: Game, e: Expedition): GameState {
   const def = REGION[e.node!]!;
   const power = nodePower(home.state, def);
   const { s } = regionMap(home, e);
-  // clareira no centro, sem árvores
+  // clareira no centro, sem árvores, num platô cercado de penhasco (a escada de pedra é a abertura, virada para o sul,
+  // de onde a equipe chega; o desenho do penhasco e da escada fica em render/themeProps.ts)
   s.nodes = s.nodes.filter((n) => Math.hypot(n.tx - CENTER_TX, n.ty - CENTER_TY) > 9);
+  for (let ty = CENTER_TY - 9; ty <= CENTER_TY + 9; ty++)
+    for (let tx = CENTER_TX - 9; tx <= CENTER_TX + 9; tx++) {
+      const d = Math.hypot(tx - CENTER_TX, ty - CENTER_TY);
+      const i = idx(tx, ty);
+      if (d < PLATEAU_R - 0.5) {
+        if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) s.tiles[i] = T.GRASS; // o platô é chão firme
+      } else if (d <= PLATEAU_R + 0.5) s.tiles[i] = isStairs(tx, ty) ? T.DIRT : T.ROCK;
+    }
   const g = new Game(s, SCENE_SYSTEMS);
   g.isScene = true;
   const kind = def.contract!;
@@ -579,7 +593,7 @@ export function createTrialScene(home: Game, e: Expedition): GameState {
   revealCircle(s, Math.floor(entry.x / 32), Math.floor(entry.y / 32), 8);
   s.sceneInfo = {
     kind: 'trial', expId: e.id, node: def.id, action: e.action, title: `Prova do contrato · ${def.name}`, bossId: boss.id,
-    goal: `Vença o guardião para ganhar o contrato: ${CONTRACTS[kind].name}.`, result: null, loot: 0, lootNeed: 0, defenders: 3, entry,
+    goal: `Vença o guardião para ganhar o contrato: ${CONTRACTS[kind].name}.`, result: null, loot: 0, lootNeed: 0, defenders: 3, entry, theme: 'cliff',
   };
   return s;
 }
