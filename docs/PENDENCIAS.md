@@ -35,8 +35,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
       contraria a regra combinada antes (interface = glifo Phosphor; pixel art só para recursos, itens, retratos): perguntar ao autor
 
 ## 4. Ninja e retratos
-- [x] Sharingan/Byakugan pintados nos retratos (bustos)
-- [x] Bustos que reflitam a patente/roupa em camadas
+- [x] Sharingan/Byakugan pintados nos retratos (bustos) (12fa127)
+- [x] Bustos que reflitam a patente/roupa em camadas (12fa127)
 - [ ] Pose sentado/descansando (arquibancada do Exame, descanso, Hospital)
 - [ ] Pose carregando (volta de expedição com espólio, raptado do Som)
 - [ ] Peças novas: capa (Kage/Sannin ou item) e pergaminho nas costas (estudando / carregando pergaminho proibido)
