@@ -206,3 +206,6 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
   na cor da equipe andando no sentido da viagem; nada de linha reta tracejada. A trilha segue as estradas pintadas.
 - A equipe viajando é um sprite pequeno: carroça vazia (ida, recuo), cheia (voltou com espólio), sem carroça e feridos
   (perdeu); no mar, barco vazio/cheio ou jangada quebrada. Balança andando; vira para o lado do rumo.
+- Ações de um lugar (ficha `.rsheet`): uma linha `.ract` por ação no cartão do kit — ícone na cor da ação num quadrinho,
+  nome claro, o que paga/recebe embaixo (troca: dá → recebe), tempo ou selo "Jogável" à direita; a explicação fica na
+  dica. Nada de primeira ação pintada de laranja nem texto escuro sobre madeira.

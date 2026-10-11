@@ -2649,3 +2649,31 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 @keyframes rtrip { 50% { translate: 0 -6%; } }
 @keyframes rsail { 50% { translate: 0 -4%; rotate: -4deg; } }
 @media (prefers-reduced-motion: reduce) { .rtoken.trip .rpic { animation: none; } }
+/* ações de um lugar da região: uma linha por ação no cartão do kit (ícone na cor da ação num quadrinho, nome claro, o
+   que paga/recebe embaixo, tempo ou "Jogável" à direita); passar o mouse acende a moldura dourada; bloqueada apagada */
+.rsheet .ractions, .ractions { display: flex; flex-direction: column; gap: 0.35rem; }
+.ract {
+  --ac: #e8c27a; display: grid; grid-template-columns: 2.1rem minmax(0, 1fr) auto; align-items: center; gap: 0.55rem;
+  width: 100%; text-align: left; color: #f3e3c3; font: inherit; cursor: pointer;
+  --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 5px 7px; border-radius: 0; background: none; padding: 0.15rem 0.2rem;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch; image-rendering: pixelated;
+}
+.ract > * { image-rendering: auto; }
+.ract .ri { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 0.4rem; background: rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px rgba(255, 214, 150, 0.18); color: var(--ac); }
+.ract .ri .ic { width: 1.15rem; height: 1.15rem; margin: 0; color: var(--ac); }
+.ract .rt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.ract .rt b { font-size: 0.9rem; color: #f6e7c8; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
+.ract .rt small { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.15rem; font-size: 0.74rem; color: #cdb48c; }
+.ract .rt small .ic { width: 0.9rem; height: 0.9rem; }
+.ract .arr .ic { scale: -1 1; color: #a8916c; }
+.ract .rtime, .ract .rplay { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
+.ract .rtime { color: #cdb48c; background: rgba(0, 0, 0, 0.3); }
+.ract .rplay { color: #ffd0a8; background: rgba(160, 40, 20, 0.55); }
+.ract .rtime .ic, .ract .rplay .ic { width: 0.85rem; height: 0.85rem; margin: 0; }
+@media (hover: hover) { .ract:not([aria-disabled="true"]):hover { border-image-source: var(--k2-dock-slot-on); } .ract:not([aria-disabled="true"]):hover .ri { background: rgba(0, 0, 0, 0.5); } }
+.ract:not([aria-disabled="true"]):active { translate: 0 1px; }
+.ract[aria-disabled="true"] { cursor: help; }
+.ract[aria-disabled="true"] > * { opacity: 0.5; filter: grayscale(0.6); }
+.ract.a-trade { --ac: #ffcf5a; } .ract.a-protect { --ac: #7fd37f; } .ract.a-raid { --ac: #ff7a5c; } .ract.a-annex { --ac: #c9a0ff; }
+.ract.a-explore { --ac: #7fd8ff; } .ract.a-outpost { --ac: #e8b37a; } .ract.a-train { --ac: #ffb36b; } .ract.a-contract { --ac: #c9a0ff; }
+.ract.a-assault { --ac: #ff6b6b; } .ract.a-covert { --ac: #b8c4d6; } .ract.a-rescue { --ac: #7fd37f; }

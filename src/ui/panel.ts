@@ -281,6 +281,7 @@ const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + 
 
 const ACTION_ICON: Record<string, string> = {
   trade: '{cart}', protect: '{shield}', raid: '{swords}', annex: '{flag}', explore: '{map}', outpost: '{hut}', train: '{barbell}', contract: '{scroll}', assault: '{skull}',
+  covert: '{eye}', rescue: '{users}',
 };
 const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{barbell}', patrol: '{flag}', scout: '{eye}' };
 const ROUTINES: [NinjaOrder, string][] = [['auto', 'Auto'], ['train', 'Treinar'], ['patrol', 'Patrulhar'], ['scout', 'Explorar']];
@@ -1015,12 +1016,17 @@ export class Panel {
     html += `</div><div class="rfit"><span class="faces">${sel ? teamUnits(g, sel).map((u) => this.face(u)).join('') : ''}</span><span class="mpill ${fit[1]}">{swords} ${tp} × defesas ${np} · ${fit[0]}</span></div></div>`;
     html += `<div class="bsec"><h4>{target} Ações</h4><div class="ractions">`;
     const busy = teamBusy(g, this.regionTeam);
+    // uma linha por ação: ícone na cor da ação, nome e o que se paga/recebe; à direita o tempo ou "jogável" (vira mapa).
+    // O que a ação faz fica na dica; bloqueada fica apagada e o toque mostra o motivo
     for (const a of nodeActions(def)) {
       const why = actionBlock(g, def.id, a);
       const cost = actionCost(def, a);
       const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
-      html += `<button class="btn" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
-        <b>${ACTION_ICON[a] ?? ''} ${ACTION_LABEL[a]}</b><small>${a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || (a === 'annex' && st.rel <= REL.annexForce) ? '{swords} mapa jogável' : `${cost ? `${costLabel(cost)} · ` : ''}~${time}s`}</small></button>`;
+      const played = a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || a === 'rescue' || (a === 'annex' && st.rel <= REL.annexForce);
+      const deal = a === 'trade' && def.trade ? `${costLabel(def.trade.give)} <span class="arr">{back}</span> ${costLabel(def.trade.get)}` : cost ? costLabel(cost) : '';
+      const side = played ? `<span class="rplay">{swords} Jogável</span>` : `<span class="rtime">{clock} ${time}s</span>`;
+      html += `<button class="ract a-${a}" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
+        <span class="ri">${ACTION_ICON[a] ?? '{flag}'}</span><span class="rt"><b>${ACTION_LABEL[a]}</b>${deal ? `<small>${deal}</small>` : ''}</span>${side}</button>`;
     }
     return html + `</div></div>`;
   }
