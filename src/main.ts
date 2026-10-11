@@ -107,7 +107,7 @@ centerOnVillage();
 camera.resize(window.innerWidth, window.innerHeight);
 
 const ui = createUI(app, uiRoot);
-if (DEMO) demoMenu(app, ui.show);
+if (DEMO) demoMenu(app, ui);
 const input = new Input(canvas, camera);
 input.onTap = ui.onTap;
 input.onContext = ui.onContext;
