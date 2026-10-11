@@ -9,6 +9,7 @@ import type { Rank } from '../../data/ninja';
 import { createAnimal, createRogue } from '../entities';
 import { fightPower } from '../care';
 import type { Game } from '../game';
+import type { Unit } from '../types';
 import { findPath, nearestWalkable } from '../pathfinding';
 import { CENTER_TX, CENTER_TY, doorTile, tileCenter } from '../world';
 
@@ -117,6 +118,23 @@ export function raidStrength(day: number, threat: number, might = 0) {
   };
 }
 
+/**
+ * Ameaças que crescem com a vila grande: a partir de `from` de força militar, chefes, organizações e invasões ganham
+ * vida (e dano, pela raiz) até `max`×. Uma vila de meio de jogo (~900) não sente nada; a de fim de jogo do autor (~5.000)
+ * enfrenta ~2,4× (antes tudo caía em segundos contra 77 ninjas).
+ */
+export const THREAT_SCALE = { from: 1500, per: 2500, max: 3 };
+export function threatScale(g: Game) {
+  const t = THREAT_SCALE;
+  return Math.max(1, Math.min(t.max, 1 + (villageMight(g) - t.from) / t.per));
+}
+/** Aplica a escala numa ameaça: vida × `k` e dano × raiz de `k` (`Unit.powerMult`, lido em applyDamage). */
+export function scaleThreat(u: Unit, k: number) {
+  if (k <= 1) return;
+  u.maxHp = u.hp = Math.round(u.maxHp * k);
+  u.powerMult = Math.sqrt(k);
+}
+
 /** Força militar da vila: soma do poder de luta dos ninjas (ver `fightPower`). */
 export function villageMight(g: Game) {
   let m = 0;
@@ -134,8 +152,10 @@ export function spawnRaid(g: Game, extra = 0, msg?: string) {
   const r = raidStrength(s.day, levelDef(s.level).threat, villageMight(g));
   r.count += extra + (s.infamy >= FAME.hunters ? 1 : 0);
   const roles = raidRoles(s.day, r.count);
+  const k = Math.sqrt(threatScale(g)); // invasão comum cresce menos (são muitos)
   for (let i = 0; i < r.count; i++) {
     const u = createRogue(g, p.x + rand(-16, 16), p.y + rand(-16, 16), s.day, { rank: r.rank, stats: r.stats });
+    scaleThreat(u, k);
     u.role = roles[i];
     if (u.role === 'spy') u.cloak = true;
   }

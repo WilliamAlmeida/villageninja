@@ -528,6 +528,16 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`ui/warm.ts`). **Teto de população** pelo nível da vila (`popLimit` 60/100/150/200 em villageLevels; `popCap` =
   casas até o teto).
 
+## Balanceamento (2026-10-11, medido com o save do autor: dia 314, 77 ninjas, força militar ~5.000)
+- Réguas em `.perf/` (fora do git): `bal-jutsus.ts` (cada jutsu: dano no alvo/total, tempo preso, valor por segundo
+  de recarga e por chakra; meta ~9 no D/C até ~13 no S), `bal-melee.ts` (dano/s de cada arma, lâmina e modo; lendárias
+  ±15% da mediana, Raijin no topo), `bal-threats.ts` (cada ameaça contra a vila real: tempo e perdas), `econ.ts`
+  (entradas e saídas por dia e de onde vêm). Rode antes e depois de mexer em números.
+- Regras: nada cresce com o dia sem teto (recompensa de renegado = `rogueBounty`, pela patente e atributos; roubos e
+  relíquias param no dia 60); XP mais íngreme depois do nível 20 (`xpToNext`); golpe comum mais fraco que antes
+  (`derive`: jutsus voltam a valer); ameaças crescem com a força da vila (`threatScale`/`scaleThreat`: vida ×k e dano
+  ×√k a partir de 1.500, até 3×; invasão comum usa √k).
+
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
   em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v31.

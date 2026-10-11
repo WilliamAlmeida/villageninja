@@ -240,6 +240,8 @@ export interface Unit {
   eyeOn?: boolean;
   /** Shintenshin: a mente de `by` controla esta unidade por `t` s (luta pelo lado dele; `faction` = a original). */
   charm?: { t: number; faction: Faction; by: number };
+  /** Ameaça escalada pela força da vila (systems/spawner.ts → scaleThreat): multiplica o dano que causa. */
+  powerMult?: number;
   /** Sensei de equipe: a capa nas costas na cor da equipe (só desenho; `markSenseis` em teams.ts). */
   cape?: string;
   /** Voltou de expedição com espólio: anda carregando um saco por estes segundos (só desenho, pose `carry`). */

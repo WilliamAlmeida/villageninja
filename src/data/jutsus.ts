@@ -93,12 +93,12 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'goukakyuu', name: 'Katon: Goukakyuu no Jutsu', shout: 'Goukakyuu no Jutsu!', desc: 'Bola de fogo gigante que explode em área.',
-    nature: 'katon', type: 'ninjutsu', rank: 2, chakra: 22, cooldown: 6, range: 150, power: 24, effect: 'projectile',
-    radius: 42, projSpeed: 230, projKind: 'orb', color: '#ff6a2b', req: { ninjutsu: 3 }, cost: { ryo: 80 }, learnTime: 25,
+    nature: 'katon', type: 'ninjutsu', rank: 2, chakra: 22, cooldown: 6, range: 150, power: 28, effect: 'projectile',
+    radius: 36, projSpeed: 230, projKind: 'orb', color: '#ff6a2b', req: { ninjutsu: 3 }, cost: { ryo: 80 }, learnTime: 25,
   },
   {
     id: 'mizurappa', name: 'Suiton: Mizurappa', shout: 'Mizurappa!', desc: 'Jato de água concentrado.',
-    nature: 'suiton', type: 'ninjutsu', rank: 1, chakra: 12, cooldown: 4, range: 135, power: 15, effect: 'projectile',
+    nature: 'suiton', type: 'ninjutsu', rank: 1, chakra: 12, cooldown: 4, range: 135, power: 20, effect: 'projectile',
     projSpeed: 280, projKind: 'jet', color: '#4da6ff', req: { ninjutsu: 2 }, cost: { ryo: 45 }, learnTime: 16,
   },
   {
@@ -113,7 +113,7 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'shinkuuha', name: 'Fuuton: Shinkuu Ha', shout: 'Shinkuu Ha!', desc: 'Lâminas de vento rápidas e cortantes.',
-    nature: 'fuuton', type: 'ninjutsu', rank: 3, chakra: 26, cooldown: 6, range: 160, power: 15, effect: 'multi',
+    nature: 'fuuton', type: 'ninjutsu', rank: 3, chakra: 26, cooldown: 6, range: 160, power: 22, effect: 'multi',
     count: 3, projSpeed: 340, projKind: 'blade', color: '#7fe0a0', req: { ninjutsu: 4, velocidade: 4 }, cost: { ryo: 150 }, learnTime: 34,
   },
   {
@@ -123,17 +123,17 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'doryuudan', name: 'Doton: Doryuudan', shout: 'Doryuudan!', desc: 'Projétil de lama e rocha em área.',
-    nature: 'doton', type: 'ninjutsu', rank: 2, chakra: 20, cooldown: 6, range: 150, power: 26, effect: 'projectile',
-    radius: 30, projSpeed: 210, projKind: 'rock', color: '#b0844d', req: { ninjutsu: 3, forca: 2 }, cost: { ryo: 80 }, learnTime: 24,
+    nature: 'doton', type: 'ninjutsu', rank: 2, chakra: 20, cooldown: 6, range: 150, power: 31, effect: 'projectile',
+    radius: 32, projSpeed: 210, projKind: 'rock', color: '#b0844d', req: { ninjutsu: 3, forca: 2 }, cost: { ryo: 80 }, learnTime: 24,
   },
   {
     id: 'raikyuu', name: 'Raiton: Raikyuu', shout: 'Raikyuu!', desc: 'Esfera elétrica que paralisa por um instante.',
-    nature: 'raiton', type: 'ninjutsu', rank: 1, chakra: 14, cooldown: 5, range: 140, power: 12, effect: 'projectile',
+    nature: 'raiton', type: 'ninjutsu', rank: 1, chakra: 14, cooldown: 5, range: 140, power: 17, effect: 'projectile',
     stun: 0.8, projSpeed: 300, projKind: 'spark', color: '#ffe14d', req: { ninjutsu: 2 }, cost: { ryo: 50 }, learnTime: 18,
   },
   {
     id: 'chidori', name: 'Raiton: Chidori', shout: 'Chidori!', desc: 'Investida relâmpago de altíssimo dano.',
-    nature: 'raiton', type: 'ninjutsu', rank: 4, chakra: 45, cooldown: 12, range: 150, power: 58, effect: 'dash',
+    nature: 'raiton', type: 'ninjutsu', rank: 4, chakra: 32, cooldown: 12, range: 150, power: 70, effect: 'dash',
     color: '#9fd8ff', req: { ninjutsu: 6, velocidade: 6 }, cost: { ryo: 320 }, learnTime: 60,
     // a mão do raio cravada no alvo e recupera
     moves: [['strike', 2, 0.3], ['strike', 3, 0.15]],
@@ -194,7 +194,7 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'amaterasu', name: 'Amaterasu', shout: 'Amaterasu!', desc: 'Chamas negras acendem no alvo e queimam até apagar sozinhas.',
-    nature: null, kekkei: 'sharingan', type: 'ninjutsu', rank: 4, chakra: 40, cooldown: 14, range: 170, power: 70, effect: 'ignite',
+    nature: null, kekkei: 'sharingan', type: 'ninjutsu', rank: 4, chakra: 40, cooldown: 14, range: 170, power: 88, effect: 'ignite',
     duration: 6, color: '#b04ae0', req: { genjutsu: 6, ninjutsu: 6 }, cost: { ryo: 480 }, learnTime: 75, vfx: 'dark',
   },
   {
@@ -224,7 +224,7 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'kirin', name: 'Raiton: Kirin', shout: 'Kirin!', desc: 'Um dragão de raio cai do céu numa área enorme. Com nuvem de tempestade sobre o alvo, sai com toda a força.',
-    nature: 'raiton', type: 'ninjutsu', rank: 5, chakra: 70, cooldown: 30, range: 210, power: 110, effect: 'aoe', radius: 80, sky: true, stun: 0.6,
+    nature: 'raiton', type: 'ninjutsu', rank: 5, chakra: 70, cooldown: 22, range: 210, power: 126, effect: 'aoe', radius: 80, sky: true, stun: 0.6,
     color: '#cfe6ff', req: { ninjutsu: 8, selos: 7, inteligencia: 6 }, cost: { ryo: 600 }, learnTime: 95, vfx: 'lightning',
     moves: [['cast', 1, 0.3], ['cast', 3, 0.5]],
   },
@@ -303,13 +303,13 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'okasho', name: 'Ōkashō', shout: 'Shannaro!', desc: 'Soco no chão que racha a terra e acerta todos em volta.',
-    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 9, range: 120, power: 36, effect: 'dash', dashRadius: 46, stun: 0.5, vfx: 'earth',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 9, range: 120, power: 29, effect: 'dash', dashRadius: 46, stun: 0.5, vfx: 'earth',
     moves: [['strike', 0, 0.12], ['strike', 2, 0.3], ['strike', 3, 0.14]],
     color: '#ff8fb0', req: { taijutsu: 4, forca: 5 }, cost: { ryo: 200 }, learnTime: 42,
   },
   {
     id: 'tsutenkyaku', name: 'Tsūtenkyaku', shout: 'Tsūtenkyaku!', desc: 'Salta e desce o calcanhar rachando o chão em volta.',
-    nature: null, type: 'taijutsu', rank: 4, chakra: 28, cooldown: 11, range: 130, power: 46, effect: 'dash', dashRadius: 54, stun: 0.7, vfx: 'earth',
+    nature: null, type: 'taijutsu', rank: 4, chakra: 28, cooldown: 11, range: 130, power: 37, effect: 'dash', dashRadius: 54, stun: 0.7, vfx: 'earth',
     moves: [['air', 1, 0.18, 16], ['kick', 1, 0.16, 12], ['air', 3, 0.28]],
     color: '#ff8fb0', req: { taijutsu: 6, forca: 6 }, cost: { ryo: 320 }, learnTime: 58,
   },
@@ -333,7 +333,7 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'hirudora', name: 'Hirudora', shout: 'Hirudora!', desc: 'Um soco solta um tigre de ar comprimido que explode no alvo.',
-    nature: null, type: 'taijutsu', rank: 5, chakra: 42, cooldown: 16, range: 160, power: 66, effect: 'projectile', radius: 56, projSpeed: 210, projKind: 'orb', projSize: 13, vfx: 'wind',
+    nature: null, type: 'taijutsu', rank: 5, chakra: 42, cooldown: 16, range: 160, power: 79, effect: 'projectile', radius: 56, projSpeed: 210, projKind: 'orb', projSize: 13, vfx: 'wind',
     moves: [['cast', 0, 0.2], ['strike', 2, 0.35], ['strike', 3, 0.15]],
     color: '#d8f0ff', req: { taijutsu: 8, forca: 7 }, cost: { ryo: 480 }, learnTime: 75,
   },
@@ -375,7 +375,7 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'nikudan', name: 'Nikudan Sensha', shout: 'Nikudan Sensha!', desc: 'Vira uma bola gigante e rola por cima de todos.',
-    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 10, range: 140, power: 32, effect: 'dash', dashRadius: 34, vfx: 'impact',
+    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 10, range: 140, power: 43, effect: 'dash', dashRadius: 34, vfx: 'impact',
     moves: [['air', 1, 0.3, 0, 'roll'], ['air', 3, 0.2]],
     color: '#c8a070', req: { taijutsu: 4, stamina: 6 }, cost: { ryo: 190 }, learnTime: 40,
   },
@@ -401,7 +401,7 @@ const LIST: JutsuDef[] = [
   // ---- Rasengan
   {
     id: 'rasengan', name: 'Rasengan', shout: 'Rasengan!', desc: 'Esfera de chakra girando na palma, cravada no alvo.',
-    nature: null, type: 'ninjutsu', rank: 4, chakra: 40, cooldown: 11, range: 130, power: 56, effect: 'dash', launch: true, stun: 0.6, vfx: 'wind', handOrb: '#5fb4ff',
+    nature: null, type: 'ninjutsu', rank: 4, chakra: 40, cooldown: 11, range: 130, power: 70, effect: 'dash', launch: true, stun: 0.6, vfx: 'wind', handOrb: '#5fb4ff',
     moves: [['cast', 3, 0.3], ['strike', 3, 0.15]],
     color: '#7fc8ff', req: { ninjutsu: 6, inteligencia: 4 }, cost: { ryo: 360 }, learnTime: 64,
   },

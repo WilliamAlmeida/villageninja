@@ -9,7 +9,7 @@ import { fx, fxMoment, fxText } from './fx';
 import type { Game } from './game';
 import { chase, push, setDestination } from './movement';
 import type { GameState, Unit } from './types';
-import { edgePoint } from './systems/spawner';
+import { edgePoint, scaleThreat, threatScale } from './systems/spawner';
 
 export interface OrgState {
   /** Membros já derrotados (não voltam). */
@@ -50,6 +50,7 @@ export function createOrgMember(g: Game, id: OrgMemberId, x: number, y: number):
   const elite = g.state.units.filter((o) => !o.dead && o.faction === 'village' && o.ninja && (o.ninja.rank === 'jounin' || o.ninja.rank === 'kage')).length;
   u.maxHp = Math.round(u.maxHp * d.hpMult * Math.min(3, 1 + elite * 0.12) * (1 + ORG.cycleHp * (g.state.org.cycle ?? 0)));
   u.hp = u.maxHp;
+  scaleThreat(u, threatScale(g)); // vila grande: a ameaça vem à altura dela
   u.chakra = u.maxChakra;
   return u;
 }

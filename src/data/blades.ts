@@ -22,18 +22,19 @@ export const BLADE_FX = {
   chargeCd: 8, charge: 2.5, chargeRadius: 45,
   /** Nuibari: costura quem está até `stitchRange` px do alvo (fração do dano) e prende o alvo; recarga. */
   stitch: 0.5, stitchRange: 45, stitchStun: 0.7, stitchCd: 6,
-  /** Kabutowari: ignora a defesa do alvo e bate mais forte em chefes, escudos e no Corpo de Ferro. */
-  breakBoss: 1.5,
+  /** Kabutowari: ignora boa parte da defesa do alvo (`crush` = fração da defesa que ainda vale) e bate mais forte em
+   *  chefes, escudos e no Corpo de Ferro. */
+  breakBoss: 1.5, crush: 0.4,
   /** Shibuki: a cada `blastCd` s o golpe explode em área. */
-  blastCd: 6, blast: 30, blastRadius: 55,
-  /** Kusanagi: ignora metade da defesa e golpeia mais rápido. */
-  pierce: 0.5, kusanagiSpeed: 0.8,
+  blastCd: 5, blast: 45, blastRadius: 55,
+  /** Kusanagi: só esta fração da defesa vale contra ela, e golpeia mais rápido. */
+  pierce: 0.8, kusanagiSpeed: 0.92,
   /** Sabre de Chakra: anda mais rápido e golpeia mais rápido; o golpe quebra os selos. */
   flashMove: 1.12, flashSpeed: 0.9,
   /** Lâminas do Asuma: alcance extra do corpo a corpo e bônus para quem é Fuuton. */
   reach: 14, fuuton: 1.3,
   /** Raijin: raio no alvo a até `thunderRange` px a cada `thunderCd` s. */
-  thunder: 45, thunderRange: 170, thunderCd: 5,
+  thunder: 60, thunderRange: 170, thunderCd: 5,
   /** Sete espadas: cada golpe acerta de novo com essa fração. */
   flurry: 0.5,
 };
@@ -51,17 +52,17 @@ export interface BladeDef {
 
 export const BLADES: Record<BladeId, BladeDef> = {
   zabuza: { name: 'Kubikiribōchō', melee: 16, color: '#cfd6dd', source: 'Espadachins da Névoa', effect: 'Se refaz com o sangue: cura 20% do dano de cada golpe.' },
-  samehada: { name: 'Samehada', melee: 14, color: '#6a8aaa', source: 'Espadachins da Névoa', effect: 'Devora chakra: cada golpe rouba chakra do alvo e cura um pouco.' },
+  samehada: { name: 'Samehada', melee: 15, color: '#6a8aaa', source: 'Espadachins da Névoa', effect: 'Devora chakra: cada golpe rouba chakra do alvo e cura um pouco.' },
   kiba: { name: 'Kiba', melee: 12, color: '#9fd8ff', source: 'Espadachins da Névoa', effect: 'Espadas de raio: o golpe pula para um segundo inimigo por perto.' },
   hiramekarei: { name: 'Hiramekarei', melee: 13, color: '#e0dccc', source: 'Espadachins da Névoa', effect: 'Guarda chakra: a cada 8 s solta um golpe 2,5× mais forte em área.' },
-  nuibari: { name: 'Nuibari', melee: 12, color: '#c0c0c8', source: 'Espadachins da Névoa', effect: 'Costura: o golpe atravessa quem está perto do alvo e o prende um instante.' },
-  kabutowari: { name: 'Kabutowari', melee: 15, color: '#8a8a90', source: 'Espadachins da Névoa', effect: 'Quebra-elmos: ignora a defesa e bate 50% mais forte em chefes e escudos.' },
+  nuibari: { name: 'Nuibari', melee: 14, color: '#c0c0c8', source: 'Espadachins da Névoa', effect: 'Costura: o golpe atravessa quem está perto do alvo e o prende um instante.' },
+  kabutowari: { name: 'Kabutowari', melee: 12, color: '#8a8a90', source: 'Espadachins da Névoa', effect: 'Quebra-elmos: atravessa boa parte da defesa e bate 50% mais forte em chefes e escudos.' },
   shibuki: { name: 'Shibuki', melee: 12, color: '#e8dcb0', source: 'Espadachins da Névoa', effect: 'Papéis-bomba na lâmina: a cada 6 s o golpe explode em área.' },
-  kusanagi: { name: 'Kusanagi', melee: 14, color: '#9b6bff', source: 'Vem com o Sannin das Serpentes', effect: 'Corta qualquer coisa: ignora metade da defesa e golpeia 20% mais rápido.' },
+  kusanagi: { name: 'Kusanagi', melee: 14, color: '#9b6bff', source: 'Vem com o Sannin das Serpentes', effect: 'Corta qualquer coisa: atravessa parte da defesa e golpeia mais rápido.' },
   sakumo: { name: 'Sabre de Chakra Branco', melee: 11, kunai: 3, color: '#e8e8e8', source: 'Forja nível 3', effect: 'Anda e golpeia mais rápido; o golpe quebra os selos do alvo.' },
-  asuma: { name: 'Lâminas de Chakra', melee: 10, kunai: 4, color: '#9fe0c0', source: 'Forja nível 3', effect: 'Alcance maior no corpo a corpo e +30% de dano para quem é Fuuton.' },
-  raijin: { name: 'Raijin no Ken', melee: 18, color: '#bfe6ff', source: 'Forja nível 3 (só o Kage)', effect: 'Espada do trovão: a cada 5 s um raio atinge o alvo de longe.' },
-  bee: { name: 'Sete espadas', melee: 12, color: '#e8e8e8', source: 'Ilha Vulcânica (explorar)', effect: 'Estilo das sete espadas: cada golpe acerta duas vezes.' },
+  asuma: { name: 'Lâminas de Chakra', melee: 12, kunai: 4, color: '#9fe0c0', source: 'Forja nível 3', effect: 'Alcance maior no corpo a corpo e +30% de dano para quem é Fuuton.' },
+  raijin: { name: 'Raijin no Ken', melee: 21, color: '#bfe6ff', source: 'Forja nível 3 (só o Kage)', effect: 'Espada do trovão: a cada 5 s um raio atinge o alvo de longe.' },
+  bee: { name: 'Sete espadas', melee: 9, color: '#e8e8e8', source: 'Ilha Vulcânica (explorar)', effect: 'Estilo das sete espadas: cada golpe acerta duas vezes.' },
 };
 
 export const BLADE_IDS = Object.keys(BLADES) as BladeId[];

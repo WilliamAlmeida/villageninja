@@ -96,7 +96,7 @@ describe('lâminas lendárias', () => {
     expect(g.state.items[bladeItem('kiba')]).toBe(1);
   });
 
-  test('Kabutowari ignora a defesa e bate mais forte em chefes', () => {
+  test('Kabutowari atravessa a defesa e bate mais forte em chefes', () => {
     const g = createNewGame(SYSTEMS, 2105);
     const n = createNinja(g, 600, 600, 'jounin', 0);
     const boss = createSwordsman(g, 'nuibari', 610, 600);

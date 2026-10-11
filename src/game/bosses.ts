@@ -5,6 +5,7 @@ import { BOSSES, type BossKind } from '../data/bosses';
 import { randomGiven } from '../data/names';
 import { createAnimal, createRogue } from './entities';
 import { fx } from './fx';
+import { scaleThreat, threatScale } from './systems/spawner';
 import type { Game } from './game';
 import type { Unit } from './types';
 
@@ -60,7 +61,11 @@ export function spawnBoss(g: Game, kind: BossKind, x: number, y: number): Unit[]
       break;
     }
   }
-  for (const u of out) fx(g, 'smoke', u.x, u.y, { r: 18, life: 0.7, color: '#bbb' });
+  const k = threatScale(g); // vila grande: o chefe vem à altura dela
+  for (const u of out) {
+    scaleThreat(u, k);
+    fx(g, 'smoke', u.x, u.y, { r: 18, life: 0.7, color: '#bbb' });
+  }
   g.state.flags.raidActive = g.state.flags.raidActive || kind !== 'titan';
   g.toast(`${BOSSES[kind].icon} ${BOSSES[kind].name} chegou! ${BOSSES[kind].desc}`, 'danger', { x, y });
   return out;

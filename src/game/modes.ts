@@ -10,7 +10,7 @@ import type { Unit } from './types';
 export const modeDamage = (u: Unit | null | undefined) => {
   const m = u?.mode;
   if (!m) return 1;
-  return MODES[m.kind].damage + (m.kind === 'bijuu' ? (m.tails ?? 1) * 0.05 : 0);
+  return MODES[m.kind].damage + (m.kind === 'bijuu' ? 0.05 + (m.tails ?? 1) * 0.06 : 0); // 1 cauda 1,26× … 9 caudas 1,74×
 };
 export const modeSpeed = (u: Unit) => (u.mode ? MODES[u.mode.kind].speed : 1);
 /** Fração do dano que passa (o manto segura parte do golpe). */

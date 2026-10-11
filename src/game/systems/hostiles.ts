@@ -146,7 +146,7 @@ function rogue(g: Game, u: Unit, dt: number) {
     }
   }
   if (followPath(g, u, dt) && Math.hypot(p.x - u.x, p.y - u.y) < 40) {
-    const stolen = Math.min(g.state.res.ryo, 40 + g.state.day * 5);
+    const stolen = Math.min(g.state.res.ryo, 40 + Math.min(g.state.day, 60) * 5); // teto: no fim do jogo não leva fortunas
     g.state.res.ryo -= stolen;
     fxText(g, u.x, u.y - 30, `{ryo} -${stolen}`, '#ff5a5a', true);
     g.toast(`{ryo} ${u.name} roubou ${stolen} ryo da Residência do Hokage!`, 'danger', u);
@@ -286,7 +286,7 @@ function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
   }
   if (followPath(g, u, dt) && Math.hypot(p.x - u.x, p.y - u.y) < 36) {
     const key = herbs ? 'herbs' : 'ryo';
-    const amount = herbs ? Math.min(Math.floor(res.herbs), 6 + g.state.day) : Math.min(Math.floor(res.ryo), 15 + g.state.day * 3);
+    const amount = herbs ? Math.min(Math.floor(res.herbs), 6 + Math.min(g.state.day, 60)) : Math.min(Math.floor(res.ryo), 15 + Math.min(g.state.day, 60) * 3);
     if (amount > 0) {
       res[key] -= amount;
       u.loot = { [key]: amount };

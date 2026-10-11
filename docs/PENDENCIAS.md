@@ -41,4 +41,4 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 ## Fora da lista (só quando o autor pedir)
 - "Preparar defesa" com prazo (adiado pelo autor).
 - Testar `CODEX_MODEL=gpt-6-luna` nas imagens.
-- Ajuste de balanceamento das lâminas, Espadachins e ANBU depois de jogar.
+- ~~Ajuste de balanceamento~~ feito em 2026-10-11 (economia, XP, golpe comum, jutsus, lâminas, modos, ameaças); ver CLAUDE.md → Balanceamento.

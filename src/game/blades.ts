@@ -61,10 +61,10 @@ export function recoverBlades(g: Game) {
 
 const ready = (g: Game, u: Unit) => (u.bladeAt ?? 0) <= g.state.time;
 
-/** Quanto da defesa do alvo vale contra a lâmina (Kabutowari ignora, Kusanagi corta metade). */
+/** Quanto da defesa do alvo vale contra a lâmina (Kabutowari e Kusanagi atravessam parte dela). */
 export function bladeDefense(src: Unit | null) {
   const b = bladeOf(src);
-  return b === 'kabutowari' ? 0 : b === 'kusanagi' ? BLADE_FX.pierce : 1;
+  return b === 'kabutowari' ? BLADE_FX.crush : b === 'kusanagi' ? BLADE_FX.pierce : 1;
 }
 
 /** Multiplicador do golpe corpo a corpo pela lâmina (antes da defesa). */

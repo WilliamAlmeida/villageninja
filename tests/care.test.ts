@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { xpToNext } from '../src/data/ninja';
-import { applyDamage, killUnit } from '../src/game/combat';
+import { applyDamage, killUnit, rogueBounty } from '../src/game/combat';
 import { catchingUp, fightPower, rescueChance } from '../src/game/care';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
@@ -32,7 +32,7 @@ describe('cuidado com os ninjas', () => {
     const xb = totalXp(b);
     applyDamage(g, b, foe, 1, null, {}); // b ajudou
     killUnit(g, foe, a); // a derrubou
-    const xp = 40 + g.state.day * 3;
+    const xp = rogueBounty(foe).xp;
     expect(totalXp(a) - xa).toBe(xp);
     expect(totalXp(b) - xb).toBe(Math.round(xp * 0.5));
   });

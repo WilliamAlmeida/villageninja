@@ -219,7 +219,7 @@ export function resolveSite(g: Game, site: Site, u: Unit): string {
       s.scrolls.push(j.id);
       text = `{scroll} ${u.name} encontrou um pergaminho proibido: ${j.name}! Já pode ser ensinado na Academia (com riscos).`;
     } else {
-      const loot: Cost = { ryo: 120 + s.day * 6, paper: 10 };
+      const loot: Cost = { ryo: 120 + Math.min(s.day, 60) * 5, paper: 10 }; // teto: não cresce sem fim com o dia
       g.give(loot);
       text = `{scroll} ${u.name} achou relíquias nas ruínas: ${costLabel(loot)}.`;
     }

@@ -550,6 +550,8 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   dmg *= sageDamage(src);
   // manto da fera, Oito Portões, manto de Raiton (game/modes.ts): bate mais forte e segura parte do golpe
   dmg *= modeDamage(src) * modeGuard(t);
+  // chefe/organização escalado pela força da vila (scaleThreat)
+  dmg *= src?.powerMult ?? 1;
   // clima: algumas naturezas ficam mais fortes (chuva, tempestade, neve, sol)
   dmg *= natureWeather(g.state, nature, t.x, t.y);
   // espião da vila por perto marca o alvo
@@ -660,10 +662,12 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
         rewardText(g, t, def.reward);
         shareXp(g, t, killer, def.xp);
       } else if (t.kind === 'rogue' && t.role !== 'puppet') {
-        const ryo = 30 + g.state.day * 4;
-        g.give({ ryo });
-        rewardText(g, t, { ryo });
-        shareXp(g, t, killer, 40 + g.state.day * 3);
+        // recompensa pela força do renegado (patente e atributos), não pelo dia: antes crescia sem teto (no dia 300 cada
+        // bandido valia ~1.300 ryo e a vila juntava milhões)
+        const b = rogueBounty(t);
+        g.give({ ryo: b.ryo });
+        rewardText(g, t, { ryo: b.ryo });
+        shareXp(g, t, killer, b.xp);
       }
       if (killer?.ninja) killer.ninja.kills++;
     }
@@ -676,6 +680,14 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   }
 }
 
+/** Ryo e XP de um renegado abatido: pela patente e pela média dos atributos (genin fraco ~35 ryo, jounin forte ~110). */
+export function rogueBounty(t: Unit) {
+  const n = t.ninja;
+  const avg = n ? Object.values(n.stats).reduce((a, b) => a + b, 0) / 8 : 2;
+  const tier = n ? ['genin', 'chunin', 'jounin', 'kage'].indexOf(n.rank) : 0;
+  return { ryo: Math.round(15 + avg * 8 + tier * 12), xp: Math.round(20 + avg * 8 + tier * 15) };
+}
+
 /** Divide o golem em dois menores, com metade da vida máxima, ao lado de onde caiu. */
 function splitGolem(g: Game, t: Unit) {
   fx(g, 'burst', t.x, t.y, { r: 34, color: '#a0603a', life: 0.6, vfx: 'earth' });
@@ -684,6 +696,7 @@ function splitGolem(g: Game, t: Unit) {
     const c = createAnimal(g, 'golem', t.x + dx, t.y + 6);
     c.tier = (t.tier ?? 0) + 1;
     c.maxHp = c.hp = Math.max(40, Math.round(t.maxHp * 0.5));
+    c.powerMult = t.powerMult; // pedaço do golem escalado bate como ele
     c.boss = true;
     c.life = 1e9;
     c.state = 'rampage';

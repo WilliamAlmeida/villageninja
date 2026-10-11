@@ -52,7 +52,9 @@ export const RANKS: Record<Rank, RankDef> = {
 
 export const JUTSU_RANK_LABEL = ['E', 'D', 'C', 'B', 'A', 'S'];
 
-export const xpToNext = (level: number) => 40 + level * 30;
+/** XP para o próximo nível: igual ao de antes até o 20 e mais íngreme depois (o atributo já bate no teto da patente;
+ *  sem a curva, com o XP dos abates ninjas passavam do nível 100). */
+export const xpToNext = (level: number) => 40 + level * 30 + Math.max(0, level - 20) ** 2 * 2;
 
 /** Valores derivados dos atributos. Um único lugar para balancear. */
 export function derive(s: Stats) {
@@ -60,8 +62,9 @@ export function derive(s: Stats) {
     maxHp: Math.round(50 + s.stamina * 12 + s.forca * 5),
     maxChakra: Math.round(30 + s.stamina * 6 + s.ninjutsu * 6 + s.selos * 2),
     speed: 52 + s.velocidade * 7,
-    meleeDmg: 3 + s.taijutsu * 1.4 + s.forca * 1.1,
-    meleeCd: Math.max(0.45, 1.2 - s.velocidade * 0.06 - s.taijutsu * 0.03),
+    // golpe comum: com atributos altos ele passava os jutsus (36 de dano/s com tudo 7, contra ~10/s de um jutsu)
+    meleeDmg: 3 + s.taijutsu * 1.1 + s.forca * 0.8,
+    meleeCd: Math.max(0.5, 1.2 - s.velocidade * 0.05 - s.taijutsu * 0.025),
     kunaiDmg: 3 + s.selos * 0.4 + s.velocidade * 0.5,
     chakraRegen: 0.6 + s.stamina * 0.15 + s.inteligencia * 0.1,
     defense: Math.min(0.45, s.stamina * 0.03 + s.forca * 0.015),

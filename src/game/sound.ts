@@ -9,7 +9,7 @@ import { createRogue, refreshDerived } from './entities';
 import { fx, fxMoment, fxText } from './fx';
 import type { Game } from './game';
 import { chase, followPath, setDestination } from './movement';
-import { edgePoint } from './systems/spawner';
+import { edgePoint, scaleThreat, threatScale } from './systems/spawner';
 import type { Unit } from './types';
 import { doorPos } from './world';
 
@@ -51,6 +51,7 @@ export function createSoundMember(g: Game, id: SoundId, x: number, y: number): U
   const elite = g.state.units.filter((v) => !v.dead && v.faction === 'village' && v.ninja && (v.ninja.rank === 'jounin' || v.ninja.rank === 'kage')).length;
   u.maxHp = Math.round(u.maxHp * d.hpMult * Math.min(2.5, 1 + elite * 0.1));
   u.hp = u.maxHp;
+  scaleThreat(u, threatScale(g)); // vila grande: a ameaça vem à altura dela
   u.chakra = u.maxChakra;
   u.abilityCd = d.cd * 0.4;
   return u;
