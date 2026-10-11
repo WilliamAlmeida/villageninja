@@ -2587,3 +2587,7 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .gather .g-legend .ok { color: #8fe07a; }
 .gather .g-legend .bad { color: #ff8a80; }
 .gather .g-legend b { font-weight: 900; }
+/* velocidade num botão só (alterna 1×/2×/3×); largura fixa para o número não fazer a barra pular */
+.speed [data-speed-cycle] { min-width: 2.6rem; justify-content: center; font-variant-numeric: tabular-nums; }
+/* fechar do aviso: no hover só clareia, como os outros fechar (a regra antiga trocava a imagem por um fundo translúcido) */
+#alertbox .card .x:hover { background: var(--k2-round) center / 100% 100% no-repeat; filter: brightness(1.18); }

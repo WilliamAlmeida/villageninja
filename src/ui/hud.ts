@@ -41,16 +41,19 @@ export class Hud {
       <div class="spacer"></div>
       <div class="clock"><span class="lbl">Dia </span><b data-r="day"></b> · <b data-r="clock"></b> <span data-r="sun"></span> <span class="season" data-r="season" data-tip-tap data-tip-title="Estação e clima" data-tip=""></span></div>
       <div class="speed">
-        <button data-speed="0" title="Pausar">{pause}</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="3">3×</button>
+        <button data-speed="0" aria-label="Pausar" data-tip-title="Pausar" data-tip="Pausa o jogo (Espaço).">{pause}</button><button data-speed-cycle class="on" aria-label="Velocidade" data-tip-title="Velocidade" data-tip="Toque para alternar entre 1×, 2× e 3×."><span data-r="speed">1×</span></button>
       </div>
-      <button class="iconbtn" data-act="full" title="Tela cheia">{fullscreen}</button>
-      <button class="iconbtn" data-act="menu" title="Menu">{menu}</button>`),
+      <button class="iconbtn" data-act="full" aria-label="Tela cheia" data-tip-title="Tela cheia" data-tip="Joga em tela cheia.">{fullscreen}</button>
+      <button class="iconbtn" data-act="menu" aria-label="Menu" data-tip-title="Menu" data-tip="Pausa, salvar e configurações (Esc).">{menu}</button>`),
     );
     this.top.querySelectorAll<HTMLElement>('[data-r]').forEach((e) => this.vals.set(e.dataset.r!, e));
     this.top.addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest<HTMLElement>('button');
       if (!t) return;
-      if (t.dataset.speed) this.app.home.state.speed = Number(t.dataset.speed);
+      const s = this.app.home.state;
+      if (t.dataset.speed) s.speed = Number(t.dataset.speed);
+      // um botão só para a velocidade: 1× → 2× → 3× → 1× (pausado, volta a 1×)
+      if (t.hasAttribute('data-speed-cycle')) s.speed = s.speed === 0 ? 1 : (s.speed % 3) + 1;
       if (t.dataset.act === 'menu') this.onMenu();
       if (t.dataset.act === 'full') {
         if (isIOS() && !canFullscreen()) this.toast(IOS_HINT, 'info');
@@ -149,6 +152,8 @@ export class Hud {
     this.vals.get('food')!.parentElement!.classList.toggle('low', s.res.food < 15);
     this.vals.get('pop')!.parentElement!.classList.toggle('low', pop >= cap);
     this.top.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === s.speed));
+    set('speed', `${s.speed || 1}×`);
+    this.top.querySelector('[data-speed-cycle]')!.classList.toggle('on', s.speed > 0);
     this.alert.querySelector<HTMLElement>('[data-b="alert"]')!.hidden = !s.flags.alert;
     const warn = this.alert.querySelector<HTMLElement>('[data-b="bosswarn"]')!;
     warn.hidden = !s.pendingBoss;
