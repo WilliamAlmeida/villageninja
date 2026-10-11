@@ -2,7 +2,6 @@
 import { DAY_LENGTH } from '../config';
 import { chance, pick, rand } from '../core/rng';
 import { ANIMALS, type AnimalType } from '../data/animals';
-import { KEKKEI } from '../data/kekkei';
 import { JUTSU_LIST } from '../data/jutsus';
 import { NATURE_KEYS, type Nature } from '../data/natures';
 import { derive, RANKS, STAT_KEYS, type Rank, type Stats } from '../data/ninja';
@@ -120,11 +119,8 @@ export function convertToNinja(g: Game, u: Unit) {
   if (clan) stats[clan.specialty] = Math.min(RANKS.genin.statCap, stats[clan.specialty] + 0.5);
   u.ninja = makeNinjaInfo('genin', stats, rollInnateCount());
   if (h?.nature) u.ninja.nature = h.nature;
-  if (h?.kekkei) {
-    u.ninja.kekkei = h.kekkei;
-    // metade já nasce sabendo o jutsu da linhagem
-    if (Math.random() < 0.5) u.ninja.jutsu[0] = KEKKEI[h.kekkei].jutsu;
-  }
+  // herda a linhagem, não o jutsu: os exclusivos do clã ele estuda na Academia
+  if (h?.kekkei) u.ninja.kekkei = h.kekkei;
   u.look = { ...u.look, cloth: pick(NINJA_CLOTHS) };
   u.jobId = null;
   u.carry = null;
