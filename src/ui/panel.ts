@@ -1550,9 +1550,10 @@ export class Panel {
         const full = used >= max && `A fila está cheia (máximo ${max}).`;
         html += `<div class="wsr-acts"><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:1" ${blocked(g, [full], r.cost)}>+1</button><button class="btn mini primary" data-act="ws-craft" data-arg="${bd.id}:${r.id}:5" ${blocked(g, [full], r.cost)}>+5</button>`;
         html += auto
-          ? `<details class="wsr-keep"><summary class="wsr-keep-head">Manter <b>${keep || 'não'}</b></summary><div class="wsr-keep-menu">${[0, 3, 5, 10, 20]
-              .map((n) => `<button class="wsr-keep-item ${keep === n ? 'on' : ''}" data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}">${n || 'não'}</button>`)
-              .join('')}</div></details>`
+          ? // "Manter": as quantidades sempre à vista (nada de lista que abre e fecha com a atualização da tela)
+            `<span class="wsr-kp" ${tipAttr('Manter no estoque', 'A oficina fabrica sozinha sempre que o estoque cair abaixo deste número.')}><small>Manter</small><span class="seg wsr-kseg">${[0, 3, 5, 10, 20]
+              .map((n) => `<button class="${keep === n ? 'on' : ''}" data-act="ws-keep" data-arg="${bd.id}:${r.id}:${n}">${n || 'não'}</button>`)
+              .join('')}</span></span>`
           : `<span class="ws-lock">{lock} Nv ${AUTO_CRAFT_LEVEL} libera Manter</span>`;
         html += `</div>`;
       }
@@ -2830,7 +2831,6 @@ export class Panel {
         return this.report(cancelCraft(g, Number(arg)));
       case 'ws-keep': {
         const [bid, id, n] = String(arg).split(':');
-        (btn.closest('details.wsr-keep') as HTMLDetailsElement | null)?.removeAttribute('open');
         return this.report(setKeep(g, Number(bid), id!, Number(n)));
       }
       case 'ws-worker':
