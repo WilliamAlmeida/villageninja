@@ -96,7 +96,8 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   s.bijuu.jar = [1];
   ninjas.filter((u) => u.ninja!.rank === 'chunin').slice(0, 3).forEach((u, i) => learnSpec(g, u.id, (['medic', 'spy', 'puppeteer'] as const)[i]!));
   for (const u of ninjas) refreshDerived(u);
-  for (const u of jounins.slice(6)) if (s.clans.length < 3) foundClan(g, u.id);
+  // três clãs: sobrenome repetido não funda outro, então segue tentando os próximos (Jounins e depois Chunins)
+  for (const u of [...jounins.slice(6), ...ninjas.filter((x) => x.ninja!.rank === 'chunin')]) if (s.clans.length < 3) foundClan(g, u.id);
 
   // equipamento, lâminas, pergaminhos
   for (const it of ITEM_LIST) if (!it.blade) s.items[it.id] = 60 + (it.id.length % 5) * 7;
