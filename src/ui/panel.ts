@@ -1007,7 +1007,7 @@ export class Panel {
     if (this.regionTeam == null || !teams.some((tm) => tm.id === this.regionTeam)) this.regionTeam = teams[0]!.id;
     html += `<div class="bsec"><h4>{users} Equipe</h4><div class="fchips rteams">`;
     for (const tm of teams)
-      html += `<button data-act="r-team" data-arg="${tm.id}" class="${this.regionTeam === tm.id ? 'on' : ''}" style="--c:${tm.color}"><span class="dot"></span>${esc(tm.name)} <small>{swords}${teamMinePower(g, tm.id)}</small></button>`;
+      html += `<button data-act="r-team" data-arg="${tm.id}" class="${this.regionTeam === tm.id ? 'on' : ''}" style="--c:${tm.color}"><span class="dot"></span><span class="tn">${esc(tm.name)}</span><small>{swords}${teamMinePower(g, tm.id)}</small></button>`;
     const tp = teamMinePower(g, this.regionTeam);
     const np = nodePower(s, def);
     const k = tp / Math.max(1, np);

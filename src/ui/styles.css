@@ -2677,3 +2677,11 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .ract.a-trade { --ac: #ffcf5a; } .ract.a-protect { --ac: #7fd37f; } .ract.a-raid { --ac: #ff7a5c; } .ract.a-annex { --ac: #c9a0ff; }
 .ract.a-explore { --ac: #7fd8ff; } .ract.a-outpost { --ac: #e8b37a; } .ract.a-train { --ac: #ffb36b; } .ract.a-contract { --ac: #c9a0ff; }
 .ract.a-assault { --ac: #ff6b6b; } .ract.a-covert { --ac: #b8c4d6; } .ract.a-rescue { --ac: #7fd37f; }
+/* equipes na ficha do lugar: duas colunas que cabem na largura (nada de rolar para o lado): bolinha, nome que encurta
+   com reticências e a força encostada à direita; rola só na vertical */
+.rsheet .rteams { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 7.6rem; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+.rsheet .rteams button { display: flex; align-items: center; gap: 0.3rem; min-width: 0; white-space: nowrap; padding: 0.3rem 0.45rem; }
+.rsheet .rteams .dot { flex: 0 0 auto; margin: 0; }
+.rsheet .rteams .tn { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.rsheet .rteams small { flex: 0 0 auto; display: inline-flex; align-items: center; margin: 0; font-size: 0.72rem; }
+.rsheet .rteams small .ic { width: 0.8rem; height: 0.8rem; margin: 0 0.1rem 0 0; }
