@@ -2,6 +2,7 @@
 // aproxima a felicidade do alvo aos poucos.
 import { weightedPick } from '../core/rng';
 import { FAME } from '../data/region';
+import { BUILDINGS } from '../data/buildings';
 import { FESTIVAL, SEASON_DAYS, SEASON_ORDER, SEASONS, WEATHERS, type Season } from '../data/seasons';
 import type { Nature } from '../data/natures';
 import type { Game } from './game';
@@ -50,7 +51,24 @@ export function moodFactors(g: Game): [string, number][] {
   if (s.honor >= FAME.wanderer) out.push(['Orgulho da honra da vila', 5]);
   if (s.infamy >= FAME.hunters) out.push(['Medo da fama de saqueadores', -5]);
   if (s.kageId != null) out.push(['Um Kage governa', 4]);
+  const deco = decoMood(s);
+  if (deco) out.push(['Vila enfeitada', deco]);
   return out;
+}
+
+/** Felicidade máxima que as decorações somam. */
+export const DECO_MOOD_MAX = 15;
+
+/** Decorações prontas: cada uma soma a sua felicidade (cerejeira +1 florida na primavera), até `DECO_MOOD_MAX`. */
+export function decoMood(s: GameState) {
+  const spring = seasonOf(s) === 'spring';
+  let n = 0;
+  for (const b of s.buildings) {
+    const d = BUILDINGS[b.type];
+    if (!b.built || !d.deco) continue;
+    n += (d.mood ?? 0) + (spring && b.type === 'cherry' ? 1 : 0);
+  }
+  return Math.min(DECO_MOOD_MAX, n);
 }
 
 export const moodTarget = (g: Game) => Math.max(0, Math.min(100, moodFactors(g).reduce((a, [, v]) => a + v, 0)));

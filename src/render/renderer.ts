@@ -26,6 +26,7 @@ import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
+import { isRoad } from '../game/roads';
 import { buildingCenter, doorPos, doorTile, nodeArt } from '../game/world';
 import { art, artFoot, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
@@ -131,6 +132,7 @@ export class Renderer {
   render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
     this.level = s.level;
+    this.season = seasonOf(s);
     let cache = this.maps.get(s);
     if (!cache) {
       cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal() };
@@ -248,6 +250,7 @@ export class Renderer {
     this.drawObjectives(g, time);
     ctx.restore();
 
+    this.drawRoads(g);
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
     // (Editor de cenário), só o "resto" vai no chão e as peças entram em pé
     for (const b of s.buildings) {
@@ -591,7 +594,8 @@ export class Renderer {
    */
   artBox(b: Building, level: number) {
     const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
-    const artName = lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type;
+    const base = b.type === 'cherry' ? (this.season === 'spring' ? 'cherry' : this.season === 'winter' ? 'cherry-bare' : 'cherry-green') : b.type;
+    const artName = lvl > 1 && art(`${base}-${lvl}`) ? `${base}-${lvl}` : base;
     const pic = art(artName);
     if (!pic || !pic.naturalWidth) return null;
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
@@ -717,6 +721,8 @@ export class Renderer {
   private treeDust = new Set<number>();
   /** Nível da vila no quadro atual (arte da Residência por nível). */
   private level = 0;
+  /** Estação do mapa sendo desenhado (a cerejeira muda de arte: florida, verde, sem folhas). */
+  private season = 'spring';
 
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
@@ -799,6 +805,54 @@ export class Renderer {
     ctx.globalAlpha = 0.5 * (1 - e.t / e.life);
     drawUnit(ctx, ghost, time, false, undefined, true);
     ctx.restore();
+  }
+
+  /** Ruas calçadas (game/roads.ts): pedras no losango de cada tile, com a borda escura onde a rua acaba. */
+  private drawRoads(g: Game) {
+    const s = g.state;
+    if (!s.roads?.some((w) => w)) return;
+    const ctx = this.ctx;
+    const winter = this.season === 'winter';
+    const P = (x: number, y: number) => project(x * TILE, y * TILE);
+    for (let ty = 0; ty < MAP_H; ty++)
+      for (let tx = 0; tx < MAP_W; tx++) {
+        if (!isRoad(s, tx, ty) || !isExplored(s, tx, ty)) continue;
+        const a = P(tx, ty);
+        const b = P(tx + 1, ty);
+        const c = P(tx + 1, ty + 1);
+        const d = P(tx, ty + 1);
+        ctx.fillStyle = winter ? '#a8a49c' : '#8f8676';
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.lineTo(c.x, c.y);
+        ctx.lineTo(d.x, d.y);
+        ctx.closePath();
+        ctx.fill();
+        // 2×2 pedras por tile, cada uma um losango menor com cor sorteada pelo lugar (fixa)
+        for (let j = 0; j < 2; j++)
+          for (let i = 0; i < 2; i++) {
+            const h = ((tx * 7 + ty * 13 + i * 3 + j * 5) * 2654435761) >>> 28;
+            ctx.fillStyle = winter ? (h & 1 ? '#d8d6d0' : '#c8c4bc') : h & 1 ? '#b4aa98' : h & 2 ? '#a69c8a' : '#bcb2a0';
+            const x0 = tx + i * 0.5 + 0.05;
+            const y0 = ty + j * 0.5 + 0.05;
+            const q = [P(x0, y0), P(x0 + 0.4, y0), P(x0 + 0.4, y0 + 0.4), P(x0, y0 + 0.4)];
+            ctx.beginPath();
+            ctx.moveTo(q[0]!.x, q[0]!.y);
+            for (const p of q.slice(1)) ctx.lineTo(p.x, p.y);
+            ctx.closePath();
+            ctx.fill();
+          }
+        // borda onde a rua acaba (meio-fio)
+        ctx.strokeStyle = '#5e5648';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (!isRoad(s, tx, ty - 1)) (ctx.moveTo(a.x, a.y), ctx.lineTo(b.x, b.y));
+        if (!isRoad(s, tx + 1, ty)) (ctx.moveTo(b.x, b.y), ctx.lineTo(c.x, c.y));
+        if (!isRoad(s, tx, ty + 1)) (ctx.moveTo(c.x, c.y), ctx.lineTo(d.x, d.y));
+        if (!isRoad(s, tx - 1, ty)) (ctx.moveTo(d.x, d.y), ctx.lineTo(a.x, a.y));
+        ctx.stroke();
+      }
   }
 
   /** Kage Mane: faixa de sombra no chão do ninja até o preso, ondulando nas bordas (por baixo de todo mundo). */
@@ -1383,6 +1437,11 @@ export class Renderer {
     };
     const winter = seasonOf(g.state) === 'winter';
     for (const b of g.state.buildings) {
+      // lanterna de pedra (decoração): luz quente em volta à noite
+      if (b.built && b.type === 'lantern') {
+        const c = buildingCenter(b);
+        glow(c.x, c.y, 10, 48, 'rgba(255,190,90,A)', 0.55 * night);
+      }
       if (!b.built || !BUILDINGS[b.type].lights) continue;
       const d = doorPos(b);
       // no inverno as casas ficam com as janelas mais quentes (lareira acesa)

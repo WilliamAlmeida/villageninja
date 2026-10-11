@@ -13,9 +13,9 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Edo Tensei (proibido: traz de volta por um tempo um ninja caído da vila para lutar) (9ae9b56)
 
 ## 2. Cenário
-- [ ] Decorações (categoria nova na construção: pagode, santuários, lanternas, cerejeiras que florescem na
+- [x] Decorações (categoria nova na construção: pagode, santuários, lanternas, cerejeiras que florescem na
       primavera; felicidade em volta)
-- [ ] Ruas calçadas pintadas pelo jogador (ninjas e moradores andam mais rápido)
+- [x] Ruas calçadas pintadas pelo jogador (ninjas e moradores andam mais rápido)
 - [ ] Monte dos Kages com um rosto por Kage que já passou
 - [ ] Pedra Memorial com os nomes dos ninjas caídos
 - [ ] Mapa jogável temático da Vila dos Pescadores (palafitas, cais, barcos, redes) + enfeites no Porto

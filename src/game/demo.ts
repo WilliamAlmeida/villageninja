@@ -27,10 +27,11 @@ import { autoTeams } from './teams';
 import type { Game, System } from './game';
 import type { Unit } from './types';
 import { territoryCenter } from './village';
-import { doorPos } from './world';
+import { doorPos, doorTile, idx, inBounds } from './world';
+import { pave } from './roads';
 
 /** Quantos de cada prédio a vitrine levanta (o resto, um). */
-const COUNT: Partial<Record<BuildingType, number>> = { house: 8, farm: 3, lumber: 2, quarry: 2, market: 2, training: 2, tower: 3, ironmine: 1, herbgarden: 2 };
+const COUNT: Partial<Record<BuildingType, number>> = { house: 8, farm: 3, lumber: 2, quarry: 2, market: 2, training: 2, tower: 3, ironmine: 1, herbgarden: 2, lantern: 4, cherry: 3, flowers: 2 };
 /** Ninjas por patente e a faixa de nível. */
 const ROSTER: [Rank, number, number, number][] = [['genin', 12, 1, 6], ['chunin', 10, 5, 12], ['jounin', 10, 10, 24]];
 
@@ -46,6 +47,12 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
 
   s.kageHistory.push({ name: 'Senju Hashira', day: 9 }); // um Kage anterior (o Monte dos Kages pede)
   placeAll(g);
+  // ruas calçadas: as passagens em volta dos prédios perto da Residência viram calçada
+  const door = doorTile(g.hokage()!);
+  const occ = (x: number, y: number) => inBounds(x, y) && g.world.occupied[idx(x, y)] > 0;
+  for (let ty = door.ty - 9; ty <= door.ty + 9; ty++)
+    for (let tx = door.tx - 9; tx <= door.tx + 9; tx++)
+      if (!occ(tx, ty) && (occ(tx + 1, ty) || occ(tx - 1, ty) || occ(tx, ty + 1) || occ(tx, ty - 1))) pave(g, tx, ty);
   for (const b of s.buildings) {
     b.built = true;
     b.progress = BUILDINGS[b.type].buildTime;

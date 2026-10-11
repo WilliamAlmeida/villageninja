@@ -144,14 +144,14 @@ button:disabled { cursor: not-allowed; }
 .bcard .lock { font-size: 0.77rem; color: var(--warn); }
 .bcard .lock:empty { display: none; }
 
-#placebar, #orderbar {
+#placebar, #orderbar, #roadbar {
   position: fixed; left: 50%; bottom: calc(0.75rem + var(--safe-b)); transform: translateX(-50%); z-index: 12;
   display: flex; align-items: center; gap: 0.6rem; background: var(--bg); border: 1px solid var(--line);
   padding: 0.45rem 0.6rem 0.45rem 0.9rem; border-radius: var(--r); box-shadow: var(--shadow);
 }
-#placebar { white-space: nowrap; }
+#placebar, #roadbar { white-space: nowrap; }
 #orderbar { max-width: min(43rem, 70vw); border-color: var(--warn); }
-#placebar .hint, #orderbar .hint { color: var(--muted); font-size: 0.92rem; white-space: normal; margin: 0; }
+#placebar .hint, #orderbar .hint, #roadbar .hint { color: var(--muted); font-size: 0.92rem; white-space: normal; margin: 0; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.85rem; border-radius: 0.65rem;
@@ -1359,7 +1359,7 @@ h4 { color: #dcc5a3; font-weight: 900; font-size: 0.82rem; letter-spacing: 0.05e
 .bcard { border: 1px solid var(--line); box-shadow: var(--shadow-card); background: linear-gradient(180deg, rgba(67, 45, 27, 0.97), rgba(36, 23, 15, 0.98)); }
 .bcard .n { font-size: 0.95rem; }
 .banner.danger { background: linear-gradient(180deg, #7a2a24, #4a1512); border: 1px solid #ff7770; box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.5); font-size: 1rem; padding: 0.5rem 1.1rem; }
-#placebar, #orderbar, #scenebar, #maptip { background: linear-gradient(180deg, rgba(60, 40, 24, 0.97), rgba(31, 20, 13, 0.985)); border: 1px solid #8a5b25; }
+#placebar, #orderbar, #scenebar, #maptip, #roadbar { background: linear-gradient(180deg, rgba(60, 40, 24, 0.97), rgba(31, 20, 13, 0.985)); border: 1px solid #8a5b25; }
 @media (max-height: 520px) {
   .mh-title { font-size: 1.25rem; }
   .mtabs button { font-size: 0.92rem; padding: 0.45rem 0.8rem; }
@@ -2443,15 +2443,15 @@ h4 > * { image-rendering: auto; }
 }
 /* barras de posicionar prédio e de dar ordem: logo acima da barra de baixo (que cresceu com o kit e passou a ser tampada
    por elas) e na madeira da barra de cima; a dica do prédio no mapa na caixinha */
-#placebar, #orderbar, #scenebar {
+#placebar, #orderbar, #scenebar, #roadbar {
   --sl: 8 14 8 14 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 6px 14px;
   border-image-source: var(--k2-hud-bar); border-image-slice: var(--sl); border-image-width: 16px 28px; border-image-repeat: stretch;
   image-rendering: pixelated; filter: drop-shadow(0 0.4rem 0.8rem rgba(0, 0, 0, 0.5));
 }
-#placebar > *, #orderbar > *, #scenebar > * { image-rendering: auto; }
-#placebar, #orderbar { bottom: calc(6.6rem + var(--safe-b)); }
-#placebar .hint, #orderbar .hint { color: #f3e3c3; }
-@media (max-height: 520px) { #placebar, #orderbar { bottom: calc(5.3rem + var(--safe-b)); } }
+#placebar > *, #orderbar > *, #scenebar > *, #roadbar > * { image-rendering: auto; }
+#placebar, #orderbar, #roadbar { bottom: calc(6.6rem + var(--safe-b)); }
+#placebar .hint, #orderbar .hint, #roadbar .hint { color: #f3e3c3; }
+@media (max-height: 520px) { #placebar, #orderbar, #roadbar { bottom: calc(5.3rem + var(--safe-b)); } }
 #maptip {
   --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
@@ -2511,10 +2511,10 @@ h4 > * { image-rendering: auto; }
 #alertbox.closing .card, #modal.closing .box { animation: k-pop-out 0.16s ease-in forwards; }
 #buildbar { animation: k-up-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
 #buildbar.closing { animation: k-up-out 0.16s ease-in forwards; pointer-events: none; }
-#placebar, #orderbar { animation: k-up-in-c 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#placebar, #orderbar, #roadbar { animation: k-up-in-c 0.2s cubic-bezier(0.2, 0.8, 0.3, 1); }
 @keyframes k-up-in-c { from { opacity: 0; transform: translate(-50%, 0.8rem); } }
 @media (prefers-reduced-motion: reduce) {
-  #win, #win .box, #panel, #alertbox, #alertbox .card, #modal, #modal .box, #buildbar, #placebar, #orderbar { animation: none !important; }
+#win, #win .box, #panel, #alertbox, #alertbox .card, #modal, #modal .box, #buildbar, #placebar, #orderbar, #roadbar { animation: none !important; }
 }
 /* barras finas (.nc-bar: estatísticas, marcos, atributos): trilho reto com contorno de pixel e o preenchimento com o brilho
    da barra do kit (bar-fill, cinza) multiplicado pela cor de cada uma; sem cantos redondos */
@@ -2751,3 +2751,8 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .bj-seal { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.5rem; }
 .bj-seal .bj-lbl { font-weight: 700; }
 .bj-seal .bj-cands { display: flex; flex-wrap: wrap; gap: 0.3rem; flex: 1 1 auto; }
+
+/* construção: separador da seção Decoração e o cartão da rua (sem arte, só o glifo) */
+.bsep { flex: 0 0 auto; align-self: stretch; display: flex; align-items: center; writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 0.15rem; color: #f3e3c3; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.bcard.road .i .ic { width: 2rem; height: 2rem; }
+#roadbar .btn.tog.on { background: #a33; }

@@ -68,6 +68,7 @@ const app: App = {
   camera,
   ghost: null,
   buildType: null,
+  roadMode: null,
   orderMode: null,
   group: [],
   hoverUnitId: null,
@@ -113,7 +114,7 @@ input.onTap = ui.onTap;
 input.onContext = ui.onContext;
 input.onBox = ui.onBox;
 input.onBoxCancel = () => (app.selectBox = null);
-input.boxMode = () => app.selectTool && !app.buildType && !app.orderMode;
+input.boxMode = () => !!app.roadMode || (app.selectTool && !app.buildType && !app.orderMode);
 input.onHover = (sx, sy) => input.setCursor(ui.onHover(sx, sy));
 
 // salvamento automático

@@ -1,5 +1,6 @@
 import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB } from '../config';
 import { fidx, inFine, type World } from './world';
+import { isRoadCell, ROAD } from './roads';
 
 // A* em grade 8-direções, nas células de colisão (meio tile), com buffers reaproveitados (zero alocação por busca).
 const N = FINE_W * FINE_H;
@@ -167,7 +168,7 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
       const ni = fidx(nx, ny);
       if (closed[ni] === gen || !w.walkableCell(nx, ny)) continue;
       if (dx !== 0 && dy !== 0 && (!w.walkableCell(cx + dx, cy) || !w.walkableCell(cx, cy + dy))) continue;
-      const ng = gScore[cur]! + cost + (w.soft[ni] ? SOFT_COST : 0);
+      const ng = gScore[cur]! + cost * (isRoadCell(w.state, nx, ny) ? ROAD.pathCost : 1) + (w.soft[ni] ? SOFT_COST : 0);
       if (seen[ni] !== gen || ng < gScore[ni]!) {
         seen[ni] = gen;
         gScore[ni] = ng;

@@ -6,6 +6,7 @@ import { Game, type System } from './game';
 import { createTeam, joinAsMember } from './teams';
 import type { GameState } from './types';
 import { emptyExplored, generateSites, revealStart } from './explore';
+import { emptyRoads } from './roads';
 import { newRegion } from './region';
 import { newOrg } from './org';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
@@ -43,6 +44,7 @@ export function baseState(seed: number): GameState {
     projectiles: [],
     effects: [],
     explored: emptyExplored(),
+    roads: emptyRoads(),
     sites: [],
     scrolls: [],
     jutsuOpen: [],

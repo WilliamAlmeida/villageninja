@@ -446,6 +446,15 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `recordFallen` em killUnit/expedições/mapas) também alimenta a Pedra Memorial. Chidori Nagashi (`aoe` com `self`), Kirin
   (`sky`: efeito `thunder`, 60% da força sem chuva sobre o alvo), Ōdama Rasengan (`orbSize`), Suna no Tate e Sabaku Kyū
   (vfx `sand`).
+- **Decorações e ruas** (pedido do autor a partir dos mockups): decorações são prédios com `deco`/`mood` em
+  data/buildings.ts (lanterna, banco, canteiro, estandarte, pedra sagrada, gato da sorte, cerejeira, fonte, lago de carpas,
+  pagode; arte do Codex numa grade, `scripts/deco-grid.py` → docs/arte/iso → prepare-art; tamanho no mapa por
+  `ART_SCALE`), seção "Decoração" na barra de construção; somam felicidade até `DECO_MOOD_MAX` (`decoMood` em mood.ts; a
+  cerejeira floresce na primavera, fica verde e sem folhas no inverno: arte pela estação em `Renderer.artBox`; a lanterna
+  acende à noite). **Ruas calçadas** (`game/roads.ts`, `state.roads` bitset por tile): cartão "Rua calçada" abre o modo de
+  pintar (`App.roadMode`, arraste usa a caixa de seleção do Input; "Tirar" apaga), custo por tile, +30% de velocidade
+  (`roadSpeed` em movement.ts) e o A* prefere a rua (`ROAD.pathCost`); prédio construído/movido em cima tira o calçamento;
+  desenho no chão em `Renderer.drawRoads`.
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em
@@ -502,7 +511,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v30.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v31.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

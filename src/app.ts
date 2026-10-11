@@ -24,6 +24,8 @@ export interface App {
   camera: Camera;
   ghost: Ghost | null;
   buildType: BuildingType | null;
+  /** Pintando ruas: arrastar no mapa calça (ou tira, em 'erase') os tiles (game/roads.ts). */
+  roadMode: 'pave' | 'erase' | null;
   /** Modo "dar ordem": o próximo toque no mapa vira ordem para estes ninjas. */
   orderMode: { ids: number[]; label: string } | null;
   /** Ninjas selecionados em grupo (caixa de seleção). */

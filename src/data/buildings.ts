@@ -24,7 +24,18 @@ export type BuildingType =
   | 'port'
   | 'intel'
   | 'puppetshop'
-  | 'kennel';
+  | 'kennel'
+  // decorações
+  | 'lantern'
+  | 'bench'
+  | 'flowers'
+  | 'banner'
+  | 'shrine'
+  | 'statue'
+  | 'cherry'
+  | 'fountain'
+  | 'pond'
+  | 'pagoda';
 
 export type JobType = 'farmer' | 'lumber' | 'miner' | 'merchant' | 'ironminer' | 'gardener' | 'crafter';
 
@@ -55,6 +66,10 @@ export interface BuildingDef {
    * as de muro, terra; com terreno quadrado pode ser espelhado (`Building.flip`) para a água ficar do outro lado.
    */
   shore?: boolean;
+  /** Decoração (seção própria na construção): deixa a vila mais feliz (`mood` pontos; game/mood.ts). */
+  deco?: boolean;
+  /** Felicidade que a decoração dá (somada, até `DECO_MOOD_MAX`). */
+  mood?: number;
   roof: string;
   wall: string;
 }
@@ -174,6 +189,57 @@ const LIST: BuildingDef[] = [
     type: 'monument', name: 'Monte dos Kages', icon: '{monument}', desc: 'Rostos dos Kages esculpidos na rocha: +30% de XP no treino e +1 de reputação por dia.',
     w: 4, h: 2, cost: { wood: 100, stone: 250, ryo: 200 }, buildTime: 30, unique: true, buildable: true, minLevel: 2,
     roof: '#8d8174', wall: '#6e6358',
+  },
+  // ---- decorações (felicidade; data/buildings `deco`, game/mood.ts)
+  {
+    type: 'lantern', name: 'Lanterna de pedra', icon: '{lantern}', desc: 'Lanterna de pedra com uma luz acesa à noite.',
+    w: 1, h: 1, cost: { stone: 15 }, buildTime: 6, buildable: true, deco: true, mood: 1,
+    roof: '#8a8a8a', wall: '#b0b0b0',
+  },
+  {
+    type: 'bench', name: 'Banco', icon: '{house}', desc: 'Banco de madeira para descansar.',
+    w: 1, h: 1, cost: { wood: 12 }, buildTime: 6, buildable: true, deco: true, mood: 1,
+    roof: '#8a5a2a', wall: '#b07a40',
+  },
+  {
+    type: 'flowers', name: 'Canteiro de flores', icon: '{flower}', desc: 'Canteiro com flores coloridas.',
+    w: 1, h: 1, cost: { wood: 8, herbs: 2 }, buildTime: 6, buildable: true, deco: true, mood: 1,
+    roof: '#c04a4a', wall: '#8a5a2a',
+  },
+  {
+    type: 'banner', name: 'Estandarte', icon: '{flag}', desc: 'Estandarte com o emblema da vila.',
+    w: 1, h: 1, cost: { wood: 10, ryo: 15 }, buildTime: 6, buildable: true, deco: true, mood: 1,
+    roof: '#c0392b', wall: '#8a5a2a',
+  },
+  {
+    type: 'shrine', name: 'Pedra sagrada', icon: '{sparkle}', desc: 'Rocha sagrada com a corda shimenawa: os moradores rezam por boa sorte.',
+    w: 1, h: 1, cost: { stone: 30, ryo: 20 }, buildTime: 6, buildable: true, deco: true, mood: 2,
+    roof: '#7a7a6a', wall: '#a89a6a',
+  },
+  {
+    type: 'statue', name: 'Estátua do gato da sorte', icon: '{paw}', desc: 'Gato da sorte de pedra acenando para quem passa.',
+    w: 1, h: 1, cost: { stone: 25, ryo: 40 }, buildTime: 6, buildable: true, deco: true, mood: 2,
+    roof: '#9a9a9a', wall: '#c0392b',
+  },
+  {
+    type: 'cherry', name: 'Cerejeira', icon: '{tree}', desc: 'Floresce rosa na primavera (felicidade a mais nessa estação), fica verde no verão e no outono e sem folhas no inverno.',
+    w: 1, h: 1, cost: { wood: 10, ryo: 20 }, buildTime: 6, buildable: true, deco: true, mood: 2,
+    roof: '#f0a0c0', wall: '#6a4a2a',
+  },
+  {
+    type: 'fountain', name: 'Fonte', icon: '{drop}', desc: 'Fonte de pedra com água corrente.',
+    w: 2, h: 2, cost: { stone: 60, ryo: 60 }, buildTime: 12, buildable: true, deco: true, mood: 3, minLevel: 1,
+    roof: '#4a8ac0', wall: '#9a9a9a',
+  },
+  {
+    type: 'pond', name: 'Lago de carpas', icon: '{drop}', desc: 'Laguinho com carpas e uma pontezinha.',
+    w: 2, h: 2, cost: { stone: 40, ryo: 40 }, buildTime: 12, buildable: true, deco: true, mood: 3, minLevel: 1,
+    roof: '#3a7ab0', wall: '#8a8a8a',
+  },
+  {
+    type: 'pagoda', name: 'Pagode', icon: '{tower}', desc: 'Pagode de três andares: o orgulho da vila.',
+    w: 2, h: 2, cost: { wood: 60, stone: 40, ryo: 80 }, buildTime: 12, buildable: true, deco: true, mood: 4, minLevel: 1,
+    roof: '#2f6a5a', wall: '#b03a2a',
   },
 ];
 

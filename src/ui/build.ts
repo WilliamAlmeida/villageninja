@@ -10,9 +10,13 @@ import { el } from './dom';
 import { rich } from './icons';
 import { artUrl } from '../render/art';
 import { isShown, setShown } from './anim';
+import { pave, ROAD, unpave } from '../game/roads';
+import { TILE } from '../config';
+import { DECO_MOOD_MAX } from '../game/mood';
 
 /** Dica do card (texto puro): o que faz e o custo. */
-const plainInfo = (d: (typeof BUILDINGS)[BuildingType]) => `${plainTokens(d.desc)}
+const plainInfo = (d: (typeof BUILDINGS)[BuildingType]) => `${plainTokens(d.desc)}${d.mood ? `
++${d.mood} de felicidade` : ''}
 Custo: ${plainTokens(costLabel(d.cost))}`;
 
 /** Menu de construção + modo de posicionamento (fantasma no mapa), usado também para mover prédios prontos. */
@@ -25,8 +29,21 @@ export class BuildUI {
 
   constructor(private app: App) {
     this.bar = el('div', { id: 'buildbar', hidden: '' });
-    for (const d of BUILDING_LIST) {
-      if (!d.buildable) continue;
+    // prédios primeiro; depois a seção Decoração, que começa pela rua calçada (pintada arrastando no mapa)
+    const list = [...BUILDING_LIST.filter((d) => d.buildable && !d.deco), null, ...BUILDING_LIST.filter((d) => d.buildable && d.deco)];
+    for (const d of list) {
+      if (!d) {
+        this.bar.appendChild(el('div', { class: 'bsep' }, 'Decoração'));
+        this.bar.appendChild(
+          el(
+            'button',
+            { class: 'bcard road', 'data-road': '1', 'data-tip-title': 'Rua calçada', 'data-tip': `Arraste no mapa para calçar. Quem anda na rua vai ${Math.round((ROAD.speed - 1) * 100)}% mais rápido e o caminho prefere ela.
+Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
+            rich(`<span class="i">{road}</span><span class="n">Rua calçada</span><span class="c">${costLabel(ROAD.cost)} / tile</span><span class="lock"></span>`),
+          ),
+        );
+        continue;
+      }
       this.bar.appendChild(
         el(
           'button',
@@ -38,6 +55,10 @@ export class BuildUI {
     }
     this.bar.addEventListener('click', (e) => {
       if (this.dragged) return; // foi um arraste, não um clique no card
+      if ((e.target as HTMLElement).closest('[data-road]')) {
+        this.startRoad();
+        return;
+      }
       const c = (e.target as HTMLElement).closest<HTMLElement>('[data-type]');
       if (!c) return;
       const type = c.dataset.type as BuildingType;
@@ -58,6 +79,68 @@ export class BuildUI {
       if (a === 'ok') this.confirm();
     });
     this.place.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+    this.roadBar = el(
+      'div',
+      { id: 'roadbar', class: 'placebar', hidden: '' },
+      rich(`<span class="hint" data-t="road"></span><button class="btn tog" data-act="erase">{eraser} Tirar</button><button class="btn primary" data-act="done">{check} Pronto</button>`),
+    );
+    this.roadBar.addEventListener('click', (e) => {
+      const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
+      if (a === 'erase') {
+        this.app.roadMode = this.app.roadMode === 'erase' ? 'pave' : 'erase';
+        this.roadHint();
+      }
+      if (a === 'done') this.exit();
+    });
+    this.roadBar.addEventListener('pointerdown', (e) => e.stopPropagation());
+  }
+
+  readonly roadBar: HTMLElement;
+  /** Último tile pintado no arraste (para preencher o caminho quando o dedo anda rápido). */
+  private lastRoad: { tx: number; ty: number } | null = null;
+  private roadMsg = '';
+
+  /** Entra no modo de pintar ruas. */
+  private startRoad() {
+    setShown(this.bar, false);
+    this.app.roadMode = 'pave';
+    this.lastRoad = null;
+    this.roadBar.hidden = false;
+    this.roadHint();
+  }
+
+  private roadHint() {
+    const erase = this.app.roadMode === 'erase';
+    this.roadBar.querySelector('[data-act="erase"]')!.classList.toggle('on', erase);
+    const msg = erase ? '{road} Arraste no mapa para tirar a rua' : `{road} Arraste no mapa para calçar · ${costLabel(ROAD.cost)} por tile`;
+    this.roadBar.querySelector('[data-t="road"]')!.innerHTML = rich(this.roadMsg ? `${msg} · <b>${this.roadMsg}</b>` : msg);
+  }
+
+  /** Calça (ou tira) o tile sob o ponto e os do meio desde o último, num arraste. `tap` = toque solto. */
+  paintRoad(wx: number, wy: number, tap: boolean, done = false) {
+    const g = this.app.home;
+    const tx = Math.floor(wx / TILE);
+    const ty = Math.floor(wy / TILE);
+    const from = tap || !this.lastRoad ? { tx, ty } : this.lastRoad;
+    const n = Math.max(Math.abs(tx - from.tx), Math.abs(ty - from.ty), 1);
+    let why: string | null = null;
+    for (let i = 0; i <= n; i++) {
+      const x = Math.round(from.tx + ((tx - from.tx) * i) / n);
+      const y = Math.round(from.ty + ((ty - from.ty) * i) / n);
+      if (this.app.roadMode === 'erase') unpave(g, x, y);
+      else {
+        const r = pave(g, x, y);
+        if (!r.ok && r.error !== 'Já é rua.') why = r.error;
+      }
+    }
+    this.lastRoad = done || tap ? null : { tx, ty };
+    const msg = why ?? '';
+    if (msg !== this.roadMsg) {
+      this.roadMsg = msg;
+      this.roadHint();
+    }
+    g.rev++;
   }
 
   private dragged = false;
@@ -113,6 +196,8 @@ export class BuildUI {
 
   update() {
     if (this.bar.hidden) return;
+    const road = this.bar.querySelector('[data-road]');
+    if (road) road.classList.toggle('off', !this.app.home.canAfford(ROAD.cost));
     const g = this.app.home;
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const type = c.dataset.type as BuildingType;
@@ -144,6 +229,7 @@ export class BuildUI {
       `Obra: ${d.buildTime}s`,
       d.unique && 'Só um por vila',
       d.walkable && 'Dá para andar por cima',
+      d.mood && `+${d.mood} de felicidade (decorações somam até ${DECO_MOOD_MAX})`,
     ].filter(Boolean);
     const lack = lackRows(g, d.cost);
     const rows = [`<span class="lbl">Custo</span> ${costLabel(d.cost)}`];
@@ -240,6 +326,11 @@ export class BuildUI {
   }
 
   cancel() {
+    if (this.app.roadMode) {
+      this.exit();
+      this.toggle(true);
+      return;
+    }
     const moving = this.moveId != null;
     this.exit();
     if (!moving) this.toggle(true);
@@ -248,6 +339,9 @@ export class BuildUI {
   exit() {
     this.app.ghost = null;
     this.app.buildType = null;
+    this.app.roadMode = null;
+    this.roadBar.hidden = true;
+    this.roadMsg = '';
     this.moveId = null;
     this.place.hidden = true;
     this.onExit();

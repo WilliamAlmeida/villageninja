@@ -64,7 +64,7 @@ export function createUI(app: App, root: HTMLElement) {
     win.show(null);
     panel.show(null);
     build.toggle(false);
-    if (app.buildType) build.exit();
+    if (app.buildType || app.roadMode) build.exit();
   });
 
   const dock = el(
@@ -92,7 +92,7 @@ export function createUI(app: App, root: HTMLElement) {
     // gestão e construção são da vila: olhando a invasão, volta para a vila primeiro
     if (a !== 'select' && app.viewScene) app.setView(false);
     if (a === 'build') {
-      if (app.buildType) build.exit();
+      if (app.buildType || app.roadMode) build.exit();
       build.toggle();
       if (build.open) {
         panel.show(null);
@@ -155,7 +155,7 @@ export function createUI(app: App, root: HTMLElement) {
       // fecha a camada mais de cima: aviso → janela → modos de mapa → painel lateral
       if (alertOpen()) closeAlert();
       else if (!win.root.hidden) win.show(null);
-      else if (app.buildType) build.cancel();
+      else if (app.buildType || app.roadMode) build.cancel();
       else if (app.orderMode || app.selectTool) {
         setOrderMode(false);
         app.selectTool = false;
@@ -210,7 +210,7 @@ export function createUI(app: App, root: HTMLElement) {
   };
 
   hud.onMenu = () => menu.open();
-  root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, orderBar, panel.root, win.root, menu.root);
+  root.append(hud.top, hud.alert, hud.toasts, dock, build.bar, build.place, build.roadBar, orderBar, panel.root, win.root, menu.root);
   hud.update(); // valores já no primeiro quadro (antes a barra de cima nascia vazia por 0,2 s)
 
   bus.on('select', (sel) => {
@@ -306,6 +306,10 @@ export function createUI(app: App, root: HTMLElement) {
   function onTap(sx: number, sy: number) {
     const g = app.game;
     const w = app.camera.screenToWorld(sx, sy);
+    if (app.roadMode) {
+      build.paintRoad(w.x, w.y, true);
+      return;
+    }
     if (app.buildType) {
       build.tapWorld(w.x, w.y);
       // com mouse o fantasma já segue o cursor: o clique confirma (no toque, toca e depois confirma no botão)
@@ -351,6 +355,12 @@ export function createUI(app: App, root: HTMLElement) {
 
   /** Caixa de seleção (tela): marca os ninjas da vila dentro dela. */
   function onBox(x0: number, y0: number, x1: number, y1: number, done: boolean) {
+    if (app.roadMode) {
+      // pintando ruas: o arraste calça cada tile por onde o dedo/mouse passa
+      const w = app.camera.screenToWorld(x1, y1);
+      build.paintRoad(w.x, w.y, false, done);
+      return;
+    }
     if (!done) {
       app.selectBox = { x0, y0, x1, y1 };
       return;
@@ -404,6 +414,7 @@ export function createUI(app: App, root: HTMLElement) {
       tipAt(null, 0, 0);
       return 'grab';
     }
+    if (app.roadMode) return 'cell';
     if (app.buildType) {
       // no desktop o fantasma do prédio acompanha o mouse; o clique confirma
       const w = app.camera.screenToWorld(sx, sy);

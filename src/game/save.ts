@@ -4,6 +4,7 @@ import type { GameState } from './types';
 import { JUTSUS } from '../data/jutsus';
 import { needsScroll } from './library';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
+import { emptyRoads } from './roads';
 import { newRegion } from './region';
 import { generateMap, idx, T } from './world';
 import { newOrg } from './org';
@@ -225,6 +226,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   29: (s) => {
     s.fallen = [];
     if (s.scene) s.scene.fallen = [];
+  },
+  30: (s) => {
+    s.roads = emptyRoads();
+    if (s.scene) s.scene.roads = emptyRoads();
   },
 };
 

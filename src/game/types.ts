@@ -586,6 +586,8 @@ export interface GameState {
   bossTimer: number;
   /** Bestas com cauda vencidas e seladas num jarro, esperando um Jinchuuriki (caudas de cada uma). */
   bijuu: { jar: number[] };
+  /** Ruas calçadas: 1 bit por tile, como `explored` (game/roads.ts). */
+  roads: number[];
   /** Ninjas da vila que caíram (mais recentes primeiro): Pedra Memorial e Edo Tensei (game/memorial.ts). */
   fallen: Fallen[];
   pendingBoss: { kind: BossKind; x: number; y: number; t: number } | null;
