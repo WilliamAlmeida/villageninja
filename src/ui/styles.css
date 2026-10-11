@@ -2362,11 +2362,75 @@ h4 > * { image-rendering: auto; }
 .wsr-keep[open] .wsr-keep-menu { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0; }
 
 /* vitrine (?demo, ui/demoMenu.ts): só de desenvolvimento */
-#demobtn { position: fixed; left: 0.5rem; top: 4.2rem; z-index: 60; }
+#demobtn { position: fixed; left: 0.5rem; bottom: 0.5rem; z-index: 60; }
 #demomenu {
-  position: fixed; left: 0.5rem; top: 6.8rem; z-index: 60; max-width: min(46rem, calc(100vw - 1rem)); max-height: calc(100vh - 8rem);
+  position: fixed; left: 0.5rem; bottom: 3.2rem; z-index: 60; max-width: min(46rem, calc(100vw - 1rem)); max-height: calc(100vh - 8rem);
   overflow: auto; padding: 0.6rem 0.8rem; background: rgba(20, 12, 6, 0.94); border: 1px solid #8a6a3a; color: #f3e3c3;
 }
 #demomenu h5 { margin: 0.4rem 0 0.25rem; font-size: 0.8rem; color: #ffcf7a; }
 #demomenu .demorow { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 #demomenu small { opacity: 0.55; font-size: 0.65rem; margin-left: 0.2rem; }
+
+/* ---------- kit 2, varredura da vitrine (?demo): o que ainda era caixa ou linha de CSS ---------- */
+/* cartões: caixinha de madeira (hud-slot, 1×) */
+.mcontract, .xlcard, .xmine, .ws-now, .wsrow, .kpanel, .tform, .vmark, .sc2, .o-prog, .rlegend {
+  --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
+  image-rendering: pixelated;
+}
+.mcontract > *, .xlcard > *, .xmine > *, .ws-now > *, .wsrow > *, .kpanel > *, .tform > *, .vmark > *, .sc2 > *, .o-prog > *, .rlegend > * { image-rendering: auto; }
+.mcontract { padding: 0.55rem 0.7rem; }
+.xlcard { padding: 0.5rem 0.65rem; }
+.wsrow { padding: 0.35rem 0.5rem; margin-bottom: 0.3rem; }
+.kpanel { padding: 0.6rem 0.8rem 0.7rem; }
+/* em destaque (melhoria, expedição esperando decisão, marco cumprido): o quadro dourado */
+.bup, .xlcard.want, .vmark.done {
+  --sl: 14 14 14 14 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 5px 6px;
+  border-image-source: var(--k2-dock-slot-on); border-image-slice: var(--sl); border-image-width: 14px; image-rendering: pixelated;
+}
+.bup > *, .vmark.done > * { image-rendering: auto; }
+/* Bingo Book: as organizações na mesma caixinha (a moldura vermelha antiga era CSS) */
+.kpanel.ocard, .kfill .ocard {
+  --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 4px 5px; box-shadow: none;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
+}
+/* o miolo do Kage já está dentro do painel: sem segunda caixa */
+.kbody { border: 0; background: none; padding: 0; }
+/* títulos de seção sem ícone (como os h4) */
+.kp-head > .ic { display: none; }
+/* linhas soltas de separação: o espaço já separa (o separador do kit tem ornamento e não estica) */
+.mc-foot, .ws-sec, .factions, .bfoot, .o-foot { border-top: 0; }
+.mside, .tdetail { border-left: 0; }
+/* mapa da região: moldura do kit em volta (sem preencher o meio), legenda e zoom do kit, ficha do lugar no painel */
+.rmapview {
+  --sl: 10 10 10 10; border-radius: 0; border: 0 solid transparent; border-width: 5px;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
+}
+.rmapview > * { image-rendering: auto; }
+.rzoom button, .rsheet-x { background: var(--k2-round) center / 100% 100% no-repeat; border: 0; border-radius: 50%; image-rendering: pixelated; }
+.rzoom button > *, .rsheet-x > * { image-rendering: auto; }
+.rsheet {
+  --sl: 13 13 13 13 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 12px;
+  border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 16px; image-rendering: pixelated;
+  filter: drop-shadow(0 0.5rem 1rem rgba(0, 0, 0, 0.55));
+}
+.rsheet > * { image-rendering: auto; }
+.rsheet { padding: 0.4rem 0.45rem; }
+.rsheet .rteams button { white-space: nowrap; }
+/* sobras da segunda varredura: linha da ANBU, ranking, estoque, escolha de membro, lâminas do Bingo, faixas */
+.arow, .topr, .ws-it, .ttile .tt-pick, .tt-pick, .sc-done, .bl, .td-mission {
+  --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
+  image-rendering: pixelated;
+}
+.arow > *, .topr > *, .ws-it > *, .tt-pick > *, .sc-done > *, .bl > *, .td-mission > * { image-rendering: auto; }
+.bl.on, .ttile.sensei .tt-pick {
+  --sl: 14 14 14 14 fill; border-width: 5px 6px; border-image-source: var(--k2-dock-slot-on); border-image-width: 14px;
+}
+/* etiquetas pequenas (próxima aparição, custo da vaga, nome do Sannin): o botão escuro, como as .mchip */
+.o-next, .lchip, .sc-tag {
+  --sl: 8 8 8 8 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 2px 4px 4px;
+  border-image-source: var(--k2-button-dark); border-image-slice: var(--sl); border-image-width: 8px; image-rendering: pixelated; color: #e8d6b8;
+}
+.o-next > *, .lchip > *, .sc-tag > * { image-rendering: auto; }
+.nc-line { border: 0; }

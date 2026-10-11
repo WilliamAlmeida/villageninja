@@ -2,6 +2,7 @@
 // de todas as patentes, Kage, Sannin, ANBU, clãs, cães, equipes em missão e expedição, oficinas com fila e estoque,
 // lâminas lendárias, região com vilarejos em cada situação e o mapa todo explorado. Aberta por `?demo` na URL
 // (main.ts), não lê nem grava o save do jogador. Nada aqui é usado no jogo normal.
+import { DAY_LENGTH } from '../config';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { ITEM_LIST } from '../data/items';
 import { JUTSU_LIST } from '../data/jutsus';
@@ -38,7 +39,7 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   const s = g.state;
   s.level = 3;
   s.day = 42;
-  s.time += 41 * 600; // o dia vem do relógio (DAY_LENGTH 600 s)
+  s.time += 41 * DAY_LENGTH; // o dia vem do relógio
   Object.assign(s.res, { wood: 4800, stone: 3600, food: 2500, ryo: 25000, iron: 600, herbs: 400, paper: 300, crystal: 40, gold: 25, darksteel: 18 });
   s.explored.fill(-1);
   for (const site of s.sites) site.found = true;
@@ -94,7 +95,7 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   for (const u of jounins.slice(6)) if (s.clans.length < 3) foundClan(g, u.id);
 
   // equipamento, lâminas, pergaminhos
-  for (const it of ITEM_LIST) if (!it.blade) s.items[it.id] = 4 + (it.id.length % 5);
+  for (const it of ITEM_LIST) if (!it.blade) s.items[it.id] = 60 + (it.id.length % 5) * 7;
   const blades: BladeId[] = ['zabuza', 'samehada', 'kusanagi', 'asuma'];
   for (const id of blades) grantBlade(g, id, 'vitrine');
   s.jutsuOpen = JUTSU_LIST.filter((j) => !j.kekkei && !j.forbidden).map((j) => j.id);
@@ -136,7 +137,7 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   home[3]!.hp = Math.round(home[3]!.maxHp * 0.3);
   home[8]!.hp = Math.round(home[8]!.maxHp * 0.6);
   Object.assign(s.region.pesca!, { status: 'protected', rel: 60 });
-  Object.assign(s.region.montanha!, { status: 'hostile', rel: -70, revengeDay: s.day + 2 });
+  Object.assign(s.region.montanha!, { status: 'hostile', rel: -70, revengeDay: s.day + 20 });
   Object.assign(s.region.mercadores!, { status: 'vassal', rel: 30 });
   Object.assign(s.region.nevoa!, { explored: true, outpost: true });
   s.honor = 34;
@@ -149,9 +150,9 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   s.timers.raid = 1e9;
   s.bossTimer = 1e9;
   s.examNextDay = s.day + 30;
-  s.org.nextDay = s.day + 30;
-  s.sound.nextDay = s.day + 30;
-  s.swordsmen.nextDay = s.day + 30;
+  s.org.nextDay = s.day + 20;
+  s.sound.nextDay = s.day + 20;
+  s.swordsmen.nextDay = s.day + 20;
   g.reindex();
   return g;
 }

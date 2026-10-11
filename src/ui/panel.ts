@@ -865,7 +865,7 @@ export class Panel {
       <span class="lg s-protected"><i></i>Protegido</span><span class="lg s-vassal"><i></i>Vassalo</span><span class="lg s-hostile"><i></i>Hostil</span>${how}</div>
       <div class="rzoom"><button data-act="r-zoom" data-arg="in" ${tipAttr('Aproximar', 'Também com a roda do mouse ou pinçando.')}>{plus}</button><button data-act="r-zoom" data-arg="out" ${tipAttr('Afastar', 'Também com a roda do mouse ou pinçando.')}>{minus}</button><button data-act="r-zoom" data-arg="home" ${tipAttr('Sua vila', 'Volta o mapa para a sua vila.')}>{castle}</button></div>`;
     const def = this.regionNode ? REGION[this.regionNode] : undefined;
-    if (def) html += `<aside class="rsheet"><button class="rsheet-x" data-act="r-node" data-arg="" title="Fechar">{x}</button>${this.regionNodeSection(def)}</aside>`;
+    if (def) html += `<aside class="rsheet"><button class="rsheet-x" data-act="r-node" data-arg="" aria-label="Fechar">{x}</button>${this.regionNodeSection(def)}</aside>`;
     html += `</div></div>`;
     return { html, t: {}, b: {} };
   }
