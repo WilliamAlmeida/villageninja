@@ -3,14 +3,16 @@ import { AUTOSAVE_INTERVAL, SIM_DT } from './config';
 import { Camera } from './core/camera';
 import { bus } from './core/events';
 import { Input } from './core/input';
+import { createDemoGame } from './game/demo';
 import { createNewGame } from './game/newGame';
-import { clearSave, loadGame, saveGame } from './game/save';
+import { clearSave, loadGame, saveGame as writeSave } from './game/save';
 import { SYSTEMS } from './game/systems';
 import { sceneGame, sceneTeam } from './game/scene';
 import { doorPos } from './game/world';
 import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
+import { demoMenu } from './ui/demoMenu';
 import { applySettings, followCam, quality, QUALITY_CFG } from './ui/settings';
 import { warmPortraits } from './ui/warm';
 import { FpsMeter } from './ui/fps';
@@ -22,7 +24,13 @@ applySettings();
 const camera = new Camera();
 const renderer = new Renderer(canvas);
 
-let home = loadGame(SYSTEMS) ?? createNewGame(SYSTEMS);
+/**
+ * `?demo`: vila de vitrine (game/demo.ts) com tudo liberado, para conferir qualquer tela sem cumprir os requisitos.
+ * Não lê nem grava o save. `?demo&tela=crafts` já abre essa tela (ver `ui/demoMenu.ts`).
+ */
+const DEMO = new URLSearchParams(location.search).has('demo');
+const saveGame: typeof writeSave = (g) => (DEMO ? true : writeSave(g));
+let home = DEMO ? createDemoGame(SYSTEMS) : (loadGame(SYSTEMS) ?? createNewGame(SYSTEMS));
 /** Câmera de cada tela (vila e mapa de missão), para voltar onde estava. */
 const cams: { home?: { x: number; y: number; zoom: number }; scene?: { x: number; y: number; zoom: number } } = {};
 
@@ -67,9 +75,9 @@ const app: App = {
   selectBox: null,
   selectTool: false,
   newGame() {
-    clearSave();
+    if (!DEMO) clearSave();
     app.viewScene = false;
-    home = createNewGame(SYSTEMS);
+    home = DEMO ? createDemoGame(SYSTEMS) : createNewGame(SYSTEMS);
     centerOnVillage();
     bus.emit('newGame', undefined);
     saveGame(home);
@@ -99,6 +107,7 @@ centerOnVillage();
 camera.resize(window.innerWidth, window.innerHeight);
 
 const ui = createUI(app, uiRoot);
+if (DEMO) demoMenu(app, ui.show);
 const input = new Input(canvas, camera);
 input.onTap = ui.onTap;
 input.onContext = ui.onContext;

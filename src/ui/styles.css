@@ -2360,3 +2360,13 @@ h4 > * { image-rendering: auto; }
 /* "Manter": as opções abrem ao lado do botão, na mesma linha */
 .wsr-keep[open] { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
 .wsr-keep[open] .wsr-keep-menu { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0; }
+
+/* vitrine (?demo, ui/demoMenu.ts): só de desenvolvimento */
+#demobtn { position: fixed; left: 0.5rem; top: 4.2rem; z-index: 60; }
+#demomenu {
+  position: fixed; left: 0.5rem; top: 6.8rem; z-index: 60; max-width: min(46rem, calc(100vw - 1rem)); max-height: calc(100vh - 8rem);
+  overflow: auto; padding: 0.6rem 0.8rem; background: rgba(20, 12, 6, 0.94); border: 1px solid #8a6a3a; color: #f3e3c3;
+}
+#demomenu h5 { margin: 0.4rem 0 0.25rem; font-size: 0.8rem; color: #ffcf7a; }
+#demomenu .demorow { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+#demomenu small { opacity: 0.55; font-size: 0.65rem; margin-left: 0.2rem; }

@@ -456,5 +456,22 @@ export function createUI(app: App, root: HTMLElement) {
     if (!orderBar.hidden && !app.orderMode) setOrderMode(false);
   }
 
-  return { onTap, onContext, onBox, onHover, update };
+  /** Abre uma tela pelo código (vitrine `?demo`): o que é tocado no mapa vira seleção (drawer), o resto a janela. */
+  function show(v: View) {
+    const group = app.group; // fechar a janela limpa a seleção em grupo
+    build.toggle(false);
+    win.show(null);
+    app.group = group;
+    if (v.kind === 'unit' || v.kind === 'building' || v.kind === 'site') {
+      app.game.select({ kind: v.kind, id: v.id });
+      const t = v.kind === 'unit' ? app.game.unit(v.id) : null;
+      if (t) app.camera.jump(t.x, t.y);
+    } else if (v.kind === 'group') panel.show(v);
+    else {
+      app.game.select(null);
+      win.show(v);
+    }
+  }
+
+  return { onTap, onContext, onBox, onHover, update, show };
 }
