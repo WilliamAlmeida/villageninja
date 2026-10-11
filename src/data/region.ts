@@ -93,6 +93,25 @@ export const REGION = Object.fromEntries(REGION_NODES.map((n) => [n.id, n])) as 
 /** A vila do jogador no mapa. */
 export const HOME_POS = { x: 49.8, y: 37 };
 
+/**
+ * Caminho no mapa da vila até cada lugar, pelas estradas pintadas no fundo (pontos de passagem em %, sem a vila e o
+ * lugar). `sail`: a partir de qual ponto (contando a vila como 0) a viagem segue de barco até o lugar.
+ */
+export const REGION_ROUTES: Record<string, { via: [number, number][]; sail?: number }> = {
+  arroz: { via: [[46.5, 33.6], [43.5, 29.8], [41.5, 25.3]] },
+  pesca: { via: [[47, 40.3], [43.5, 43.3], [39, 45.6]] },
+  montanha: { via: [[54, 38.8], [58, 40.3], [63, 39.2], [68, 36.6]] },
+  mercadores: { via: [[52.5, 41.8], [55, 47.5], [59, 53.9], [62, 56.9]] },
+  som: { via: [[44, 34.3], [39, 33.6], [34, 33.9], [29, 34.7]] },
+  covil: { via: [[48, 31.3], [46, 26], [46.5, 20], [49, 14], [51, 9.5]] },
+  vulcao: { via: [[46.5, 33.6], [43.5, 29.8], [39.7, 22], [32, 19.5], [26.5, 18.5], [20, 16.5], [14, 14]], sail: 5 },
+  nevoa: { via: [[54, 38.8], [58, 40.3], [63, 39.2], [68, 36.6], [72.9, 33.7], [76, 26], [79, 19], [83, 16]], sail: 7 },
+  templos: { via: [[54, 38.8], [58, 40.3], [63, 39.2], [68, 36.6], [72.9, 33.7], [79, 37], [84, 39.5]], sail: 6 },
+  serpentes: { via: [[52.5, 41.8], [55, 47.5], [59, 53.9], [62, 56.9], [64.5, 55.7], [72, 58], [78, 61], [82, 66]], sail: 7 },
+  lesmas: { via: [[52.5, 41.8], [55, 47.5], [59, 53.9], [62, 56.9], [64.5, 55.7], [67, 63], [66, 69], [65.5, 76]], sail: 7 },
+  sapos: { via: [[47, 40.3], [43.5, 43.3], [39, 45.6], [33.9, 47.9], [27, 52], [21, 56], [16, 61]], sail: 6 },
+};
+
 /** Duração (s) de cada ação: ida + trabalho + volta. */
 export const ACTION_TIME: Record<RegionAction, { travel: number; work: number }> = {
   trade: { travel: 10, work: 6 },

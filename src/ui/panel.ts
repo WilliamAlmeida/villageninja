@@ -6,7 +6,7 @@ import { BUILDINGS } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
 import { MINE_USES, SITES } from '../data/sites';
 import { GOLD_PRICE, MINE } from '../data/expeditions';
-import { ACTION_LABEL, ACTION_TIME, HOME_POS, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef } from '../data/region';
+import { ACTION_LABEL, ACTION_TIME, HOME_POS, REGION, REGION_NODES, REGION_ROUTES, REL, type RegionAction, type RegionNodeDef } from '../data/region';
 import { CONTRACTS } from '../data/contracts';
 import { SPECS, type SpecKind } from '../data/specs';
 import { FESTIVAL, MOOD, SEASONS, WEATHERS } from '../data/seasons';
@@ -133,25 +133,50 @@ type BuildingTab = 'main' | 'inside';
 
 /** Recurso que cada prédio de coleta procura. */
 /** Casas do atlas region-places.png (mesma ordem de PLACES em scripts/region-places.py). */
-const REGION_ART = ['home', 'arroz', 'pesca', 'montanha', 'mercadores', 'outpost', 'covil', 'som', 'home-0', 'home-1', 'home-3', 'arroz-x', 'pesca-x', 'montanha-x', 'mercadores-x'];
+const REGION_ART = ['home', 'arroz', 'pesca', 'montanha', 'mercadores', 'outpost', 'covil', 'som', 'home-0', 'home-1', 'home-3', 'arroz-x', 'pesca-x', 'montanha-x', 'mercadores-x', 'trip-cart', 'trip-loot', 'trip-none', 'boat-cart', 'boat-loot', 'boat-none'];
 /** Desenho da vila do jogador por nível (Aldeia, Vila, Vila Oculta, Grande Vila Oculta). */
 const HOME_ART = ['home-0', 'home-1', 'home', 'home-3'];
+type Trail = { land: string; sea: string; at: (k: number) => { x: number; y: number; dir: number; sea: boolean } };
+const trails = new Map<string, Trail>();
 /**
- * Trilha da vila até um lugar no mapa da região: curva suave (Bézier quadrática, a curva para um lado fixo por lugar) em
- * coordenadas da camada 3:2 (x 0–150, y 0–100). `at(k)` dá o ponto em % para a equipe andar por ela.
+ * Trilha da vila até um lugar no mapa da região, pelas estradas do fundo (`REGION_ROUTES`): curva suave (Catmull-Rom)
+ * pelos pontos de passagem, em coordenadas da camada 3:2 (x 0–150, y 0–100), dividida em trecho por terra e por mar.
+ * `at(k)` dá o ponto em % ao longo do caminho (pelo comprimento), o rumo (x) e se ali já é mar.
  */
-function regionTrail(def: RegionNodeDef) {
-  const ax = HOME_POS.x * 1.5, ay = HOME_POS.y;
-  const bx = def.x * 1.5, by = def.y;
-  const len = Math.hypot(bx - ax, by - ay) || 1;
-  const side = [...def.id].reduce((n, c) => n + c.charCodeAt(0), 0) % 2 ? 1 : -1;
-  const cx = (ax + bx) / 2 + ((-(by - ay) / len) * len * 0.18 * side);
-  const cy = (ay + by) / 2 + (((bx - ax) / len) * len * 0.18 * side);
+function regionTrail(def: RegionNodeDef): Trail {
+  const hit = trails.get(def.id);
+  if (hit) return hit;
+  const route = REGION_ROUTES[def.id];
+  const pts = [[HOME_POS.x, HOME_POS.y], ...(route?.via ?? []), [def.x, def.y]].map(([x, y]) => [x! * 1.5, y!] as const);
+  const sail = route ? (route.sail ?? pts.length) : def.kind === 'village' ? pts.length : 0;
+  const STEPS = 10;
+  const out: { x: number; y: number; sea: boolean }[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]!, p1 = pts[i]!, p2 = pts[i + 1]!, p3 = pts[Math.min(pts.length - 1, i + 2)]!;
+    for (let j = i ? 1 : 0; j <= STEPS; j++) {
+      const t = j / STEPS, t2 = t * t, t3 = t2 * t;
+      const f = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+      out.push({ x: f(p0[0], p1[0], p2[0], p3[0]), y: f(p0[1], p1[1], p2[1], p3[1]), sea: i >= sail });
+    }
+  }
+  const cum = [0];
+  for (let i = 1; i < out.length; i++) cum.push(cum[i - 1]! + Math.hypot(out[i]!.x - out[i - 1]!.x, out[i]!.y - out[i - 1]!.y));
+  const total = cum[cum.length - 1] || 1;
+  const path = (list: typeof out) => (list.length > 1 ? 'M' + list.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join('L') : '');
+  const firstSea = out.findIndex((p) => p.sea);
+  const land = path(firstSea < 0 ? out : out.slice(0, firstSea + 1));
+  const sea = path(firstSea < 0 ? [] : out.slice(Math.max(0, firstSea - 1)));
   const at = (k: number) => {
-    const u = 1 - k;
-    return { x: (u * u * ax + 2 * u * k * cx + k * k * bx) / 1.5, y: u * u * ay + 2 * u * k * cy + k * k * by };
+    const want = Math.min(1, Math.max(0, k)) * total;
+    let i = 1;
+    while (i < cum.length - 1 && cum[i]! < want) i++;
+    const a = out[i - 1]!, b = out[i]!;
+    const u = (want - cum[i - 1]!) / Math.max(1e-6, cum[i]! - cum[i - 1]!);
+    return { x: (a.x + (b.x - a.x) * u) / 1.5, y: a.y + (b.y - a.y) * u, dir: b.x - a.x, sea: b.sea };
   };
-  return { d: `M${ax.toFixed(2)} ${ay.toFixed(2)}Q${cx.toFixed(2)} ${cy.toFixed(2)} ${bx.toFixed(2)} ${by.toFixed(2)}`, at };
+  const t = { land, sea, at };
+  trails.set(def.id, t);
+  return t;
 }
 const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = { lumber: 'tree', quarry: 'rock', ironmine: 'ore' };
 
@@ -878,14 +903,24 @@ export class Panel {
       const c = tm?.color ?? '#fff';
       const travel = ACTION_TIME[e.action!].travel;
       const k = e.status === 'going' ? 1 - Math.max(0, e.timer) / travel : e.status === 'return' ? Math.max(0, e.timer) / travel : 1;
-      // trilha desenhada no terreno (por terra: chão batido com as pegadas na cor da equipe; pelo mar: rastro do barco);
-      // as pegadas andam no sentido da viagem
+      // trilha desenhada no terreno pelas estradas (por terra: chão batido; pelo mar: rastro do barco), pegadas na cor da
+      // equipe andando no sentido da viagem; a equipe é um desenho pequeno: carroça vazia na ida, cheia na volta com
+      // espólio, vazia se recuaram ou não havia o que trazer, sem carroça (feridos) se perderam; no mar, o barco
       const trail = regionTrail(def);
-      const { x, y } = trail.at(k);
-      const sea = def.kind !== 'village';
-      routes += `<g class="${sea ? 'sea' : 'land'} ${e.status === 'return' ? 'back' : ''}" style="--c:${c}"><path class="edge" d="${trail.d}"/><path class="bed" d="${trail.d}"/><path class="steps" d="${trail.d}"/></g>`;
+      const p = trail.at(k);
+      const back = e.status === 'return' ? 'back' : '';
+      if (trail.land) routes += `<g class="land ${back}" style="--c:${c}"><path class="edge" d="${trail.land}"/><path class="bed" d="${trail.land}"/><path class="steps" d="${trail.land}"/></g>`;
+      if (trail.sea) routes += `<g class="sea ${back}" style="--c:${c}"><path class="edge" d="${trail.sea}"/><path class="bed" d="${trail.sea}"/><path class="steps" d="${trail.sea}"/></g>`;
       const st = e.status === 'going' ? 'a caminho' : e.status === 'return' ? 'voltando' : e.status === 'scene' ? 'invasão jogável' : 'no serviço';
-      tokens += `<button class="rtoken ${k >= 1 ? 'at' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;--c:${c}" ${tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`)}>${e.status === 'return' ? '{back}' : e.status === 'going' ? '{run}' : ACTION_ICON[e.action!] ?? '{flag}'}</button>`;
+      const tip = tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`);
+      if (e.status === 'going' || e.status === 'return') {
+        const haul = e.status === 'going' ? 'cart' : e.outcome === 'lose' ? 'none' : Object.values(e.loot).some((v) => (v ?? 0) > 0) ? 'loot' : 'cart';
+        const name = `${p.sea ? 'boat' : 'trip'}-${haul}`;
+        // volta: anda de trás para a frente no caminho, então o rumo inverte
+        const right = (e.status === 'return' ? -p.dir : p.dir) >= 0;
+        const flip = !right; // os desenhos olham para a direita (a carroça vai empurrada na frente)
+        tokens += `<button class="rtoken trip ${p.sea ? 'sail' : ''} ${flip ? 'flip' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${p.x.toFixed(2)}%;top:${p.y.toFixed(2)}%;--c:${c}" ${tip}><i class="rpic" style="--i:${REGION_ART.indexOf(name)}"></i><i class="tdot"></i></button>`;
+      } else tokens += `<button class="rtoken at" data-act="r-node" data-arg="${def.id}" style="left:${p.x.toFixed(2)}%;top:${p.y.toFixed(2)}%;--c:${c}" ${tip}>${ACTION_ICON[e.action!] ?? '{flag}'}</button>`;
     }
     if (routes) html += `<svg class="rtrails" viewBox="0 0 150 100" preserveAspectRatio="none" aria-hidden="true">${routes}</svg>`;
     // como no mapa do Ikariam: a vila, os vilarejos, os covis e o posto avançado são miniaturas desenhadas (atlas

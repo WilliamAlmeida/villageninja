@@ -2639,3 +2639,13 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .rtrails .back .steps { animation-direction: reverse; }
 @keyframes rsteps { to { stroke-dashoffset: -3.02; } }
 @media (prefers-reduced-motion: reduce) { .rtrails .steps { animation: none; } }
+/* equipe em viagem: desenho pequeno (carroça/barco do atlas) andando pela trilha, com o pontinho da cor da equipe;
+   balança como quem anda (ou como o barco nas ondas) e espelha conforme o rumo */
+.rtoken.trip { width: 5.5%; min-width: 3rem; height: auto; aspect-ratio: 1; background: none; border: 0; border-radius: 0; box-shadow: none; transform: translate(-50%, -78%); }
+.rtoken.trip .rpic { inset: 0; animation: rtrip 0.5s steps(2) infinite; }
+.rtoken.trip.flip .rpic { scale: -1 1; }
+.rtoken.trip.sail .rpic { animation: rsail 1.6s ease-in-out infinite; }
+.rtoken.trip .tdot { position: absolute; left: 50%; bottom: 4%; width: 0.5rem; height: 0.5rem; margin-left: -0.25rem; border-radius: 50%; background: var(--c); border: 1px solid #000; }
+@keyframes rtrip { 50% { translate: 0 -6%; } }
+@keyframes rsail { 50% { translate: 0 -4%; rotate: -4deg; } }
+@media (prefers-reduced-motion: reduce) { .rtoken.trip .rpic { animation: none; } }

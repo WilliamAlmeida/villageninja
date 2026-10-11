@@ -33,6 +33,14 @@ PLACES = [
     ('pesca-x', 'the SAME fishing village after being raided: burnt stilt houses, a broken pier, a sunken boat, small fires and dark smoke over blue water'),
     ('montanha-x', 'the SAME mountain mining village after being raided: burnt stone houses with collapsed roofs, small fires and dark smoke, an overturned mine cart'),
     ('mercadores-x', 'the SAME walled merchant town after being raided: broken wall with a breach, burnt market stalls, a pagoda with damaged roof, fires and dark smoke'),
+    # equipes em viagem (vistas de lado, indo para a DIREITA; o jogo espelha na volta): carroça vazia na ida, cheia na
+    # volta com espólio, sem carroça quando perderam; pelo mar, o barco
+    ('trip-cart', 'seen from the side, three tiny chibi ninjas with dark blue clothes and headbands walking to the RIGHT, the front one pulling an EMPTY small wooden two-wheeled handcart behind them'),
+    ('trip-loot', 'seen from the side, the same three tiny chibi ninjas walking to the RIGHT pulling the same small wooden handcart now FULL of crates, rice sacks and gold coins'),
+    ('trip-none', 'seen from the side, the same three tiny chibi ninjas walking to the RIGHT with NO cart, tired, bandaged and limping, one leaning on another'),
+    ('boat-cart', 'seen from the side, a small wooden sailing boat with a white sail sailing to the RIGHT with three tiny chibi ninjas on board and an EMPTY deck, small waves under it'),
+    ('boat-loot', 'seen from the side, the same small wooden sailing boat sailing to the RIGHT with the three tiny ninjas and the deck FULL of crates, sacks and gold, small waves under it'),
+    ('boat-none', 'seen from the side, a small broken wooden raft drifting to the RIGHT with the three tiny ninjas tired and bandaged on it, torn sail, small waves under it'),
 ]
 COLS, ROWS = 4, 2
 
@@ -66,14 +74,14 @@ while '--pack' not in sys.argv and missing:
     cells = ' '.join(f'Row {i // COLS + 1}, column {i % COLS + 1}: {d}.' for i, (_, d) in enumerate(batch))
     refs = ['src/art/region.jpg'] + ([os.path.relpath(os.path.join(SRC, '_grade.png'), ROOT)] if os.path.exists(os.path.join(SRC, '_grade.png')) else [])
     desc = (
-        f'A SHEET of {len(batch)} separate miniature map settlements for a strategy game world map, like the town icons '
+        f'A SHEET of {len(batch)} separate miniature map pieces (settlements or small travelling parties) for a strategy game world map, like the town icons '
         f'on the Ikariam island map, arranged in a strict grid of {COLS} columns and {ROWS} rows, every cell the same size, '
-        'ONE settlement centered in each cell, each filling about 75% of its cell with clear empty white space between them'
+        'ONE piece centered in each cell, each filling about 75% of its cell with clear empty white space between them'
         + (' (cells after the last item stay empty)' if len(batch) < COLS * ROWS else '') + '. '
-        'Seen from above at a 3/4 isometric angle. 16-bit pixel art matching the attached region map exactly (same palette, '
+        'Settlements are seen from above at a 3/4 isometric angle; travelling parties as described. 16-bit pixel art matching the attached region map exactly (same palette, '
         'same pixel size, dark outlines, flat shading)'
         + ('; the second attached image shows the settlements already made: keep exactly that style and scale, and when an item says THE SAME, redraw that settlement from it' if len(refs) > 1 else '')
-        + '. Each settlement sits on its own small irregular patch of ground that fades to nothing at the edges. '
+        + '. Each settlement sits on its own small irregular patch of ground that fades to nothing at the edges; travelling parties have no ground patch. '
         'No labels, no text, no grid lines. ' + cells
     )
     subprocess.run(['node', 'scripts/codex-image.mjs', sheet, desc, '--ref', ','.join(refs), '--size', '1536x1024'], cwd=ROOT, check=True)

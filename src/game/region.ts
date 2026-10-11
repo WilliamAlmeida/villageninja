@@ -193,6 +193,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
   const played = outcome != null;
   const hurt = (list: Unit[], frac: number) => !played && hurtAll(list, frac);
   let text = '';
+  let ok = true; // o serviço deu certo (falhou = voltam feridos e sem carroça no mapa)
   switch (e.action) {
     case 'trade':
       add(e.loot, def.trade?.get, 1 + honorBonus(s));
@@ -208,6 +209,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         if (st.rel >= REL.protected && st.status === 'neutral') st.status = 'protected';
         text = `Defenderam ${def.name} de bandidos. Relação ${st.rel}.${st.status === 'protected' ? ' Agora é protegido e manda tributo todo dia.' : ''}`;
       } else {
+        ok = false;
         hurt(us, 0.35);
         st.rel += 5;
         text = `Os bandidos de ${def.name} eram fortes demais; a equipe recuou ferida.`;
@@ -223,6 +225,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         s.infamy += 5;
         text = `Saquearam ${def.name}: ${costLabel(e.loot)}. Eles juraram vingança.`;
       } else {
+        ok = false;
         hurt(us, 0.4);
         st.rel -= 20;
         s.infamy += 2;
@@ -230,6 +233,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
       }
       break;
     case 'rescue':
+      ok = outcome === 'win';
       text = outcome === 'win' ? rescueCaptive(g) : outcome === 'retreat' ? 'A equipe recuou do esconderijo.' : 'O esconderijo resistiu. O raptado continua lá.';
       if (outcome === 'win') g.toast(`{crown} ${text}`, 'good');
       break;
@@ -241,6 +245,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         for (const u of us) gainXp(g, u, 30);
         text = `Missão secreta em ${def.name}: ninguém viu nada. Trouxeram ${costLabel(e.loot)}.`;
       } else {
+        ok = false;
         hurt(us, 0.3);
         st.rel -= 25;
         s.infamy += 3;
@@ -261,6 +266,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         text = `${def.name} foi dominado à força e virou vassalo.`;
         immigrants(g, 1);
       } else {
+        ok = false;
         hurt(us, 0.4);
         text = `${def.name} resistiu à anexação.`;
       }
@@ -274,6 +280,7 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         // nas crateras da Ilha Vulcânica: as sete espadas de um ferreiro eremita
         if (def.id === 'vulcao' && grantBlade(g, 'bee', `Nas crateras de ${def.name}`)) text += ' Nas crateras acharam as Sete espadas de um ferreiro eremita!';
       } else {
+        ok = false;
         hurt(us, 0.35);
         text = `${def.name} é perigosa demais para esta equipe.`;
       }
@@ -301,7 +308,10 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
         s.reputation += 30;
         text = `A ${ORG.name} foi destruída! O líder caiu e o covil foi saqueado: ${costLabel(e.loot)}.`;
         g.toast(`{crown} A ${ORG.name} foi destruída! A vila é lendária.`, 'good');
-      } else text = outcome === 'retreat' ? 'A equipe recuou do covil.' : 'O covil resistiu. O líder ainda espera lá dentro.';
+      } else {
+        ok = false;
+        text = outcome === 'retreat' ? 'A equipe recuou do covil.' : 'O covil resistiu. O líder ainda espera lá dentro.';
+      }
       break;
     case 'contract': {
       const kind = def.contract!;
@@ -314,12 +324,14 @@ export function resolveRegion(g: Game, e: Expedition, outcome?: 'win' | 'lose' |
           g.toast(`{scroll} ${best.name} ganhou o contrato de invocação: ${CONTRACTS[kind].name}!`, 'good');
         } else text = 'Todos da equipe já têm contrato.';
       } else {
+        ok = false;
         hurt(us, 0.35);
         text = `Os guardiões de ${def.name} venceram o teste. Tentem com uma equipe mais forte.`;
       }
       break;
     }
   }
+  e.outcome = outcome === 'retreat' ? 'retreat' : ok ? 'win' : 'lose';
   clampRel(st);
   return text;
 }

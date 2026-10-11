@@ -345,6 +345,9 @@ export interface Expedition {
   /** O que já foi achado (só entra no estoque quando a equipe volta). */
   loot: Cost;
   day: number;
+  /** Região: como acabou o serviço (só para o desenho da volta no mapa: carroça cheia, vazia ou sem carroça). Saves
+   *  antigos não têm: vale o saque. */
+  outcome?: 'win' | 'lose' | 'retreat';
 }
 
 export interface SoundState {

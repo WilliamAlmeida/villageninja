@@ -317,7 +317,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   uma grade do Codex fatiada; ordem = `REGION_ART` em panel.ts) com placa de pergaminho e bandeira da situação (`.rflag`);
   ilhas e lugares sagrados já estão pintados no fundo e ficam com ícone + placa. A sua vila muda de desenho com o nível
   (`HOME_ART`), vilarejo hostil aparece queimado (`<id>-x`) e a equipe em viagem segue uma trilha curva desenhada no
-  terreno (`regionTrail`: SVG `.rtrails`, chão batido por terra e rastro de barco pelo mar, pegadas andando). Tocar num lugar abre o
+  terreno (`regionTrail`: SVG `.rtrails` pelas estradas do fundo, pontos de passagem em `REGION_ROUTES` de data/region.ts com
+  `sail` = onde vira mar; chão batido por terra e rastro de barco pelo mar, pegadas andando). A equipe em viagem é um
+  desenho pequeno do atlas (olham para a direita, espelhados pelo rumo): carroça vazia na ida, cheia na volta com
+  espólio, vazia se recuou/não havia o que trazer, sem carroça (feridos) se perdeu (`Expedition.outcome`, posto por
+  `resolveRegion`); no mar, barco vazio/cheio ou jangada. Mapa novo: refazer as rotas olhando a grade em %. Tocar num lugar abre o
   painel dele por cima (`.rsheet`, `focusNode` tira o lugar de baixo dele); equipes em viagem andam no mapa pela trilha
   tracejada (`.rtoken`/`.rroute`); legenda e "como funciona" no canto. Quadro de missões numa tela só (disponíveis e
   recentes; as ativas na coluna da direita ou no alto na estreita).

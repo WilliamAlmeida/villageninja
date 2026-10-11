@@ -203,4 +203,6 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Tamanho em % da camada do mapa: cresce junto com o zoom.
 - A sua vila tem um desenho por nível; vilarejo hostil (saqueado) aparece queimado, com fumaça.
 - Viagem = trilha curva no terreno (terra: chão batido com borda escura; mar: rastro branco tracejado) com as pegadas
-  na cor da equipe andando no sentido da viagem; nada de linha reta tracejada.
+  na cor da equipe andando no sentido da viagem; nada de linha reta tracejada. A trilha segue as estradas pintadas.
+- A equipe viajando é um sprite pequeno: carroça vazia (ida, recuo), cheia (voltou com espólio), sem carroça e feridos
+  (perdeu); no mar, barco vazio/cheio ou jangada quebrada. Balança andando; vira para o lado do rumo.
