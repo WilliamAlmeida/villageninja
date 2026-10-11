@@ -3,9 +3,11 @@
 # por inteiro com image-rendering: pixelated). Peças que vieram em par na mesma imagem são separadas pela linha vazia.
 # As cinzas (botão, preenchimento da barra, selo) ganham as cores por código: o cinza é tingido mantendo o claro/escuro,
 # e o que já tem cor (aro de bronze, contorno) fica como está.
-# Uso: python scripts/prepare-kit2.py
+# Uso: python scripts/prepare-kit2.py [--force]  (--force regrava também as peças editadas no editor de sprites)
 import colorsys
+import json
 import os
+import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -71,7 +73,16 @@ def tint(im, hue, sat, light=1.0):
     return out
 
 
+# peças editadas à mão no editor de sprites (src/art/art-edits.json: "ui/kit2/<nome>.png") não são regravadas
+# (só com --force)
+EDITS = os.path.join(ROOT, 'src', 'art', 'art-edits.json')
+EDITED = set(json.load(open(EDITS, encoding='utf8'))) if os.path.exists(EDITS) and '--force' not in sys.argv else set()
+
+
 def save(im, name):
+    if f'ui/kit2/{name}.png' in EDITED:
+        print(f'{name}: editado no editor, mantido')
+        return
     im.save(os.path.join(DST, f'{name}.png'), optimize=True)
     print(f'{name}: {im.width}x{im.height}')
 
