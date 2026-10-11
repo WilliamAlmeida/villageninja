@@ -189,3 +189,7 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Animação de troca (`Panel.show`): só quando o conteúdo é outro de verdade — trocar de aba da janela (o conteúdo abaixo
   do cabeçalho fixo), escolher outra equipe (só o detalhe ao lado da lista) ou abrir outro ninja/prédio no drawer. Ação
   dentro da tela (botões, filtros, ordens) nunca anima o painel. Abrir/fechar: `ui/anim.ts` (`setShown`).
+- Glifo neutro (escudo, olho, setas…) herda a cor do texto em volta; cor fixa só para os de sentido próprio (estrela/moeda
+  dourada, cruz vermelha, gota azul…). O escudo era âmbar fixo e destoava dentro de selos e etiquetas.
+- Trabalhadores do prédio: − e + nas pontas, o número no meio (largura toda). Alcance de coleta: uma barra só (pronto em
+  verde, voltando apagado) e a legenda "N rochas para quebrar · N se refazendo" (árvores: "para cortar · rebrotando").

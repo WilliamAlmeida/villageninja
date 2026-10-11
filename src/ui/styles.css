@@ -1550,7 +1550,7 @@ h4 { color: #dcc5a3; font-weight: 900; font-size: 0.82rem; letter-spacing: 0.05e
 .ic-sun { color: #ffd24a; } .ic-moon { color: #b8c6ff; }
 .ic-drop { color: #4db3ff; } .ic-snow { color: #a8e4ff; } .ic-rain { color: #8fb8e8; } .ic-storm { color: #ffd24a; }
 .ic-check, .ic-leaf, .ic-tree { color: #55d957; } .ic-fail, .ic-pin, .ic-flag, .ic-medic { color: #ff5752; }
-.ic-alert { color: #ffc93a; } .ic-skull { color: #f2e6d0; } .ic-swords { color: #d8d2c8; } .ic-shield { color: #e7a92e; }
+.ic-alert { color: #ffc93a; } .ic-skull { color: #f2e6d0; } .ic-swords { color: #d8d2c8; } .ic-shield { color: inherit; } /* escudo: a cor do texto em volta, como olho/setas (âmbar fixo destoava em selo verde, etiqueta cinza…) */
 .ic-hourglass, .ic-clock, .ic-calendar, .ic-users, .ic-castle, .ic-home, .ic-chart, .ic-clipboard, .ic-house, .ic-houses { color: #f0dcb4; }
 .ic-kage { color: #f0dcb4; } .ic-shinobi, .ic-grave { color: #f0dcb4; }
 /* Ícones de cabeçalho usam o mesmo tom neutro; recursos e estados mantêm suas cores semânticas. */
@@ -2572,3 +2572,18 @@ h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; 
 h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .td-ctl { row-gap: 0.95rem; column-gap: 0.8rem; margin-top: 0.95rem; }
 .td-ctl > * > h4:first-child { margin-top: 0; }
+/* trabalhadores: − e + nas pontas e o número no meio, ocupando a largura toda */
+.workers { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; }
+.workers .wnum { min-width: 0; }
+/* alcance do lenhador/pedreira/mina: uma barra só (pronto em verde, voltando apagado) com a legenda embaixo */
+.gather { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.gather .g-head { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; }
+.gather .g-head b { color: #f0dcb4; }
+.gather .g-bar { display: flex; height: 0.55rem; background: #1a0f08; box-shadow: inset 0 0 0 1px #0b0604, 0 1px 0 rgba(255, 220, 160, 0.12); overflow: hidden; }
+.gather .g-bar i { height: 100%; background-image: var(--k2-bar-fill); background-size: 100% 100%; background-blend-mode: multiply; image-rendering: pixelated; }
+.gather .g-bar .ok { background-color: #5fc94a; }
+.gather .g-bar .back { background-color: #6b5338; }
+.gather .g-legend { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); }
+.gather .g-legend .ok { color: #8fe07a; }
+.gather .g-legend .bad { color: #ff8a80; }
+.gather .g-legend b { font-weight: 900; }

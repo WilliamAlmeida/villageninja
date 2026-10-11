@@ -1634,10 +1634,14 @@ export class Panel {
     const growing = near.length - ready;
     const word = { tree: 'árvores', rock: 'rochas', ore: 'veios de ferro' }[kind];
     const tip = infoTip('Alcance', `Os trabalhadores buscam ${word} até ${r} tiles daqui (o círculo tracejado no mapa)${levelOf(bd) < 3 && UPGRADES[bd.type] ? '; cada nível do prédio aumenta o alcance' : ''}. O que se esgota cresce de volta sozinho.`);
-    let html = `<div class="gchips"><span class="mchip">{eye} ${r} tiles</span><span class="mchip ${ready ? 'good' : 'bad'}">${ready} ${word} prontas</span>${
-      growing ? `<span class="mchip">{refresh} ${growing} crescendo</span>` : ''
-    }${tip}</div>`;
-    if (!ready) html += `<p class="why">Nada pronto ao alcance agora. ${growing ? 'Elas voltam a crescer sozinhas em alguns dias.' : 'Mova o prédio para perto de mais recursos.'}</p>`;
+    // o que há ao alcance numa barra só: pronto (verde) e voltando (apagado), com a legenda embaixo
+    const verb = { tree: 'para cortar', rock: 'para quebrar', ore: 'para minerar' }[kind];
+    const back = kind === 'tree' ? 'rebrotando' : 'se refazendo';
+    const pct = (n: number) => (near.length ? (n / near.length) * 100 : 0).toFixed(1);
+    let html = `<div class="gather"><div class="g-head"><span>{eye} Alcance <b>${r}</b> tiles</span>${tip}</div>
+      <div class="g-bar"><i class="ok" style="width:${pct(ready)}%"></i><i class="back" style="width:${pct(growing)}%"></i></div>
+      <div class="g-legend"><span class="${ready ? 'ok' : 'bad'}"><b>${ready}</b> ${word} ${verb}</span>${growing ? `<span><b>${growing}</b> ${back}</span>` : ''}</div></div>`;
+    if (!ready) html += `<p class="why">Nada pronto ao alcance agora. ${growing ? 'Elas voltam sozinhas em alguns dias.' : 'Mova o prédio para perto de mais recursos.'}</p>`;
     return html;
   }
 
