@@ -2354,3 +2354,9 @@ h4 > * { image-rendering: auto; }
 #buildbar { bottom: calc(6.4rem + var(--safe-b)); }
 #banners { bottom: calc(6.6rem + var(--safe-b)); }
 @media (max-height: 520px) { #buildbar { bottom: calc(5.1rem + var(--safe-b)); } #banners { bottom: calc(5.3rem + var(--safe-b)); } }
+
+/* abas e títulos de seção só com texto (pedido do autor): o ícone sai; o "i" das dicas (.itip) fica */
+.wtabs button .ic, .mtabs button .ic, #win .tabs button .ic, h4 > .ic { display: none !important; }
+/* "Manter": as opções abrem ao lado do botão, na mesma linha */
+.wsr-keep[open] { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
+.wsr-keep[open] .wsr-keep-menu { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0; }

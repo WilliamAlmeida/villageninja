@@ -1379,7 +1379,7 @@ export class Panel {
     const on = !!g.state.flags.autoGear;
     const chip = (n: number, ic: string, label: string) => `<span class="mchip ${n ? 'bad' : ''}">${ic} ${n} ${label}</span>`;
     let html = this.winTop(
-      'Oficinas',
+      `${pxIco('anvil')} Oficinas`,
       `<span class="mchip">{ninja} ${ninjas.length}</span>${chip(lack('weapon'), '{kunai}', '')}${chip(lack('armor'), '{vest}', '')}${chip(lack('item'), '{pill}', '')}`,
       `<button class="btn" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
        ${togBtn('gear-auto', on, '{gear} Auto', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}`,
@@ -1400,9 +1400,8 @@ export class Panel {
     const bd = g.state.buildings.find((x) => x.type === type);
     const lvl = bd ? levelOf(bd) : 1;
     const url = (lvl > 1 && artUrl(`${type}-${lvl}`)) || artUrl(type);
-    const wsLabel = type === 'pharmacy' ? `${pxIco('pill')} ${esc(d.name)}` : esc(d.name);
     let html = `<div class="wscard"><div class="wshead"><span class="ws-art">${url ? pimg(url) : d.icon}</span><div class="ws-hmain">
-      <span class="wsname">${wsLabel}</span>`;
+      <span class="wsname">${esc(d.name)}</span>`;
     if (!bd) return html + `</div></div><p class="why">Ainda não construída. Abra Construir (B) para erguer: ${esc(d.name)}.</p></div>`;
     html += `<span class="mchip">Nv ${lvl}</span>`;
     if (!bd.built) return html + `</div></div><p class="hint">{hammer} Em obra…</p></div>`;

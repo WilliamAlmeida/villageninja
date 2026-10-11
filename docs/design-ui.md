@@ -121,6 +121,8 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 
 - **Liga/desliga é um botão que muda de cor** (pedido do autor): ligado = verde com ✓, desligado = escuro apagado. Sem
   chavinha: ocupa menos espaço e lê-se de longe.
+- **Abas e títulos de seção só com texto** (pedido do autor): nada de ícone em `.wtabs`, `.mtabs`, abas de janela e `h4`
+  (o "i" das dicas fica). Título de janela leva a sprite do atalho dela (Oficinas = bigorna da barra de baixo).
 - **Todo componente sai do kit** (`src/art/ui/kit2`): cartão = caixinha de madeira; chip/segmento/aba = botão escuro, o
   escolhido laranja; título de seção = faixa de pano; janela = pergaminho/painel; nada de caixa só de CSS. Conferir a
   TELA INTEIRA depois de trocar uma peça, não só o componente.
