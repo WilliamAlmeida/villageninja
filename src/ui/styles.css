@@ -808,11 +808,11 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .ttile.empty.sensei { border-color: rgba(255, 211, 77, 0.4); }
 .tt-name { font-weight: 800; font-size: 0.85rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tt-role { font-size: 0.7rem; color: var(--muted); padding: 0 0.3rem; border-radius: 0.35rem; border: 1px solid var(--line); white-space: nowrap; }
-.tt-role.sensei { color: var(--warn); border-color: rgba(255, 211, 77, 0.45); }
+.tt-role.sensei { color: var(--warn);  }
 .ttile .nc-bar { width: 90%; height: 0.3rem; margin-top: 0.15rem; }
-.tt-x { position: absolute; top: 0.25rem; right: 0.25rem; z-index: 1; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: rgba(90, 36, 32, 0.85); display: grid; place-items: center; opacity: 0.7; }
+.tt-x { position: absolute; top: 0.25rem; right: 0.25rem; z-index: 1; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: rgba(90, 36, 32, 0.85); display: grid; place-items: center; opacity: 0.7; padding: 0; }
 .tt-x:hover { opacity: 1; background: #7a2a24; }
-.tt-x .ic { width: 0.75rem; height: 0.75rem; }
+.tt-x .ic { width: 0.75rem; height: 0.75rem; margin: 0; display: block; }
 /* controles da equipe: missão e ordens na largura toda; rotina e tática lado a lado */
 .td-ctl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 0.9rem; }
 .td-ctl > .full { grid-column: 1 / -1; }
@@ -1559,7 +1559,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 .statcard .si .ic.gl { color: #f0dcb4; }
 .vmark .vm-ic .ic.gl { color: #ffc93a; } .vmark.done .vm-ic .ic.gl { color: var(--good); } .vreqs .vr-ic .ic.gl { color: #f0dcb4; } .vreqs li.ok .vr-ic .ic.gl { color: #ffc93a; }
 .ic-scroll, .ic-map, .ic-books { color: #e8c27a; } .ic-smile { color: #ffd24a; } .ic-frown { color: #8fb8e8; }
-.ic-party { color: #ff8a5a; } .ic-info { color: #6fc3ff; } .ic-dna { color: #c48bff; } .ic-paw { color: #d9a066; }
+.ic-party { color: #ff8a5a; } .ic-info { color: #f0dcb4; } .ic-dna { color: #c48bff; } .ic-paw { color: #d9a066; }
 .ic-target { color: #ff7a5a; } .ic-monument { color: #c9b8a0; } .ic-fire { color: #ff7a2b; } .ic-lightning { color: #ffe14d; }
 .btn .ic.gl, .mtabs .ic.gl, .seg .ic.gl, .fchips .ic.gl, .bigbtn .ic.gl, .speed .ic.gl, .iconbtn .ic.gl { color: inherit; }
 

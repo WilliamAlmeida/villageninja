@@ -1453,7 +1453,7 @@ export class Panel {
       b[k] = bd.craft.progress / it.craftTime;
       t[k] = `${Math.floor(b[k] * 100)}%`;
       html += `<div class="ws-now"><span class="ws-ic big">${itemPx(it)}</span><div><b>${esc(it.name)}</b><div class="xc-prog"><div class="nc-bar xp"><i data-b="${k}"></i></div><span data-t="${k}"></span></div></div></div>`;
-    } else html += `<div class="ws-now idle"><span class="ws-ic big">{gear}</span><b>Nada em produção</b></div>`;
+    } else html += `<div class="ws-now idle"><b>Nada em produção</b></div>`;
     html += `<h4>Fila de produção <small>${used}/${max}</small></h4><div class="ws-queue">`;
     for (let i = 0; i < max; i++) {
       const id = i === 0 ? bd.craft?.itemId : q[bd.craft ? i - 1 : i];
