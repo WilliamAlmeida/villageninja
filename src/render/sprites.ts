@@ -530,7 +530,11 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // Rasengan: a esfera de chakra girando na mão, na corrida e no golpe
   const orbJ = u.dash?.id ?? (u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
   const orb = orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
-  if (orb) handOrb(ctx, ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4), uy - 13 + (row === SHEET_ROWS.back ? -2 : 0), orb, t);
+  if (orb) handOrb(ctx, ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4), uy - 13 + (row === SHEET_ROWS.back ? -2 : 0), orb, t, JUTSUS[orbJ!]?.orbSize ?? 1);
+  // Shintenshin: a mente de outro dentro dele (espiral rosa acima da cabeça)
+  if (u.charm) mindMark(ctx, ux, uy - height - 5, t);
+  // Edo Tensei: pó cinza se soltando do corpo
+  if (u.edo) sageWisps(ctx, u, t * 0.6, '#8a7f70', '#c8bfb0', 22, 'source-over');
   if (slash && row !== SHEET_ROWS.back) {
     ctx.globalAlpha = 1;
     drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
@@ -694,7 +698,32 @@ function raitonSparks(ctx: Ctx, x: number, y: number, h: number, t: number, id: 
 }
 
 /** Esfera de chakra girando (Rasengan): brilho, anel claro e riscos em espiral. */
-function handOrb(ctx: Ctx, x: number, y: number, color: string, t: number) {
+/** Shintenshin: espiral rosa girando acima da cabeça de quem está com a mente trocada. */
+function mindMark(ctx: Ctx, x: number, y: number, t: number) {
+  ctx.save();
+  ctx.strokeStyle = '#e0a0ff';
+  ctx.lineWidth = 1.2;
+  ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  for (let i = 0; i < 20; i++) {
+    const a = -t * 5 + i * 0.55;
+    const r = 0.6 + i * 0.22;
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.5);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function handOrb(ctx: Ctx, x: number, y: number, color: string, t: number, size = 1) {
+  if (size !== 1) {
+    // esfera maior (Ōdama): desenha em escala em volta do mesmo ponto
+    ctx.save();
+    ctx.translate(x, y - 4 * (size - 1));
+    ctx.scale(size, size);
+    handOrb(ctx, 0, 0, color, t);
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   const gr = ctx.createRadialGradient(x, y, 0, x, y, 9);
@@ -789,6 +818,41 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       ctx.fillStyle = '#7cc444';
       for (let i = 0; i < 4; i++) ellipse(ctx, u.x - 9 + i * 6, u.y - 12 - (i % 2) * 3, 2.4, 1.3);
       break;
+    case 'shadow':
+      // Kage Mane: a sombra sobe pelas pernas e o corpo fica tremendo, preso
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = '#140c1c';
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * TAU + 0.4;
+        ctx.beginPath();
+        ctx.moveTo(u.x + Math.cos(a) * 9, u.y + 9);
+        ctx.quadraticCurveTo(u.x + Math.cos(a) * 5, u.y + 2, u.x + Math.cos(a) * 3.5, u.y - 4 - (i % 2) * 3);
+        ctx.lineTo(u.x + Math.cos(a) * 1.5, u.y + 9);
+        ctx.fill();
+      }
+      break;
+    case 'sand': {
+      // Sabaku Kyū: a areia envolve o corpo como um casulo, grãos girando
+      const g = ctx.createLinearGradient(u.x, u.y - 22, u.x, u.y + 9);
+      g.addColorStop(0, 'rgba(232,206,140,0.55)');
+      g.addColorStop(1, 'rgba(184,146,82,0.95)');
+      ctx.fillStyle = g;
+      ellipse(ctx, u.x, u.y - 5, 11, 15);
+      ctx.strokeStyle = '#8a6a3a';
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < 3; i++) {
+        const y = u.y - 14 + i * 7 + Math.sin(t * 3 + i) * 1.5;
+        ctx.beginPath();
+        ctx.ellipse(u.x, y, 10, 2.5, 0, 0, Math.PI);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#e8d29a';
+      for (let i = 0; i < 10; i++) {
+        const a = t * 3 + i * 0.63;
+        ctx.fillRect(u.x + Math.cos(a) * 13, u.y - 6 + Math.sin(a * 1.3) * 12, 1, 1);
+      }
+      break;
+    }
     case 'water': {
       // Prisão d'Água: bolha que ondula em volta do corpo
       const r = 15 + Math.sin(t * 4) * 0.8;
@@ -970,6 +1034,20 @@ function drawShield(ctx: Ctx, u: Unit, t: number) {
         ctx.stroke();
       }
       break;
+    case 'sand': {
+      // Suna no Tate: parede de areia girando em volta, mais densa do lado de fora
+      for (let i = 0; i < 26; i++) {
+        const a = t * 2.6 + (i / 26) * TAU;
+        const rr = 15 + Math.sin(i * 1.7 + t * 4) * 1.5;
+        const y = u.y - 8 + Math.sin(a) * rr * 0.55 - (i % 3) * 3;
+        ctx.globalAlpha = Math.sin(a) > 0 ? 0.85 : 0.35; // a parte da frente aparece mais
+        ctx.fillStyle = i % 2 ? '#d8b46a' : '#b8925a';
+        ctx.beginPath();
+        ctx.ellipse(u.x + Math.cos(a) * rr, y, 3, 2, a, 0, TAU);
+        ctx.fill();
+      }
+      break;
+    }
     case 'bone':
       ctx.strokeStyle = '#efe6d0';
       ctx.lineWidth = 2;

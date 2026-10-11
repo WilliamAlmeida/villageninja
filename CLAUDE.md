@@ -438,6 +438,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   invisíveis por perto (`byakuganNear` em `spyRevealed`) e o Punho Gentil tira chakra a cada golpe (`gentleFist`); os golpes
   Hyuga (Kūshō, 64 Palmas, Kaiten, Sōshiken) exigem o Byakugan. Olhos acesos em combate (`Unit.eyeOn`, `eyeTick` no
   `modeTick`; brilho no rosto por `eyeGlints`). Vitrine: os dois primeiros clãs têm Sharingan e Byakugan. Laboratório: grupo "Dōjutsu".
+- **Jutsus de clã do anime sem kekkei** (`game/mindJutsu.ts`): Kage Mane (efeito `shadow`: prende e o lançador fica
+  parado segurando, `Unit.channel`; a sombra no chão é o efeito `tether` de `uid` até `tid`, desenhado no chão por
+  `Renderer.drawTethers`), Shintenshin (`possess`: renegado comum passa para o lado do lançador, `Unit.charm`, e volta;
+  chefe/organização resistem), Edo Tensei (proibido, `reanimate`: o caído mais forte de `state.fallen` volta por um tempo
+  com pele cinza, `Unit.edo`/`lookId`, e se desfaz sem contar como perda). `state.fallen` (game/memorial.ts,
+  `recordFallen` em killUnit/expedições/mapas) também alimenta a Pedra Memorial. Chidori Nagashi (`aoe` com `self`), Kirin
+  (`sky`: efeito `thunder`, 60% da força sem chuva sobre o alvo), Ōdama Rasengan (`orbSize`), Suna no Tate e Sabaku Kyū
+  (vfx `sand`).
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em
@@ -494,7 +502,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v29.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v30.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

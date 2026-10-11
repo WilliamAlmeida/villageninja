@@ -222,6 +222,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.bijuu = { jar: [] };
     if (s.scene) s.scene.bijuu = { jar: [] };
   },
+  29: (s) => {
+    s.fallen = [];
+    if (s.scene) s.scene.fallen = [];
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

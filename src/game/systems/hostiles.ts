@@ -7,6 +7,7 @@ import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
 import { SPEC } from '../../data/specs';
 import { spyNinjaNear } from '../specs';
 import { byakuganNear } from '../dojutsu';
+import { dissolveEdo } from '../mindJutsu';
 import { dogSniff, sniffRange } from '../ninken';
 import { orgBrain } from '../org';
 import { swordsmanPrey } from '../swordsmen';
@@ -100,6 +101,14 @@ function rogue(g: Game, u: Unit, dt: number) {
     return;
   }
   if (u.role === 'puppet') return puppet(g, u, dt);
+  if (u.edo) {
+    // Edo Tensei: se desfaz quando o tempo acaba ou quem o trouxe cai
+    const owner = g.unit(u.ownerId);
+    if ((u.life = (u.life ?? 0) - dt) <= 0 || !owner || owner.dead) return dissolveEdo(g, u);
+    const t = validTarget(g, u, 300) ?? g.nearestHostile(u, 240);
+    if (t) return engage(g, u, t, dt);
+    return chase(g, u, owner.x - 18, owner.y + 10, dt, 16);
+  }
   if (u.org && orgBrain(g, u, dt)) return; // Ordem do Eclipse: caça o mais forte e usa a técnica própria
   if (u.sound && soundBrain(g, u, dt)) return; // Quinteto do Som: rapto, cobertura e técnicas
   if (u.cloak && !u.swordsman) revealSpy(g, u); // espadachim sumindo na névoa não é espião

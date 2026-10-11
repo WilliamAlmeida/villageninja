@@ -258,6 +258,7 @@ export class Renderer {
       } else if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
     }
     this.drawHarvest(g);
+    this.drawTethers(g, time);
     drawCaveFlat(ctx, s, (tx, ty) => isExplored(s, tx, ty));
 
     // ================= passada 2: em pé, do fundo para a frente =================
@@ -798,6 +799,46 @@ export class Renderer {
     ctx.globalAlpha = 0.5 * (1 - e.t / e.life);
     drawUnit(ctx, ghost, time, false, undefined, true);
     ctx.restore();
+  }
+
+  /** Kage Mane: faixa de sombra no chão do ninja até o preso, ondulando nas bordas (por baixo de todo mundo). */
+  private drawTethers(g: Game, time: number) {
+    const ctx = this.ctx;
+    for (const e of g.state.effects) {
+      if (e.kind !== 'tether' || e.x2 == null || e.y2 == null) continue;
+      const a = project(e.x, e.y);
+      const b = project(e.x2, e.y2);
+      const k = e.t / e.life;
+      // cresce do lançador até o alvo no começo e encolhe de volta no fim
+      const grow = Math.min(1, e.t / 0.25) * (k > 0.85 ? (1 - k) / 0.15 : 1);
+      const bx = a.x + (b.x - a.x) * grow;
+      const by = a.y + (b.y - a.y) * grow;
+      const len = Math.hypot(bx - a.x, by - a.y) || 1;
+      const nx = -(by - a.y) / len;
+      const ny = (bx - a.x) / len;
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      const n = 12;
+      for (let i = 0; i <= n; i++) {
+        const t = i / n;
+        const w = 2.5 + Math.sin(t * 9 + time * 8) * 0.9;
+        ctx.lineTo(a.x + (bx - a.x) * t + nx * w, a.y + (by - a.y) * t + ny * w * 0.5);
+      }
+      for (let i = n; i >= 0; i--) {
+        const t = i / n;
+        const w = 2.5 + Math.cos(t * 7 + time * 7) * 0.9;
+        ctx.lineTo(a.x + (bx - a.x) * t - nx * w, a.y + (by - a.y) * t - ny * w * 0.5);
+      }
+      ctx.fill();
+      // poça de sombra sob o preso
+      if (grow >= 1) {
+        ctx.beginPath();
+        ctx.ellipse(b.x, b.y, 9, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** Canteiros recém-colhidos: terra à mostra que some aos poucos (a planta volta a crescer), com brotinhos. */

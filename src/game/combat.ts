@@ -23,6 +23,10 @@ import { sageDamage, sanninSurvive } from './sannin';
 import { enterMode, modeDamage, modeDodge, modeGuard } from './modes';
 import { hostFell } from './bijuu';
 import { eyeDodge, gentleFist, ignite, sawJutsu } from './dojutsu';
+import { endCharm, possess, possessable, reanimate, reanimateOptions, shadowBind } from './mindJutsu';
+import { recordFallen } from './memorial';
+import { weatherAt } from './weather';
+import { seasonOf } from './mood';
 import { bijuuScale } from '../data/bijuu';
 import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
@@ -82,6 +86,10 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
   u.hidden = false;
   const d = Math.hypot(t.x - u.x, t.y - u.y);
   if (u.cast || u.dash) return; // selos / investida em andamento (systems/techniques.ts)
+  if (u.channel) {
+    u.moving = false; // segurando a sombra / a mente no outro: o corpo fica parado
+    return;
+  }
 
   if (canUseJutsu(u) && tryConsumable(g, u, t, d)) return;
   if (canUseJutsu(u) && kageArt(g, u, t, d)) return;
@@ -210,6 +218,16 @@ function pickJutsu(g: Game, u: Unit, t: Unit, d: number): number {
       case 'ignite':
         if (!t.burn && d <= def.range) score = jutsuPower(def, n.stats);
         break;
+      case 'shadow':
+        if (t.stun <= 0 && d <= def.range) score = 45;
+        break;
+      case 'possess':
+        if (possessable(t) && d <= def.range) score = 55;
+        break;
+      case 'reanimate':
+        // um por vez: só se nenhum dele estiver de pé e houver um caído para trazer
+        if (d < def.range && reanimateOptions(g).length && !g.state.units.some((o) => o.edo && !o.dead && o.ownerId === u.id)) score = 65;
+        break;
       default:
         if (d <= def.range) score = jutsuPower(def, n.stats) * natureMultiplier(def.nature, t.ninja?.nature);
     }
@@ -303,13 +321,21 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       }
       break;
     }
-    case 'aoe':
-      // vento: rajada em leque até o alvo; calor (Shakuton): esferas incandescentes estourando em volta
-      if (vfx === 'wind') fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.55, r: def.radius ?? 50 });
-      fx(g, 'burst', t.x, t.y, { r: def.radius ?? 50, color: def.color, life: 0.55, vfx });
-      fx(g, 'ring', t.x, t.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
-      areaDamage(g, u, u.faction, t.x, t.y, def.radius ?? 50, power, def.nature, 45);
+    case 'aoe': {
+      // em volta de si (Chidori Nagashi) ou no alvo; vento: rajada em leque até o alvo; calor (Shakuton): esferas
+      // incandescentes estourando em volta; do céu (Kirin): o raio cai, fraco sem nuvem de tempestade sobre o alvo
+      const c = def.self ? u : t;
+      let p = power;
+      if (def.sky) {
+        fx(g, 'thunder', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.7 });
+        if (weatherAt(g.state, seasonOf(g.state), c.x, c.y) === 'clear') p *= 0.6;
+      }
+      if (vfx === 'wind' && !def.self) fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.55, r: def.radius ?? 50 });
+      fx(g, 'burst', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.55, vfx });
+      fx(g, 'ring', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
+      areaDamage(g, u, u.faction, c.x, c.y, def.radius ?? 50, p, def.nature, 45, def.stun ?? 0);
       break;
+    }
     case 'dash':
       // corre até o alvo deixando um rastro (dashTick); golpeia ao chegar
       u.dash = { id: def.id, targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
@@ -365,6 +391,16 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       break;
     case 'mode':
       if (def.mode) enterMode(g, u, def.mode);
+      break;
+    case 'shadow':
+      fx(g, 'smoke', t.x, t.y, { r: 12, life: 0.4, color: '#2a2036' });
+      shadowBind(g, u, t, jutsuDuration(def, n.stats));
+      break;
+    case 'possess':
+      possess(g, u, t, jutsuDuration(def, n.stats));
+      break;
+    case 'reanimate':
+      reanimate(g, u, def, def.duration ?? 20);
       break;
     case 'ignite':
       // Amaterasu: o olhar acende as chamas negras direto no alvo
@@ -589,6 +625,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   if (t.cursed && cursedDefeated(g, t)) return;
   // o Som veio raptar, não matar: quem eles derrubam fica nocauteado
   if (soundKnockout(g, t, src)) return;
+  if (t.charm) endCharm(g, t); // caiu sob o Shintenshin: conta como do lado de verdade
   t.dead = true;
   t.hp = 0;
   if (t.org) orgMemberDown(g, t);
@@ -632,6 +669,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
     }
   } else {
     hostFell(g, t); // Jinchuuriki caído solta a fera
+    recordFallen(g.state, t); // Pedra Memorial e Edo Tensei
     g.state.stats.lost++;
     g.state.grief = Math.min(30, g.state.grief + 8); // a vila fica de luto
     g.toast(t.kind === 'ninja' ? `{skull} O ninja ${t.name} caiu em combate!` : `{skull} ${t.name} foi morto(a).`, 'danger', t);

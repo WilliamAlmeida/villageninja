@@ -36,6 +36,7 @@ export function baseState(seed: number): GameState {
     ceremony: null,
     bossTimer: DAY_LENGTH * 6,
     bijuu: { jar: [] },
+    fallen: [],
     pendingBoss: null,
     examNextDay: 0,
     lastExam: null,

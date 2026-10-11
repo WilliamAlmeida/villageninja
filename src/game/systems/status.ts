@@ -5,6 +5,7 @@ import { BUILDINGS } from '../../data/buildings';
 import { derive } from '../../data/ninja';
 import { interruptCast } from '../techniques';
 import { burnTick, resolveStrike } from '../combat';
+import { mindTick } from '../mindJutsu';
 import type { Game } from '../game';
 import { doorPos } from '../world';
 
@@ -46,6 +47,8 @@ export function statusSystem(g: Game, dt: number) {
     if (u.mark && (u.mark.t -= dt) <= 0) u.mark = undefined;
     if (u.mirror && (u.mirror.t -= dt) <= 0) u.mirror = undefined;
     if (u.burn) burnTick(g, u, dt); // Amaterasu
+    if (u.channel) u.channel = Math.max(0, u.channel - dt) || undefined;
+    if (u.charm || u.edo) mindTick(g, u, dt); // Shintenshin e Edo Tensei
     if (u.dead) continue;
     // atordoado (ou fora de combate há um tempo) perde os selos que estava fazendo
     if (u.cast && (u.stun > 0 || u.combatTimer <= 0)) interruptCast(g, u, u.stun <= 0);

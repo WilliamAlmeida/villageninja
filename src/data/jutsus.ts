@@ -19,7 +19,10 @@ export type JutsuEffect =
   | 'shield' // reduz dano recebido
   | 'bind' // dano + prende o alvo (Mokuton)
   | 'mode' // veste um modo de combate (Oito Portões, manto de Raiton, Susano'o; game/modes.ts)
-  | 'ignite'; // acende chamas no alvo que queimam `power` ao longo de `duration` s (Amaterasu; game/dojutsu.ts)
+  | 'ignite' // acende chamas no alvo que queimam `power` ao longo de `duration` s (Amaterasu; game/dojutsu.ts)
+  | 'shadow' // a sombra prende o alvo por `duration` s e o lançador fica segurando (Kage Mane; game/mindJutsu.ts)
+  | 'possess' // troca de mente: o alvo luta pelo lado do lançador por `duration` s (Shintenshin)
+  | 'reanimate'; // traz de volta por `duration` s um ninja caído da vila (Edo Tensei)
 
 export interface JutsuDef {
   id: string;
@@ -70,6 +73,12 @@ export interface JutsuDef {
   mode?: ModeKind;
   /** Esfera de chakra na mão durante a investida (Rasengan): a cor dela. */
   handOrb?: string;
+  /** Tamanho da esfera na mão (Ōdama Rasengan = 2). */
+  orbSize?: number;
+  /** Área ('aoe') em volta do próprio lançador, não do alvo (Chidori Nagashi). */
+  self?: boolean;
+  /** O raio cai do céu (Kirin): força total só com nuvem de chuva/tempestade sobre o alvo. */
+  sky?: boolean;
 }
 
 
@@ -194,6 +203,49 @@ const LIST: JutsuDef[] = [
     moves: [['cast', 1, 0.3], ['cast', 3, 0.3]],
     color: '#9a5cff', req: { genjutsu: 7, ninjutsu: 7, stamina: 6 }, cost: { ryo: 600 }, learnTime: 90,
   },
+  // ---- técnicas de clã do anime sem kekkei (Nara, Yamanaka, Gaara) e raios do Sasuke
+  {
+    id: 'kagemane', name: 'Kage Mane no Jutsu', shout: 'Kage Mane!', desc: 'A sombra corre pelo chão e prende o alvo enquanto o ninja segura.',
+    nature: null, type: 'ninjutsu', rank: 2, chakra: 18, cooldown: 12, range: 140, power: 0, effect: 'shadow', duration: 3,
+    color: '#5a4a70', req: { inteligencia: 5, ninjutsu: 3 }, cost: { ryo: 120 }, learnTime: 32, vfx: 'shadow',
+    moves: [['cast', 2, 0.4]],
+  },
+  {
+    id: 'shintenshin', name: 'Shintenshin no Jutsu', shout: 'Shintenshin no Jutsu!', desc: 'A mente entra no inimigo: ele luta do seu lado por uns segundos (o corpo do ninja fica parado).',
+    nature: null, type: 'ninjutsu', rank: 3, chakra: 26, cooldown: 25, range: 150, power: 0, effect: 'possess', duration: 6,
+    color: '#e0a0ff', req: { genjutsu: 5, inteligencia: 5 }, cost: { ryo: 200 }, learnTime: 45, vfx: 'genjutsu',
+    moves: [['cast', 0, 0.5]],
+  },
+  {
+    id: 'chidorinagashi', name: 'Raiton: Chidori Nagashi', shout: 'Chidori Nagashi!', desc: 'Raios saem do corpo todo e paralisam quem está colado.',
+    nature: 'raiton', type: 'ninjutsu', rank: 3, chakra: 22, cooldown: 9, range: 46, power: 26, effect: 'aoe', self: true, radius: 50, stun: 0.8,
+    color: '#9fd0ff', req: { ninjutsu: 5, velocidade: 4 }, cost: { ryo: 220 }, learnTime: 46, vfx: 'lightning',
+    moves: [['cast', 1, 0.15], ['cast', 3, 0.3]],
+  },
+  {
+    id: 'kirin', name: 'Raiton: Kirin', shout: 'Kirin!', desc: 'Um dragão de raio cai do céu numa área enorme. Com nuvem de tempestade sobre o alvo, sai com toda a força.',
+    nature: 'raiton', type: 'ninjutsu', rank: 5, chakra: 70, cooldown: 30, range: 210, power: 110, effect: 'aoe', radius: 80, sky: true, stun: 0.6,
+    color: '#cfe6ff', req: { ninjutsu: 8, selos: 7, inteligencia: 6 }, cost: { ryo: 600 }, learnTime: 95, vfx: 'lightning',
+    moves: [['cast', 1, 0.3], ['cast', 3, 0.5]],
+  },
+  {
+    id: 'odama', name: 'Ōdama Rasengan', shout: 'Ōdama Rasengan!', desc: 'Rasengan gigante: salta e crava a esfera, acertando todos em volta.',
+    nature: null, type: 'ninjutsu', rank: 5, chakra: 60, cooldown: 16, range: 140, power: 85, effect: 'dash', dashRadius: 60, launch: true, stun: 0.8, vfx: 'wind',
+    handOrb: '#5fb4ff', orbSize: 2,
+    moves: [['air', 1, 0.25, 6], ['strike', 2, 0.2], ['strike', 3, 0.15]],
+    color: '#7fc8ff', req: { ninjutsu: 8, inteligencia: 5, stamina: 6 }, cost: { ryo: 520 }, learnTime: 85,
+  },
+  {
+    id: 'sunanotate', name: 'Suna no Tate', shout: 'Suna no Tate!', desc: 'A areia sobe sozinha e segura os golpes em volta do corpo.',
+    nature: 'doton', type: 'ninjutsu', rank: 3, chakra: 20, cooldown: 10, range: 0, power: 0, effect: 'shield', duration: 5,
+    color: '#d8b46a', req: { ninjutsu: 5, inteligencia: 4 }, cost: { ryo: 200 }, learnTime: 44, vfx: 'sand',
+  },
+  {
+    id: 'sabakukyu', name: 'Sabaku Kyū', shout: 'Sabaku Kyū!', desc: 'A areia envolve o alvo como um caixão e o esmaga.',
+    nature: 'doton', type: 'ninjutsu', rank: 4, chakra: 32, cooldown: 11, range: 150, power: 40, effect: 'bind', duration: 2.4,
+    color: '#d8b46a', req: { ninjutsu: 6, inteligencia: 5 }, cost: { ryo: 340 }, learnTime: 62, vfx: 'sand',
+    moves: [['cast', 3, 0.5]],
+  },
   // ---- proibidos (pergaminhos achados nas ruínas)
   {
     id: 'kuroduki', name: 'Kinjutsu: Lua Negra', shout: 'Lua Negra!', desc: 'Ilusão proibida: mergulha o alvo num pesadelo que o paralisa por muito tempo.',
@@ -211,6 +263,12 @@ const LIST: JutsuDef[] = [
     id: 'senbari', name: 'Kinjutsu: Mil Agulhas', shout: 'Mil Agulhas!', desc: 'Chuva de agulhas de chakra que cobre uma área inteira.',
     nature: null, type: 'ninjutsu', rank: 4, chakra: 46, cooldown: 12, range: 170, power: 13, effect: 'multi', forbidden: true,
     count: 10, projSpeed: 380, projKind: 'needle', color: '#d9d9ff', req: { ninjutsu: 5, selos: 4 }, cost: { ryo: 300, paper: 10 }, learnTime: 60, vfx: 'needle',
+  },
+  {
+    id: 'edotensei', name: 'Kinjutsu: Edo Tensei', shout: 'Edo Tensei!', desc: 'Traz de volta por um tempo um ninja caído da vila, que luta ao seu lado e se desfaz depois.',
+    nature: null, type: 'ninjutsu', rank: 5, chakra: 60, cooldown: 60, range: 220, power: 0, effect: 'reanimate', duration: 22, forbidden: true,
+    color: '#b8ab98', req: { ninjutsu: 7, selos: 7, inteligencia: 6 }, cost: { ryo: 600, paper: 20 }, learnTime: 100, vfx: 'dark',
+    moves: [['cast', 0, 0.3], ['cast', 2, 0.3], ['cast', 3, 0.3]],
   },
   // ---- taijutsu do anime (coreografias com as folhas de soco, chute, no ar e selos; ver docs/taijutsu.md)
   {

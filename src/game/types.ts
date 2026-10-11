@@ -238,6 +238,14 @@ export interface Unit {
   mirror?: { id: string; t: number };
   /** Dōjutsu aceso (os olhos brilham em combate; o nome aparece ao acender). */
   eyeOn?: boolean;
+  /** Shintenshin: a mente de `by` controla esta unidade por `t` s (luta pelo lado dele; `faction` = a original). */
+  charm?: { t: number; faction: Faction; by: number };
+  /** Segurando um jutsu (a sombra do Kage Mane, a mente no Shintenshin): fica parado estes segundos. */
+  channel?: number;
+  /** Edo Tensei: ninja caído trazido de volta por um tempo (`life`, dono em `ownerId`); some sem contar como perda. */
+  edo?: boolean;
+  /** Id usado para o penteado do boneco (o Edo Tensei volta com o cabelo do ninja original). */
+  lookId?: number;
   /** Fera Colossal: quantas caudas (qual Bijuu, data/bijuu.ts). */
   bijuu?: number;
   /** Cópia num mapa de missão: id do ninja original na vila (o resultado volta para ele). */
@@ -475,6 +483,8 @@ export type EffectKind =
   /** `hit`: impacto de golpe corpo a corpo; `beam`: feixe de x,y até x2,y2 (cura, dreno); `wave`: ondas que se
    *  abrem (som, miragem, repulsão; `vfx`); `gust`: rajada em leque do lançador até o alvo. */
   | 'hit' | 'beam' | 'wave' | 'gust'
+  /** `tether`: sombra no chão de `uid` até `tid` (Kage Mane); `thunder`: raio caindo do céu no ponto (Kirin). */
+  | 'tether' | 'thunder'
   /** `wall`: muralha do Doryuuheki parada no chão (`facing` = para onde foi levantada, `uid` = dono; game/walls.ts).
    *  `bones`: ossos brotando do chão em volta do ponto (Sawarabi no Mai, raio `r`). */
   | 'wall' | 'bones'
@@ -495,6 +505,8 @@ export interface Effect {
   big?: boolean;
   variant?: FlickerStyle;
   uid?: number;
+  /** Segundo envolvido que o efeito segue (`tether`: a sombra vai de `uid` até `tid`). */
+  tid?: number;
   facing?: number;
   /** Estilo das partículas (data/vfx.ts); sem: adivinhado pela cor. */
   vfx?: Vfx;
@@ -533,6 +545,19 @@ export interface SceneInfo {
   entry: { x: number; y: number };
 }
 
+/** Ninja caído, para a Pedra Memorial e o Edo Tensei. */
+export interface Fallen {
+  id: number;
+  name: string;
+  rank: Rank;
+  level: number;
+  day: number;
+  nature: Nature;
+  stats: Stats;
+  jutsu: [string | null, string | null];
+  look: Unit['look'];
+}
+
 export interface GameState {
   version: number;
   seed: number;
@@ -561,6 +586,8 @@ export interface GameState {
   bossTimer: number;
   /** Bestas com cauda vencidas e seladas num jarro, esperando um Jinchuuriki (caudas de cada uma). */
   bijuu: { jar: number[] };
+  /** Ninjas da vila que caíram (mais recentes primeiro): Pedra Memorial e Edo Tensei (game/memorial.ts). */
+  fallen: Fallen[];
   pendingBoss: { kind: BossKind; x: number; y: number; t: number } | null;
   /** Dia a partir do qual um novo Exame Chunin pode ser convocado. */
   examNextDay: number;

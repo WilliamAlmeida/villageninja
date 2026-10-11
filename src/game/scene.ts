@@ -25,6 +25,7 @@ import { SCENE_SYSTEMS } from './systems';
 import { createTeam, joinAsMember, joinAsSensei } from './teams';
 import type { Cost, Expedition, GameState, SceneInfo, Unit } from './types';
 import { CENTER_TX, CENTER_TY, doorPos, T, tileCenter, toTile } from './world';
+import { recordFallen } from './memorial';
 
 // ------------------------------------------------------------------ o jogo do mapa de missão
 const games = new WeakMap<GameState, Game>();
@@ -293,6 +294,7 @@ export function closeScene(home: Game): { result: 'win' | 'lose' | 'retreat'; lo
     } else {
       u.dead = true;
       home.state.stats.lost++;
+      recordFallen(home.state, u);
       home.state.grief = Math.min(30, home.state.grief + 8);
       home.toast(`{skull} ${u.name} não voltou da invasão.`, 'danger');
     }

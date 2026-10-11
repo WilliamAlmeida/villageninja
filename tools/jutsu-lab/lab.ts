@@ -178,6 +178,11 @@ const jutsuActs: Act[] = JUTSU_LIST.map((j) => ({
     n.cd = [0, 0];
     n.kekkei = j.kekkei ?? null; // jutsu de clã: o ninja tem a kekkei genkai (olhos acesos no Sharingan/Byakugan)
     caster.attackCd = 0;
+    if (j.effect === 'reanimate' && !s.fallen.length) {
+      // Edo Tensei precisa de um caído: o aliado entra na Pedra Memorial (só no laboratório)
+      const an = ally.ninja!;
+      s.fallen.push({ id: ally.id, name: 'Aliado caído', rank: an.rank, level: 20, day: 1, nature: an.nature, stats: { ...an.stats }, jutsu: ['goukakyuu', null], look: { ...ally.look } });
+    }
     if (j.effect === 'heal') {
       // cura: o aliado ferido aparece ao lado
       ally.hidden = false;

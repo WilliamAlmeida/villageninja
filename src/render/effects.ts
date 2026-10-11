@@ -264,6 +264,38 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       }
       break;
     }
+    case 'thunder': {
+      // Kirin: o raio cai do céu (vertical na tela), clarão no chão e o anel da área
+      const top = e.y - 190;
+      const fade = k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75;
+      ctx.globalAlpha = fade;
+      for (const [w, c] of [[10, e.color + '66'], [5, e.color], [2, '#ffffff']] as const) {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = w;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(e.x + (prand(e.x) - 0.5) * 30, top);
+        const n = 9;
+        for (let i = 1; i < n; i++) {
+          const j = (prand(i * 3.1 + e.x + Math.floor(e.t * 16)) - 0.5) * 22;
+          ctx.lineTo(e.x + j * (1 - i / n), top + ((e.y - top) * i) / n);
+        }
+        ctx.lineTo(e.x, e.y);
+        ctx.stroke();
+      }
+      const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r * 1.2);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.3, e.color + 'aa');
+      g.addColorStop(1, e.color + '00');
+      ctx.globalAlpha = fade * 0.8;
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y, r * 1.2, r * 0.6, 0, 0, TAU);
+      ctx.fill();
+      break;
+    }
+    case 'tether':
+      return; // sombra do Kage Mane: no chão (renderer.drawTethers)
     case 'hit': {
       // estrela de impacto: 4 pontas que se abrem e somem rápido
       const s = r * (0.6 + k * 0.8);

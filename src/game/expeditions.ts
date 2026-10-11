@@ -18,6 +18,7 @@ import type { Cost, Expedition, Unit } from './types';
 import { doorPos } from './world';
 import { WEAR } from '../data/items';
 import { wearAll } from './wear';
+import { recordFallen } from './memorial';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -234,6 +235,7 @@ function floorDone(g: Game, e: Expedition) {
           v.dead = true;
           v.hp = 0;
           g.state.stats.lost++;
+          recordFallen(g.state, v);
           note(e, `${v.name} não voltou…`);
           g.toast(`{skull} ${v.name} morreu na expedição.`, 'danger');
         }

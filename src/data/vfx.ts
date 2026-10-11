@@ -10,7 +10,9 @@ export type Vfx =
   /** proibidos e especiais */
   | 'dark' | 'blood' | 'needle' | 'leaf' | 'genjutsu'
   /** golpes e artes: impacto de taijutsu, metal (kunai, lâmina, Corpo de Ferro), ouro, som, osso, teia */
-  | 'impact' | 'metal' | 'gold' | 'sound' | 'bone' | 'web';
+  | 'impact' | 'metal' | 'gold' | 'sound' | 'bone' | 'web'
+  /** areia (Gaara: escudo e caixão) e sombra (Kage Mane) */
+  | 'sand' | 'shadow';
 
 export const NATURE_VFX: Record<Nature, Vfx> = { katon: 'fire', suiton: 'water', raiton: 'lightning', doton: 'earth', fuuton: 'wind' };
 
