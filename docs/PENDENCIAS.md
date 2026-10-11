@@ -37,9 +37,9 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 ## 4. Ninja e retratos
 - [x] Sharingan/Byakugan pintados nos retratos (bustos) (12fa127)
 - [x] Bustos que reflitam a patente/roupa em camadas (12fa127)
-- [x] Pose sentado/descansando (arquibancada do Exame, descanso, Hospital)
-- [x] Pose carregando (volta de expedição com espólio, raptado do Som)
-- [x] Peças novas: capa (do sensei, na cor da equipe) e pergaminho nas costas (quem está estudando)
+- [x] Pose sentado/descansando (arquibancada do Exame, descanso, Hospital) (57f41d5)
+- [x] Pose carregando (volta de expedição com espólio, raptado do Som) (57f41d5)
+- [x] Peças novas: capa (do sensei, na cor da equipe) e pergaminho nas costas (quem está estudando) (57f41d5)
 
 ## Fora da lista (só quando o autor pedir)
 - "Preparar defesa" com prazo (adiado pelo autor).
