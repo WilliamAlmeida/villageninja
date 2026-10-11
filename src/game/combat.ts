@@ -300,15 +300,14 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       break;
     case 'dash':
       // corre até o alvo deixando um rastro (dashTick); golpeia ao chegar
-      u.dash = { targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
+      u.dash = { id: def.id, targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
       u.hasGoal = false;
       break;
     case 'melee':
       fx(g, 'slash', t.x, t.y, { r: 24, color: def.color, life: 0.35 });
       fx(g, 'hit', t.x, t.y - 8, { r: 16, color: def.color, life: 0.3, vfx: vfx ?? 'impact' });
       applyDamage(g, u, t, power, def.nature, { knock: 22 });
-      u.anim = 0.4; // taijutsu: o golpe no alvo, não a mão aberta de soltar jutsu
-      u.animKind = 'impact';
+      playMoves(u, def, 0.4); // taijutsu: o golpe no alvo (coreografia do jutsu), não a mão aberta de soltar jutsu
       break;
     case 'stun': {
       const s = t.ninja?.stats;
@@ -595,6 +594,18 @@ function splitGolem(g: Game, t: Unit) {
 // ------------------------------------------------------------------ investida (Chidori, Passo de Sangue)
 const DASH_SPEED = 480;
 
+/** Toca a coreografia do jutsu (`moves`, só desenho); sem ela, o quadro de impacto do soco por `fallback` s. */
+function playMoves(u: Unit, def: JutsuDef | undefined, fallback: number) {
+  if (def?.moves?.length) {
+    u.anim = def.moves.reduce((a, m) => a + m[2], 0);
+    u.animKind = 'moves';
+    u.moveJutsu = def.id;
+  } else {
+    u.anim = fallback;
+    u.animKind = 'impact';
+  }
+}
+
 export function dashTick(g: Game, u: Unit, dt: number) {
   const d = u.dash;
   if (!d) return;
@@ -616,8 +627,7 @@ export function dashTick(g: Game, u: Unit, dt: number) {
     fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx });
     fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
     applyDamage(g, u, t, d.power, d.nature, { knock: 26 });
-    u.anim = 0.45; // chegada da investida: braço todo esticado no alvo e recupera (desenho)
-    u.animKind = 'impact';
+    playMoves(u, d.id ? JUTSUS[d.id] : undefined, 0.45); // chegada da investida: o golpe no alvo e recupera (desenho)
     return;
   }
   const step = Math.min(dist - 16, DASH_SPEED * dt);

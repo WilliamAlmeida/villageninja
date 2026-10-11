@@ -13,7 +13,7 @@
 #   python scripts/prepare-layers.py tpl <peça>    grava os moldes da peça (docs/arte/layers/tpl-<peça>[-side].png)
 #   bash scripts/layer-pieces.sh <peça>            gera a peça no Codex (folha inteira + vista de lado 2×2)
 #   python scripts/preview-layers.py               prévia recolorida
-#   ... --pose strike|cast                          o mesmo para as poses de golpe e selos (só POSE_PIECES)
+#   ... --pose strike|cast|kick                         o mesmo para as poses de golpe e selos (só POSE_PIECES)
 import sys
 from collections import deque
 from pathlib import Path
@@ -31,7 +31,7 @@ COLS, ROWS = 4, 3
 POSE = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--pose'), '')
 SFX = f'-{POSE}' if POSE else ''
 POSE_PIECES = ['outfit-genin', 'vest-chunin', 'vest-jounin', 'coat-sannin', 'cloak-kage', 'outfit-anbu']
-POSES = ['strike', 'cast']
+POSES = ['strike', 'cast', 'kick']
 BASE = SRC / f'ninja-base{SFX}.png'  # gerado pelo prepare-art.py (não vai para o jogo)
 BODY = OUT / f'ninja-body{SFX}.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
 WALK_BODY = OUT / 'ninja-body.png'
@@ -362,8 +362,8 @@ def head_box(a):
     f = figure(a)
     if f is None:
         return None
-    # só o alto da cabeça (acima dos ombros): o braço esticado não entra na conta
-    hx = np.nonzero(a[f[1]:f[1] + int((f[3] - f[1]) * HEAD * 0.7), :, 3] > 100)[1]
+    # só o topo do crânio: o braço esticado e o pé do chute alto não entram na conta
+    hx = np.nonzero(a[f[1]:f[1] + int((f[3] - f[1]) * HEAD * 0.4), :, 3] > 100)[1]
     return (hx.min() + hx.max()) / 2, f[1]
 
 

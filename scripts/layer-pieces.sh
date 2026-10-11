@@ -10,6 +10,7 @@ D=docs/arte/layers
 SFX=${POSE:+-$POSE}
 case "$POSE" in
   strike) WHAT="12 fighting poses throwing a punch (wind-up, lunge, impact with the arm stretched, recover)"; SWHAT="throwing a punch";;
+  kick) WHAT="12 martial arts poses doing a spinning kick combo (knee raised, high kick, low sweeping kick crouched, back in guard)"; SWHAT="doing a spinning kick combo";;
   cast) WHAT="12 poses making ninja hand seals (hands together in front of the chest or the chin, then releasing the jutsu with one arm stretched forward)"; SWHAT="making ninja hand seals";;
   *) WHAT="12 walking poses"; SWHAT="walking";;
 esac

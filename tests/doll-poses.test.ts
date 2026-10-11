@@ -6,7 +6,7 @@ import { DOLL_GRID } from '../src/render/doll';
 // poses do ninja em camadas (golpe e selos): deslocamento da cabeça por quadro e as peças com arte própria
 describe('poses do ninja em camadas', () => {
   const cells = DOLL_GRID.cols * DOLL_GRID.rows;
-  for (const pose of ['strike', 'cast'] as const) {
+  for (const pose of ['strike', 'cast', 'kick'] as const) {
     test(`${pose}: um deslocamento por quadro, pequeno`, () => {
       const offs = (poses.offsets as Record<string, number[][]>)[pose]!;
       expect(offs).toHaveLength(cells);

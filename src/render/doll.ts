@@ -121,7 +121,7 @@ export function tintPixels(px: Uint8ClampedArray, part: DollPart, body: boolean,
 }
 
 /** Poses além da caminhada (mesma grade 4×3): golpe de mão e selos; ver dollArt em art.ts. */
-export type DollPose = 'strike' | 'cast';
+export type DollPose = 'strike' | 'cast' | 'kick';
 
 /** Quadros das folhas: 4 colunas (ciclo de caminhada; parado = coluna 1) × 3 linhas (lado, frente, costas). */
 export const DOLL_GRID = { cols: 4, rows: 3, idle: 1 };

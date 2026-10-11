@@ -151,7 +151,9 @@ export interface Unit {
   combatTimer: number;
   anim: number;
   /** O que o `anim` está mostrando (só desenho: escolhe a pose do ninja em camadas): golpe de mão, arremesso, jutsu solto. */
-  animKind?: 'strike' | 'throw' | 'cast' | 'release' | 'impact';
+  animKind?: 'strike' | 'throw' | 'cast' | 'release' | 'impact' | 'moves';
+  /** Jutsu cuja coreografia (`JutsuDef.moves`) o `anim` está tocando (animKind 'moves'). */
+  moveJutsu?: string;
   hidden: boolean;
   dead: boolean;
   look: Look;
@@ -216,7 +218,7 @@ export interface Unit {
   /** Selos em andamento: jutsu, alvo, segundos que faltam e o total (o desenho mostra os selos pelo andamento). */
   cast?: { id: string; targetId: number; t: number; total?: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
-  dash?: { targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number; vfx?: Vfx };
+  dash?: { /** Jutsu da investida (coreografia ao chegar). */ id?: string; targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number; vfx?: Vfx };
   /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
   sage?: number;
   sanninCd?: number;

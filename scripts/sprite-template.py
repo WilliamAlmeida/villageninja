@@ -166,7 +166,47 @@ def cast(d, cx, row, col):
         d.ellipse([tip[0] - 18, tip[1] - 18, tip[0] + 18, tip[1] + 18], fill=(200, 60, 60))
 
 
-for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast)):
+def kick(d, cx, row, col):
+    """Chute giratório (Konoha Senpuu): 0 prepara (gira o tronco, joelho dobrado erguido, guarda) · 1 chute ALTO (perna
+    esticada na altura da cabeça, de lado para a direita) · 2 chute RASTEIRO (agachado numa perna, a outra esticada rente
+    ao chão) · 3 volta à guarda. De frente/costas o chute vem para a câmera / vai para longe (perna na diagonal)."""
+    neck_y = BASE - 175
+    hip = (cx, BASE - 95)
+    foot = (200, 60, 60)  # pé do chute (vermelho)
+    if col == 2:  # agachado: quadril baixo
+        hip = (cx - 10, BASE - 55)
+        neck_y = BASE - 130
+    head = (cx + (6 if row == 0 else 0) + (-10 if col == 2 else 0), neck_y - 62)
+    lean = -18 if (col == 1 and row == 0) else 0
+    # perna de apoio
+    limb(d, hip, (cx - 20, BASE), NEAR if row else FAR)
+    d.rounded_rectangle([cx - 36 + lean + (-10 if col == 2 else 0), neck_y, cx + 36 + lean + (-10 if col == 2 else 0), hip[1] + 10], 14, fill=BODY)
+    # perna do chute
+    if row == 0:
+        tip = [(cx + 45, BASE - 110), (cx + 135, neck_y - 40), (cx + 140, BASE - 4), (cx + 30, BASE)][col]
+        knee = [(cx + 55, BASE - 140), None, None, None][col]
+    else:
+        tip = [(cx + 40, BASE - 115), (cx + 75, neck_y - 10), (cx + 95, BASE - 6), (cx + 30, BASE)][col]
+        knee = [(cx + 45, BASE - 145), None, None, None][col]
+    if knee:
+        limb(d, hip, knee, NEAR)
+        limb(d, knee, tip, NEAR)
+    else:
+        limb(d, hip, tip, NEAR)
+    d.ellipse([tip[0] - 16, tip[1] - 16, tip[0] + 16, tip[1] + 16], fill=foot)
+    d.ellipse([head[0] - 70, head[1] - 66, head[0] + 70, head[1] + 66], fill=BODY)
+    if row == 0:
+        d.polygon([(head[0] + 66, head[1] - 6), (head[0] + 90, head[1] + 6), (head[0] + 66, head[1] + 18)], fill=NEAR)
+    elif row == 1:
+        for ex in (-26, 26):
+            d.ellipse([head[0] + ex - 9, head[1] - 4, head[0] + ex + 9, head[1] + 14], fill=(255, 255, 255))
+    # braços na guarda
+    sh = (cx + lean, neck_y + 20)
+    limb(d, sh, (cx - 40 + lean, neck_y + 55), FAR, 14)
+    limb(d, sh, (cx + 30 + lean, neck_y + 40), NEAR, 14)
+
+
+for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast), ('kick', kick)):
     im = Image.new('RGB', (W, H), (255, 255, 255))
     d = ImageDraw.Draw(im)
     for r in range(ROWS):

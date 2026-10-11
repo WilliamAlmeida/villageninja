@@ -11,6 +11,7 @@ import { artLayout, artPoint } from '../data/layout';
 import { ART_SIZE } from './unitShape';
 import { STRIKE_ANIM } from '../game/combat';
 import dollPoses from '../data/doll-poses.json';
+import { JUTSUS } from '../data/jutsus';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -510,8 +511,23 @@ function poseOf(u: Unit, t: number): { pose: DollPose; frame: number } | null {
     return { pose: 'cast', frame: Math.min(2, Math.floor(k * 3)) };
   }
   // investida (Chidori, Passo de Sangue): avança com o braço adiante em vez de caminhar
-  if (u.dash) return { pose: 'strike', frame: 1 };
+  if (u.dash) {
+    const first = u.dash.id ? JUTSUS[u.dash.id]?.moves?.[0] : undefined; // o 1º passo da coreografia (chute voador…)
+    return first ? { pose: first[0], frame: first[1] } : { pose: 'strike', frame: 1 };
+  }
   if (u.anim <= 0 || u.moving) return null;
+  if (u.animKind === 'moves') {
+    // coreografia do jutsu: o passo em que o tempo decorrido cai
+    const seq = u.moveJutsu ? JUTSUS[u.moveJutsu]?.moves : undefined;
+    if (seq) {
+      let left = seq.reduce((a, m) => a + m[2], 0) - u.anim;
+      for (const [pose, frame, d] of seq) {
+        if (left < d) return { pose, frame };
+        left -= d;
+      }
+      return { pose: seq.at(-1)![0], frame: seq.at(-1)![1] };
+    }
+  }
   if (u.animKind === 'impact') return { pose: 'strike', frame: u.anim > 0.15 ? 2 : 3 };
   if (u.animKind === 'release') return { pose: 'cast', frame: 3 };
   // ritmo rápido: um selo relâmpago (mãos juntas) e o braço esticado soltando

@@ -50,7 +50,15 @@ export interface JutsuDef {
   forbidden?: boolean;
   /** Estilo visual (rastro, impacto, estado). Sem: o da natureza (`jutsuVfx`). */
   vfx?: Vfx;
+  /**
+   * Coreografia do golpe no ninja em camadas (só desenho): quadros das folhas de pose já existentes (`strike` soco,
+   * `kick` chute, `cast` selos) em sequência, cada um por tantos segundos. Taijutsu: toca ao acertar; investida: ao chegar.
+   */
+  moves?: JutsuMove[];
 }
+
+/** Um passo da coreografia: folha de pose, quadro (0–3) e duração (s). */
+export type JutsuMove = ['strike' | 'kick' | 'cast', number, number];
 
 /** Chance de o ninja ficar com sequela (perde Stamina) ao terminar de aprender um jutsu proibido. */
 export const FORBIDDEN_RISK = 0.35;
@@ -105,10 +113,14 @@ const LIST: JutsuDef[] = [
     id: 'chidori', name: 'Raiton: Chidori', shout: 'Chidori!', desc: 'Investida relâmpago de altíssimo dano.',
     nature: 'raiton', type: 'ninjutsu', rank: 4, chakra: 45, cooldown: 12, range: 150, power: 58, effect: 'dash',
     color: '#9fd8ff', req: { ninjutsu: 6, velocidade: 6 }, cost: { ryo: 320 }, learnTime: 60,
+    // a mão do raio cravada no alvo e recupera
+    moves: [['strike', 2, 0.3], ['strike', 3, 0.15]],
   },
   {
     id: 'senpuu', name: 'Konoha Senpuu', shout: 'Konoha Senpuu!', desc: 'Chute giratório de taijutsu.',
     nature: null, type: 'taijutsu', rank: 1, chakra: 6, cooldown: 3.5, range: 28, power: 16, effect: 'melee',
+    // chute giratório do Rock Lee: prepara, chute alto, rasteiro e volta à guarda
+    moves: [['kick', 0, 0.1], ['kick', 1, 0.16], ['kick', 2, 0.16], ['kick', 3, 0.12]],
     color: '#ffb067', req: { taijutsu: 3 }, cost: { ryo: 40 }, learnTime: 15,
   },
   {
@@ -162,6 +174,8 @@ const LIST: JutsuDef[] = [
     id: 'chisoku', name: 'Kinjutsu: Passo de Sangue', shout: 'Passo de Sangue!', desc: 'Força o corpo além do limite numa investida brutal.',
     nature: null, type: 'taijutsu', rank: 4, chakra: 30, cooldown: 11, range: 160, power: 62, effect: 'dash', forbidden: true,
     color: '#c0182b', req: { taijutsu: 5, velocidade: 4 }, cost: { ryo: 280, herbs: 10 }, learnTime: 55, vfx: 'blood',
+    // chega com um chute alto voador e cai na guarda
+    moves: [['kick', 1, 0.3], ['kick', 3, 0.15]],
   },
   {
     id: 'senbari', name: 'Kinjutsu: Mil Agulhas', shout: 'Mil Agulhas!', desc: 'Chuva de agulhas de chakra que cobre uma área inteira.',
