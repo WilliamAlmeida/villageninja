@@ -14,8 +14,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 
 ## 2. Cenário
 - [x] Decorações (categoria nova na construção: pagode, santuários, lanternas, cerejeiras que florescem na
-      primavera; felicidade em volta)
-- [x] Ruas calçadas pintadas pelo jogador (ninjas e moradores andam mais rápido)
+      primavera; felicidade em volta) (e36300d)
+- [x] Ruas calçadas pintadas pelo jogador (ninjas e moradores andam mais rápido) (e36300d)
 - [ ] Monte dos Kages com um rosto por Kage que já passou
 - [ ] Pedra Memorial com os nomes dos ninjas caídos
 - [ ] Mapa jogável temático da Vila dos Pescadores (palafitas, cais, barcos, redes) + enfeites no Porto
