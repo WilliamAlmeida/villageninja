@@ -21,8 +21,15 @@ export interface DollWho {
   stats?: Record<string, number>;
   /** Lâmina lendária que carrega (data/blades.ts: a arma equipada); null/undefined = nenhuma. */
   sword?: string | null;
+  /** Sensei de equipe: a capa na cor da equipe. */
+  cape?: string;
+  /** Estudando um jutsu: o pergaminho grande nas costas. */
+  scroll?: boolean;
   look: { hair: string; cloth: string; skin: string };
 }
+
+/** Cores do pergaminho nas costas (papel e as pontas/corda). */
+export const SCROLL_COLORS: [string, string] = ['#efe2c0', '#8a5a2a'];
 
 /** Penteados que já existem como camada (os outros seguem na folha antiga até ganharem a sua; o Kage, de chapéu, não). */
 export const DOLL_HAIR: Partial<Record<string, string>> = {
@@ -71,6 +78,8 @@ export function dollParts(w: DollWho): DollPart[] | null {
   if (kage) parts.push({ name: 'layer-cloak-kage', color: KAGE_COLORS[0], color2: KAGE_COLORS[1] });
   else if (w.sannin && SANNIN_COAT[w.sannin]) parts.push({ name: 'layer-coat-sannin', color: SANNIN_COAT[w.sannin]![0], color2: SANNIN_COAT[w.sannin]![1] });
   else if (vest) parts.push({ name: vest[0], color: vest[1] });
+  if (w.cape && !kage && !w.sannin) parts.push({ name: 'layer-cape', color: w.cape });
+  if (w.scroll && !kage) parts.push({ name: 'layer-scroll-back', color: SCROLL_COLORS[0], color2: SCROLL_COLORS[1] });
   if (w.sword) parts.push(sword(w.sword));
   if (kage) {
     parts.push({ name: 'layer-hat-kage', color: KAGE_COLORS[0], color2: KAGE_COLORS[1] });

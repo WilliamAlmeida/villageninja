@@ -45,6 +45,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `render/unitShape.ts` (puro, usado pelo editor).
 - **Ninjas**: o penteado sai do id (`NINJA_HAIRSTYLES`, 6 com careca) e as cores do `look` (`tintedArt`/`dollArt` recolorem
   as cores-chave). As folhas antigas por penteado (`ninja-hair-*`, `ninja.png`) saíram: o ninja é sempre montado em camadas.
+- **Peças extras do ninja**: capa do sensei na cor da equipe (`layer-cape`, `Unit.cape` posto por `markSenseis` na
+  automação; Kage e Sannin não) e pergaminho grande nas costas de quem está estudando (`layer-scroll-back`).
+  **Retratos**: busto por patente (`bust-<penteado>-vest` Chunin/Jounin, `-coat` Sannin; cor-chave magenta pintada por
+  `tintedArt` com `vest`; `scripts/bust-ranks.py` usa os bustos editados como referência) e o dōjutsu pintado nos olhos
+  (`paintEyes` em sprites.ts: a íris em volta da esclera).
 - **Ninja em camadas**: corpo-base careca de malha cinza
   (`docs/arte/sprites/ninja-base.png` → `docs/arte/layers/ninja-base.png`, só entrada do prepare-layers, não vai para o jogo) + peças, cada uma num pedido separado ao Codex desenhada
   por cima de um MOLDE (o corpo já montado com as peças de baixo, `under` em `PIECES`, para a peça acompanhar os pixels
@@ -62,8 +67,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
   **Poses além da caminhada** (mesma grade 4×3 e mesma célula 63×80): golpe de mão (`strike`: prepara · avança · impacto ·
   recupera), chute (`kick`: joelho erguido · chute alto · rasteira · guarda), selos (`cast`: três selos · solta o jutsu), no ar (`air`:
-  agacha · encolhido · chute voador · aterrissa) e atingido (`hurt`: recua · arremessado · caído · levantando; célula mais
-  larga, centrada), gabaritos `docs/arte/gabarito-<pose>.png`. Passo = `[pose, quadro, s, altura?, 'spin'|'roll'?]`
+  agacha · encolhido · chute voador · aterrissa), atingido (`hurt`: recua · arremessado · caído · levantando; célula mais
+  larga, centrada), sentado (`sit`: no degrau · pernas cruzadas · meditando · dormindo; a plateia do Exame no degrau, o
+  treino de Nin/Gen/Selos/Int parado meditando) e carregando (`carry`: caminhada com o saco no ombro, quem volta de
+  expedição com espólio por `Unit.carrySack` s), gabaritos `docs/arte/gabarito-<pose>.png`. Passo = `[pose, quadro, s, altura?, 'spin'|'roll'?]`
   (`data/moves.ts`); a altura levanta o corpo e deixa a sombra no chão. Reação ao dano (`MOVE_SEQS`, `playHurt`). Golpe novo = coreografia em `JutsuDef.moves` (`[pose, quadro, s]`,
   tocada por `playMoves` em combat.ts e `poseOf` em sprites.ts), sem sprite nova; o mapa dos taijutsu do anime e de quais
   folhas faltam está em `docs/taijutsu.md`. Corpo-base da pose

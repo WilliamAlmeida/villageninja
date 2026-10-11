@@ -192,7 +192,9 @@ function unitPic(u: Unit, noSword = false, pose?: DollPose) {
   if (u.faction === 'enemy' && !u.cursed) return art('rogue'); // o ninja com o selo amaldiçoado segue com a cara dele
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
-  const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, mask: u.ninja?.mask, stats: u.ninja?.stats, sword: noSword ? null : bladeOf(u), look: u.look }) : null;
+  const doll = u.look
+    ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, mask: u.ninja?.mask, stats: u.ninja?.stats, sword: noSword ? null : bladeOf(u), cape: u.cape, scroll: !!u.ninja?.learning, look: u.look })
+    : null;
   if (!doll) return null; // sem arte ainda: o desenho procedural
   return (pose && dollArt(doll, u.look.skin, pose)) || dollArt(doll, u.look.skin);
 }
