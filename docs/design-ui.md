@@ -201,3 +201,6 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - A situação é uma **bandeira** no alto (verde protegido, dourado vassalo, vermelho hostil, laranja a sua vila); neutro
   sem bandeira. A legenda usa as mesmas flâmulas.
 - Tamanho em % da camada do mapa: cresce junto com o zoom.
+- A sua vila tem um desenho por nível; vilarejo hostil (saqueado) aparece queimado, com fumaça.
+- Viagem = trilha curva no terreno (terra: chão batido com borda escura; mar: rastro branco tracejado) com as pegadas
+  na cor da equipe andando no sentido da viagem; nada de linha reta tracejada.

@@ -133,7 +133,26 @@ type BuildingTab = 'main' | 'inside';
 
 /** Recurso que cada prédio de coleta procura. */
 /** Casas do atlas region-places.png (mesma ordem de PLACES em scripts/region-places.py). */
-const REGION_ART = ['home', 'arroz', 'pesca', 'montanha', 'mercadores', 'outpost', 'covil', 'som'];
+const REGION_ART = ['home', 'arroz', 'pesca', 'montanha', 'mercadores', 'outpost', 'covil', 'som', 'home-0', 'home-1', 'home-3', 'arroz-x', 'pesca-x', 'montanha-x', 'mercadores-x'];
+/** Desenho da vila do jogador por nível (Aldeia, Vila, Vila Oculta, Grande Vila Oculta). */
+const HOME_ART = ['home-0', 'home-1', 'home', 'home-3'];
+/**
+ * Trilha da vila até um lugar no mapa da região: curva suave (Bézier quadrática, a curva para um lado fixo por lugar) em
+ * coordenadas da camada 3:2 (x 0–150, y 0–100). `at(k)` dá o ponto em % para a equipe andar por ela.
+ */
+function regionTrail(def: RegionNodeDef) {
+  const ax = HOME_POS.x * 1.5, ay = HOME_POS.y;
+  const bx = def.x * 1.5, by = def.y;
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  const side = [...def.id].reduce((n, c) => n + c.charCodeAt(0), 0) % 2 ? 1 : -1;
+  const cx = (ax + bx) / 2 + ((-(by - ay) / len) * len * 0.18 * side);
+  const cy = (ay + by) / 2 + (((bx - ax) / len) * len * 0.18 * side);
+  const at = (k: number) => {
+    const u = 1 - k;
+    return { x: (u * u * ax + 2 * u * k * cx + k * k * bx) / 1.5, y: u * u * ay + 2 * u * k * cy + k * k * by };
+  };
+  return { d: `M${ax.toFixed(2)} ${ay.toFixed(2)}Q${cx.toFixed(2)} ${cy.toFixed(2)} ${bx.toFixed(2)} ${by.toFixed(2)}`, at };
+}
 const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = { lumber: 'tree', quarry: 'rock', ironmine: 'ore' };
 
 /** O que cada ação da região faz (dica dos botões). */
@@ -848,7 +867,7 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     let html = this.tabs('region');
-    html += `<div class="rview"><div class="rmapview"><div class="rlayer" style="${this.mapStyle()};--rplaces:url(${regionPlaces})"><img src="${regionMap}" alt="" draggable="false">`;
+    html += `<div class="rview"><div class="rmapview"><div class="rlayer" style="${this.mapStyle()};--rplaces:url(${regionPlaces});--rn:${REGION_ART.length}"><img src="${regionMap}" alt="" draggable="false">`;
     // trilhas e equipes em viagem: da vila até o lugar (ida), no lugar (serviço) e de volta
     let routes = '';
     let tokens = '';
@@ -859,25 +878,27 @@ export class Panel {
       const c = tm?.color ?? '#fff';
       const travel = ACTION_TIME[e.action!].travel;
       const k = e.status === 'going' ? 1 - Math.max(0, e.timer) / travel : e.status === 'return' ? Math.max(0, e.timer) / travel : 1;
-      const x = HOME_POS.x + (def.x - HOME_POS.x) * k;
-      const y = HOME_POS.y + (def.y - HOME_POS.y) * k;
-      // trilha tracejada da vila até o lugar (uma barra girada: a camada é 3:2, então a altura vale 2/3 da largura)
-      const dx = def.x - HOME_POS.x;
-      const dy = ((def.y - HOME_POS.y) * 2) / 3;
-      routes += `<i class="rroute" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%;width:${Math.hypot(dx, dy).toFixed(2)}%;transform:rotate(${Math.atan2(dy, dx).toFixed(4)}rad);--c:${c}"></i>`;
+      // trilha desenhada no terreno (por terra: chão batido com as pegadas na cor da equipe; pelo mar: rastro do barco);
+      // as pegadas andam no sentido da viagem
+      const trail = regionTrail(def);
+      const { x, y } = trail.at(k);
+      const sea = def.kind !== 'village';
+      routes += `<g class="${sea ? 'sea' : 'land'} ${e.status === 'return' ? 'back' : ''}" style="--c:${c}"><path class="edge" d="${trail.d}"/><path class="bed" d="${trail.d}"/><path class="steps" d="${trail.d}"/></g>`;
       const st = e.status === 'going' ? 'a caminho' : e.status === 'return' ? 'voltando' : e.status === 'scene' ? 'invasão jogável' : 'no serviço';
       tokens += `<button class="rtoken ${k >= 1 ? 'at' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;--c:${c}" ${tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`)}>${e.status === 'return' ? '{back}' : e.status === 'going' ? '{run}' : ACTION_ICON[e.action!] ?? '{flag}'}</button>`;
     }
-    html += routes;
+    if (routes) html += `<svg class="rtrails" viewBox="0 0 150 100" preserveAspectRatio="none" aria-hidden="true">${routes}</svg>`;
     // como no mapa do Ikariam: a vila, os vilarejos, os covis e o posto avançado são miniaturas desenhadas (atlas
     // region-places.png, scripts/region-places.py) com a placa do nome embaixo e a bandeira da situação; ilhas e lugares
     // sagrados já estão pintados no mapa e ficam só com o ícone e a placa
     const pic = (i: number) => `<i class="rpic" style="--i:${i}"></i>`;
-    html += `<span class="rnode art home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">${pic(0)}<i class="rflag"></i><span class="rname">Sua vila</span></span>`;
+    const lvl = Math.min(HOME_ART.length - 1, Math.max(0, s.level));
+    html += `<span class="rnode art home lv-${lvl}" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">${pic(REGION_ART.indexOf(HOME_ART[lvl]!))}<i class="rflag"></i><span class="rname">Sua vila</span></span>`;
     for (const def of REGION_NODES) {
       if (def.kind === 'hideout' && (def.id === 'som' ? !s.sound.captive : !s.org.lairKnown)) continue; // covil: só descoberto; Som: só com raptado
       const st = regionOf(s, def.id);
-      const art = REGION_ART.indexOf(def.id);
+      // vilarejo hostil (saqueado) aparece queimado
+      const art = st.status === 'hostile' && REGION_ART.includes(`${def.id}-x`) ? REGION_ART.indexOf(`${def.id}-x`) : REGION_ART.indexOf(def.id);
       const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : def.kind === 'hideout' ? '{skull}' : '{scroll}';
       const flag = st.status !== 'neutral' ? '<i class="rflag"></i>' : '';
       const look = art >= 0 ? pic(art) : `${icon}${st.outpost ? `<i class="rpost">${pic(REGION_ART.indexOf('outpost'))}</i>` : ''}`;

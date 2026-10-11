@@ -4,7 +4,7 @@
 # docs/arte/region/<nome>.png; depois monta o atlas src/art/region-places.png (casas de CELL px, desenho encostado
 # embaixo e centrado; a ordem é PLACES, a mesma de render em ui/panel.ts → REGION_ART).
 #
-# Uso: python scripts/region-places.py          (gera o que falta e monta o atlas)
+# Uso: python scripts/region-places.py          (gera o que falta, em lotes de 8, e monta o atlas)
 #      python scripts/region-places.py --pack   (só remonta o atlas)
 import os
 import subprocess
@@ -24,6 +24,15 @@ PLACES = [
     ('outpost', 'a small wooden ninja outpost camp: a tall wooden watchtower, two canvas tents, a campfire and a red flag on a pole, on a small patch of grass'),
     ('covil', 'an ominous hidden cave entrance carved into black rocks, red banners with a black eclipse circle, two torches, on a small patch of dark rock'),
     ('som', 'a secret underground lair: stone stairs going down into the ground between dark twisted forest trees and roots, purple paper lanterns, on a small patch of dark grass'),
+    # a vila do jogador por nível (home = Vila Oculta, nível 2)
+    ('home-0', 'a tiny poor ninja hamlet: four small wooden huts with thatched roofs around a campfire, a low wooden fence, a few trees, on a small patch of grass and dirt'),
+    ('home-1', 'a small ninja village: wooden houses with orange tiled roofs, a small wooden watchtower, a wooden palisade with a simple gate, trees, on a small patch of grass and dirt'),
+    ('home-3', 'a great hidden ninja city: a huge red round Kage tower with a green leaf emblem in the center, several red pagodas, many houses with orange tiled roofs, a tall stone and wood wall with a big red gate, on a patch of grass'),
+    # vilarejos hostis (saqueados): as mesmas vilas queimadas, com fumaça
+    ('arroz-x', 'the SAME rice farming hamlet after being raided: burnt thatched houses with broken roofs, small fires and dark smoke, trampled rice paddies, a broken water wheel'),
+    ('pesca-x', 'the SAME fishing village after being raided: burnt stilt houses, a broken pier, a sunken boat, small fires and dark smoke over blue water'),
+    ('montanha-x', 'the SAME mountain mining village after being raided: burnt stone houses with collapsed roofs, small fires and dark smoke, an overturned mine cart'),
+    ('mercadores-x', 'the SAME walled merchant town after being raided: broken wall with a breach, burnt market stalls, a pagoda with damaged roof, fires and dark smoke'),
 ]
 COLS, ROWS = 4, 2
 
@@ -49,22 +58,28 @@ def main_box(cell):
     y0, y1 = run([sum(1 for x in range(x0, x1) if px[x, y]) > 2 for y in range(h)])
     return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
 
-if '--pack' not in sys.argv and any(not os.path.exists(os.path.join(SRC, f'{n}.png')) for n, _ in PLACES):
+missing = [(n, d) for n, d in PLACES if not os.path.exists(os.path.join(SRC, f'{n}.png'))]
+while '--pack' not in sys.argv and missing:
+    batch, missing = missing[:COLS * ROWS], missing[COLS * ROWS:]
     os.makedirs(SRC, exist_ok=True)
-    sheet = os.path.join(SRC, '_grade.png')
-    cells = ' '.join(f'Row {i // COLS + 1}, column {i % COLS + 1}: {d}.' for i, (_, d) in enumerate(PLACES))
+    sheet = os.path.join(SRC, f'_grade-{batch[0][0]}.png')
+    cells = ' '.join(f'Row {i // COLS + 1}, column {i % COLS + 1}: {d}.' for i, (_, d) in enumerate(batch))
+    refs = ['src/art/region.jpg'] + ([os.path.relpath(os.path.join(SRC, '_grade.png'), ROOT)] if os.path.exists(os.path.join(SRC, '_grade.png')) else [])
     desc = (
-        f'A SHEET of {len(PLACES)} separate miniature map settlements for a strategy game world map, like the town icons '
+        f'A SHEET of {len(batch)} separate miniature map settlements for a strategy game world map, like the town icons '
         f'on the Ikariam island map, arranged in a strict grid of {COLS} columns and {ROWS} rows, every cell the same size, '
-        'ONE settlement centered in each cell, each filling about 75% of its cell with clear empty white space between them. '
+        'ONE settlement centered in each cell, each filling about 75% of its cell with clear empty white space between them'
+        + (' (cells after the last item stay empty)' if len(batch) < COLS * ROWS else '') + '. '
         'Seen from above at a 3/4 isometric angle. 16-bit pixel art matching the attached region map exactly (same palette, '
-        'same pixel size, dark outlines, flat shading). Each settlement sits on its own small irregular patch of ground that '
-        'fades to nothing at the edges. No labels, no text, no grid lines. ' + cells
+        'same pixel size, dark outlines, flat shading)'
+        + ('; the second attached image shows the settlements already made: keep exactly that style and scale, and when an item says THE SAME, redraw that settlement from it' if len(refs) > 1 else '')
+        + '. Each settlement sits on its own small irregular patch of ground that fades to nothing at the edges. '
+        'No labels, no text, no grid lines. ' + cells
     )
-    subprocess.run(['node', 'scripts/codex-image.mjs', sheet, desc, '--ref', 'src/art/region.jpg', '--size', '1536x1024'], cwd=ROOT, check=True)
+    subprocess.run(['node', 'scripts/codex-image.mjs', sheet, desc, '--ref', ','.join(refs), '--size', '1536x1024'], cwd=ROOT, check=True)
     im = Image.open(sheet).convert('RGBA')
     cw, ch = im.width / COLS, im.height / ROWS
-    for i, (name, _) in enumerate(PLACES):
+    for i, (name, _) in enumerate(batch):
         x, y = (i % COLS) * cw, (i // COLS) * ch
         cell = im.crop((round(x), round(y), round(x + cw), round(y + ch)))
         box = main_box(cell)
