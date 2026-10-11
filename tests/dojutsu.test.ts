@@ -85,6 +85,20 @@ describe('dōjutsu (Sharingan e Byakugan)', () => {
     expect(g.state.projectiles.length).toBe(shots + 1);
   });
 
+  test('só copia rank baixo (até C) e guarda uma cópia por ninja', () => {
+    const g = createNewGame(SYSTEMS, 78);
+    const n = ninja(g);
+    n.ninja!.kekkei = 'sharingan';
+    const r = createRogue(g, at.x + 60, at.y, 1);
+    sawJutsu(g, r, JUTSUS.chidori!); // rank A
+    expect(n.mirror).toBeUndefined();
+    expect(n.ninja!.seen ?? []).toEqual([]);
+    sawJutsu(g, r, JUTSUS.housenka!);
+    sawJutsu(g, r, JUTSUS.goukakyuu!);
+    expect(n.ninja!.seen).toEqual(['goukakyuu']);
+    expect(n.mirror?.id).toBe('goukakyuu');
+  });
+
   test('não copia técnica de clã nem proibida, nem do próprio lado', () => {
     const g = createNewGame(SYSTEMS, 74);
     const n = ninja(g);

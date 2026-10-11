@@ -1,6 +1,6 @@
 // Dōjutsu (técnicas oculares, kekkei genkai de clã; data/kekkei.ts). Os olhos acendem em combate.
 // - Sharingan: lê os golpes (esquiva), COPIA o jutsu que um inimigo usa por perto (devolve uma vez, `Unit.mirror`, e
-//   guarda em `NinjaInfo.seen` para aprender depois sem pergaminho nem natureza), Kanashibari, Amaterasu (chamas negras
+//   guarda em `NinjaInfo.seen` para aprender depois sem pergaminho nem natureza; só rank baixo, até C, e uma cópia por ninja), Kanashibari, Amaterasu (chamas negras
 //   que queimam até apagar, `Unit.burn`) e Susano'o (modo, game/modes.ts).
 // - Byakugan: vê o que está invisível por perto (espiões, ANBU inimiga) e o Punho Gentil: cada golpe corpo a corpo
 //   fecha pontos de chakra do alvo; os golpes Hyuga (Kūshō, 64 Palmas, Kaiten, Sōshiken) exigem o Byakugan.
@@ -17,8 +17,10 @@ export const DOJUTSU = {
   copyRange: 220,
   /** Segundos que a cópia fica pronta para ser devolvida. */
   mirrorTime: 12,
-  /** Jutsus vistos que o ninja guarda (os mais recentes). */
-  seenMax: 8,
+  /** Rank mais alto que o Sharingan copia (2 = C; só os de rank baixo: E, D e C). */
+  copyMaxRank: 2,
+  /** Cada ninja guarda UMA cópia: a nova toma o lugar da anterior. */
+  seenMax: 1,
   /** Byakugan: alcance em que revela quem está invisível. */
   sightRange: 170,
   /** Punho Gentil: chakra que cada golpe corpo a corpo tira do alvo. */
@@ -35,9 +37,9 @@ export const eyeOf = (u: Unit | null | undefined): EyeId | null => {
 
 export const eyeDodge = (u: Unit) => (eyeOf(u) === 'sharingan' ? DOJUTSU.sharinganDodge : 0);
 
-/** O Sharingan copia: técnica de clã, proibida, modo, clone e cura não (o resto, até taijutsu, sim). */
+/** O Sharingan copia só jutsu de rank baixo (até C); técnica de clã, proibida, modo, clone e cura não. */
 export const copyable = (def: JutsuDef) =>
-  !def.kekkei && !def.forbidden && def.effect !== 'mode' && def.effect !== 'clone' && def.effect !== 'heal';
+  def.rank <= DOJUTSU.copyMaxRank && !def.kekkei && !def.forbidden && def.effect !== 'mode' && def.effect !== 'clone' && def.effect !== 'heal';
 
 /** Acende/apaga os olhos com a luta: o nome aparece uma vez ao acender. */
 export function eyeTick(g: Game, u: Unit) {

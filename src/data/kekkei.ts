@@ -31,7 +31,7 @@ export const KEKKEI: Record<KekkeiId, KekkeiDef> = {
   shakuton: { id: 'shakuton', name: 'Shakuton', pt: 'Calor', kanji: '灼', color: '#ffb347', need: [{ nature: 'katon' }, { nature: 'fuuton' }], jutsu: 'kajosatsu' },
   // dōjutsu: o Sharingan nasce do fogo e da ilusão; o Byakugan, do corpo a corpo e da percepção
   sharingan: { id: 'sharingan', name: 'Sharingan', pt: 'Olho copiador', kanji: '写', color: '#e0202a', need: [{ nature: 'katon' }, { stat: 'genjutsu' }], jutsu: 'kanashibari', eye: true,
-    desc: "Lê os golpes (esquiva mais), copia o jutsu que o inimigo usa por perto e o devolve; o que viu, aprende sem pergaminho. Kanashibari, Amaterasu e Susano'o." },
+    desc: "Lê os golpes (esquiva mais), copia um jutsu de rank baixo (até C) que o inimigo usa por perto e o devolve; guarda uma cópia por ninja e pode aprendê-la sem pergaminho. Kanashibari, Amaterasu e Susano'o." },
   byakugan: { id: 'byakugan', name: 'Byakugan', pt: 'Olho branco', kanji: '白', color: '#cfc8ff', need: [{ stat: 'taijutsu' }, { stat: 'inteligencia' }], jutsu: 'kusho', eye: true,
     desc: 'Vê quem está invisível por perto; cada golpe corpo a corpo fecha pontos de chakra do alvo (Punho Gentil). Os golpes Hyuga exigem o Byakugan.' },
 };

@@ -431,8 +431,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   aura pela silhueta (`sageGlow` com cores), vapor e raios. Laboratório: grupo "Bestas com cauda (manto)".
 - **Dōjutsu** (`game/dojutsu.ts`; kekkei genkai de clã com `eye` em `data/kekkei.ts`, que agora pede condições
   `need`: natureza OU atributo ≥ `KEKKEI_STAT` num ninja do clã): **Sharingan** (fogo + Genjutsu alto) esquiva mais, copia o
-  jutsu que um inimigo solta por perto (`sawJutsu` em `releaseJutsu` → `Unit.mirror`, devolvido uma vez por `mirrorCast` no
-  `engage`; guarda em `NinjaInfo.seen` e aprende esses sem pergaminho nem natureza, `jutsuOptions`), Kanashibari,
+  jutsu de rank baixo (até C, `DOJUTSU.copyMaxRank`) que um inimigo solta por perto (`sawJutsu` em `releaseJutsu` → `Unit.mirror`, devolvido uma vez por `mirrorCast` no
+  `engage`; guarda UMA cópia por ninja em `NinjaInfo.seen`, a nova troca a anterior, e a aprende sem pergaminho nem natureza, `jutsuOptions`), Kanashibari,
   Amaterasu (efeito `ignite`: `Unit.burn`, chamas negras que queimam até apagar, `burnTick` no status) e Susano'o (modo
   `susanoo`: guerreiro de chakra roxo desenhado pela silhueta ampliada); **Byakugan** (Taijutsu + Inteligência altos) revela
   invisíveis por perto (`byakuganNear` em `spyRevealed`) e o Punho Gentil tira chakra a cada golpe (`gentleFist`); os golpes

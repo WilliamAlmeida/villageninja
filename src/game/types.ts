@@ -66,7 +66,7 @@ export interface NinjaInfo {
   equip: Equip;
   /** Kekkei genkai despertada (natureza combinada ou dōjutsu). */
   kekkei: KekkeiId | null;
-  /** Sharingan: jutsus que já viu em combate (pode aprendê-los sem pergaminho nem a natureza). */
+  /** Sharingan: a cópia guardada (um jutsu de rank baixo visto em combate; aprende sem pergaminho nem a natureza). */
   seen?: string[];
   /** Contrato de invocação (sapo, serpente ou lesma). */
   contract?: ContractKind;
