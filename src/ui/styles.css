@@ -2565,3 +2565,5 @@ h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; 
   #win .box { border-width: 14px; border-image-outset: 0; }
   #panel { border-width: 14px; border-image-outset: 0; }
 }
+/* formação da equipe: os 4 cartões com o mesmo espaço entre si e até as bordas (estavam juntos no meio) */
+.tform { justify-content: space-evenly; column-gap: 0; }
