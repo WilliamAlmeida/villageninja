@@ -477,7 +477,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`game/demo.ts`: todos os prédios no nível 3, ninjas de toda patente, Kage, Sannin, ANBU, clãs, cães, equipes em missão e
   expedição, oficinas com fila e "Manter", lâminas, região em cada situação, mapa explorado; sem invasões) que não lê nem
   grava o save. O botão "Vitrine" (`ui/demoMenu.ts`) abre qualquer janela, drawer de prédio, ninja em cada situação, equipe
-  ou local; `?demo&tela=<chave>` já abre direto (`crafts`, `b-forge`, `n-kage`, `group`…). Tela nova que precisa de requisito
+  ou local; `?demo&tela=<chave>` já abre direto (`crafts`, `b-forge`, `n-kage`, `group`…; mapas jogáveis: `cena-mina`, `cena-saque`). Tela nova que precisa de requisito
   para aparecer: garantir que a vitrine a alcança (teste em `tests/demo.test.ts`).
 - UI tem que funcionar em 844×390 (celular deitado), mas a conferência visual é do autor: não abrir navegador nem tirar
   screenshot sem ele pedir.

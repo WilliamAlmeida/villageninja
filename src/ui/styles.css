@@ -2709,3 +2709,23 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 }
 @keyframes rpulse { 50% { box-shadow: 0 0 0 1px #2a1406, 0 0 10px 4px rgba(255, 220, 140, 0.55); } }
 @media (prefers-reduced-motion: reduce) { .rrel .relbar::after, .rrel .relbar i { animation: none; } }
+/* barra do mapa jogável no celular deitado: mais larga e numa linha só (título e andares, etiquetas, ações), encostada
+   à direita para não cobrir os avisos que ficam à esquerda; o objetivo segue embaixo */
+@media (max-height: 520px), (max-width: 900px) {
+  #scenebar:not(.mini) {
+    left: auto; right: 0.5rem; transform: none; top: 3.1rem;
+    width: min(40rem, calc(100vw - 14.5rem)); min-width: 0; max-width: none; font-size: 0.8rem; padding: 0.25rem 0.4rem;
+  }
+  #scenebar .sb-top { flex-wrap: nowrap; gap: 0.35rem; }
+  #scenebar .sb-chips { flex: 0 1 auto; min-width: 0; }
+  #scenebar .sb-chip { padding: 0.08rem 0.35rem; }
+  #scenebar .sb-acts { flex: 0 0 auto; gap: 0.25rem; }
+  #scenebar .btn { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+  #scenebar .btn.icon { padding: 0.25rem 0.35rem; }
+  #scenebar .sb-floors i { width: 0.45rem; height: 0.45rem; }
+  #scenebar .sb-goal { font-size: 0.74rem; padding-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-height: 520px), (max-width: 900px) {
+  /* com a barra do mapa jogável aberta, os avisos descem para baixo dela (não cobrem o título) */
+  body:has(#scenebar:not([hidden]):not(.mini)) #toasts { top: 6.9rem; }
+}

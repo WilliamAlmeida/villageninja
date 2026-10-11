@@ -7,6 +7,8 @@ import { BUILDINGS, BUILDING_LIST, type BuildingType } from '../data/buildings';
 import { emptyRes } from '../data/resources';
 import { spawnBoss } from '../game/bosses';
 import { startExam } from '../game/exam';
+import { createMineScene, createVillageScene } from '../game/scene';
+import type { Expedition } from '../game/types';
 import { doorPos } from '../game/world';
 import type { Unit } from '../game/types';
 import type { BuildUI } from './build';
@@ -147,7 +149,25 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
       { key: 'f-limpar', label: 'Tirar faixas', run: clear },
       { key: 'menu', label: 'Menu de pausa', run: () => ui.menu.open() },
     ]],
+    ['Mapas jogáveis', [
+      { key: 'cena-mina', label: 'Mina (andar 1)', run: () => openScene(app, 'mine') },
+      { key: 'cena-saque', label: 'Saque a um vilarejo', run: () => openScene(app, 'raid') },
+    ]],
   ];
+}
+
+/** Abre um mapa jogável na hora (a vitrine não espera a viagem): a mina com a expedição que já está lá, ou um saque. */
+function openScene(app: App, kind: 'mine' | 'raid') {
+  const g = app.home;
+  const s = g.state;
+  if (s.scene) return app.setView(true);
+  let e: Expedition | undefined = s.expeditions.find((x) => x.kind === (kind === 'mine' ? 'mine' : 'region') && x.status !== 'done' && x.status !== 'lost');
+  if (!e) return g.toast('Nenhuma expedição livre para abrir o mapa.', 'warn');
+  if (kind === 'raid') Object.assign(e, { node: 'montanha', action: 'raid' });
+  e.floor = 1;
+  s.scene = kind === 'mine' ? createMineScene(g, e, 1) : createVillageScene(g, e);
+  e.status = 'scene';
+  app.setView(true);
 }
 
 /** Posicionar um prédio como pelo cartão da barra (o mesmo caminho do jogador). */
