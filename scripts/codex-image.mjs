@@ -26,8 +26,8 @@ const sheet = flag('--sheet');
 const refs = (flag('--ref') ?? '').split(',').filter(Boolean);
 const size = flag('--size') ?? (sheet ? '1536x1024' : '1024x1024');
 const [out, desc] = args;
-if (!out || !desc || (sheet && !['biped', 'quadruped', 'action'].includes(sheet))) {
-  console.error('uso: node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size LxA] [--sheet biped|quadruped|action]');
+if (!out || !desc || (sheet && !['biped', 'quadruped', 'action', 'strike', 'cast'].includes(sheet))) {
+  console.error('uso: node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size LxA] [--sheet biped|quadruped|action|strike|cast]');
   process.exit(1);
 }
 
@@ -42,8 +42,14 @@ const views = {
   quadruped: 'Row 1: side view walking on four legs, head on the RIGHT side. Row 2: front view walking toward the viewer. Row 3: back view walking away.',
   biped: 'Row 1: side view walking, facing RIGHT. Row 2: front view walking toward the viewer. Row 3: back view walking away (only the back of the head visible).',
   action: 'Row 1: side view facing RIGHT, striking to the right. Row 2: front view facing the viewer, striking down in front. Row 3: back view, striking down away from the viewer.',
+  strike: 'Row 1: side view facing RIGHT, punching to the right. Row 2: front view facing the viewer, punching toward the viewer. Row 3: back view, punching away from the viewer.',
+  cast: 'Row 1: side view facing RIGHT. Row 2: front view facing the viewer. Row 3: back view (only the back of the head visible).',
 }[sheet ?? 'biped'];
-const cycle = sheet === 'action'
+const cycle = sheet === 'strike'
+  ? 'Columns are one fighting punch in order, following the arm with the RED fist of the guide: 1 wind-up (fist pulled back), 2 lunge (fist moving forward), 3 impact (arm fully extended, body leaning in), 4 recover (fist coming back to guard). Feet planted wide in a fighting stance; the other arm stays in guard. The red fist is a normal hand, not red.'
+  : sheet === 'cast'
+  ? 'Columns are ninja hand seals in order, following the RED hands of the guide: 1 both hands pressed together in a seal in front of the chest, 2 both hands raised together near the chin in another seal, 3 another hand seal in front of the chest (fingers interlocked), 4 release: one arm thrust straight forward with the palm open, the other hand at the chest. Standing still, feet planted. The red hands are normal hands, not red.'
+  : sheet === 'action'
   ? 'Columns are one tool swing in order, following the brown handle and gray tool head of the guide: 1 wind-up (tool raised high behind the head), 2 swing (tool coming forward), 3 impact (tool head hitting the ground/target in front), 4 recover. Feet stay planted.'
   : 'Columns are the walk cycle in order: 1 contact (legs apart), 2 passing (legs together), 3 contact with the other leg forward, 4 passing.';
 const body = sheet

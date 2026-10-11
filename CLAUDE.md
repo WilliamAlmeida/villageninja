@@ -60,6 +60,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   folha inteira (sem a vista de lado). `dollArt` (art.ts) monta e recolore; `dollParts` (sprites.ts) escolhe pela patente.
   Os 5 penteados têm camada (espetado, rabo de cavalo, curto, longo, coques; feitos sobre a roupa) — `DOLL_HAIR`; penteado novo precisa da camada. Prévia: `python scripts/preview-layers.py`.
   Regras das peças e a recoloração ficam em `src/render/doll.ts` (puro, sem DOM), usado pelo jogo e pelo editor.
+  **Poses além da caminhada** (mesma grade 4×3 e mesma célula 63×80): golpe de mão (`strike`: prepara · avança · impacto ·
+  recupera) e selos (`cast`: três selos · solta o jutsu), gabaritos `docs/arte/gabarito-strike|cast.png`. Corpo-base da pose
+  pelo Codex (`--sheet strike|cast`, fatiado pelo prepare-art centrando pelas pernas → `ninja-body-<pose>.png` pelo
+  `prepare-layers.py --pose <pose>`); só as peças que mudam com o braço são geradas de novo (`POSE_PIECES`: roupas,
+  coletes, sobretudo, manto; `POSE=<pose> bash scripts/layer-pieces.sh …`); cabelo, bandana, máscara, chapéu e espadas
+  usam o quadro parado da caminhada deslocado com a cabeça (`src/data/doll-poses.json`). `dollArt(parts, skin, pose)`
+  monta; `poseOf` (sprites.ts) escolhe pela `Unit.cast` e `Unit.animKind` (posto em combat.ts junto com o `anim`).
+  Golpe com lâmina lendária segue a espada girando (sem pose).
 - **Ferramentas** em http://localhost:3011: a raiz é o início com os três editores (cada um tem o link "Início").
   Visual comum em `tools/shared/tools.css` (tons do jogo: barra no alto com nome, modos e ações; painéis em cartões;
   trilho de ferramentas com ícone e tecla; chaves liga/desliga `label.tog`; dicas instantâneas por `data-tip`, nada de
@@ -418,7 +426,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   vila (HUD, menu, construção, janelas, save); `app.game` é o que está na tela (`app.viewScene`, `app.setView`); o
   renderer guarda terreno/estações por estado. Toast de outro mapa troca a tela ao tocar. **Minas** também: cada andar é
   uma caverna (`createMineScene`, autômato celular; tile `T.ROCK` bloqueia), escura com tochas, bichos guardando, baús que
-  abrem ao encostar e a descida (local `cave`); vencido o andar a expedição fica em `choice` com o mapa aberto (Descer/
+  abrem ao encostar e a descida (local `cave`), enfeitada por `render/cave.ts` (só desenho: estalagmites, cristais e cogumelos com luz própria, poças,
+  ossos, carrinho, escoras, tochas e caixotes; atlas `src/art/cave-props.png` de `scripts/cave-props.py`); vencido o andar a expedição fica em `choice` com o mapa aberto (Descer/
   Voltar na barra; `chooseExpedition` fecha e abre o próximo). Último andar: guardião (golem). `closeScene` devolve também
   o saque juntado no mapa. **Ilhas** (Explorar: `createIslandScene`, terra cercada de mar, bichos da ilha, amostras =
   baús; recolhidas todas, `explored`) e **lugares sagrados** (Contrato: `createTrialScene`, clareira com o guardião, o

@@ -21,6 +21,7 @@ import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
 import { CHEST_LINGER, doneFor, fogVersion, isExplored, isExploredPx } from '../game/explore';
+import { CAVE_PROPS, type CaveDeco, caveDecos, drawCaveDeco, drawCaveFlat } from './cave';
 import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
@@ -59,6 +60,8 @@ const FOG_PAD = 3;
 type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco;
   /** Muralha de terra (Doryuuheki) parada no chão: entra na ordem de profundidade como um objeto. */
   wall?: Effect;
+  /** Enfeite da mina (render/cave.ts). */
+  cave?: CaveDeco;
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
   piece?: number };
 
@@ -255,6 +258,7 @@ export class Renderer {
       } else if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
     }
     this.drawHarvest(g);
+    drawCaveFlat(ctx, s, (tx, ty) => isExplored(s, tx, ty));
 
     // ================= passada 2: em pé, do fundo para a frente =================
     const m = 110;
@@ -322,6 +326,12 @@ export class Renderer {
       const p = project(deco.x, deco.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, deco });
     }
+    // mina: estalagmites, cristais, cogumelos, escoras… (só desenho, render/cave.ts)
+    for (const cave of caveDecos(s)) {
+      if (CAVE_PROPS[cave.prop]!.flat || !isExploredPx(s, cave.x, cave.y)) continue;
+      const p = project(cave.x, cave.y);
+      if (seen(p)) list.push({ x: p.x, y: p.y, cave });
+    }
     for (const u of s.units) {
       if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
       const p = project(u.x, u.y);
@@ -342,8 +352,8 @@ export class Renderer {
     const blocks = list.filter((d) => d.b && d.piece == null);
     for (const d of list) {
       if (d.b) continue;
-      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.wall ? d.wall.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.wall ? d.wall.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
+      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       for (const o of blocks) {
         const b = o.b!;
         const def = BUILDINGS[b.type];
@@ -396,6 +406,7 @@ export class Renderer {
       else if (d.site && d.piece != null) this.drawSitePiece(d.site, d.piece, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
+      else if (d.cave) drawCaveDeco(ctx, d.cave, d.x, d.y);
       else if (d.wall) drawWall(ctx, d.wall);
       else if (d.n) {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
@@ -1337,6 +1348,11 @@ export class Renderer {
       glow(d.x, d.y, 14, winter ? 66 : 55, winter ? 'rgba(255,160,70,A)' : 'rgba(255,190,90,A)', (winter ? 0.5 : 0.35) * night);
     }
     for (const d of this.decos) if (d.kind === 'lantern') glow(d.x, d.y, 21, 34, 'rgba(255,120,50,A)', 0.6 * night);
+    // mina: cristais, cogumelos, tochas e lanternas das escoras com luz própria (tremendo de leve)
+    for (const d of caveDecos(g.state)) {
+      const lg = CAVE_PROPS[d.prop]!.glow;
+      if (lg && isExploredPx(g.state, d.x, d.y)) glow(d.x, d.y, lg[1], lg[2], lg[0], 0.42 + Math.sin(performance.now() / 300 + d.x) * 0.05);
+    }
     if (g.state.sceneInfo?.kind === 'mine' || g.state.sceneInfo?.kind === 'hideout')
       for (const u of g.state.units) if (!u.dead && !u.hidden && u.faction === 'village') glow(u.x, u.y, 12, 95, 'rgba(255,170,90,A)', 0.28);
     for (const p of g.state.projectiles) if (!p.dead && p.kind !== 'kunai') glow(p.x, p.y, 8, 40, hexA(p.color), 0.5 * night);

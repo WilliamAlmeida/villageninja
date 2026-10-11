@@ -150,6 +150,8 @@ export interface Unit {
   hitFlash: number;
   combatTimer: number;
   anim: number;
+  /** O que o `anim` está mostrando (só desenho: escolhe a pose do ninja em camadas): golpe de mão, arremesso, jutsu solto. */
+  animKind?: 'strike' | 'throw' | 'cast';
   hidden: boolean;
   dead: boolean;
   look: Look;

@@ -13,6 +13,7 @@
 #   python scripts/prepare-layers.py tpl <peça>    grava os moldes da peça (docs/arte/layers/tpl-<peça>[-side].png)
 #   bash scripts/layer-pieces.sh <peça>            gera a peça no Codex (folha inteira + vista de lado 2×2)
 #   python scripts/preview-layers.py               prévia recolorida
+#   ... --pose strike|cast                          o mesmo para as poses de golpe e selos (só POSE_PIECES)
 import sys
 from collections import deque
 from pathlib import Path
@@ -24,9 +25,18 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'src' / 'art'
 SRC = ROOT / 'docs' / 'arte' / 'layers'
 COLS, ROWS = 4, 3
-BASE = SRC / 'ninja-base.png'  # gerado pelo prepare-art.py (não vai para o jogo)
-BODY = OUT / 'ninja-body.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
+# poses além da caminhada (--pose strike|cast): corpo-base próprio (gabaritos strike/cast) e só as peças que mudam com o
+# braço são geradas de novo (POSE_PIECES); cabelo, bandana, máscara, chapéu e espadas usam o quadro parado da caminhada
+# deslocado junto com a cabeça (src/data/doll-poses.json, feito aqui; render/art.ts → dollArt)
+POSE = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--pose'), '')
+SFX = f'-{POSE}' if POSE else ''
+POSE_PIECES = ['outfit-genin', 'vest-chunin', 'vest-jounin', 'coat-sannin', 'cloak-kage', 'outfit-anbu']
+POSES = ['strike', 'cast']
+BASE = SRC / f'ninja-base{SFX}.png'  # gerado pelo prepare-art.py (não vai para o jogo)
+BODY = OUT / f'ninja-body{SFX}.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
+WALK_BODY = OUT / 'ninja-body.png'
 PAD, PADX = 24, 18
+WALK_RAW_W = 27  # largura do quadro da caminhada (ninja-base.png / 4): todas as poses usam a mesma célula (63×80)
 EDITS = OUT / 'art-edits.json'  # artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer
 
 # peça → (tipo, peças de baixo no molde, cor neutra da peça no molde de quem vem depois [, segunda cor])
@@ -111,7 +121,7 @@ def compose(names):
     out = Image.open(BODY).convert('RGBA')
     for n in names:
         spec = PIECES[n]
-        a = np.array(Image.open(OUT / f'layer-{n}.png').convert('RGBA'))
+        a = np.array(Image.open(OUT / f'layer-{n}{SFX}.png').convert('RGBA'))
         out.alpha_composite(Image.fromarray(tint(a, spec[0], spec[2], spec[3] if len(spec) > 3 else None), 'RGBA'))
     return out
 
@@ -260,10 +270,11 @@ def body_sheet():
         return
     raw = Image.open(BASE).convert('RGBA')
     rh, rw = raw.height // ROWS, raw.width // COLS
-    base = Image.new('RGBA', ((rw + 2 * PADX) * COLS, (rh + PAD) * ROWS), (0, 0, 0, 0))
+    cw = WALK_RAW_W + 2 * PADX  # a mesma célula da caminhada (o jogo troca de folha sem mudar a origem)
+    base = Image.new('RGBA', (cw * COLS, (rh + PAD) * ROWS), (0, 0, 0, 0))
     for r in range(ROWS):
         for c in range(COLS):
-            base.paste(raw.crop((c * rw, r * rh, (c + 1) * rw, (r + 1) * rh)), (c * (rw + 2 * PADX) + PADX, r * (rh + PAD) + PAD))
+            base.paste(raw.crop((c * rw, r * rh, (c + 1) * rw, (r + 1) * rh)), (c * cw + (cw - rw) // 2, r * (rh + PAD) + PAD))
     base.save(BODY, optimize=True)
 
 
@@ -276,19 +287,19 @@ def templates(name):
         for c in range(COLS):
             f = grid[r][c].resize((grid[r][c].width * 4, grid[r][c].height * 4), Image.NEAREST)
             full.alpha_composite(f, (c * 384 + (384 - f.width) // 2, r * 341 + (341 - f.height) // 2))
-    full.convert('RGB').save(SRC / f'tpl-{name}.png')
+    full.convert('RGB').save(SRC / f'tpl-{name}{SFX}.png')
     side = Image.new('RGBA', (1536, 1024), (255, 255, 255, 255))
     for c in range(COLS):
         f = grid[0][c].resize((grid[0][c].width * 6, grid[0][c].height * 6), Image.NEAREST)
         side.alpha_composite(f, ((c % 2) * 768 + (768 - f.width) // 2, (c // 2) * 512 + (512 - f.height) // 2))
-    side.convert('RGB').save(SRC / f'tpl-{name}-side.png')
-    print('moldes', f'tpl-{name}.png', f'tpl-{name}-side.png')
+    side.convert('RGB').save(SRC / f'tpl-{name}{SFX}-side.png')
+    print('moldes', f'tpl-{name}{SFX}.png', f'tpl-{name}{SFX}-side.png')
 
 
 def extract(name):
     spec = PIECES[name]
     kind, under = spec[0], spec[1]
-    full, side = SRC / f'{name}.png', SRC / f'{name}-side.png'
+    full, side = SRC / f'{name}{SFX}.png', SRC / f'{name}{SFX}-side.png'
     if not full.exists():
         print('falta', full.relative_to(ROOT))
         return
@@ -342,22 +353,57 @@ def extract(name):
             if np.concatenate([a[0, :, 3], a[:, 0, 3], a[:, -1, 3]]).any():
                 print(f'  {name}: quadro {r + 1}x{c + 1} encosta na borda (aumente PAD/PADX)')
             sheet.alpha_composite(Image.fromarray(a, 'RGBA'), (c * fw, r * fh))
-    sheet.save(OUT / f'layer-{name}.png', optimize=True)
-    print(f'layer-{name}.png', f'encaixe médio {np.mean(scores):.2f} (pior {min(scores):.2f})')
+    sheet.save(OUT / f'layer-{name}{SFX}.png', optimize=True)
+    print(f'layer-{name}{SFX}.png', f'encaixe médio {np.mean(scores):.2f} (pior {min(scores):.2f})')
+
+
+def head_box(a):
+    """Topo e meio da cabeça (fração HEAD de cima da figura) num quadro RGBA."""
+    f = figure(a)
+    if f is None:
+        return None
+    # só o alto da cabeça (acima dos ombros): o braço esticado não entra na conta
+    hx = np.nonzero(a[f[1]:f[1] + int((f[3] - f[1]) * HEAD * 0.7), :, 3] > 100)[1]
+    return (hx.min() + hx.max()) / 2, f[1]
+
+
+def pose_offsets():
+    """Deslocamento da cabeça de cada quadro de cada pose em relação ao quadro parado da caminhada da mesma vista:
+    as peças da cabeça e das costas (sem arte própria da pose) vão junto com ela."""
+    import json
+    walk = cells(Image.open(WALK_BODY).convert('RGBA'))
+    out = {}
+    for pose in POSES:
+        path = OUT / f'ninja-body-{pose}.png'
+        if not path.exists():
+            continue
+        pc = cells(Image.open(path).convert('RGBA'))
+        offs = []
+        for r in range(ROWS):
+            w = head_box(np.array(walk[r][1]))
+            for c in range(COLS):
+                h = head_box(np.array(pc[r][c]))
+                offs.append([round(h[0] - w[0]), round(h[1] - w[1])] if h and w else [0, 0])
+        out[pose] = offs
+    dest = ROOT / 'src' / 'data' / 'doll-poses.json'
+    dest.write_text(json.dumps({'pieces': POSE_PIECES, 'offsets': out}) + chr(10), encoding='utf8')
+    print('doll-poses.json', {k: v[:4] for k, v in out.items()})
 
 
 if __name__ == '__main__':
     SRC.mkdir(parents=True, exist_ok=True)
     body_sheet()
+    if POSE:
+        pose_offsets()
     if len(sys.argv) > 2 and sys.argv[1] == 'tpl':
-        for n in sys.argv[2:]:
+        for n in [a for a in sys.argv[2:] if not a.startswith('--') and a != POSE]:
             templates(n)
     else:
-        names = [a for a in sys.argv[1:] if not a.startswith('--')]
+        names = [a for a in sys.argv[1:] if not a.startswith('--') and a != POSE]
         for n in PIECES:  # em ordem: as de baixo antes (o molde das de cima usa as camadas já extraídas)
-            if names and n not in names:
+            if (names and n not in names) or (POSE and n not in POSE_PIECES):
                 continue
-            if f'layer-{n}.png' in edited() and '--force' not in sys.argv:
-                print(f'layer-{n}.png editada à mão no editor: mantida (use --force para refazer)')
+            if f'layer-{n}{SFX}.png' in edited() and '--force' not in sys.argv:
+                print(f'layer-{n}{SFX}.png editada à mão no editor: mantida (use --force para refazer)')
                 continue
             extract(n)

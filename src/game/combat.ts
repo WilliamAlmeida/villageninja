@@ -115,6 +115,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
     if (d <= ms.range + 6 && u.attackCd <= 0) {
       u.attackCd = ms.cd;
       u.anim = STRIKE_ANIM;
+      u.animKind = 'strike';
       // o dano entra no auge do avanço (resolveStrike, pelo statusSystem): o número bate com o movimento do sprite
       u.strike = { id: t.id, t: STRIKE_ANIM / 2 };
     }
@@ -214,6 +215,7 @@ function startCast(g: Game, u: Unit, slot: number, def: JutsuDef) {
   n.cd[slot] = jutsuCooldown(def, n.stats);
   u.attackCd = 0.7;
   u.anim = 0.4;
+  u.animKind = 'strike';
   if (u.arenaSide) recordDuelJutsu(g.state, u.id);
 }
 
@@ -232,6 +234,7 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
   if (seals > 0) {
     u.cast = { id: def.id, targetId: t.id, t: seals };
     u.anim = seals;
+    u.animKind = 'cast';
     u.moving = false;
     fx(g, 'seal', u.x, u.y, { life: seals, color: def.color, uid: u.id });
     fxText(g, u.x, u.y - 24, sealNames(def), '#d8dce8');
@@ -264,6 +267,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
   const vfx = jutsuVfx(def);
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   u.anim = 0.4;
+  u.animKind = 'cast';
   shout(g, u, def);
   if (def.forbidden) fxMoment(g, u.x, u.y, def.name, def.color);
 
@@ -386,6 +390,7 @@ function throwKunai(g: Game, u: Unit, t: Unit) {
   const d = derive(u.ninja!.stats);
   u.attackCd = 1.6;
   u.anim = 0.2;
+  u.animKind = 'throw';
   spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
     damage: d.kunaiDmg + gearBonus(u).kunai, radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 360, kind: 'kunai', stun: 0, range: 160, vfx: 'metal',
   });
@@ -600,6 +605,7 @@ export function dashTick(g: Game, u: Unit, dt: number) {
   const dist = Math.hypot(t.x - u.x, t.y - u.y);
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   u.anim = 0.2;
+  u.animKind = undefined;
   if (dist <= 20) {
     u.dash = undefined;
     u.moving = false;
@@ -656,6 +662,7 @@ export function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
     u.artCd = def.cooldown;
     u.attackCd = 0.5;
     u.anim = 0.3;
+    u.animKind = 'strike';
     fx(g, 'burst', t.x, t.y, { r: 24, color: def.color, life: 0.4, vfx: 'gold' });
     applyDamage(g, u, t, def.power * (0.6 + u.ninja.stats.ninjutsu * 0.1), null, { knock: 20 });
     return true;
@@ -664,6 +671,7 @@ export function kageArt(g: Game, u: Unit, t: Unit, d: number): boolean {
   if (t.mark?.by !== u.id && u.attackCd <= 0 && d > 40 && d < 200) {
     u.attackCd = 0.9;
     u.anim = 0.2;
+    u.animKind = 'throw';
     u.facing = Math.atan2(t.y - u.y, t.x - u.x);
     const p = spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
       damage: 4, radius: 0, nature: null, color: def.color, size: 4, speed: 380, kind: 'kunai', stun: 0, range: 220,

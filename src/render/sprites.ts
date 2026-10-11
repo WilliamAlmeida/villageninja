@@ -2,7 +2,7 @@
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
-import { anbuMask, dollParts, SWORDS, tintPixels } from './doll';
+import { anbuMask, dollParts, type DollPose, SWORDS, tintPixels } from './doll';
 import { bladeOf } from '../game/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import type { MistBlade } from '../data/blades';
@@ -170,7 +170,7 @@ const TOOL: Record<string, string> = { gather: 'axe', farming: 'hoe', build: 'ha
  * Folha da unidade. Ninjas da vila (e convidados do Exame) são "paper doll": penteado escolhido pelo id
  * e cabelo/roupa/pele do `look` dele, recoloridos sobre a base. Clones copiam o dono.
  */
-function unitPic(u: Unit, noSword = false) {
+function unitPic(u: Unit, noSword = false, pose?: DollPose) {
   if (u.animal === 'dog') return art(breedArt(u.breed)) ?? art('dog');
   if (u.animal) return art(u.animal);
   if (u.org) return art(`org-${u.org}`) ?? art('rogue'); // Ordem do Eclipse: arte própria de cada membro
@@ -181,13 +181,14 @@ function unitPic(u: Unit, noSword = false) {
     // Espadachim da Névoa: montado como os ninjas, com o colete e a lâmina dele
     const d = SWORDSMEN[u.swordsman];
     const doll = dollParts({ style: d.style, rank: 'chunin', sword: noSword ? null : u.swordsman, look: u.look });
-    return (doll && dollArt(doll, u.look.skin)) ?? art('rogue');
+    return (doll && ((pose && dollArt(doll, u.look.skin, pose)) || dollArt(doll, u.look.skin))) ?? art('rogue');
   }
   if (u.faction === 'enemy' && !u.cursed) return art('rogue'); // o ninja com o selo amaldiçoado segue com a cara dele
   const id = u.kind === 'clone' ? (u.ownerId ?? u.id) : u.id;
   const style = NINJA_HAIRSTYLES[id % NINJA_HAIRSTYLES.length];
   const doll = u.look ? dollParts({ style, rank: u.ninja?.rank, sannin: u.ninja?.sannin, anbu: u.ninja?.anbu, mask: u.ninja?.mask, stats: u.ninja?.stats, sword: noSword ? null : bladeOf(u), look: u.look }) : null;
-  return doll ? dollArt(doll, u.look.skin) : null; // sem arte ainda: o desenho procedural
+  if (!doll) return null; // sem arte ainda: o desenho procedural
+  return (pose && dollArt(doll, u.look.skin, pose)) || dollArt(doll, u.look.skin);
 }
 
 
@@ -435,8 +436,11 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // golpe com lâmina em andamento: a espada sai das costas (boneco sem ela) e gira na mão
   const slash = !action && u.strike && u.anim > 0 ? bladeOf(u) : null;
   const slashK = slash ? 1 - u.anim / STRIKE_ANIM : 0;
-  const pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash));
+  // golpe de mão, arremesso e selos: pose própria do ninja em camadas (sem pose, o avanço curto de sempre)
+  const pz = !action && !slash ? poseOf(u, t) : null;
+  const pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash), pz?.pose);
   if (!pic) return false;
+  const posed = !!pz && pic.dataset.pose === pz.pose; // a arte da pose pode ainda estar carregando (vem a caminhada)
   const dx = Math.cos(u.facing);
   const dy = Math.sin(u.facing);
   // de lado quando o movimento é mais horizontal; senão de frente (descendo na tela) ou de costas (subindo)
@@ -445,7 +449,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   const base = u.animal ? u.y + size * 0.7 : u.y + 9;
   const sheet = artFrames(pic);
   // trabalhando: ciclo do golpe; andando: ciclo de caminhada; parado: quadro de descanso
-  const frame = action ? workFrame(u, t, sheet.frames) : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
+  const frame = action ? workFrame(u, t, sheet.frames) : posed ? pz!.frame : !u.moving ? sheet.idle : Math.floor(t * 8 + u.id) % sheet.frames;
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   const shadow = artLayout(pic.dataset.name ?? '')?.shadow ?? [1, 1]; // ajuste da sombra no editor de sprites
   ellipse(ctx, u.x, base - 1.5, (u.animal ? size * 1.2 : 8) * shadow[0], (u.animal ? size * 0.4 : 3.5) * shadow[1]);
@@ -458,7 +462,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
   const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1);
   // golpe: avança um passo curto na direção do alvo e volta (sem quadro de ataque na folha)
-  const lunge = !action && u.anim > 0 && !u.moving ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
+  const lunge = !action && u.anim > 0 && !u.moving && pz?.pose !== 'cast' ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
   const ux = u.x + dx * lunge;
   const uy = base + dy * lunge * 0.5;
   const height = (u.animal ? size * (ART_SIZE[u.animal] ?? 2.6) : action ? 37 : 30) * scale;
@@ -489,6 +493,24 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   }
   ctx.restore();
   return true;
+}
+
+/**
+ * Pose do ninja em camadas agora (só desenho): selos = os três selos em ciclo e, ao soltar o jutsu, o braço esticado;
+ * golpe de mão = prepara, avança, IMPACTO (quando o dano entra) e recupera; arremesso = braço esticado e recupera.
+ */
+function poseOf(u: Unit, t: number): { pose: DollPose; frame: number } | null {
+  if (!u.ninja && !u.swordsman) return null;
+  if (u.cast) return { pose: 'cast', frame: Math.floor(t * 5 + u.id) % 3 };
+  if (u.anim <= 0 || u.moving) return null;
+  if (u.animKind === 'cast') return { pose: 'cast', frame: 3 };
+  if (u.animKind === 'throw') return { pose: 'strike', frame: u.anim > 0.1 ? 2 : 3 };
+  if (u.animKind === 'strike') {
+    const s = u.strike;
+    if (s && !s.hit) return { pose: 'strike', frame: s.t > STRIKE_ANIM / 4 ? 0 : 1 };
+    return { pose: 'strike', frame: u.anim > 0.28 ? 2 : 3 };
+  }
+  return null;
 }
 
 /** Animação de trabalho do morador (folhas villager-<ação>). */

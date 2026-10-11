@@ -110,7 +110,63 @@ def action(d, cx, row, col):
     d.rectangle([tip[0] - 18, tip[1] - 10, tip[0] + 18, tip[1] + 10], fill=(120, 120, 130))
 
 
-for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action)):
+def strike(d, cx, row, col):
+    """Golpe de mão (soco/kunai) em base afastada. Colunas: 0 prepara (braço para trás) · 1 avança · 2 impacto (braço
+    todo esticado) · 3 recupera. De lado o golpe vai para a direita; de frente/costas o braço vem para a câmera/longe."""
+    hip = (cx, BASE - 95)
+    neck = (cx, BASE - 175)
+    lean = [-8, 6, 16, 4][col] if row == 0 else 0
+    limb(d, hip, (cx - 45, BASE), FAR if row == 0 else NEAR)
+    limb(d, hip, (cx + 50, BASE), NEAR)
+    d.rounded_rectangle([cx - 36 + lean, neck[1], cx + 36 + lean, hip[1] + 10], 14, fill=BODY)
+    sh = (cx + lean, neck[1] + 20)
+    if row == 0:
+        fist = [(cx - 80, neck[1] + 10), (cx + 40, neck[1] + 30), (cx + 130, neck[1] + 25), (cx + 55, neck[1] + 55)][col]
+        guard = (cx + 30 + lean, neck[1] + 45)
+    else:
+        fist = [(cx + 70, neck[1] - 10), (cx + 50, neck[1] + 40), (cx + 25, neck[1] + 75), (cx + 55, neck[1] + 70)][col]
+        guard = (cx - 45, neck[1] + 50)
+    head = (cx + (6 if row == 0 else 0) + lean, neck[1] - 62)
+    d.ellipse([head[0] - 70, head[1] - 66, head[0] + 70, head[1] + 66], fill=BODY)
+    if row == 0:
+        d.polygon([(head[0] + 66, head[1] - 6), (head[0] + 90, head[1] + 6), (head[0] + 66, head[1] + 18)], fill=NEAR)
+    elif row == 1:
+        for ex in (-26, 26):
+            d.ellipse([head[0] + ex - 9, head[1] - 4, head[0] + ex + 9, head[1] + 14], fill=(255, 255, 255))
+    limb(d, sh, guard, FAR, 16)
+    limb(d, sh, fist, NEAR, 18)
+    d.ellipse([fist[0] - 16, fist[1] - 16, fist[0] + 16, fist[1] + 16], fill=(200, 60, 60))  # punho (vermelho)
+
+
+def cast(d, cx, row, col):
+    """Selos de mão (jutsu): parado, pernas firmes, as duas mãos juntas na frente do peito em selos diferentes; na
+    última coluna solta o jutsu com um braço esticado. Colunas: 0 selo baixo · 1 selo alto (perto do queixo) · 2 outro
+    selo no peito · 3 solta (braço esticado para a frente)."""
+    hip = (cx, BASE - 95)
+    neck = (cx, BASE - 175)
+    limb(d, hip, (cx - 30, BASE), NEAR)
+    limb(d, hip, (cx + 30, BASE), NEAR)
+    d.rounded_rectangle([cx - 36, neck[1], cx + 36, hip[1] + 10], 14, fill=BODY)
+    head = (cx + (6 if row == 0 else 0), neck[1] - 62)
+    d.ellipse([head[0] - 70, head[1] - 66, head[0] + 70, head[1] + 66], fill=BODY)
+    if row == 0:
+        d.polygon([(head[0] + 66, head[1] - 6), (head[0] + 90, head[1] + 6), (head[0] + 66, head[1] + 18)], fill=NEAR)
+    elif row == 1:
+        for ex in (-26, 26):
+            d.ellipse([head[0] + ex - 9, head[1] - 4, head[0] + ex + 9, head[1] + 14], fill=(255, 255, 255))
+    hy = [neck[1] + 45, neck[1] + 15, neck[1] + 40, None][col]
+    if hy is not None:
+        hx = cx + (30 if row == 0 else 0)
+        limb(d, (cx - 30, neck[1] + 20), (hx, hy), NEAR, 16)
+        limb(d, (cx + 30, neck[1] + 20), (hx, hy), NEAR, 16)
+        d.ellipse([hx - 18, hy - 18, hx + 18, hy + 18], fill=(200, 60, 60))  # mãos juntas (vermelho)
+    else:
+        tip = (cx + 125, neck[1] + 30) if row == 0 else (cx + 45, neck[1] + 80)
+        limb(d, (cx, neck[1] + 20), tip, NEAR, 18)
+        d.ellipse([tip[0] - 18, tip[1] - 18, tip[0] + 18, tip[1] + 18], fill=(200, 60, 60))
+
+
+for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast)):
     im = Image.new('RGB', (W, H), (255, 255, 255))
     d = ImageDraw.Draw(im)
     for r in range(ROWS):

@@ -50,6 +50,8 @@ for _name in list(BUILDINGS):
 # altura (px) do quadro na folha final — ≈ 2× a altura em que aparece no mundo
 SHEETS = {'villager': (56, 'biped'), 'rogue': (56, 'biped'),
           'ninja-base': (56, 'biped'),  # corpo-base das camadas: vai para docs/arte/layers (entrada do prepare-layers.py)
+          # poses do corpo-base: golpe de mão e selos (gabaritos strike/cast); o mesmo destino
+          'ninja-base-strike': (56, 'strike'), 'ninja-base-cast': (56, 'cast'),
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
@@ -63,7 +65,9 @@ TRUST_FACING = {'spider', 'slug', 'dog-white'}
 SAME_SCALE = {'chest-open': 'chest'}
 SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3
-TOOL_ONLY = {'ninja-base'}
+TOOL_ONLY = {'ninja-base', 'ninja-base-strike', 'ninja-base-cast'}
+# folhas de ação: braço e ferramenta confundem a detecção de direção e a ordem do ciclo de caminhada (confira a olho)
+ACTIONLIKE = ('action', 'strike', 'cast')
 problems: list[str] = []
 
 
@@ -189,6 +193,12 @@ def template_masks(kind):
 TEMPLATES = {k: template_masks(k) for k in ('biped', 'quadruped')}
 
 
+def legs_center(im):
+    """Meio das pernas (30% de baixo da figura), em px do quadro."""
+    box = mask(im).crop((0, int(im.height * 0.7), im.width, im.height)).getbbox()
+    return (box[0] + box[2]) / 2 if box else im.width / 2
+
+
 def legs_width(im):
     """Largura ocupada pelos pés (25% de baixo): pernas abertas no quadro de contato, juntas na passagem."""
     m = mask(im)
@@ -221,7 +231,7 @@ for name, (frame_h, kind) in SHEETS.items():
             if not 0.85 <= f.height / med <= 1.15:
                 problems.append(f'{name}: linha {r + 1} quadro {c + 1} com altura fora do padrão ({f.height} vs {med})')
         # folhas de ação (golpe de ferramenta): mãos e ferramenta confundem a detecção de direção; confira a olho
-        if r == 0 and kind != 'action' and name not in TRUST_FACING:
+        if r == 0 and kind not in ACTIONLIKE and name not in TRUST_FACING:
             # direção: todo quadro de lado tem que olhar para a DIREITA (o jogo espelha para a esquerda).
             # 1º pela direção absoluta (rosto/cabeça); quadro ambíguo segue os vizinhos já acertados.
             dirs = [facing(f, kind, c) for c, f in enumerate(row)]
@@ -243,7 +253,7 @@ for name, (frame_h, kind) in SHEETS.items():
         # ordem do ciclo: colunas 1 e 3 = contato (pernas abertas), 2 e 4 = passagem (pernas juntas)
         widths = [legs_width(f) for f in row]
         contact = sorted(range(COLS), key=lambda i: -widths[i])[:2]
-        if r == 0 and kind != 'action' and sorted(contact) != [0, 2]:
+        if r == 0 and kind not in ACTIONLIKE and sorted(contact) != [0, 2]:
             passing = [i for i in range(COLS) if i not in contact]
             order = [contact[0], passing[0], contact[1], passing[1]]
             problems.append(f'{name}: ordem do ciclo de lado reordenada {[i + 1 for i in order]}')
@@ -254,10 +264,15 @@ for name, (frame_h, kind) in SHEETS.items():
     k = frame_h / max(f.height for row in grid for f in row)
     frames = [[f.resize((max(1, round(f.width * k)), max(1, round(f.height * k))), Image.BOX) for f in row] for row in grid]
     fw = max(f.width for row in frames for f in row)
+    if kind in ('strike', 'cast'):  # centrado pelas pernas: largura que cabe o lado mais comprido dos dois
+        fw = max(2 * max(legs_center(f), f.width - legs_center(f)) for row in frames for f in row)
+        fw = int(fw) + 2
     sheet = Image.new('RGBA', (fw * COLS, frame_h * ROWS), (0, 0, 0, 0))
     for r, row in enumerate(frames):
         for c, f in enumerate(row):  # centrado na horizontal, pés na base da célula
-            sheet.paste(f, (c * fw + (fw - f.width) // 2, (r + 1) * frame_h - f.height))
+            # poses do corpo-base: centradas pelas pernas (o braço esticado não pode empurrar o corpo para o lado)
+            cx = legs_center(f) if kind in ('strike', 'cast') else f.width / 2
+            sheet.paste(f, (c * fw + round(fw / 2 - cx), (r + 1) * frame_h - f.height))
     if name in TOOL_ONLY or name == 'ninja-base':
         save(sheet, name)
         continue

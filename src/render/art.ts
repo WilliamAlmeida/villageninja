@@ -1,7 +1,8 @@
 // Arte em pixel art (PNG pequenos em src/art, gerados por IA e preparados por scripts/prepare-art.py).
 // O jogo é sempre em pixel art; o desenho procedural de sprites.ts só aparece enquanto a imagem carrega (ou fora do
 // navegador, nos testes).
-import { DOLL_FRAME_PAD, type DollPart, hex, hsv, tintPixels } from './doll';
+import { DOLL_FRAME_PAD, DOLL_GRID, type DollPart, type DollPose, hex, hsv, tintPixels } from './doll';
+import dollPoses from '../data/doll-poses.json';
 import { artLayout } from '../data/layout';
 import hokage from '../art/hokage.png';
 import house from '../art/house.png';
@@ -63,6 +64,22 @@ import hokage3 from '../art/hokage-3.png';
 import hokage4 from '../art/hokage-4.png';
 // ninja em camadas (scripts/prepare-layers.py): corpo-base com folga no quadro + peças em cor-chave
 import ninjaBody from '../art/ninja-body.png';
+import caveProps from '../art/cave-props.png';
+// poses de golpe e selos do ninja em camadas (scripts/prepare-layers.py --pose)
+import ninjaBodyStrike from '../art/ninja-body-strike.png';
+import ninjaBodyCast from '../art/ninja-body-cast.png';
+import layerOutfitGeninStrike from '../art/layer-outfit-genin-strike.png';
+import layerVestChuninStrike from '../art/layer-vest-chunin-strike.png';
+import layerVestJouninStrike from '../art/layer-vest-jounin-strike.png';
+import layerCoatSanninStrike from '../art/layer-coat-sannin-strike.png';
+import layerCloakKageStrike from '../art/layer-cloak-kage-strike.png';
+import layerOutfitAnbuStrike from '../art/layer-outfit-anbu-strike.png';
+import layerOutfitGeninCast from '../art/layer-outfit-genin-cast.png';
+import layerVestChuninCast from '../art/layer-vest-chunin-cast.png';
+import layerVestJouninCast from '../art/layer-vest-jounin-cast.png';
+import layerCoatSanninCast from '../art/layer-coat-sannin-cast.png';
+import layerCloakKageCast from '../art/layer-cloak-kage-cast.png';
+import layerOutfitAnbuCast from '../art/layer-outfit-anbu-cast.png';
 import layerOutfitGenin from '../art/layer-outfit-genin.png';
 import layerHeadband from '../art/layer-headband.png';
 import layerVestJounin from '../art/layer-vest-jounin.png';
@@ -173,7 +190,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-2': tower2, 'tower-3': tower3, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3, 'tower-guard': towerGuard,
   'academy-2': academy2, 'academy-3': academy3, 'forge-2': forge2, 'forge-3': forge3, 'pharmacy-2': pharmacy2, 'pharmacy-3': pharmacy3, 'sealshop-2': sealshop2, 'sealshop-3': sealshop3, 'hokage-2': hokage2, 'hokage-3': hokage3, 'hokage-4': hokage4,
-  'ninja-body': ninjaBody, 'layer-outfit-genin': layerOutfitGenin, 'layer-headband': layerHeadband, 'layer-vest-jounin': layerVestJounin, 'layer-coat-sannin': layerCoatSannin, 'layer-cloak-kage': layerCloakKage, 'layer-hat-kage': layerHatKage, 'layer-sword-zabuza': layerSwordZabuza, 'sword-zabuza': swordZabuza, 'sword-samehada': swordSamehada, 'sword-kiba': swordKiba, 'sword-hiramekarei': swordHiramekarei, 'sword-nuibari': swordNuibari, 'sword-kabutowari': swordKabutowari, 'sword-shibuki': swordShibuki, 'sword-kusanagi': swordKusanagi, 'sword-sakumo': swordSakumo, 'sword-asuma': swordAsuma, 'sword-raijin': swordRaijin, 'sword-bee': swordBee, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'layer-hair-ponytail': layerHairPonytail, 'layer-hair-short': layerHairShort, 'layer-hair-long': layerHairLong, 'layer-hair-buns': layerHairBuns, 'layer-outfit-anbu': layerOutfitAnbu, 'layer-sword-samehada': layerSwordSamehada, 'layer-sword-kiba': layerSwordKiba, 'layer-sword-hiramekarei': layerSwordHiramekarei, 'layer-sword-nuibari': layerSwordNuibari, 'layer-sword-kabutowari': layerSwordKabutowari, 'layer-sword-shibuki': layerSwordShibuki, 'layer-sword-kusanagi': layerSwordKusanagi, 'layer-sword-sakumo': layerSwordSakumo, 'layer-sword-asuma': layerSwordAsuma, 'layer-sword-raijin': layerSwordRaijin, 'layer-sword-bee': layerSwordBee, 'layer-sword-tanto': layerSwordTanto, 'layer-mask-fox': layerMaskFox, 'layer-mask-tiger': layerMaskTiger, 'layer-mask-crow': layerMaskCrow, 'layer-mask-owl': layerMaskOwl, 'layer-mask-boar': layerMaskBoar, 'layer-mask-hawk': layerMaskHawk, 'layer-mask-bear': layerMaskBear, 'layer-mask-monkey': layerMaskMonkey, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, 'chest-open': chestOpen, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
+  'ninja-body': ninjaBody, 'cave-props': caveProps, 'ninja-body-strike': ninjaBodyStrike, 'ninja-body-cast': ninjaBodyCast, 'layer-outfit-genin-strike': layerOutfitGeninStrike, 'layer-vest-chunin-strike': layerVestChuninStrike, 'layer-vest-jounin-strike': layerVestJouninStrike, 'layer-coat-sannin-strike': layerCoatSanninStrike, 'layer-cloak-kage-strike': layerCloakKageStrike, 'layer-outfit-anbu-strike': layerOutfitAnbuStrike, 'layer-outfit-genin-cast': layerOutfitGeninCast, 'layer-vest-chunin-cast': layerVestChuninCast, 'layer-vest-jounin-cast': layerVestJouninCast, 'layer-coat-sannin-cast': layerCoatSanninCast, 'layer-cloak-kage-cast': layerCloakKageCast, 'layer-outfit-anbu-cast': layerOutfitAnbuCast, 'layer-outfit-genin': layerOutfitGenin, 'layer-headband': layerHeadband, 'layer-vest-jounin': layerVestJounin, 'layer-coat-sannin': layerCoatSannin, 'layer-cloak-kage': layerCloakKage, 'layer-hat-kage': layerHatKage, 'layer-sword-zabuza': layerSwordZabuza, 'sword-zabuza': swordZabuza, 'sword-samehada': swordSamehada, 'sword-kiba': swordKiba, 'sword-hiramekarei': swordHiramekarei, 'sword-nuibari': swordNuibari, 'sword-kabutowari': swordKabutowari, 'sword-shibuki': swordShibuki, 'sword-kusanagi': swordKusanagi, 'sword-sakumo': swordSakumo, 'sword-asuma': swordAsuma, 'sword-raijin': swordRaijin, 'sword-bee': swordBee, 'layer-vest-chunin': layerVestChunin, 'layer-hair-spiky': layerHairSpiky, 'layer-hair-ponytail': layerHairPonytail, 'layer-hair-short': layerHairShort, 'layer-hair-long': layerHairLong, 'layer-hair-buns': layerHairBuns, 'layer-outfit-anbu': layerOutfitAnbu, 'layer-sword-samehada': layerSwordSamehada, 'layer-sword-kiba': layerSwordKiba, 'layer-sword-hiramekarei': layerSwordHiramekarei, 'layer-sword-nuibari': layerSwordNuibari, 'layer-sword-kabutowari': layerSwordKabutowari, 'layer-sword-shibuki': layerSwordShibuki, 'layer-sword-kusanagi': layerSwordKusanagi, 'layer-sword-sakumo': layerSwordSakumo, 'layer-sword-asuma': layerSwordAsuma, 'layer-sword-raijin': layerSwordRaijin, 'layer-sword-bee': layerSwordBee, 'layer-sword-tanto': layerSwordTanto, 'layer-mask-fox': layerMaskFox, 'layer-mask-tiger': layerMaskTiger, 'layer-mask-crow': layerMaskCrow, 'layer-mask-owl': layerMaskOwl, 'layer-mask-boar': layerMaskBoar, 'layer-mask-hawk': layerMaskHawk, 'layer-mask-bear': layerMaskBear, 'layer-mask-monkey': layerMaskMonkey, 'bust-spiky': bustSpiky, 'bust-ponytail': bustPonytail, 'bust-short': bustShort, 'bust-long': bustLong, 'bust-buns': bustBuns, 'bust-bald': bustBald, 'kage-bust-spiky': kageBustSpiky, 'kage-bust-ponytail': kageBustPonytail, 'kage-bust-short': kageBustShort, 'kage-bust-long': kageBustLong, 'kage-bust-buns': kageBustBuns, 'kage-bust-bald': kageBustBald, snake, crow, monkey, spider, tiger, rhino, hydra, golem, puppet, ruin, chest, 'chest-open': chestOpen, cave, port, kennel, arena, intel, puppetshop, dog, 'dog-white': dogWhite, 'dog-pug': dogPug, 'dog-bull': dogBull, toad, slug,
   // Ordem do Eclipse
   'org-goen': orgGoen, 'org-tetsuo': orgTetsuo, 'org-mizuchi': orgMizuchi, 'org-raiga': orgRaiga, 'org-kagero': orgKagero, 'org-shiryo': orgShiryo, 'org-tsuchigumo': orgTsuchigumo, 'org-yomi': orgYomi, 'sound-iwao': soundIwao, 'sound-kumomaru': soundKumomaru, 'sound-kanade': soundKanade, 'sound-sokon': soundSokon, 'sound-hakkotsu': soundHakkotsu };
 
@@ -402,26 +419,43 @@ const dolls = new Map<string, HTMLCanvasElement>();
  * Monta o ninja desenhando as peças uma por cima da outra, cada uma recolorida (`tintPixels`, doll.ts). Fica em cache
  * por combinação. Sem o corpo carregado, null (o jogo usa a folha antiga).
  */
-export function dollArt(parts: DollPart[], skin: string): HTMLCanvasElement | null {
-  const key = `${parts.map((p) => `${p.name}:${p.color ?? ''}:${p.color2 ?? ''}`).join('+')}|${skin}`;
+export function dollArt(parts: DollPart[], skin: string, pose?: DollPose): HTMLCanvasElement | null {
+  const key = `${parts.map((p) => `${p.name}:${p.color ?? ''}:${p.color2 ?? ''}`).join('+')}|${skin}|${pose ?? ''}`;
   const hit = dolls.get(key);
   if (hit) return hit;
-  const body = art(parts[0]!.name);
-  if (!body) return null;
+  // pose (golpe, selos): corpo da pose; peça com arte da pose usa a dela, as outras (cabelo, bandana, máscara, chapéu,
+  // espadas) o quadro parado da caminhada deslocado junto com a cabeça (src/data/doll-poses.json)
+  const sfx = pose ? `-${pose}` : '';
+  const body = art(pose ? `ninja-body${sfx}` : parts[0]!.name);
+  const layers = parts.map((p, i) => (i === 0 ? body : (pose && art(`${p.name}${sfx}`)) || art(p.name)));
+  if (!body || layers.some((l) => !l)) {
+    if (pose) for (const p of parts) art(`${p.name}${sfx}`); // começa a carregar; até lá o jogo usa a caminhada
+    return null;
+  }
   const c = document.createElement('canvas');
   c.width = body.naturalWidth;
   c.height = body.naturalHeight;
   c.dataset.name = 'ninja-body';
+  if (pose) c.dataset.pose = pose;
   const ctx = c.getContext('2d', { willReadFrequently: true })!;
   const tmp = document.createElement('canvas');
   tmp.width = c.width;
   tmp.height = c.height;
   const tx = tmp.getContext('2d', { willReadFrequently: true })!;
+  const fw = c.width / DOLL_GRID.cols;
+  const fh = c.height / DOLL_GRID.rows;
+  const offs = pose ? (dollPoses.offsets as Record<string, number[][]>)[pose] : undefined;
   for (const [i, p] of parts.entries()) {
-    const img = art(p.name);
-    if (!img) continue;
+    const img = layers[i]!;
     tx.clearRect(0, 0, tmp.width, tmp.height);
-    tx.drawImage(img, 0, 0);
+    const own = !pose || i === 0 || img.dataset.name === `${p.name}${sfx}`;
+    if (own) tx.drawImage(img, 0, 0);
+    else
+      for (let r = 0; r < DOLL_GRID.rows; r++)
+        for (let col = 0; col < DOLL_GRID.cols; col++) {
+          const [dx, dy] = offs?.[r * DOLL_GRID.cols + col] ?? [0, 0];
+          tx.drawImage(img, DOLL_GRID.idle * fw, r * fh, fw, fh, col * fw + dx!, r * fh + dy!, fw, fh);
+        }
     const data = tx.getImageData(0, 0, tmp.width, tmp.height);
     tintPixels(data.data, p, i === 0, skin);
     tx.putImageData(data, 0, 0);
