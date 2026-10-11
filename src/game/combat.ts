@@ -232,7 +232,7 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   const seals = g.state.pace === 'tactical' ? sealTime(def, n.stats) : 0;
   if (seals > 0) {
-    u.cast = { id: def.id, targetId: t.id, t: seals };
+    u.cast = { id: def.id, targetId: t.id, t: seals, total: seals };
     u.anim = seals;
     u.animKind = 'cast';
     u.moving = false;
@@ -241,6 +241,7 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
     return;
   }
   releaseJutsu(g, u, def, t);
+  u.animKind = 'cast'; // ritmo rápido: um selo relâmpago e solta (no desenho)
 }
 
 /** Selos em andamento: o jutsu sai quando terminam (alvo sumiu: perde o jutsu). */
@@ -267,7 +268,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
   const vfx = jutsuVfx(def);
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   u.anim = 0.4;
-  u.animKind = 'cast';
+  u.animKind = 'release';
   shout(g, u, def);
   if (def.forbidden) fxMoment(g, u.x, u.y, def.name, def.color);
 

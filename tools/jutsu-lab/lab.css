@@ -16,3 +16,28 @@ main canvas { display: block; width: 100%; height: 100%; }
 #hud #now { font-weight: 800; color: var(--accent-hi); }
 #hud .sep { width: 1px; height: 20px; background: var(--line); margin: 0 2px; }
 #hud button.on { background: var(--accent); color: var(--accent-ink); }
+
+/* celular e tela pequena: barra de cima rola para o lado (sem cortar), botões maiores para o dedo */
+@media (max-width: 900px), (max-height: 520px) {
+  .top { overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; gap: 6px; padding: 0 8px; }
+  .top::-webkit-scrollbar { display: none; }
+  .top > * { flex: 0 0 auto; }
+  .top .grow { display: none; }
+  .cols { grid-template-columns: 230px minmax(0, 1fr); }
+  #hud { top: 6px; gap: 4px; padding: 3px 4px 3px 8px; max-width: calc(100% - 12px); }
+  #hud .now-lbl { display: none; }
+  #hud #now { overflow: hidden; text-overflow: ellipsis; max-width: 9rem; }
+}
+@media (pointer: coarse) {
+  .grp .items button { font-size: 13px; padding: 6px 10px; }
+  .top .seg button, #hud button { min-height: 32px; }
+}
+/* em pé (celular na vertical): o campo em cima e a lista embaixo */
+@media (max-width: 700px) and (orientation: portrait) {
+  .cols { grid-template-columns: 1fr; grid-template-rows: 46vh minmax(0, 1fr); }
+  main { grid-row: 1; }
+  #side { grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 700px) {
+  .top .brand, .top .sep { display: none; }
+}

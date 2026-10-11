@@ -53,6 +53,8 @@ function labSystem(g: Game, dt: number) {
   }
   caster.chakra = caster.maxChakra;
   if (enemy) enemy.chakra = enemy.maxChakra;
+  // sempre "em combate": fora de combate o jogo larga os selos (status.ts) e o jutsu do ritmo tático nunca saía
+  for (const u of [caster, dummy, ally, enemy]) if (u) u.combatTimer = Math.max(u.combatTimer, 3);
   if (mode.kind === 'strike') {
     mode.t -= dt;
     const who = enemy ?? caster;
@@ -125,6 +127,13 @@ function place() {
 
 /** Quem aparece: o ninja contra o boneco, ou um membro inimigo contra o aliado. */
 function cast(who: 'ninja' | 'enemy') {
+  // cada técnica começa do ninja comum: o Hiraishin o fazia Kage e os botões dos Sannin, Sannin, para sempre
+  const n = caster.ninja!;
+  n.rank = 'jounin';
+  n.sannin = undefined;
+  n.kageArt = undefined;
+  caster.sage = 0;
+  caster.mark = undefined;
   caster.hidden = who === 'enemy';
   dummy.hidden = who === 'enemy';
   ally.hidden = who !== 'enemy';
@@ -378,8 +387,21 @@ seg('nature', (v) => {
 });
 document.getElementById('reset')!.onclick = () => {
   mode = { kind: 'idle', t: 0 };
+  // limpa o campo: projéteis, efeitos (muralha, ossos…), invocações e clones; vida, chakra e recargas cheias
+  s.projectiles = [];
+  s.effects = [];
+  for (const u of s.units) if (u !== caster && u !== dummy && u !== ally && u !== enemy) u.dead = true;
+  for (const u of [caster, dummy, ally, enemy]) {
+    if (!u) continue;
+    u.hp = u.maxHp;
+    u.attackCd = 0;
+    u.knockT = 0;
+    if (u.ninja) u.ninja.cd = [0, 0];
+  }
   cast('ninja');
   place();
+  now.textContent = 'Toque numa técnica';
+  lists.querySelectorAll('button.on').forEach((x) => x.classList.remove('on'));
 };
 // busca nos botões (esconde grupo sem resultado)
 const labFilter = document.getElementById('labFilter') as HTMLInputElement;
@@ -410,6 +432,27 @@ window.addEventListener('resize', resize);
 resize();
 camera.zoom = 2.4;
 camera.jump(cx, cy);
+// toque e mouse: arrastar move a câmera, pinça (dois dedos) dá zoom
+const touches = new Map<number, { x: number; y: number }>();
+canvas.style.touchAction = 'none';
+canvas.addEventListener('pointerdown', (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  touches.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+});
+canvas.addEventListener('pointermove', (e) => {
+  const p = touches.get(e.pointerId);
+  if (!p) return;
+  if (touches.size === 1) camera.pan(e.offsetX - p.x, e.offsetY - p.y);
+  else if (touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    const other = a === p ? b! : a!;
+    const before = Math.hypot(p.x - other.x, p.y - other.y);
+    const after = Math.hypot(e.offsetX - other.x, e.offsetY - other.y);
+    if (before > 0) camera.zoomAt(after / before, (e.offsetX + other.x) / 2, (e.offsetY + other.y) / 2);
+  }
+  touches.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+});
+for (const ev of ['pointerup', 'pointercancel'] as const) canvas.addEventListener(ev, (e) => touches.delete(e.pointerId));
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   camera.zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.offsetX, e.offsetY);

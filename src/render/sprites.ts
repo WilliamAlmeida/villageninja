@@ -10,6 +10,7 @@ import { ANIMALS } from '../data/animals';
 import { artLayout, artPoint } from '../data/layout';
 import { ART_SIZE } from './unitShape';
 import { STRIKE_ANIM } from '../game/combat';
+import dollPoses from '../data/doll-poses.json';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -360,7 +361,9 @@ function swordPic(id: string): HTMLCanvasElement | null {
 function drawSlash(ctx: Ctx, u: Unit, pic: HTMLImageElement | HTMLCanvasElement, blade: string, k: number, x: number, base: number, height: number, flip: boolean, frame: number, row: number) {
   const sw = swordPic(blade);
   const r = artRect(pic, x, base, height, frame, row);
-  const hp = artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
+  // na pose de golpe a lâmina gira em volta do punho da pose (src/data/doll-poses.json); senão, da mão da caminhada
+  const pose = pic.dataset.pose as DollPose | undefined;
+  const hp = (pose && (dollPoses.hand as unknown as Record<string, ([number, number] | null)[]>)[pose]?.[row * r.frames + frame]) || artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
   if (!sw || !hp) return;
   // espelhado, o quadro vira em volta da origem: a borda esquerda é o reflexo da direita
   const hx = (flip ? 2 * x - r.left - r.w : r.left) + ((flip ? r.fw - hp[0] - 1 : hp[0]) + 0.5) * (r.w / r.fw);
@@ -437,7 +440,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   const slash = !action && u.strike && u.anim > 0 ? bladeOf(u) : null;
   const slashK = slash ? 1 - u.anim / STRIKE_ANIM : 0;
   // golpe de mão, arremesso e selos: pose própria do ninja em camadas (sem pose, o avanço curto de sempre)
-  const pz = !action && !slash ? poseOf(u, t) : null;
+  const pz = !action ? poseOf(u, t) : null;
   const pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash), pz?.pose);
   if (!pic) return false;
   const posed = !!pz && pic.dataset.pose === pz.pose; // a arte da pose pode ainda estar carregando (vem a caminhada)
@@ -501,9 +504,15 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
  */
 function poseOf(u: Unit, t: number): { pose: DollPose; frame: number } | null {
   if (!u.ninja && !u.swordsman) return null;
-  if (u.cast) return { pose: 'cast', frame: Math.floor(t * 5 + u.id) % 3 };
+  if (u.cast) {
+    // os três selos pelo andamento (selo curto também passa pelos três); sem o total (save antigo), em ciclo
+    const k = u.cast.total ? 1 - u.cast.t / u.cast.total : (t * 5 + u.id) % 3 / 3;
+    return { pose: 'cast', frame: Math.min(2, Math.floor(k * 3)) };
+  }
   if (u.anim <= 0 || u.moving) return null;
-  if (u.animKind === 'cast') return { pose: 'cast', frame: 3 };
+  if (u.animKind === 'release') return { pose: 'cast', frame: 3 };
+  // ritmo rápido: um selo relâmpago (mãos juntas) e o braço esticado soltando
+  if (u.animKind === 'cast') return { pose: 'cast', frame: u.anim > 0.28 ? 1 : 3 };
   if (u.animKind === 'throw') return { pose: 'strike', frame: u.anim > 0.1 ? 2 : 3 };
   if (u.animKind === 'strike') {
     const s = u.strike;

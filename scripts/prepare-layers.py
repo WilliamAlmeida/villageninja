@@ -373,6 +373,7 @@ def pose_offsets():
     import json
     walk = cells(Image.open(WALK_BODY).convert('RGBA'))
     out = {}
+    hands = {}
     for pose in POSES:
         path = OUT / f'ninja-body-{pose}.png'
         if not path.exists():
@@ -385,8 +386,20 @@ def pose_offsets():
                 h = head_box(np.array(pc[r][c]))
                 offs.append([round(h[0] - w[0]), round(h[1] - w[1])] if h and w else [0, 0])
         out[pose] = offs
+        # a mão que golpeia (pele mais à direita abaixo da cabeça): a lâmina lendária gira em volta dela (drawSlash)
+        hand = []
+        for r in range(ROWS):
+            for c in range(COLS):
+                a = np.array(pc[r][c])
+                f = figure(a)
+                sk = skin_mask(a)
+                sk[:f[1] + int((f[3] - f[1]) * HEAD)] = False  # nada da cabeça
+                sk[f[1] + int((f[3] - f[1]) * 0.75):] = False  # nem os pés (dedos na sandália)
+                ys, xs = np.nonzero(sk)
+                hand.append([int(xs.max()), int(ys[xs == xs.max()].mean())] if len(xs) else None)
+        hands[pose] = hand
     dest = ROOT / 'src' / 'data' / 'doll-poses.json'
-    dest.write_text(json.dumps({'pieces': POSE_PIECES, 'offsets': out}) + chr(10), encoding='utf8')
+    dest.write_text(json.dumps({'pieces': POSE_PIECES, 'offsets': out, 'hand': hands}) + chr(10), encoding='utf8')
     print('doll-poses.json', {k: v[:4] for k, v in out.items()})
 
 
