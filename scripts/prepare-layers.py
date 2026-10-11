@@ -31,7 +31,7 @@ COLS, ROWS = 4, 3
 POSE = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--pose'), '')
 SFX = f'-{POSE}' if POSE else ''
 POSE_PIECES = ['outfit-genin', 'vest-chunin', 'vest-jounin', 'coat-sannin', 'cloak-kage', 'outfit-anbu']
-POSES = ['strike', 'cast', 'kick', 'air', 'hurt']
+POSES = ['strike', 'cast', 'kick', 'air', 'hurt', 'sit', 'carry']
 BASE = SRC / f'ninja-base{SFX}.png'  # gerado pelo prepare-art.py (não vai para o jogo)
 BODY = OUT / f'ninja-body{SFX}.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
 WALK_BODY = OUT / 'ninja-body.png'
@@ -60,6 +60,9 @@ PIECES = {
     **{f'sword-{s}': ('cloth', ['outfit-genin'], '#3a2a20', '#e0dccc') for s in (
         'samehada', 'kiba', 'hiramekarei', 'nuibari', 'kabutowari', 'shibuki',
         'kusanagi', 'sakumo', 'asuma', 'raijin', 'bee', 'tanto')},
+    # capa do sensei da equipe (na cor da equipe) e o pergaminho grande nas costas (quem está estudando)
+    'cape': ('cloth', ['outfit-genin', 'vest-jounin'], '#7a2a2a'),
+    'scroll-back': ('cloth', ['outfit-genin'], '#e8d8b0', '#8a5a2a'),
     # ANBU: uniforme sobre o corpo (no lugar da roupa de Genin) e uma máscara por animal, sobre o cabelo curto
     'outfit-anbu': ('cloth', [], '#d8d4c8', '#2a2a30'),
     **{f'mask-{a}': ('band', ['outfit-anbu', 'hair-short'], '#f0ece0', '#c8352a') for a in (
@@ -370,7 +373,7 @@ def head_box(a):
 
 
 # giro da cabeça (graus, anti-horário = negativo) por quadro, nas poses em que ela inclina: linhas lado, frente, costas
-HEAD_ROT = {'hurt': [[0, -40, -90, 0], [0, -15, 0, 0], [0, -40, -90, 0]]}
+HEAD_ROT = {'hurt': [[0, -40, -90, 0], [0, -15, 0, 0], [0, -40, -90, 0]], 'sit': [[0, 0, 0, -80], [0, 0, 0, -80], [0, 0, 0, -80]]}
 
 
 def head_center(a):

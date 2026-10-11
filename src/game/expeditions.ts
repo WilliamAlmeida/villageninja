@@ -268,6 +268,9 @@ export function unitPower(u: Unit) {
   return (n.level * 1.5 + avg * 4 + n.jutsu.filter(Boolean).length * 3 + rankBonus) * (0.4 + 0.6 * (u.hp / u.maxHp));
 }
 
+/** Segundos que quem volta com espólio anda carregando o saco (pose `carry`, só desenho). */
+export const CARRY_SACK = 25;
+
 function finish(g: Game, e: Expedition) {
   e.status = 'done';
   if (e.kind === 'mine') spendMine(g, e.siteId);
@@ -282,6 +285,7 @@ function finish(g: Game, e: Expedition) {
     u.timer = 0;
     u.x = p.x + (i - us.length / 2) * 16;
     u.y = p.y + 22;
+    if (Object.values(e.loot).some((v) => v)) u.carrySack = CARRY_SACK; // chega carregando o espólio
   });
   g.give(e.loot);
   fx(g, 'ring', p.x, p.y + 20, { r: 30, color: '#7fd8ff', life: 0.8 });

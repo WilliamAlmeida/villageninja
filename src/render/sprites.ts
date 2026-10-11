@@ -2,7 +2,7 @@
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
-import { anbuMask, dollParts, type DollPose, SWORDS, tintPixels } from './doll';
+import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
 import { SWORDSMEN, SWORDSMEN_ORG } from '../data/swordsmen';
 import type { MistBlade } from '../data/blades';
@@ -220,13 +220,63 @@ export function unitPortrait(u: Unit, full = false): string | null {
   // ninja da vila: busto pintado do penteado dele, recolorido (cabelo/roupa/pele) como o sprite (a ANBU usa o sprite: máscara)
   if (!full && u.kind === 'ninja' && u.faction !== 'enemy' && !u.org && !u.ninja?.anbu && u.look && typeof document !== 'undefined') {
     const style = NINJA_HAIRSTYLES[u.id % NINJA_HAIRSTYLES.length];
-    const bust = tintedArt(`bust-${style}`, u.look);
+    // busto pela patente: colete do Chunin/Jounin, sobretudo do Sannin na cor do caminho (sem a arte, o busto comum)
+    const n = u.ninja;
+    const coat = n?.sannin ? SANNIN_COAT[n.sannin]?.[0] : undefined;
+    const vest = coat ?? (n ? VESTS[n.rank]?.[1] : undefined);
+    const variant = coat ? `bust-${style}-coat` : vest ? `bust-${style}-vest` : '';
+    const name = variant && art(variant) ? variant : `bust-${style}`;
+    const bust = tintedArt(name, name === variant ? { ...u.look, vest } : u.look);
     if (bust) {
-      return canvasUrl(`bust|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}`, bust);
+      const eye = eyeOf(u);
+      return canvasUrl(`${name}|${u.look.hair}|${u.look.cloth}|${u.look.skin}|${name === variant ? vest : ''}|${eye ?? ''}`, eye ? paintEyes(bust, eye) : bust);
     }
   }
   const pic = unitPic(u);
   return pic ? picPortrait(pic, full, `${u.look?.hair}|${u.look?.cloth}|${u.look?.skin}|${u.ninja?.rank ?? ''}|${u.ninja?.sannin ?? ''}|${u.ninja?.anbu ? (u.ninja.mask ?? anbuMask(u.ninja.stats)) : ''}|${bladeOf(u) ?? ''}`) : null;
+}
+
+/**
+ * Dōjutsu no retrato: cada pixel branco do olho (esclera) marca um olho, e a íris em volta dele (o marrom saturado que
+ * não é cor-chave) é recolorida: Sharingan vermelho com a pupila preta, Byakugan branco-lilás sem pupila. A esclera
+ * evita pegar sombra de cabelo, orelha ou boca. Cópia nova (o busto recolorido fica no cache dele).
+ */
+function paintEyes(src: HTMLCanvasElement, eye: 'sharingan' | 'byakugan'): HTMLCanvasElement {
+  const W = src.width;
+  const H = src.height;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const cx = c.getContext('2d', { willReadFrequently: true })!;
+  cx.drawImage(src, 0, 0);
+  const img = cx.getImageData(0, 0, W, H);
+  const d = img.data;
+  const at = (x: number, y: number) => (y * W + x) * 4;
+  const iris = (i: number) => d[i + 3]! > 200 && d[i]! < 205 && d[i]! >= 40 && d[i]! - d[i + 2]! >= 50 && d[i + 1]! <= 125;
+  const white = (i: number) => d[i + 3]! > 200 && Math.min(d[i]!, d[i + 1]!, d[i + 2]!) > 205 && Math.abs(d[i]! - d[i + 2]!) < 30;
+  const hit = new Set<number>();
+  for (let y = Math.floor(H * 0.33); y < H * 0.72; y++)
+    for (let x = Math.floor(W * 0.22); x < W * 0.78; x++) {
+      if (!white(at(x, y))) continue;
+      for (let yy = Math.max(0, y - 6); yy <= Math.min(H - 1, y + 6); yy++)
+        for (let xx = Math.max(0, x - 8); xx <= Math.min(W - 1, x + 8); xx++) if (iris(at(xx, yy))) hit.add(at(xx, yy));
+    }
+  for (const i of hit) {
+    const L = (d[i]! + d[i + 1]! + d[i + 2]!) / 3;
+    if (eye === 'sharingan') {
+      if (L < 40) continue; // pupila e contorno: pretos
+      d[i] = Math.min(255, 150 + L);
+      d[i + 1] = 18;
+      d[i + 2] = 24;
+    } else {
+      const k = L < 40 ? 0.72 : 1;
+      d[i] = 228 * k;
+      d[i + 1] = 224 * k;
+      d[i + 2] = 246 * k;
+    }
+  }
+  cx.putImageData(img, 0, 0);
+  return c;
 }
 
 /** Retrato de corpo inteiro de um Espadachim da Névoa (o sprite montado com a lâmina dele), para a aba Kage. */
@@ -284,7 +334,8 @@ export function kagePortrait(u: Unit): string | null {
   if (u.look && typeof document !== 'undefined') {
     const style = NINJA_HAIRSTYLES[u.id % NINJA_HAIRSTYLES.length];
     const bust = tintedArt(`kage-bust-${style}`, u.look);
-    if (bust) return canvasUrl(`kage|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}`, bust);
+    const eye = eyeOf(u);
+    if (bust) return canvasUrl(`kage|${style}|${u.look.hair}|${u.look.cloth}|${u.look.skin}|${eye ?? ''}`, eye ? paintEyes(bust, eye) : bust);
   }
   return unitPortrait(u);
 }
@@ -561,6 +612,11 @@ function poseOf(u: Unit, t: number): PoseNow | null {
   }
   // nocaute do duelo: caído no chão
   if (u.state === 'ko') return { pose: 'hurt', frame: 2, h: 0 };
+  // de volta da expedição com espólio: anda com o saco no ombro (ciclo de caminhada da folha carry)
+  if (u.carrySack && u.anim <= 0) return { pose: 'carry', frame: u.moving ? Math.floor(t * 8 + u.id) % 4 : 1, h: 0 };
+  // plateia na arquibancada do Exame: sentado no degrau; treino de chakra (Nin/Gen/Selos/Int) parado: meditando
+  if (u.perch != null && !u.moving) return { pose: 'sit', frame: 0, h: 0 };
+  if (u.state === 'train' && !u.moving && u.anim <= 0 && MEDITATE.has(u.ninja?.focus ?? '')) return { pose: 'sit', frame: 2, h: 0 };
   if (u.anim <= 0 || u.moving) return null;
   if (u.animKind === 'moves' && u.moveJutsu) {
     const seq = MOVE_SEQS[u.moveJutsu] ?? JUTSUS[u.moveJutsu]?.moves;
@@ -744,6 +800,9 @@ function handOrb(ctx: Ctx, x: number, y: number, color: string, t: number, size 
   }
   ctx.restore();
 }
+
+/** Focos de treino que o ninja faz meditando (sentado de pernas cruzadas). */
+const MEDITATE = new Set(['ninjutsu', 'genjutsu', 'selos', 'inteligencia']);
 
 /** Pose agora: folha, quadro, altura do corpo acima do chão e efeito (girar, rolar). */
 type PoseNow = { pose: DollPose; frame: number; h: number; fx?: MoveFx };

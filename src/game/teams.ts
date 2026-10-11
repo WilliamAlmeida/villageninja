@@ -129,6 +129,17 @@ export function teamFit(g: Game, t: Team, u: Unit): string | null {
 }
 
 /** Tira de cada equipe quem não cabe nela (o Kage; ANBU ou Sannin misturado). Conserta saves antigos e títulos novos. */
+/** Capa do sensei (só desenho): quem é sensei de uma equipe veste a capa na cor dela; Kage e Sannin já têm o manto. */
+export function markSenseis(g: Game) {
+  const capes = new Map<number, string>();
+  for (const t of g.state.teams) if (t.senseiId != null) capes.set(t.senseiId, t.color);
+  for (const u of g.state.units) {
+    if (u.kind !== 'ninja' || u.faction !== 'village') continue;
+    const c = u.ninja?.sannin || u.ninja?.rank === 'kage' ? undefined : capes.get(u.id);
+    if (u.cape !== c) u.cape = c;
+  }
+}
+
 export function enforceTeamRules(g: Game): number {
   let n = 0;
   for (const t of g.state.teams) {

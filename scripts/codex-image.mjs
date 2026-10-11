@@ -26,8 +26,8 @@ const sheet = flag('--sheet');
 const refs = (flag('--ref') ?? '').split(',').filter(Boolean);
 const size = flag('--size') ?? (sheet ? '1536x1024' : '1024x1024');
 const [out, desc] = args;
-if (!out || !desc || (sheet && !['biped', 'quadruped', 'action', 'strike', 'cast', 'kick', 'air', 'hurt'].includes(sheet))) {
-  console.error('uso: node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size LxA] [--sheet biped|quadruped|action|strike|cast|kick|air|hurt]');
+if (!out || !desc || (sheet && !['biped', 'quadruped', 'action', 'strike', 'cast', 'kick', 'air', 'hurt', 'sit', 'carry'].includes(sheet))) {
+  console.error('uso: node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size LxA] [--sheet biped|quadruped|action|strike|cast|kick|air|hurt|sit|carry]');
   process.exit(1);
 }
 
@@ -47,8 +47,14 @@ const views = {
   hurt: 'Row 1: side view facing RIGHT (the hit comes from the right, the body is pushed to the left). Row 2: front view facing the viewer (pushed backward). Row 3: back view (pushed toward the viewer).',
   kick: 'Row 1: side view facing RIGHT, kicking to the right. Row 2: front view facing the viewer, kicking toward the viewer. Row 3: back view, kicking away from the viewer.',
   cast: 'Row 1: side view facing RIGHT. Row 2: front view facing the viewer. Row 3: back view (only the back of the head visible).',
+  sit: 'Row 1: side view facing RIGHT. Row 2: front view facing the viewer. Row 3: back view (only the back of the head visible).',
+  carry: 'Row 1: side view walking, facing RIGHT. Row 2: front view walking toward the viewer. Row 3: back view walking away (only the back of the head visible).',
 }[sheet ?? 'biped'];
-const cycle = sheet === 'air'
+const cycle = sheet === 'sit'
+  ? 'Columns are resting poses, following the guide: 1 sitting on the edge of a step or bench that is NOT drawn (hips in the air at the height of the guide, thighs forward, lower legs hanging down to the red baseline, hands on the knees), 2 sitting cross-legged on the ground relaxed, hands on the knees, 3 meditating cross-legged with both hands joined in a seal in the lap (the RED hands), eyes closed, 4 lying on the side sleeping with the head resting on one arm. The red hands are normal hands, not red.'
+  : sheet === 'carry'
+  ? 'Columns are the walk cycle in order (1 contact, 2 passing, 3 contact with the other leg forward, 4 passing) while carrying a big full brown cloth sack (the RED shape of the guide) over the shoulder, holding it with the hands. The sack is a plain brown burlap sack, not red.'
+  : sheet === 'air'
   ? 'Columns are a ninja jump attack in order, following the guide: 1 crouching to jump (knees deeply bent, arms swung back), 2 tucked in mid-air (both knees pulled up to the chest, compact ball), 3 flying kick (front leg stretched straight down and forward with the RED foot, the other leg bent back, arms out for balance), 4 landing crouched with one hand touching the ground. Draw every pose with the lowest point on the red baseline (the game lifts the jump by code). The red foot and hand are normal, not red.'
   : sheet === 'hurt'
   ? 'Columns are taking a hit in order, following the guide: 1 flinching (torso bent back, head down, arms raised in front to protect), 2 knocked back off balance (body leaning far back almost falling, arms flailing, one foot off the ground), 3 knocked down lying flat on the back on the ground (seen from the side in every view), 4 getting up (one knee on the ground, a hand on the other knee). Feet or body touching the red baseline.'

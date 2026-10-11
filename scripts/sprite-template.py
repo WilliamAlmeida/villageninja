@@ -294,7 +294,57 @@ def hurt(d, cx, row, col):
         limb(d, (cx + 10, BASE - 120), (cx + 40, BASE - 55), NEAR, 14)
 
 
-for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast), ('kick', kick), ('air', air), ('hurt', hurt)):
+def sit(d, cx, row, col):
+    """Sentado/descansando. 0 sentado num degrau (o degrau é do cenário: quadril no ar, coxas para a frente, canelas
+    penduradas até a linha, mãos nos joelhos) · 1 sentado no chão de pernas cruzadas · 2 meditando (pernas cruzadas, mãos
+    juntas num selo no colo; mãos vermelhas) · 3 deitado de lado dormindo, a cabeça apoiada no braço."""
+    red = (200, 60, 60)
+    if col == 0:
+        hip = (cx - 15, BASE - 75)
+        knee = (cx + 45, BASE - 75) if row == 0 else (cx - 15, BASE - 60)
+        if row == 0:
+            limb(d, hip, knee, NEAR)
+            limb(d, knee, (cx + 45, BASE), NEAR)
+        else:
+            for sx in (-28, 28):
+                limb(d, (cx + sx, BASE - 75), (cx + sx, BASE), NEAR)
+        d.rounded_rectangle([cx - 45, BASE - 150, cx + 15, hip[1] + 10], 14, fill=BODY)
+        _head(d, cx, row, BASE - 205, -10)
+        limb(d, (cx - 15, BASE - 130), (cx + 35, BASE - 80), NEAR, 14)
+    elif col in (1, 2):
+        d.ellipse([cx - 80, BASE - 40, cx + 80, BASE + 4], fill=NEAR)  # pernas cruzadas no chão
+        d.rounded_rectangle([cx - 38, BASE - 120, cx + 38, BASE - 20], 14, fill=BODY)
+        _head(d, cx, row, BASE - 175)
+        if col == 1:
+            limb(d, (cx - 34, BASE - 100), (cx - 55, BASE - 30), NEAR, 14)
+            limb(d, (cx + 34, BASE - 100), (cx + 55, BASE - 30), NEAR, 14)
+        else:
+            limb(d, (cx - 34, BASE - 100), (cx, BASE - 45), NEAR, 14)
+            limb(d, (cx + 34, BASE - 100), (cx, BASE - 45), NEAR, 14)
+            d.ellipse([cx - 14, BASE - 59, cx + 14, BASE - 31], fill=red)
+    else:
+        d.rounded_rectangle([cx - 60, BASE - 50, cx + 70, BASE - 8], 16, fill=BODY)
+        limb(d, (cx + 60, BASE - 25), (cx + 150, BASE - 15), NEAR)
+        d.ellipse([cx - 150, BASE - 105, cx - 50, BASE - 10], fill=BODY)
+        limb(d, (cx - 40, BASE - 30), (cx - 120, BASE - 5), NEAR, 14)  # braço sob a cabeça
+
+
+def carry(d, cx, row, col):
+    """Caminhada carregando um saco grande no ombro, segurado com as duas mãos (saco vermelho no gabarito)."""
+    biped(d, cx, row, col)
+    red = (200, 60, 60)
+    neck_y = BASE - 175
+    if row == 0:
+        d.ellipse([cx - 95, neck_y - 70, cx + 5, neck_y + 20], fill=red)  # saco nas costas, sobre o ombro
+        limb(d, (cx, neck_y + 20), (cx - 20, neck_y - 10), NEAR, 16)
+    elif row == 1:
+        d.ellipse([cx + 10, neck_y - 80, cx + 120, neck_y + 10], fill=red)  # sobre o ombro direito, atrás da cabeça
+        limb(d, (cx + 40, neck_y + 15), (cx + 60, neck_y - 20), NEAR, 16)
+    else:
+        d.ellipse([cx - 60, neck_y - 50, cx + 60, neck_y + 70], fill=red)  # nas costas, cobrindo o tronco
+
+
+for kind, draw in (('biped', biped), ('quadruped', quadruped), ('action', action), ('strike', strike), ('cast', cast), ('kick', kick), ('air', air), ('hurt', hurt), ('sit', sit), ('carry', carry)):
     im = Image.new('RGB', (W, H), (255, 255, 255))
     d = ImageDraw.Draw(im)
     for r in range(ROWS):

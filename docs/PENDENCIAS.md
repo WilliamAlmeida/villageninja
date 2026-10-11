@@ -25,8 +25,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Penhascos e escadas (primeiro nos mapas jogáveis, ex.: prova do Monte dos Sapos) (33d2ef4)
 
 ## 3. Telas (dos mockups)
-- [x] Ninjas: cartões em grade (retrato, patente, nível, vida, 2 jutsus) com a faixa da equipe/missão (33d2ef4)
-- [x] Ficha do ninja: barra de atributo com a cor de cada um; jutsus em cartões com selo de kanji; contrato em cartão (33d2ef4)
+- [x] Ninjas: cartões em grade (retrato, patente, nível, vida, 2 jutsus) com a faixa da equipe/missão (d3ae338)
+- [x] Ficha do ninja: barra de atributo com a cor de cada um; jutsus em cartões com selo de kanji; contrato em cartão (d3ae338)
 - [x] Equipes: formação em cartões com retrato e vida; rotina/tática/ordens em botões (já estava no jogo)
 - [x] Clãs: estandarte ilustrado com o emblema de cada clã (33d2ef4)
 - [x] Missões: ilustração do alvo em cada contrato e recompensas em caixinhas (33d2ef4)
@@ -35,8 +35,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
       contraria a regra combinada antes (interface = glifo Phosphor; pixel art só para recursos, itens, retratos): perguntar ao autor
 
 ## 4. Ninja e retratos
-- [ ] Sharingan/Byakugan pintados nos retratos (bustos)
-- [ ] Bustos que reflitam a patente/roupa em camadas
+- [x] Sharingan/Byakugan pintados nos retratos (bustos)
+- [x] Bustos que reflitam a patente/roupa em camadas
 - [ ] Pose sentado/descansando (arquibancada do Exame, descanso, Hospital)
 - [ ] Pose carregando (volta de expedição com espólio, raptado do Som)
 - [ ] Peças novas: capa (Kage/Sannin ou item) e pergaminho nas costas (estudando / carregando pergaminho proibido)

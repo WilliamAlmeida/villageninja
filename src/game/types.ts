@@ -240,6 +240,10 @@ export interface Unit {
   eyeOn?: boolean;
   /** Shintenshin: a mente de `by` controla esta unidade por `t` s (luta pelo lado dele; `faction` = a original). */
   charm?: { t: number; faction: Faction; by: number };
+  /** Sensei de equipe: a capa nas costas na cor da equipe (só desenho; `markSenseis` em teams.ts). */
+  cape?: string;
+  /** Voltou de expedição com espólio: anda carregando um saco por estes segundos (só desenho, pose `carry`). */
+  carrySack?: number;
   /** Segurando um jutsu (a sombra do Kage Mane, a mente no Shintenshin): fica parado estes segundos. */
   channel?: number;
   /** Edo Tensei: ninja caído trazido de volta por um tempo (`life`, dono em `ownerId`); some sem contar como perda. */

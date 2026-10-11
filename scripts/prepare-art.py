@@ -59,6 +59,7 @@ SHEETS = {'villager': (56, 'biped'), 'rogue': (56, 'biped'),
           'ninja-base': (56, 'biped'),  # corpo-base das camadas: vai para docs/arte/layers (entrada do prepare-layers.py)
           # poses do corpo-base: golpe de mão e selos (gabaritos strike/cast); o mesmo destino
           'ninja-base-strike': (56, 'strike'), 'ninja-base-cast': (56, 'cast'), 'ninja-base-kick': (56, 'kick'), 'ninja-base-air': (56, 'air'), 'ninja-base-hurt': (56, 'hurt'),
+          'ninja-base-sit': (56, 'sit'), 'ninja-base-carry': (56, 'carry'),
           **{f'villager-{a}': (56, 'action') for a in ('chop', 'mine', 'farm')},
           'tower-guard': (56, 'action'),
           'boar': (48, 'quadruped'), 'wolf': (48, 'quadruped'), 'bear': (64, 'quadruped'), 'snake': (64, 'quadruped'), 'crow': (40, 'quadruped'), 'monkey': (48, 'quadruped'), 'spider': (52, 'quadruped'), 'tiger': (56, 'quadruped'), 'rhino': (64, 'quadruped'), 'hydra': (72, 'quadruped'), 'golem': (64, 'biped'), 'puppet': (56, 'biped'),
@@ -74,9 +75,9 @@ TRUST_FACING = {'spider', 'slug', 'dog-white', *(f'bijuu-{n}' for n in range(1, 
 SAME_SCALE = {'chest-open': 'chest'}
 SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3
-TOOL_ONLY = {'ninja-base', 'ninja-base-strike', 'ninja-base-cast', 'ninja-base-kick', 'ninja-base-air', 'ninja-base-hurt'}
+TOOL_ONLY = {'ninja-base', 'ninja-base-strike', 'ninja-base-cast', 'ninja-base-kick', 'ninja-base-air', 'ninja-base-hurt', 'ninja-base-sit', 'ninja-base-carry'}
 # folhas de ação: braço e ferramenta confundem a detecção de direção e a ordem do ciclo de caminhada (confira a olho)
-ACTIONLIKE = ('action', 'strike', 'cast', 'kick', 'air', 'hurt')
+ACTIONLIKE = ('action', 'strike', 'cast', 'kick', 'air', 'hurt', 'sit', 'carry')
 problems: list[str] = []
 
 

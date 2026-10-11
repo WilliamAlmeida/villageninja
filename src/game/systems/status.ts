@@ -47,6 +47,7 @@ export function statusSystem(g: Game, dt: number) {
     if (u.mark && (u.mark.t -= dt) <= 0) u.mark = undefined;
     if (u.mirror && (u.mirror.t -= dt) <= 0) u.mirror = undefined;
     if (u.burn) burnTick(g, u, dt); // Amaterasu
+    if (u.carrySack) u.carrySack = Math.max(0, u.carrySack - dt) || undefined;
     if (u.channel) u.channel = Math.max(0, u.channel - dt) || undefined;
     if (u.charm || u.edo) mindTick(g, u, dt); // Shintenshin e Edo Tensei
     if (u.dead) continue;
