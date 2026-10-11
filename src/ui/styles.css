@@ -2597,3 +2597,33 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
   margin-left: auto; padding: 0 0.4rem; font-size: 0.72rem; font-weight: 800; color: #6a4a2a; white-space: nowrap;
   border: 1px solid rgba(106, 74, 42, 0.45); background: rgba(110, 70, 30, 0.1);
 }
+/* mapa da região no estilo do Ikariam: vila, vilarejos e covis desenhados sobre o terreno (atlas region-places.png,
+   tamanho em % da camada para crescer com o zoom), placa de pergaminho com o nome e bandeira da situação no alto */
+.rlayer .rnode.art { width: 10%; aspect-ratio: 1; padding: 0; display: block; transform: translate(-50%, -58%); }
+.rlayer .rnode.home { width: 12%; z-index: 1; }
+.rlayer .rnode.k-hideout { width: 8.5%; }
+.rpic {
+  position: absolute; inset: 0; pointer-events: none;
+  background: var(--rplaces) calc(var(--i) * 100% / 7) 0 / 800% 100% no-repeat;
+  filter: drop-shadow(0 0.25rem 0.2rem rgba(0, 0, 0, 0.45)); transition: filter 0.15s;
+}
+.rpost { position: absolute; left: 62%; top: 30%; width: 2.6rem; aspect-ratio: 1; pointer-events: none; }
+.rlayer .rnode .rname {
+  --sl: 7 7 7 7 fill; font-weight: 800; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 3px 6px;
+  border-image-source: var(--k2-row-plain); border-image-slice: var(--sl); border-image-width: 7px; border-image-repeat: stretch;
+  image-rendering: pixelated; color: #2f1a0d; text-shadow: none; font-size: 0.7rem; padding: 0 0.35rem; white-space: nowrap;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.rlayer .rnode.art .rname { position: absolute; left: 50%; top: 88%; transform: translateX(-50%); }
+.rlayer .rnode.on .rname { color: #8a2a00; filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+.rnode.art.on .rpic { filter: drop-shadow(0 0 2px #ffd34d) drop-shadow(0 0 6px var(--accent)); }
+@media (hover: hover) { .rnode.art:hover .rpic { filter: brightness(1.15) drop-shadow(0 0.25rem 0.2rem rgba(0, 0, 0, 0.45)); } }
+/* bandeira: mastro e flâmula na cor da situação (a sua vila em laranja) */
+.rflag { --fc: var(--accent); position: absolute; left: 74%; top: 0; width: 2px; height: 1.9rem; background: #3a2414; pointer-events: none; }
+.rflag::after { content: ''; position: absolute; left: 2px; top: 0; border-left: 1.15rem solid var(--fc); border-top: 0.38rem solid transparent; border-bottom: 0.38rem solid transparent; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5)); animation: rflap 2.4s ease-in-out infinite; transform-origin: 0 50%; }
+.rnode:not(.art) .rflag { left: 62%; top: -0.6rem; }
+.rnode.s-protected .rflag { --fc: var(--good); } .rnode.s-vassal .rflag { --fc: #ffd34d; } .rnode.s-hostile .rflag { --fc: var(--bad); }
+@keyframes rflap { 50% { transform: scaleX(0.82) skewY(4deg); } }
+@media (prefers-reduced-motion: reduce) { .rflag::after { animation: none; } }
+.rlegend .lg i { border-radius: 0; width: 0; height: 0; border: 0; border-left: 0.6rem solid; border-top: 0.25rem solid transparent; border-bottom: 0.25rem solid transparent; background: none; }
+.rlegend .s-protected i { border-left-color: var(--good); } .rlegend .s-vassal i { border-left-color: #ffd34d; } .rlegend .s-hostile i { border-left-color: var(--bad); }

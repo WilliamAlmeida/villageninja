@@ -193,3 +193,11 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
   dourada, cruz vermelha, gota azul…). O escudo era âmbar fixo e destoava dentro de selos e etiquetas.
 - Trabalhadores do prédio: − e + nas pontas, o número no meio (largura toda). Alcance de coleta: uma barra só (pronto em
   verde, voltando apagado) e a legenda "N rochas para quebrar · N se refazendo" (árvores: "para cortar · rebrotando").
+
+## Mapa da Região (estilo Ikariam)
+- Cada lugar habitado é uma **miniatura desenhada** sobre o terreno (atlas `src/art/region-places.png`), não um ícone em
+  círculo: a vila do jogador maior, vilarejos, covis e o posto avançado (este pequeno, ao lado do ícone da ilha).
+- Embaixo, a **placa de pergaminho** (`row-plain`) com o nome em texto escuro; selecionado = brilho laranja na miniatura.
+- A situação é uma **bandeira** no alto (verde protegido, dourado vassalo, vermelho hostil, laranja a sua vila); neutro
+  sem bandeira. A legenda usa as mesmas flâmulas.
+- Tamanho em % da camada do mapa: cresce junto com o zoom.

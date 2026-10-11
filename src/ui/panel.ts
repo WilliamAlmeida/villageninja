@@ -21,6 +21,7 @@ import { doorPos, tileCenter } from '../game/world';
 import { plainTokens } from '../core/tokens';
 import { actionBlock, actionCost, COVERT, covertBlock, nodeActions, nodePower, regionOf, startCovert, startRegion } from '../game/region';
 import regionMap from '../art/region.jpg';
+import regionPlaces from '../art/region-places.png';
 import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
 import { guardiansOf, mineUses, missingScrolls, sitePos } from '../game/explore';
@@ -131,6 +132,8 @@ const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', tea
 type BuildingTab = 'main' | 'inside';
 
 /** Recurso que cada prédio de coleta procura. */
+/** Casas do atlas region-places.png (mesma ordem de PLACES em scripts/region-places.py). */
+const REGION_ART = ['home', 'arroz', 'pesca', 'montanha', 'mercadores', 'outpost', 'covil', 'som'];
 const GATHER_NODE: Partial<Record<Building['type'], 'tree' | 'rock' | 'ore'>> = { lumber: 'tree', quarry: 'rock', ironmine: 'ore' };
 
 /** O que cada ação da região faz (dica dos botões). */
@@ -845,7 +848,7 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     let html = this.tabs('region');
-    html += `<div class="rview"><div class="rmapview"><div class="rlayer" style="${this.mapStyle()}"><img src="${regionMap}" alt="" draggable="false">`;
+    html += `<div class="rview"><div class="rmapview"><div class="rlayer" style="${this.mapStyle()};--rplaces:url(${regionPlaces})"><img src="${regionMap}" alt="" draggable="false">`;
     // trilhas e equipes em viagem: da vila até o lugar (ida), no lugar (serviço) e de volta
     let routes = '';
     let tokens = '';
@@ -866,13 +869,19 @@ export class Panel {
       tokens += `<button class="rtoken ${k >= 1 ? 'at' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;--c:${c}" ${tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`)}>${e.status === 'return' ? '{back}' : e.status === 'going' ? '{run}' : ACTION_ICON[e.action!] ?? '{flag}'}</button>`;
     }
     html += routes;
-    html += `<span class="rnode home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">{castle}<span>Sua vila</span></span>`;
+    // como no mapa do Ikariam: a vila, os vilarejos, os covis e o posto avançado são miniaturas desenhadas (atlas
+    // region-places.png, scripts/region-places.py) com a placa do nome embaixo e a bandeira da situação; ilhas e lugares
+    // sagrados já estão pintados no mapa e ficam só com o ícone e a placa
+    const pic = (i: number) => `<i class="rpic" style="--i:${i}"></i>`;
+    html += `<span class="rnode art home" style="left:${HOME_POS.x}%;top:${HOME_POS.y}%">${pic(0)}<i class="rflag"></i><span class="rname">Sua vila</span></span>`;
     for (const def of REGION_NODES) {
       if (def.kind === 'hideout' && (def.id === 'som' ? !s.sound.captive : !s.org.lairKnown)) continue; // covil: só descoberto; Som: só com raptado
       const st = regionOf(s, def.id);
+      const art = REGION_ART.indexOf(def.id);
       const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : def.kind === 'hideout' ? '{skull}' : '{scroll}';
-      const flags = st.outpost ? ' {flag}' : '';
-      html += `<button class="rnode k-${def.kind} s-${st.status} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${icon}<span>${def.name}${flags}</span></button>`;
+      const flag = st.status !== 'neutral' ? '<i class="rflag"></i>' : '';
+      const look = art >= 0 ? pic(art) : `${icon}${st.outpost ? `<i class="rpost">${pic(REGION_ART.indexOf('outpost'))}</i>` : ''}`;
+      html += `<button class="rnode k-${def.kind} s-${st.status} ${art >= 0 ? `art p-${def.id}` : ''} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${look}${flag}<span class="rname">${def.name}</span></button>`;
     }
     html += tokens + `</div>`;
     // legenda e ajuda (o "como funciona" virou a dica do i), e o zoom
