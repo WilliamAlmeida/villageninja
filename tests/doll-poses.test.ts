@@ -17,8 +17,7 @@ describe('poses do ninja em camadas', () => {
     });
     test(`${pose}: corpo e peças da pose existem`, () => {
       expect(existsSync(`src/art/ninja-body-${pose}.png`)).toBe(true);
-      // manto do Kage no ar e caído: gerar quando o Codex liberar (até lá o Kage fica na caminhada nessas poses)
-      for (const p of poses.pieces) if (!(p === 'cloak-kage' && (pose === 'air' || pose === 'hurt'))) expect(existsSync(`src/art/layer-${p}-${pose}.png`)).toBe(true);
+      for (const p of poses.pieces) expect(existsSync(`src/art/layer-${p}-${pose}.png`)).toBe(true);
     });
   }
 });
