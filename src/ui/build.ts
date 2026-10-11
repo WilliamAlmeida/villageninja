@@ -5,7 +5,7 @@ import { toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
-import { lackRows, showAlert } from './popup';
+import { lackRows, showAlert, tipAttr } from './popup';
 import { el } from './dom';
 import { rich } from './icons';
 import { artUrl } from '../render/art';
@@ -148,7 +148,7 @@ export class BuildUI {
     const lack = lackRows(g, d.cost);
     const rows = [`<span class="lbl">Custo</span> ${costLabel(d.cost)}`];
     // só o que o prédio faz ao ficar pronto; os níveis seguintes aparecem no cartão de melhoria dele depois de construído
-    if (up) rows.push(`<span class="lbl">Nível 1</span> ${up.perks[0]} <small>· melhora até o nível ${MAX_BUILDING_LEVEL}</small>`);
+    if (up) rows.push(`<span class="lbl">Nível 1</span><span class="perk">${up.perks[0]}</span><span class="lvtag" ${tipAttr('Melhorias', `Depois de pronto, o prédio sobe até o nível ${MAX_BUILDING_LEVEL} (cartão de melhoria no painel dele).`, true)}>até Nv ${MAX_BUILDING_LEVEL}</span>`);
     if (!r.ok) rows.push(...(lack.length ? lack : [`{lock} ${r.error}`]));
     const img = artUrl(type);
     const summary = `${d.desc}<br><small>${facts.join(' · ')}</small>`;

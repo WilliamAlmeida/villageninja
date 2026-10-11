@@ -2591,4 +2591,9 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .speed [data-speed-cycle] { min-width: 2.6rem; justify-content: center; font-variant-numeric: tabular-nums; }
 /* fechar do aviso: no hover só clareia, como os outros fechar (a regra antiga trocava a imagem por um fundo translúcido) */
 #alertbox .card .x:hover { background: var(--k2-round) center / 100% 100% no-repeat; filter: brightness(1.18); }
-#alertbox .need small { color: #7a5a3a; font-weight: 600; }
+/* linha "Nível 1" da ficha de construção: rótulo · efeito (peso normal) · selinho "até Nv 3" encostado à direita */
+#alertbox .need li .perk { font-weight: 600; flex: 1; min-width: 0; }
+#alertbox .need li .lvtag {
+  margin-left: auto; padding: 0 0.4rem; font-size: 0.72rem; font-weight: 800; color: #6a4a2a; white-space: nowrap;
+  border: 1px solid rgba(106, 74, 42, 0.45); background: rgba(110, 70, 30, 0.1);
+}
