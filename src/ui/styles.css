@@ -2561,3 +2561,11 @@ h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; 
 .btn:active:not([aria-disabled="true"]), .chips button:active, .seg button:active, .wtabs button:active, .mtabs button:active,
 .iconbtn:active, #win .close:active, #panel .close:active, .bcard:active { translate: 0 1px; filter: brightness(0.9); }
 @media (prefers-reduced-motion: reduce) { .body.swap > * { animation: none; } }
+/* moldura de madeira (janela e drawer): o desenho tem 26 px e a borda reservada 18 px; os 8 px de dentro (o friso amarelo)
+   ficavam embaixo do cabeçalho e do conteúdo. A moldura sai 8 px para fora e o friso fica sempre à mostra
+   (telas baixas: 14 px de desenho = 14 px de borda) */
+#win .box, #panel, #modal .box.menu1 { border-image-outset: 8px; }
+@media (max-height: 520px) {
+  #win .box { border-width: 14px; border-image-outset: 0; }
+  #panel { border-width: 14px; border-image-outset: 0; }
+}
