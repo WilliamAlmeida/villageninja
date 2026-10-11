@@ -150,7 +150,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   **Kit 2 (o que vale agora)**: uma peça-base de cada tipo pedida ao Codex em pixel art limpa, sem texto e pronta para
   9-slice (`scripts/kit2-codex.sh`, referência = recorte do mockup), reduzida ao pixel real e com as cores feitas por
   código (`scripts/prepare-kit2.py`: tinge o cinza mantendo o claro/escuro; botão escuro/laranja/vermelho, barras, selos)
-  → `src/art/ui/kit2/`, variáveis `--k2-*` (`ui/kit.ts`). Em uso: pergaminho dos avisos com faixa do título e fechar
+  → `src/art/ui/kit2/`, variáveis `--k2-*` (`ui/kit.ts`); o editor de sprites abre `ui/kit2` e peça editada lá não é
+  regravada pelo script (`art-edits.json`; `--force` regrava). Em uso: pergaminho dos avisos com faixa do título e fechar
   redondo, `.btn`, `.bar`/`.nc-bar`, `.mpill`, `#tip` e o drawer `#panel` com o telhado (molduras 2×, controles 1×);
   lote 2 (`scripts/kit2-codex-2.sh`): barra de cima (`hud-bar` + caixinha `hud-slot` por recurso), barra de baixo com
   telhado e lanterna nas pontas (`dock`) e um quadro por botão (`dock-slot`, ativo `dock-slot-on`), abas `.wtabs`, cartão
