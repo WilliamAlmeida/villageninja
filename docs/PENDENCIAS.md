@@ -31,10 +31,7 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Clãs: estandarte ilustrado com o emblema de cada clã (33d2ef4)
 - [x] Missões: ilustração do alvo em cada contrato e recompensas em caixinhas (33d2ef4)
 - [x] Kit 2 sem uso: linha de missão (`row`), rótulo com ponta de pergaminho, separador (`divider`) (33d2ef4)
-- [?] Ícones de interface redesenhados em pixel art (botões redondos com símbolo, ícones em quadro, bandeiras, emblemas) —
-      contraria a regra combinada antes (interface = glifo Phosphor; pixel art só para recursos, itens, retratos): perguntar ao autor
-
-## 4. Ninja e retratos
+- [x] Ícones de interface em pixel art: o autor decidiu manter os glifos como estão (2026-10-11)
 - [x] Sharingan/Byakugan pintados nos retratos (bustos) (12fa127)
 - [x] Bustos que reflitam a patente/roupa em camadas (12fa127)
 - [x] Pose sentado/descansando (arquibancada do Exame, descanso, Hospital) (57f41d5)
