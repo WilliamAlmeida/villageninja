@@ -170,3 +170,12 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 - Mapa com zoom e arrastar: marcadores mantêm o tamanho; um toque rápido continua abrindo o item. **Com zoom tudo
   continua nítido** (mapa e rótulos borrados ao aproximar foi reclamação): o zoom redimensiona, não amplia uma imagem
   pronta, e a arte ampliada fica em pixels duros, como pixel art.
+
+## Varredura pela vitrine (?demo)
+- Conferir telas pela vitrine (`?demo`, botão "Vitrine"). Para achar o que ainda é caixa de CSS, varrer as telas procurando
+  elemento com borda/fundo próprio e sem `border-image` (o que sobrar deve ser arte: retrato, fundo do Kage, ilustração).
+- Cartão comum = `hud-slot`; em destaque (melhoria, marco cumprido, expedição esperando, sensei, lâmina obtida) = `dock-slot-on`;
+  etiqueta pequena = botão escuro; ficha sobre o mapa = `panel`; botões de zoom e fechar = `round`.
+- Linha solta de separação (`border-top: 1px`) não existe mais: o espaço separa. O `divider` do kit tem ornamento no meio e
+  não estica, então só serve entre blocos grandes.
+- Cuidado: um `border:` (atalho) declarado depois apaga o `border-image`; repetir `border-image-source/slice/width` na regra nova.
