@@ -163,18 +163,20 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
     ['Mapas jogáveis', [
       { key: 'cena-mina', label: 'Mina (andar 1)', run: () => openScene(app, 'mine') },
       { key: 'cena-saque', label: 'Saque a um vilarejo', run: () => openScene(app, 'raid') },
+      { key: 'cena-pesca', label: 'Saque à Vila dos Pescadores (tema)', run: () => openScene(app, 'raid', 'pesca') },
+      { key: 'cena-deserto', label: 'Saque à Cidade dos Mercadores (deserto)', run: () => openScene(app, 'raid', 'mercadores') },
     ]],
   ];
 }
 
 /** Abre um mapa jogável na hora (a vitrine não espera a viagem): a mina com a expedição que já está lá, ou um saque. */
-function openScene(app: App, kind: 'mine' | 'raid') {
+function openScene(app: App, kind: 'mine' | 'raid', node = 'montanha') {
   const g = app.home;
   const s = g.state;
   if (s.scene) return app.setView(true);
   let e: Expedition | undefined = s.expeditions.find((x) => x.kind === (kind === 'mine' ? 'mine' : 'region') && x.status !== 'done' && x.status !== 'lost');
   if (!e) return g.toast('Nenhuma expedição livre para abrir o mapa.', 'warn');
-  if (kind === 'raid') Object.assign(e, { node: 'montanha', action: 'raid' });
+  if (kind === 'raid') Object.assign(e, { node, action: 'raid' });
   e.floor = 1;
   s.scene = kind === 'mine' ? createMineScene(g, e, 1) : createVillageScene(g, e);
   e.status = 'scene';

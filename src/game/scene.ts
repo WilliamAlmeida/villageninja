@@ -23,8 +23,9 @@ import { findPath, nearestWalkable } from './pathfinding';
 import { nodePower, regionOf } from './region';
 import { SCENE_SYSTEMS } from './systems';
 import { createTeam, joinAsMember, joinAsSensei } from './teams';
-import type { Cost, Expedition, GameState, SceneInfo, Unit } from './types';
-import { CENTER_TX, CENTER_TY, doorPos, T, tileCenter, toTile } from './world';
+import type { Cost, Expedition, GameState, SceneInfo, SceneTheme, Unit } from './types';
+import { CENTER_TX, CENTER_TY, doorPos, idx, T, tileCenter, toTile } from './world';
+import { shoreSpot } from './commands';
 import { recordFallen } from './memorial';
 
 // ------------------------------------------------------------------ o jogo do mapa de missão
@@ -128,6 +129,8 @@ export function createVillageScene(home: Game, e: Expedition): GameState {
   s.day = home.state.day;
   s.level = power >= 50 ? 2 : power >= 30 ? 1 : 0;
   s.towersFaction = 'enemy';
+  const theme = THEMES[def.id];
+  if (theme) shapeTheme(s, theme, mulberry32(seed ^ 0x7e3a));
   s.res = { ...s.res, wood: 0, stone: 0, food: 0, ryo: 0 };
   s.flags = { ...s.flags, shelterRookies: false };
   s.timers = { ...s.timers, animal: 1e9, raid: 1e9 };
@@ -138,6 +141,15 @@ export function createVillageScene(home: Game, e: Expedition): GameState {
   const built = LAYOUT.slice(0, count)
     .map(([type, dx, dy]) => place(g, type, CENTER_TX + dx, CENTER_TY + dy, type === 'farm' || type === 'training' ? 1 : lvl))
     .filter((b) => b != null);
+  // pescadores: o porto na beira do mar
+  if (theme === 'fishing')
+    for (let dx = 0; dx < 12; dx++) {
+      const sp = shoreSpot(g, 'port', CENTER_TX + 6 + dx, SHORE_Y, undefined, 3);
+      if (sp && g.world.canPlace('port', sp.tx, sp.ty, sp.flip)) {
+        g.addBuilding({ id: g.newId(), type: 'port', tx: sp.tx, ty: sp.ty, flip: sp.flip || undefined, built: true, progress: 1, desired: 0, workers: [], cd: 0 });
+        break;
+      }
+    }
   const warehouse = built.find((b) => b!.type === 'market') ?? undefined;
   // guardas espalhados pelas portas, mais e mais fortes conforme o poder do lugar
   const rank = power >= 50 ? 'jounin' : power >= 30 ? 'chunin' : 'genin';
@@ -168,10 +180,38 @@ export function createVillageScene(home: Game, e: Expedition): GameState {
   const info: SceneInfo = {
     kind: 'village', expId: e.id, node: def.id, action: e.action, title: `${ACTION_LABEL[e.action!]} · ${def.name}`,
     goal: e.action === 'annex' ? `Derrote o chefe de ${def.name}.` : 'Saqueie o armazém (fique no Mercado deles) ou derrote todos os guardas.',
-    result: null, warehouseId: warehouse?.id, leaderId, loot: 0, lootNeed: 10, defenders: n + (leaderId ? 1 : 0), entry,
+    result: null, warehouseId: warehouse?.id, leaderId, loot: 0, lootNeed: 10, defenders: n + (leaderId ? 1 : 0), entry, theme,
   };
   s.sceneInfo = info;
   return s;
+}
+
+/** Vilarejos com mapa no tema deles (a arte dos prédios e os enfeites mudam no desenho: Renderer.artBox, themeProps). */
+const THEMES: Record<string, SceneTheme> = { pesca: 'fishing', mercadores: 'desert' };
+/** Pescadores: daqui para baixo é mar (com uma faixa de areia antes). */
+const SHORE_Y = CENTER_TY + 9;
+
+/** Molda o terreno do tema: mar ao sul com praia (pescadores) ou deserto com um oásis (mercadores). */
+function shapeTheme(s: GameState, theme: SceneTheme, rnd: () => number) {
+  for (let ty = 0; ty < MAP_H; ty++)
+    for (let tx = 0; tx < MAP_W; tx++) {
+      const i = idx(tx, ty);
+      const t = s.tiles[i]!;
+      if (theme === 'fishing') {
+        const shore = SHORE_Y + Math.round(Math.sin(tx * 0.35) * 1.2);
+        if (ty >= shore) s.tiles[i] = T.WATER;
+        else if (ty >= shore - 2 && t !== T.ROCK) s.tiles[i] = T.SAND;
+      } else {
+        const oasis = Math.hypot(tx - (CENTER_TX + 12), (ty - (CENTER_TY + 7)) * 1.3) < 2.6;
+        if (oasis) s.tiles[i] = T.WATER;
+        else if (t !== T.ROCK) s.tiles[i] = rnd() < 0.15 ? T.DIRT : T.SAND;
+      }
+    }
+  // árvores não crescem na areia nem no mar (no deserto ficam as palmeiras, que são enfeite)
+  s.nodes = s.nodes.filter((n) => {
+    const t = s.tiles[idx(n.tx, n.ty)];
+    return t !== T.WATER && t !== T.SAND && !(theme === 'desert' && n.type === 'tree');
+  });
 }
 
 function guard(u: Unit) {

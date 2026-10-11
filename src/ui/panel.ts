@@ -1369,6 +1369,8 @@ export class Panel {
         t.res = `${residents} / ${housingOf(bd)}`;
       }
       if (bd.type === 'kennel') html += this.kennelSection();
+      if (bd.type === 'memorial') html += this.memorialSection();
+      if (bd.type === 'monument') html += this.monumentSection();
       if (bd.type === 'library') html += this.librarySection();
       if (bd.type === 'hospital' && bd.built) {
         const base = Math.round(Math.min(CARE.rescueMax, CARE.rescue + (levelOf(bd) - 1) * CARE.rescuePerLevel) * 100);
@@ -1933,6 +1935,24 @@ export class Panel {
       (u.ninja?.spec ? `<span class="badge">${SPECS[u.ninja.spec].icon} ${SPECS[u.ninja.spec].name}</span>` : '') +
       (u.ninja?.contract ? `<span class="badge">{scroll} ${CONTRACTS[u.ninja.contract].name}</span>` : '')
     );
+  }
+
+  /** Pedra Memorial: os nomes dos ninjas que caíram (mais recentes primeiro). */
+  private memorialSection() {
+    const f = this.app.game.state.fallen ?? [];
+    let html = `<div class="bsec"><h4>{grave} Os que caíram (${f.length}) ${infoTip('Pedra Memorial', 'Cada ninja da vila que cai em combate, numa expedição ou num mapa de missão tem o nome gravado aqui. O luto da vila passa duas vezes mais rápido com a pedra.')}</h4>`;
+    if (!f.length) return html + `<p class="hint">Nenhum ninja caiu ainda.</p></div>`;
+    html += `<ul class="memlist scrollist">`;
+    for (const x of f) html += `<li><b>${esc(x.name)}</b><span>${RANKS[x.rank].name} · nv ${x.level}</span><small>dia ${x.day}</small></li>`;
+    return html + `</ul></div>`;
+  }
+
+  /** Monte dos Kages: um rosto por Kage que a vila já teve. */
+  private monumentSection() {
+    const h = this.app.game.state.kageHistory;
+    let html = `<div class="bsec"><h4>{kage} Rostos no monte (${Math.min(6, h.length)}) ${infoTip('Monte dos Kages', 'Cada Kage eleito ganha um rosto esculpido na rocha (cabem 6).')}</h4><ul class="memlist">`;
+    h.forEach((k, i) => (html += `<li><b>${i + 1}º Kage</b><span>${esc(k.name)}</span><small>dia ${k.day}</small></li>`));
+    return html + `</ul></div>`;
   }
 
   private clansList(): Built {

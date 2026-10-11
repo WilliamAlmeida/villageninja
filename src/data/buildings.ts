@@ -25,6 +25,7 @@ export type BuildingType =
   | 'intel'
   | 'puppetshop'
   | 'kennel'
+  | 'memorial'
   // decorações
   | 'lantern'
   | 'bench'
@@ -189,6 +190,11 @@ const LIST: BuildingDef[] = [
     type: 'monument', name: 'Monte dos Kages', icon: '{monument}', desc: 'Rostos dos Kages esculpidos na rocha: +30% de XP no treino e +1 de reputação por dia.',
     w: 4, h: 2, cost: { wood: 100, stone: 250, ryo: 200 }, buildTime: 30, unique: true, buildable: true, minLevel: 2,
     roof: '#8d8174', wall: '#6e6358',
+  },
+  {
+    type: 'memorial', name: 'Pedra Memorial', icon: '{grave}', desc: 'Pedra com o nome de cada ninja que caiu: o luto da vila passa duas vezes mais rápido.',
+    w: 1, h: 1, cost: { stone: 80, ryo: 50 }, buildTime: 14, unique: true, buildable: true, minLevel: 1,
+    roof: '#4a4a52', wall: '#8a8a92',
   },
   // ---- decorações (felicidade; data/buildings `deco`, game/mood.ts)
   {

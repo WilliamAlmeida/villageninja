@@ -455,6 +455,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   pintar (`App.roadMode`, arraste usa a caixa de seleção do Input; "Tirar" apaga), custo por tile, +30% de velocidade
   (`roadSpeed` em movement.ts) e o A* prefere a rua (`ROAD.pathCost`); prédio construído/movido em cima tira o calçamento;
   desenho no chão em `Renderer.drawRoads`.
+- **Monte dos Kages e Pedra Memorial**: o monte é um paredão de montanha com um rosto esculpido por Kage de
+  `state.kageHistory` (arte `monument-f1..6` de `scripts/monument-faces.py`, escolhida em `Renderer.artBox`; o antigo,
+  bloco com arco, foi reprovado e está em docs/arte/_backup/2026-10-11/monte-antigo). Pedra Memorial (`memorial`, prédio
+  único): lista `state.fallen` no drawer e o luto passa duas vezes mais rápido (systems/seasons.ts).
+- **Mapas temáticos** (`SceneInfo.theme`, `shapeTheme` em game/scene.ts): saque/anexação da Vila dos Pescadores (`pesca`:
+  mar ao sul com praia e o Porto) e da Cidade dos Mercadores (`mercadores`: deserto com oásis, sem árvores). Casa, mercado
+  e torre trocam para `<tipo>-<tema>` no desenho e os enfeites vêm de `render/themeProps.ts` (atlas `theme-props`,
+  `scripts/theme-art.py`). Vitrine: `cena-pesca`, `cena-deserto`.
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em

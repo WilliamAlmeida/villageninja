@@ -37,7 +37,9 @@ BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'ac
              'farm': 6, 'training': 6, 'herbgarden': 4, 'port': 5, 'kennel': 4, 'intel': 3.2, 'puppetshop': 4, 'arena': 12,
              # decorações (scripts/deco-grid.py): resolução guardada; o tamanho no mapa sai do ART_SCALE em render/art.ts
              'lantern': 1.4, 'bench': 2, 'flowers': 2, 'banner': 1.6, 'shrine': 2, 'statue': 1.6, 'cherry': 3, 'cherry-green': 3,
-             'cherry-bare': 3, 'fountain': 4, 'pond': 4, 'pagoda': 4}
+             'cherry-bare': 3, 'fountain': 4, 'pond': 4, 'pagoda': 4, 'memorial': 1.6,
+             # Monte dos Kages com 1 a 6 rostos (scripts/monument-faces.py)
+             **{f'monument-f{n}': 6 for n in range(1, 7)}}
 # prédios e cenário guardados em resolução maior: o jogo os amplia pelo zoom (até 2,5×) e pela densidade da tela, e em
 # 1× ficavam borrados. O jogo desenha pelo tamanho no mundo (a altura sai da proporção), então só a nitidez muda;
 # abaixo do tamanho guardado o drawArt reduz com suavização. Personagens e camadas do ninja seguem em 1×.

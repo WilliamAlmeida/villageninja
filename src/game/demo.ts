@@ -29,6 +29,7 @@ import type { Unit } from './types';
 import { territoryCenter } from './village';
 import { doorPos, doorTile, idx, inBounds } from './world';
 import { pave } from './roads';
+import { recordFallen } from './memorial';
 
 /** Quantos de cada prédio a vitrine levanta (o resto, um). */
 const COUNT: Partial<Record<BuildingType, number>> = { house: 8, farm: 3, lumber: 2, quarry: 2, market: 2, training: 2, tower: 3, ironmine: 1, herbgarden: 2, lantern: 4, cherry: 3, flowers: 2 };
@@ -76,6 +77,14 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
       u.ninja!.level = Math.round(lo + ((hi - lo) * i) / Math.max(1, n - 1));
       ninjas.push(u);
     }
+  // três que caíram (Pedra Memorial e Edo Tensei)
+  for (const [rank, lv] of [['chunin', 9], ['jounin', 17], ['genin', 3]] as const) {
+    const f = createNinja(g, d.x, d.y + 140, rank, 2);
+    f.ninja!.level = lv;
+    recordFallen(s, f);
+    f.dead = true;
+  }
+  s.units = s.units.filter((u) => !u.dead);
   for (const u of ninjas) {
     u.ninja!.xp = Math.round(u.ninja!.level * 37) % 90;
     u.ninja!.kills = u.ninja!.level * 3;

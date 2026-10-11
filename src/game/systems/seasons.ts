@@ -19,7 +19,8 @@ export function seasonSystem(g: Game, dt: number) {
   if (s.day === s.moodDay) return;
   s.moodDay = s.day;
   rollWeather(s);
-  s.grief = Math.max(0, s.grief - 10);
+  // Pedra Memorial: o luto passa duas vezes mais rápido
+  s.grief = Math.max(0, s.grief - (s.buildings.some((b) => b.type === 'memorial' && b.built) ? 20 : 10));
   const def = SEASONS[seasonOf(s)];
   if ((s.day - 1) % SEASON_DAYS === 0) g.toast(`${def.icon} Começou o ${def.name}! ${def.desc}`, 'info');
   if (s.weather !== 'clear') g.toast(`${WEATHERS[s.weather].icon} Hoje: ${WEATHERS[s.weather].name}. ${WEATHERS[s.weather].desc}`, 'info');

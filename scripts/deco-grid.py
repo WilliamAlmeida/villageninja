@@ -25,6 +25,8 @@ ITEMS = [
     ('flowers', 'a small square raised flower bed with a wooden border full of colorful flowers (red, yellow, purple)'),
     ('pond', 'a small irregular koi pond with clear blue water, two orange koi fish, round stones around the edge and a tiny wooden bridge'),
     ('banner', 'a tall wooden pole with a long vertical red cloth banner with a white spiral emblem, on a small stone base'),
+    # Pedra Memorial (prédio único, não decoração)
+    ('memorial', 'a ninja memorial stone: a tall dark grey polished stone slab with many tiny engraved name lines, on a two-step stone base, with a small incense burner smoking, white flowers and a few kunai left at its foot'),
 ]
 COLS, ROWS = 4, 2
 

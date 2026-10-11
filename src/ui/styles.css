@@ -2756,3 +2756,9 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .bsep { flex: 0 0 auto; align-self: stretch; display: flex; align-items: center; writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 0.15rem; color: #f3e3c3; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
 .bcard.road .i .ic { width: 2rem; height: 2rem; }
 #roadbar .btn.tog.on { background: #a33; }
+
+/* Pedra Memorial e Monte dos Kages: lista de nomes */
+.memlist { list-style: none; margin: 0.3rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; max-height: 14rem; }
+.memlist li { display: grid; grid-template-columns: 1fr auto; gap: 0 0.6rem; padding: 0.25rem 0.45rem; border-radius: 0.3rem; background: rgba(0,0,0,0.22); }
+.memlist li span { grid-column: 1; color: var(--muted); font-size: 0.85rem; }
+.memlist li small { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--muted); }

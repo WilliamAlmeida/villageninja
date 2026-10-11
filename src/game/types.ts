@@ -543,7 +543,11 @@ export interface SceneInfo {
   lootNeed: number;
   defenders: number;
   entry: { x: number; y: number };
+  /** Tema do vilarejo (game/scene.ts → `shapeTheme`): pescadores (mar, palafitas, barcos) ou mercadores (deserto). */
+  theme?: SceneTheme;
 }
+
+export type SceneTheme = 'fishing' | 'desert';
 
 /** Ninja caído, para a Pedra Memorial e o Edo Tensei. */
 export interface Fallen {

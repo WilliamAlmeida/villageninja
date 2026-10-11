@@ -22,6 +22,7 @@ import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
 import { CHEST_LINGER, doneFor, fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { CAVE_PROPS, type CaveDeco, caveDecos, drawCaveDeco, drawCaveFlat } from './cave';
+import { drawThemeDeco, type ThemeDeco, themeDecos } from './themeProps';
 import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
@@ -63,6 +64,7 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
   wall?: Effect;
   /** Enfeite da mina (render/cave.ts). */
   cave?: CaveDeco;
+  theme?: ThemeDeco;
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
   piece?: number };
 
@@ -133,6 +135,8 @@ export class Renderer {
     const s = g.state;
     this.level = s.level;
     this.season = seasonOf(s);
+    this.kages = s.kageHistory?.length ?? 0;
+    this.theme = s.sceneInfo?.theme ?? '';
     let cache = this.maps.get(s);
     if (!cache) {
       cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal() };
@@ -336,6 +340,12 @@ export class Renderer {
       const p = project(cave.x, cave.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, cave });
     }
+    // mapas temáticos: barcos, redes, palmeiras, poço… (só desenho, render/themeProps.ts)
+    for (const theme of themeDecos(s)) {
+      if (!isExploredPx(s, theme.x, theme.y)) continue;
+      const p = project(theme.x, theme.y);
+      if (seen(p)) list.push({ x: p.x, y: p.y, theme });
+    }
     for (const u of s.units) {
       if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
       const p = project(u.x, u.y);
@@ -411,6 +421,7 @@ export class Renderer {
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
       else if (d.cave) drawCaveDeco(ctx, d.cave, d.x, d.y);
+      else if (d.theme) drawThemeDeco(ctx, d.theme, d.x, d.y);
       else if (d.wall) drawWall(ctx, d.wall);
       else if (d.n) {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
@@ -594,8 +605,11 @@ export class Renderer {
    */
   artBox(b: Building, level: number) {
     const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
-    const base = b.type === 'cherry' ? (this.season === 'spring' ? 'cherry' : this.season === 'winter' ? 'cherry-bare' : 'cherry-green') : b.type;
-    const artName = lvl > 1 && art(`${base}-${lvl}`) ? `${base}-${lvl}` : base;
+    const faces = b.type === 'monument' ? `monument-f${Math.max(1, Math.min(6, this.kages))}` : '';
+    const base =
+      b.type === 'cherry' ? (this.season === 'spring' ? 'cherry' : this.season === 'winter' ? 'cherry-bare' : 'cherry-green') : faces && art(faces) ? faces : b.type;
+    const themed = this.theme && art(`${b.type}-${this.theme}`) ? `${b.type}-${this.theme}` : '';
+    const artName = themed || (lvl > 1 && art(`${base}-${lvl}`) ? `${base}-${lvl}` : base);
     const pic = art(artName);
     if (!pic || !pic.naturalWidth) return null;
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
@@ -723,6 +737,10 @@ export class Renderer {
   private level = 0;
   /** Estação do mapa sendo desenhado (a cerejeira muda de arte: florida, verde, sem folhas). */
   private season = 'spring';
+  /** Kages que a vila já teve: o Monte dos Kages mostra um rosto por Kage (até 6, `monument-f<n>`). */
+  private kages = 0;
+  /** Tema do mapa de missão (pescadores, deserto): casa, mercado e torre trocam de arte (`<tipo>-<tema>`). */
+  private theme = '';
 
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
