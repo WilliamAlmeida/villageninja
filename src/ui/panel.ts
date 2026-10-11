@@ -300,6 +300,16 @@ const ROUTINE_TIP: Record<NinjaOrder, string> = {
  * - `drawer`: lateral, para o que foi tocado no mapa (ninja, prédio, grupo), compacto e com abas;
  * - `window`: janela central com abas, para as telas de gestão (Vila, Ninjas/Equipes/Clãs, Missões).
  */
+/** Marca do tipo do jutsu no selo (natureza, senão o tipo: corpo, ilusão, cura, técnica). */
+const JUTSU_MARK: Record<string, string> = { taijutsu: '体', genjutsu: '幻', iryo: '医', ninjutsu: '術' };
+/** Caixinha do jutsu no cartão de ninja: selo com a marca na cor do jutsu e o nome curto (sem "Katon: "). */
+function jutsuChip(id: string | null) {
+  if (!id) return `<span class="njs empty">—</span>`;
+  const d = JUTSUS[id]!;
+  const mark = (d.nature && NATURES[d.nature]?.kanji) || JUTSU_MARK[d.type] || '術';
+  return `<span class="njs" style="--c:${d.color}"><i>${mark}</i><span>${esc(d.name.replace(/^[^:]+:\s*/, ''))}</span></span>`;
+}
+
 export class Panel {
   readonly root: HTMLElement;
   private body: HTMLElement;
@@ -661,6 +671,7 @@ export class Panel {
           <div class="jm">Rank ${JUTSU_RANK_LABEL[d.rank]} · ${JUTSU_TYPE_LABEL[d.type]} · ${jutsuChakra(d, n.stats)} chakra</div></div></div>`;
       }
       html += `</div>` + this.basicTechniques(u, t);
+      if (isOwn) html += this.fichaTeam(u);
       if (n.learning) {
         const d = JUTSUS[n.learning.jutsuId]!;
         html += `<h4>Estudando</h4><div class="hint">${esc(d.name)} → slot ${n.learning.slot + 1}</div><div class="bar pg"><i data-b="learn"></i><span data-t="learn"></span></div>`;
@@ -2600,7 +2611,7 @@ export class Panel {
     if (!list.length) html += `<p class="hint">Nenhum ninja neste filtro.</p>`;
     html += `<div class="ncards">`;
     for (const u of list) html += this.ninjaCard(u, t, b, onMission);
-    html += `</div>`;
+    html += `</div>` + this.rosterTeamStrip();
     return { html, t, b };
   }
 
@@ -2629,7 +2640,6 @@ export class Panel {
     const n = u.ninja!;
     const nat = NATURES[n.nature];
     const team = teamOf(g, u);
-    const js = n.jutsu.filter(Boolean).map((id) => JUTSUS[id!]!.shout.replace('!', '')).join(', ') || 'sem jutsu';
     b[`hp${u.id}`] = u.hp / u.maxHp;
     t[`hpt${u.id}`] = `${Math.ceil(u.hp)}/${u.maxHp}`;
     const rank = n.sannin ? 'sannin' : n.rank;
@@ -2642,8 +2652,34 @@ export class Panel {
         <span class="nc-badges"><span class="rbadge r-${rank}">${rankLabel}</span><span class="lvbadge">Nv ${n.level}</span><span class="rbadge nat" style="--c:${nat.color}">${nat.kanji}</span></span>
         <span class="nc-bar hp"><i data-b="hp${u.id}"></i></span><span class="nc-num" data-t="hpt${u.id}"></span></span>
       <span class="nc-line">${team ? `<span class="dot"></span>${esc(team.name)}` : `<span class="dot" style="--c:#666"></span>Sem equipe`}</span>
-      <span class="nc-line">{kunai} ${esc(js)}</span>
+      <span class="nc-js">${n.jutsu.map((id) => jutsuChip(id)).join('')}</span>
       ${notable ? `<span class="mpill ${stCls}">${stIc} ${stLabel}</span>` : ''}</button>`;
+  }
+
+  /** Ficha: a equipe do ninja em cartão (retratos dos colegas e o atalho para a equipe), como no mockup. */
+  private fichaTeam(u: Unit) {
+    const g = this.app.game;
+    const team = teamOf(g, u);
+    if (!team) return '';
+    let html = `<h4>Equipe</h4><div class="fteam" style="--c:${team.color}"><span class="dot"></span><b>${esc(team.name)}</b><span class="rs-faces">`;
+    for (const m of teamUnits(g, team)) html += `<button class="rs-face ${m.id === u.id ? 'me' : ''}" data-act="pick" data-arg="${m.id}" ${tipAttr(m.name, RANKS[m.ninja!.rank].name, true)}>${pimg(unitPortrait(m))}</button>`;
+    return html + `</span><button class="btn" data-act="open-team" data-arg="${team.id}">{users} Ver equipe</button></div>`;
+  }
+
+  /** Faixa embaixo da lista de Ninjas: a equipe do ninja selecionado (retratos) e a missão dela (como no mockup). */
+  private rosterTeamStrip() {
+    const g = this.app.game;
+    const sel = g.selected?.kind === 'unit' ? g.unit(g.selected.id) : undefined;
+    const team = sel ? teamOf(g, sel) : undefined;
+    if (!team) return '';
+    const members = teamUnits(g, team);
+    const m = g.state.missions.find((x) => x.status === 'active' && x.teamId === team.id);
+    const def = m ? templateOf(m) : undefined;
+    let html = `<div class="rstrip" style="--c:${team.color}"><div class="rs-team"><span class="dot"></span><b>${esc(team.name)}</b><span class="rs-faces">`;
+    for (const u of members) html += `<button class="rs-face" data-act="pick" data-arg="${u.id}" ${tipAttr(u.name, RANKS[u.ninja!.rank].name, true)}>${pimg(unitPortrait(u))}</button>`;
+    html += `</span><button class="btn" data-act="open-team" data-arg="${team.id}">{users} Ver equipe</button></div>`;
+    html += `<div class="rs-mission">${def ? `<small>Missão atual</small><b>${esc(def.title)}</b>` : `<small>Missão atual</small><span class="hint">Nenhuma</span>`}<button class="btn" data-act="win" data-arg="missions">{scroll} Missões</button></div></div>`;
+    return html;
   }
 
   /** O que o ninja está fazendo, com ícone e cor (para o selo do cartão); o 4º valor diz se é exceção (não a rotina). */

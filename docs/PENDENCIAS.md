@@ -18,8 +18,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Ruas calçadas pintadas pelo jogador (ninjas e moradores andam mais rápido) (e36300d)
 - [x] Monte dos Kages com um rosto por Kage que já passou (refeito como paredão de montanha a pedido do autor) (6178536)
 - [x] Pedra Memorial com os nomes dos ninjas caídos (6178536)
-- [ ] Mapa jogável temático da Vila dos Pescadores (palafitas, cais, barcos, redes) + enfeites no Porto
-- [ ] Mapa jogável temático da Cidade dos Mercadores (deserto, tendas, muralha, poço)
+- [x] Mapa jogável temático da Vila dos Pescadores (palafitas, cais, barcos, redes) + enfeites no Porto
+- [x] Mapa jogável temático da Cidade dos Mercadores (deserto, tendas, muralha, poço)
 - [ ] Arte nova da ruína e da entrada da mina
 - [ ] Penhascos e escadas (primeiro nos mapas jogáveis, ex.: prova do Monte dos Sapos)
 

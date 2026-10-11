@@ -39,7 +39,9 @@ BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'ac
              'lantern': 1.4, 'bench': 2, 'flowers': 2, 'banner': 1.6, 'shrine': 2, 'statue': 1.6, 'cherry': 3, 'cherry-green': 3,
              'cherry-bare': 3, 'fountain': 4, 'pond': 4, 'pagoda': 4, 'memorial': 1.6,
              # Monte dos Kages com 1 a 6 rostos (scripts/monument-faces.py)
-             **{f'monument-f{n}': 6 for n in range(1, 7)}}
+             **{f'monument-f{n}': 6 for n in range(1, 7)},
+             # mapas temáticos (scripts/theme-art.py): casa, mercado e torre da Vila dos Pescadores e da Cidade dos Mercadores
+             **{f'{t}-{th}': w for t, w in (('house', 4), ('market', 4), ('tower', 2.6)) for th in ('fishing', 'desert')}}
 # prédios e cenário guardados em resolução maior: o jogo os amplia pelo zoom (até 2,5×) e pela densidade da tela, e em
 # 1× ficavam borrados. O jogo desenha pelo tamanho no mundo (a altura sai da proporção), então só a nitidez muda;
 # abaixo do tamanho guardado o drawArt reduz com suavização. Personagens e camadas do ninja seguem em 1×.
