@@ -137,6 +137,7 @@ export class Renderer {
     this.season = seasonOf(s);
     this.kages = s.kageHistory?.length ?? 0;
     this.theme = s.sceneInfo?.theme ?? '';
+    this.seed = s.seed;
     let cache = this.maps.get(s);
     if (!cache) {
       cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal() };
@@ -741,6 +742,8 @@ export class Renderer {
   private kages = 0;
   /** Tema do mapa de missão (pescadores, deserto): casa, mercado e torre trocam de arte (`<tipo>-<tema>`). */
   private theme = '';
+  /** Semente do mapa desenhado (a variante de ruína/mina de cada região). */
+  private seed = 0;
 
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
@@ -1075,10 +1078,22 @@ export class Renderer {
     return this.fogSoft ?? this.fog;
   }
 
+  /**
+   * Arte do local: baú aberto/fechado; ruína e mina têm duas versões (a editada à mão e a `-alt` do Codex) e cada área do
+   * mapa (grade 3×2) sorteia uma pela semente da partida: os locais da mesma região ficam parecidos, os de outra variam.
+   */
+  private siteArt(site: Site) {
+    if (site.kind === 'chest') return site.done && art('chest-open') ? 'chest-open' : 'chest';
+    if (site.kind !== 'ruin' && site.kind !== 'cave') return site.kind;
+    const zone = Math.floor(site.tx / 24) + 3 * Math.floor(site.ty / 24);
+    const alt = (Math.imul((this.seed ^ (zone * 0x45d9f3b)) >>> 0, 2654435761) >>> 16) & 1;
+    return alt && art(`${site.kind}-alt`) ? `${site.kind}-alt` : site.kind;
+  }
+
   /** Local especial (ruínas, baú, mina): arte isométrica com um brilho que chama atenção enquanto não foi investigado. */
   /** Arte do local e onde fica na cena (x, y = ponto do local já projetado), com escala/deslocamento do layout. */
   siteBox(site: Site, x: number, y: number) {
-    const name = site.kind === 'chest' && site.done && art('chest-open') ? 'chest-open' : site.kind;
+    const name = this.siteArt(site);
     const pic = art(name);
     if (!pic || !pic.naturalWidth) return null;
     const L = artLayout(name);
@@ -1122,7 +1137,7 @@ export class Renderer {
 
   private drawSite(site: Site, x: number, y: number, time: number, selected: boolean) {
     const ctx = this.ctx;
-    const name = site.kind === 'chest' && site.done && art('chest-open') ? 'chest-open' : site.kind;
+    const name = this.siteArt(site);
     const pic = art(name);
     const L = artLayout(name); // escala e deslocamento do Editor de cenário
     const w = (site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90) * (L?.scale ?? 1);

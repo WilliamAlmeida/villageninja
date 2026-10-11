@@ -20,8 +20,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Pedra Memorial com os nomes dos ninjas caídos (6178536)
 - [x] Mapa jogável temático da Vila dos Pescadores (palafitas, cais, barcos, redes) + enfeites no Porto (d3ae338)
 - [x] Mapa jogável temático da Cidade dos Mercadores (deserto, tendas, muralha, poço) (d3ae338)
-- [~] Arte nova da ruína e da entrada da mina — as do jogo foram editadas à mão pelo autor e não foram trocadas; versões
-      novas do Codex prontas em docs/arte/iso/ruin-alt.png e cave-alt.png (trocar só se o autor quiser)
+- [x] Arte nova da ruína e da entrada da mina: as duas versões ficam no jogo (a editada pelo autor e a `-alt` do Codex);
+      cada região do mapa sorteia uma
 - [x] Penhascos e escadas (primeiro nos mapas jogáveis, ex.: prova do Monte dos Sapos) (33d2ef4)
 
 ## 3. Telas (dos mockups)

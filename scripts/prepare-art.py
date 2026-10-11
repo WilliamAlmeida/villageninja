@@ -73,7 +73,7 @@ SHEETS = {'villager': (56, 'biped'), 'rogue': (56, 'biped'),
 # folhas conferidas a olho cuja silhueta engana a detecção de direção (aranha não parece o boneco de 4 patas)
 TRUST_FACING = {'spider', 'slug', 'dog-white', *(f'bijuu-{n}' for n in range(1, 10))}
 SAME_SCALE = {'chest-open': 'chest'}
-SINGLE = {'ruin': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
+SINGLE = {'ruin': 128, 'ruin-alt': 128, 'chest': 48, 'chest-open': 48, 'cave': 132, 'cave-alt': 132, 'tree0': 96, 'tree1': 96, 'stump0': 48, 'stump1': 48, 'rock': 56, 'rock-cracked': 56, 'rock-pebbles': 56, 'ore': 56, 'ore-empty': 56, 'herb': 48}
 COLS, ROWS = 4, 3
 TOOL_ONLY = {'ninja-base', 'ninja-base-strike', 'ninja-base-cast', 'ninja-base-kick', 'ninja-base-air', 'ninja-base-hurt', 'ninja-base-sit', 'ninja-base-carry'}
 # folhas de ação: braço e ferramenta confundem a detecção de direção e a ordem do ciclo de caminhada (confira a olho)
