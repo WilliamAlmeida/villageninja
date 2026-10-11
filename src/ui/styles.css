@@ -2729,8 +2729,3 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
   /* com a barra do mapa jogável aberta, os avisos descem para baixo dela (não cobrem o título) */
   body:has(#scenebar:not([hidden]):not(.mini)) #toasts { top: 6.9rem; }
 }
-/* "Manter" das receitas: rótulo e as quantidades lado a lado, sempre à vista */
-.wsr-kp { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; flex-wrap: nowrap; }
-.wsr-kp > small { color: #cdb48c; font-size: 0.74rem; font-weight: 700; }
-.wsr-kseg { display: inline-flex; gap: 0.15rem; }
-.wsr-kseg button { min-width: 1.9rem; padding: 0.15rem 0.35rem; font-size: 0.74rem; justify-content: center; }
