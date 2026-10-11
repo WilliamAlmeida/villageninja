@@ -509,7 +509,10 @@ function poseOf(u: Unit, t: number): { pose: DollPose; frame: number } | null {
     const k = u.cast.total ? 1 - u.cast.t / u.cast.total : (t * 5 + u.id) % 3 / 3;
     return { pose: 'cast', frame: Math.min(2, Math.floor(k * 3)) };
   }
+  // investida (Chidori, Passo de Sangue): avança com o braço adiante em vez de caminhar
+  if (u.dash) return { pose: 'strike', frame: 1 };
   if (u.anim <= 0 || u.moving) return null;
+  if (u.animKind === 'impact') return { pose: 'strike', frame: u.anim > 0.15 ? 2 : 3 };
   if (u.animKind === 'release') return { pose: 'cast', frame: 3 };
   // ritmo rápido: um selo relâmpago (mãos juntas) e o braço esticado soltando
   if (u.animKind === 'cast') return { pose: 'cast', frame: u.anim > 0.28 ? 1 : 3 };

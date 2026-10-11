@@ -241,7 +241,7 @@ export function castJutsu(g: Game, u: Unit, slot: number, t: Unit) {
     return;
   }
   releaseJutsu(g, u, def, t);
-  u.animKind = 'cast'; // ritmo rápido: um selo relâmpago e solta (no desenho)
+  if (u.animKind === 'release') u.animKind = 'cast'; // ritmo rápido: um selo relâmpago e solta (taijutsu e investida têm a pose deles)
 }
 
 /** Selos em andamento: o jutsu sai quando terminam (alvo sumiu: perde o jutsu). */
@@ -307,6 +307,8 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       fx(g, 'slash', t.x, t.y, { r: 24, color: def.color, life: 0.35 });
       fx(g, 'hit', t.x, t.y - 8, { r: 16, color: def.color, life: 0.3, vfx: vfx ?? 'impact' });
       applyDamage(g, u, t, power, def.nature, { knock: 22 });
+      u.anim = 0.4; // taijutsu: o golpe no alvo, não a mão aberta de soltar jutsu
+      u.animKind = 'impact';
       break;
     case 'stun': {
       const s = t.ninja?.stats;
@@ -614,6 +616,8 @@ export function dashTick(g: Game, u: Unit, dt: number) {
     fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx });
     fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
     applyDamage(g, u, t, d.power, d.nature, { knock: 26 });
+    u.anim = 0.45; // chegada da investida: braço todo esticado no alvo e recupera (desenho)
+    u.animKind = 'impact';
     return;
   }
   const step = Math.min(dist - 16, DASH_SPEED * dt);

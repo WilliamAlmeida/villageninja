@@ -188,6 +188,7 @@ const strikeActs: Act[] = [
     run: () => {
       cast('ninja');
       place();
+      throwPose();
       spawnProjectile(g, caster, 'village', caster.x, caster.y - 4, dummy.x, dummy.y, { damage: 8, radius: 0, nature: null, color: '#cfd6dd', size: 4, speed: 360, kind: 'kunai', stun: 0, range: 220, vfx: 'metal' });
     },
   },
@@ -196,10 +197,18 @@ const strikeActs: Act[] = [
     run: () => {
       cast('ninja');
       place();
+      throwPose();
       spawnProjectile(g, caster, 'village', caster.x, caster.y - 4, dummy.x, dummy.y, { damage: 30, radius: 50, nature: null, color: '#ff7a3b', size: 5, speed: 300, kind: 'kunai', stun: 0, range: 220, vfx: 'fire' });
     },
   },
 ];
+
+/** Arremesso (kunai, papel-bomba): a mesma pose que o jogo usa ao lançar (combat.ts → throwKunai). */
+function throwPose() {
+  caster.facing = Math.atan2(dummy.y - caster.y, dummy.x - caster.x);
+  caster.anim = 0.3;
+  caster.animKind = 'throw';
+}
 
 function strike(blade: BladeId | null, t: number, d = dist) {
   cast('ninja');
