@@ -109,7 +109,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   camada) gira em volta do ponto `hand` do corpo-base, do alto atrás até a frente embaixo, com dois vultos (`drawSlash`);
   `SWORD_LEN` dá o tamanho de cada uma. Quem leva dano pisca BRANCO (`whiteArt`, por `hitFlash`); empurrado (`knockT`)
   ou pousando do Shunshin (`landT`) o sprite "esmaga e estica" por um instante. Tudo só desenho, em `drawUnitArt`.
-  **Laboratório de jutsus** (http://localhost:3011/lab, `tools/jutsu-lab/`): campo limpo com ninja e boneco de treino; cada
+  **Laboratório de jutsus** (http://localhost:3011/lab, `tools/jutsu-lab/`; também no build de produção, em
+  https://ninja.wmst.com.br/lab, pelo `scripts/live.ts`: só ele, os editores que gravam arquivos ficam só no 3011): campo limpo com ninja e boneco de treino; cada
   botão solta um jutsu/golpe/técnica/arte/lâmina com o código real; "Duelo IA × IA" mostra o estilo de luta. No console,
   `lab.pause()`, `lab.step(s)`, `lab.act('Chidori')`.
 - **Upgrade de prédios** (nível 1–3; `data/upgrades.ts` + `game/upgrade.ts`): casa, fazenda, lenhador, pedreira, mercado,

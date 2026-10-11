@@ -36,7 +36,9 @@ async function build() {
   building = (async () => {
     const t0 = performance.now();
     try {
-      const r = await Bun.build({ entrypoints: [`${ROOT}index.html`], outdir: DIST, minify: true });
+      // o jogo e o Laboratório de jutsus (só lê e roda o jogo: dá para abrir pelo túnel em /lab); os editores de sprite e
+      // de cenário gravam arquivos e ficam só no localhost:3011 (scripts/editor.ts)
+      const r = await Bun.build({ entrypoints: [`${ROOT}index.html`, `${ROOT}tools/jutsu-lab/index.html`], root: ROOT, outdir: DIST, minify: true });
       if (!r.success) {
         console.error('build falhou (continua servindo a versão anterior):');
         for (const m of r.logs) console.error(String(m));
@@ -66,7 +68,7 @@ const schedule = () => {
   clearTimeout(timer);
   timer = setTimeout(build, 300);
 };
-for (const dir of ['src', 'public']) watch(`${ROOT}${dir}`, { recursive: true }, schedule);
+for (const dir of ['src', 'public', 'tools/jutsu-lab', 'tools/shared']) watch(`${ROOT}${dir}`, { recursive: true }, schedule);
 watch(`${ROOT}index.html`, schedule);
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const;
@@ -78,7 +80,7 @@ Bun.serve({
   async fetch(req) {
     const path = decodeURIComponent(new URL(req.url).pathname);
     if (path.includes('..')) return new Response('Not found', { status: 404, headers: NO_STORE });
-    const name = path === '/' ? 'index.html' : path.slice(1);
+    const name = path === '/' ? 'index.html' : path === '/lab' || path === '/lab/' ? 'tools/jutsu-lab/index.html' : path.slice(1);
     const file = Bun.file(DIST + name);
     if (!(await file.exists())) return new Response('Not found', { status: 404, headers: NO_STORE });
     const ext = name.split('.').pop() ?? '';
