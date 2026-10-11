@@ -962,9 +962,8 @@ export class Panel {
     const st = regionOf(s, def.id);
     const kindLabel = { village: 'Vilarejo', island: 'Ilha', sacred: 'Lugar sagrado', hideout: 'Covil' }[def.kind];
     const statusLabel = { neutral: 'Neutro', protected: 'Protegido', vassal: 'Vassalo', hostile: 'Hostil' }[st.status];
-    const kindIcon = { village: '{houses}', island: '{ship}', sacred: '{scroll}', hideout: '{skull}' }[def.kind];
     const stCls = { neutral: 'info', protected: 'safe', vassal: 'good', hostile: 'danger' }[st.status];
-    let html = `<div class="rhead"><span class="rh-ic k-${def.kind}">${kindIcon}</span><div><div class="rh-name">${def.name}</div><div class="td-chips">
+    let html = `<div class="rhead"><div><div class="rh-name">${def.name}</div><div class="td-chips">
       <span class="mchip">${kindLabel}</span>${def.kind === 'village' ? `<span class="mpill ${stCls}">${statusLabel}</span>` : ''}<span class="mchip">{shield} Defesas ${nodePower(s, def)}</span></div></div></div>
       <p class="bh-desc">${esc(def.desc)}</p>`;
     // ganhos por dia: cada recurso numa etiqueta (ícone e quantia)
@@ -972,7 +971,7 @@ export class Panel {
     if (def.kind === 'village') {
       const pct = (st.rel + 100) / 2;
       html += `<div class="bsec rrel"><div class="rrel-top"><b>Relação ${st.rel}</b></div>
-        <div class="relbar" ${tipAttr('Relação', `De -100 (inimigos) a 100 (aliados). Protegido a partir de ${REL.protected}; anexar em paz com ${REL.annexPeace}+ ou à força com ${REL.annexForce} ou menos.`)}><i style="left:calc(${pct}% - 1px)"></i></div>
+        <div class="relbar" ${tipAttr('Relação', `De -100 (inimigos) a 100 (aliados). Protegido a partir de ${REL.protected}; anexar em paz com ${REL.annexPeace}+ ou à força com ${REL.annexForce} ou menos.`)}><b class="rb-fill ${st.rel < 0 ? 'neg' : 'pos'}" style="left:${Math.min(50, pct)}%;width:${Math.abs(pct - 50)}%"></b>${[REL.annexForce, REL.protected, REL.annexPeace].map((v) => `<u style="left:${(v + 100) / 2}%"></u>`).join('')}<i style="left:${pct}%"></i></div>
         <div class="rrel-lbl"><span>Hostil</span><span>Neutra</span><span>Aliada</span></div>
         ${def.tribute ? `<div class="rgain" ${tipAttr('Tributo diário', 'Protegido manda isto todo dia; vassalo manda o dobro.', true)}><small>{ryo} Tributo por dia${st.status === 'vassal' ? ' (×2)' : ''}</small>${gains(def.tribute)}</div>` : ''}`;
     } else if (def.kind === 'island') {

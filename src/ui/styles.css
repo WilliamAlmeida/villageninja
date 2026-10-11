@@ -2685,3 +2685,27 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .rsheet .rteams .tn { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .rsheet .rteams small { flex: 0 0 auto; display: inline-flex; align-items: center; margin: 0; font-size: 0.72rem; }
 .rsheet .rteams small .ic { width: 0.8rem; height: 0.8rem; margin: 0 0.1rem 0 0; }
+/* barra de relação com vida: trilho escuro afundado com o degradê hostil → neutro → aliado aceso, brilho de vidro em
+   cima, preenchimento do neutro até o valor (vermelho ou verde, com luz), marcas dos limites (anexar à força, protegido,
+   anexar em paz), marcador que brilha e um reflexo que passa de tempos em tempos */
+.rrel .relbar {
+  height: 0.8rem; border-radius: 0.45rem; overflow: hidden; margin: 0.45rem 0 0.2rem;
+  background: linear-gradient(90deg, #6e1a14, #a8402a 22%, #5a4632 50%, #3f6a2c 78%, #2f8a3a);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.65), inset 0 -1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 214, 150, 0.15);
+}
+.rrel .relbar::before { content: ''; position: absolute; inset: 1px 2px auto; height: 40%; border-radius: 0.4rem; background: linear-gradient(rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)); pointer-events: none; z-index: 2; }
+.rrel .relbar::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -30%; width: 25%; z-index: 2; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 245, 210, 0.35), transparent); animation: rshine 3.6s ease-in-out infinite;
+}
+@keyframes rshine { 0%, 55% { left: -30%; } 100% { left: 110%; } }
+.relbar .rb-fill { position: absolute; top: 0; bottom: 0; z-index: 1; }
+.relbar .rb-fill.pos { background: linear-gradient(90deg, rgba(126, 230, 110, 0.35), #7ee66e); box-shadow: 0 0 8px rgba(126, 230, 110, 0.8); }
+.relbar .rb-fill.neg { background: linear-gradient(90deg, #ff6a4a, rgba(255, 106, 74, 0.35)); box-shadow: 0 0 8px rgba(255, 106, 74, 0.8); }
+.relbar u { position: absolute; top: 18%; bottom: 18%; width: 1px; margin-left: -0.5px; background: rgba(255, 236, 200, 0.45); z-index: 1; }
+.rrel .relbar i {
+  top: 50%; bottom: auto; width: 0.55rem; height: 0.55rem; z-index: 3; translate: -50% -50%; rotate: 45deg; border-radius: 1px;
+  background: #fff6dc; box-shadow: 0 0 0 1px #2a1406, 0 0 6px 2px rgba(255, 220, 140, 0.9); animation: rpulse 1.8s ease-in-out infinite;
+}
+@keyframes rpulse { 50% { box-shadow: 0 0 0 1px #2a1406, 0 0 10px 4px rgba(255, 220, 140, 0.55); } }
+@media (prefers-reduced-motion: reduce) { .rrel .relbar::after, .rrel .relbar i { animation: none; } }
