@@ -64,8 +64,10 @@ export interface NinjaInfo {
   focus: StatKey | null;
   order: NinjaOrder;
   equip: Equip;
-  /** Kekkei genkai despertada (natureza combinada). */
+  /** Kekkei genkai despertada (natureza combinada ou dōjutsu). */
   kekkei: KekkeiId | null;
+  /** Sharingan: jutsus que já viu em combate (pode aprendê-los sem pergaminho nem a natureza). */
+  seen?: string[];
   /** Contrato de invocação (sapo, serpente ou lesma). */
   contract?: ContractKind;
   /** Profissão (médico, espião, marionetista). */
@@ -230,6 +232,12 @@ export interface Unit {
   mode?: { kind: ModeKind; t: number; tails?: number; wild?: boolean; blast?: number };
   /** Recarga do manto da fera do Jinchuuriki. */
   modeCd?: number;
+  /** Chamas negras (Amaterasu): queimam `dps` por segundo até apagar; `src` = quem acendeu (fica com o abate). */
+  burn?: { t: number; dps: number; src: number; acc?: number };
+  /** Sharingan: jutsu que acabou de ver um inimigo usar e pode devolver uma vez (s restantes; game/dojutsu.ts). */
+  mirror?: { id: string; t: number };
+  /** Dōjutsu aceso (os olhos brilham em combate; o nome aparece ao acender). */
+  eyeOn?: boolean;
   /** Fera Colossal: quantas caudas (qual Bijuu, data/bijuu.ts). */
   bijuu?: number;
   /** Cópia num mapa de missão: id do ninja original na vila (o resultado volta para ele). */

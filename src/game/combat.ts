@@ -22,6 +22,7 @@ import { noteHit, shareXp, tryRescue } from './care';
 import { sageDamage, sanninSurvive } from './sannin';
 import { enterMode, modeDamage, modeDodge, modeGuard } from './modes';
 import { hostFell } from './bijuu';
+import { eyeDodge, gentleFist, ignite, sawJutsu } from './dojutsu';
 import { bijuuScale } from '../data/bijuu';
 import { orgMemberDown } from './org';
 import { consumeItem } from './gear';
@@ -84,6 +85,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
 
   if (canUseJutsu(u) && tryConsumable(g, u, t, d)) return;
   if (canUseJutsu(u) && kageArt(g, u, t, d)) return;
+  if (canUseJutsu(u) && mirrorCast(g, u, t, d)) return;
   if (u.attackCd <= 0 && canUseJutsu(u)) {
     const slot = pickJutsu(g, u, t, d);
     if (slot >= 0) {
@@ -204,6 +206,9 @@ function pickJutsu(g: Game, u: Unit, t: Unit, d: number): number {
         break;
       case 'mode':
         if (!u.mode && d < 140) score = 70; // veste o manto quando a luta começa
+        break;
+      case 'ignite':
+        if (!t.burn && d <= def.range) score = jutsuPower(def, n.stats);
         break;
       default:
         if (d <= def.range) score = jutsuPower(def, n.stats) * natureMultiplier(def.nature, t.ninja?.nature);
@@ -361,9 +366,45 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'mode':
       if (def.mode) enterMode(g, u, def.mode);
       break;
+    case 'ignite':
+      // Amaterasu: o olhar acende as chamas negras direto no alvo
+      fx(g, 'beam', u.x, u.y - 22, { x2: t.x, y2: t.y - 14, color: '#2a0a30', life: 0.25, vfx });
+      ignite(g, u, t, power, jutsuDuration(def, n.stats));
+      break;
   }
+  sawJutsu(g, u, def); // quem tem Sharingan e viu, copia
   // golpe de longe, área e escudo com coreografia (Hirudora, Asa Kujaku, Kaiten…): toca ao soltar
   if (def.moves?.length && def.effect !== 'melee' && def.effect !== 'dash') playMoves(u, def, 0.4);
+}
+
+/** Sharingan: devolve o jutsu que acabou de copiar (uma vez, pagando o chakra; sem recarga de slot). */
+function mirrorCast(g: Game, u: Unit, t: Unit, d: number): boolean {
+  const m = u.mirror;
+  if (!m || u.attackCd > 0) return false;
+  const def = JUTSUS[m.id];
+  if (!def || d > Math.max(def.range, MELEE_RANGE) + 6) return false;
+  const cost = jutsuChakra(def, u.ninja!.stats);
+  if (u.chakra < cost) return false;
+  u.mirror = undefined;
+  u.chakra -= cost;
+  u.attackCd = 0.7;
+  fxText(g, u.x, u.y - 40, '写 Cópia', '#ff3a3a');
+  releaseJutsu(g, u, def, t);
+  if (u.animKind === 'release') u.animKind = 'cast';
+  return true;
+}
+
+/** Chamas negras (Amaterasu): queimam aos poucos até apagar; o número sai a cada meio segundo. */
+export function burnTick(g: Game, u: Unit, dt: number) {
+  const b = u.burn!;
+  b.t -= dt;
+  b.acc = (b.acc ?? 0) + b.dps * dt;
+  if (b.acc >= b.dps * 0.5 || b.t <= 0) {
+    const dmg = b.acc;
+    b.acc = 0;
+    applyDamage(g, g.unit(b.src) ?? null, u, dmg, null, { burn: true });
+  }
+  if (b.t <= 0) u.burn = undefined;
 }
 
 /** Ninjas médicos curam aliados feridos próximos. */
@@ -453,11 +494,13 @@ interface DamageOpts {
   from?: { x: number; y: number };
   /** Lança o alvo ao alto (só desenho: reação `hurt-launch`). */
   launch?: boolean;
+  /** Dano das chamas (Amaterasu): sem Kawarimi nem reação de golpe. */
+  burn?: boolean;
 }
 
 export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, nature: Nature | null, opts: DamageOpts) {
   if (t.dead) return;
-  if (opts.melee && t.ninja && chance(derive(t.ninja.stats).dodge + modeDodge(t))) {
+  if (opts.melee && t.ninja && chance(derive(t.ninja.stats).dodge + modeDodge(t) + eyeDodge(t))) {
     fxText(g, t.x, t.y - 20, 'Esquiva!', '#cfe8ff');
     return;
   }
@@ -489,13 +532,14 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
   if (t.carrying != null) dmg *= SOUND.carryHurt; // carregando o raptado: mãos ocupadas
   dmg = Math.max(1, Math.round(dmg * rand(0.9, 1.1)));
   // Kawarimi: golpe forte ou fatal vira um tronco
-  if (tryKawarimi(g, t, src, dmg)) {
+  if (!opts.burn && tryKawarimi(g, t, src, dmg)) {
     t.combatTimer = 5;
     if (src && !src.dead && t.faction !== 'village' && t.targetId == null) t.targetId = src.id;
     return;
   }
   wearOut(g, t, 'armor', dmg); // colete segura o golpe e gasta (antes de tirar a vida: refaz a vida máxima)
   if (opts.melee) wearOut(g, src, 'weapon', 1);
+  if (opts.melee) gentleFist(g, src, t); // Byakugan: fecha pontos de chakra
   t.hp -= dmg;
   noteHit(t, src);
   // golpe forte ou atordoamento quebram os selos
@@ -514,7 +558,7 @@ export function applyDamage(g: Game, src: Unit | null, t: Unit, amount: number, 
     const a = Math.atan2(t.y - from.y, t.x - from.x);
     push(g, t, Math.cos(a) * opts.knock, Math.sin(a) * opts.knock);
   }
-  playHurt(t, dmg, opts, opts.from ?? src);
+  if (!opts.burn) playHurt(t, dmg, opts, opts.from ?? src);
   // quem apanha revida
   if (src && !src.dead && t.faction !== 'village' && t.targetId == null) t.targetId = src.id;
   if (t.hp <= 0) {

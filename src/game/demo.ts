@@ -11,7 +11,7 @@ import { UPGRADES } from '../data/upgrades';
 import type { BladeId } from '../data/blades';
 import { appointAnbu } from './anbu';
 import { grantBlade } from './blades';
-import { foundClan } from './clans';
+import { clanMembers, foundClan } from './clans';
 import { placeBuilding, shoreSpot } from './commands';
 import { createNinja, createVillager, refreshDerived } from './entities';
 import { startMine } from './expeditions';
@@ -98,6 +98,14 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   for (const u of ninjas) refreshDerived(u);
   // três clãs: sobrenome repetido não funda outro, então segue tentando os próximos (Jounins e depois Chunins)
   for (const u of [...jounins.slice(6), ...ninjas.filter((x) => x.ninja!.rank === 'chunin')]) if (s.clans.length < 3) foundClan(g, u.id);
+  // dōjutsu: o primeiro clã com o Sharingan (já viu dois jutsus para copiar), o segundo com o Byakugan
+  (['sharingan', 'byakugan'] as const).forEach((eye, i) => {
+    const c = s.clans[i];
+    if (!c) return;
+    c.kekkei = eye;
+    for (const m of clanMembers(g, c)) if (m.ninja) m.ninja.kekkei = eye;
+  });
+  for (const m of ninjas) if (m.ninja!.kekkei === 'sharingan') m.ninja!.seen = ['goukakyuu', 'chidori'];
 
   // equipamento, lâminas, pergaminhos
   for (const it of ITEM_LIST) if (!it.blade) s.items[it.id] = 60 + (it.id.length % 5) * 7;

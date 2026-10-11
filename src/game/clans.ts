@@ -1,8 +1,9 @@
 // Famílias, clãs e kekkei genkai.
 import { chance, pick } from '../core/rng';
-import { KEKKEI, KEKKEI_BIRTH_CHANCE, KEKKEI_LIST, type KekkeiDef, type KekkeiId } from '../data/kekkei';
+import { KEKKEI, KEKKEI_BIRTH_CHANCE, KEKKEI_LIST, KEKKEI_STAT, type KekkeiDef, type KekkeiId, type KekkeiNeed } from '../data/kekkei';
+import { NATURES } from '../data/natures';
 import { randomGiven } from '../data/names';
-import { STAT_KEYS, type StatKey } from '../data/ninja';
+import { STAT_INFO, STAT_KEYS, type StatKey } from '../data/ninja';
 import { levelDef } from '../data/villageLevels';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
@@ -91,11 +92,18 @@ export function foundClan(g: Game, unitId: number): Result {
   return { ok: true };
 }
 
-/** Kekkei genkai que o clã pode despertar agora (tem ninjas das duas naturezas). */
+/** O ninja cumpre a condição (natureza igual ou atributo alto). */
+export const meetsNeed = (u: Unit, need: KekkeiNeed) =>
+  !!u.ninja && ('nature' in need ? u.ninja.nature === need.nature : u.ninja.stats[need.stat] >= KEKKEI_STAT);
+/** Texto curto da condição: "火" ou "Gen 6+". */
+export const needLabel = (need: KekkeiNeed) => ('nature' in need ? NATURES[need.nature].kanji : `${STAT_INFO[need.stat].short} ${KEKKEI_STAT}+`);
+const needText = (need: KekkeiNeed) => ('nature' in need ? NATURES[need.nature].name : `${STAT_INFO[need.stat].label} ${KEKKEI_STAT}+`);
+
+/** Kekkei genkai que o clã pode despertar agora (tem ninjas que cumprem as duas condições). */
 export function awakenOptions(g: Game, c: Clan): KekkeiDef[] {
   if (c.kekkei) return [];
-  const natures = new Set(clanMembers(g, c).filter((u) => u.ninja).map((u) => u.ninja!.nature));
-  return KEKKEI_LIST.filter((k) => natures.has(k.natures[0]) && natures.has(k.natures[1]));
+  const ninjas = clanMembers(g, c).filter((u) => u.ninja);
+  return KEKKEI_LIST.filter((k) => k.need.every((n) => ninjas.some((u) => meetsNeed(u, n))));
 }
 
 export function awakenKekkei(g: Game, clanId: number, kekkei: KekkeiId): Result {
@@ -105,13 +113,13 @@ export function awakenKekkei(g: Game, clanId: number, kekkei: KekkeiId): Result 
   if (g.state.level < 2) return fail(`Requer nível ${levelDef(2).name}.`);
   if (c.kekkei) return fail('Este clã já despertou uma kekkei genkai.');
   if (!awakenOptions(g, c).some((k) => k.id === kekkei))
-    return fail(`O clã precisa de ninjas de ${def.natures.join(' e ')}.`);
+    return fail(`O clã precisa de ninjas com ${def.need.map(needText).join(' e ')}.`);
   if (!g.pay(AWAKEN_COST)) return fail('Recursos insuficientes.');
   c.kekkei = kekkei;
-  // os ninjas do clã com uma das naturezas despertam na hora
+  // os ninjas do clã que cumprem uma das condições despertam na hora
   const awakened: string[] = [];
   for (const u of clanMembers(g, c)) {
-    if (!u.ninja || !def.natures.includes(u.ninja.nature)) continue;
+    if (!u.ninja || !def.need.some((n) => meetsNeed(u, n))) continue;
     u.ninja.kekkei = kekkei;
     fx(g, 'burst', u.x, u.y, { r: 30, color: def.color, life: 0.7 });
     fxText(g, u.x, u.y - 30, `${def.kanji} ${def.name}!`, def.color, true);

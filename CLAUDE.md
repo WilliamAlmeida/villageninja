@@ -429,6 +429,15 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Oito Portões (jutsu `hachimon`: muito dano e velocidade, a vida escorre) e manto de Raiton (jutsu `raitonyoroi`:
   rápido e esquiva). Bônus em `modeDamage/modeGuard/modeDodge/modeSpeed`; desenho: caudas de chakra (`bijuuTails`),
   aura pela silhueta (`sageGlow` com cores), vapor e raios. Laboratório: grupo "Bestas com cauda (manto)".
+- **Dōjutsu** (`game/dojutsu.ts`; kekkei genkai de clã com `eye` em `data/kekkei.ts`, que agora pede condições
+  `need`: natureza OU atributo ≥ `KEKKEI_STAT` num ninja do clã): **Sharingan** (fogo + Genjutsu alto) esquiva mais, copia o
+  jutsu que um inimigo solta por perto (`sawJutsu` em `releaseJutsu` → `Unit.mirror`, devolvido uma vez por `mirrorCast` no
+  `engage`; guarda em `NinjaInfo.seen` e aprende esses sem pergaminho nem natureza, `jutsuOptions`), Kanashibari,
+  Amaterasu (efeito `ignite`: `Unit.burn`, chamas negras que queimam até apagar, `burnTick` no status) e Susano'o (modo
+  `susanoo`: guerreiro de chakra roxo desenhado pela silhueta ampliada); **Byakugan** (Taijutsu + Inteligência altos) revela
+  invisíveis por perto (`byakuganNear` em `spyRevealed`) e o Punho Gentil tira chakra a cada golpe (`gentleFist`); os golpes
+  Hyuga (Kūshō, 64 Palmas, Kaiten, Sōshiken) exigem o Byakugan. Olhos acesos em combate (`Unit.eyeOn`, `eyeTick` no
+  `modeTick`; brilho no rosto por `eyeGlints`). Vitrine: os dois primeiros clãs têm Sharingan e Byakugan. Laboratório: grupo "Dōjutsu".
 - **Os Três Sannin** (`data/sannin.ts`, `game/sannin.ts`, seção na aba Kage): título para até 3 Jounins nv 20+ (um por
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em

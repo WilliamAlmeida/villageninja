@@ -6,6 +6,7 @@ import { BUILDINGS } from '../../data/buildings';
 import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
 import { SPEC } from '../../data/specs';
 import { spyNinjaNear } from '../specs';
+import { byakuganNear } from '../dojutsu';
 import { dogSniff, sniffRange } from '../ninken';
 import { orgBrain } from '../org';
 import { swordsmanPrey } from '../swordsmen';
@@ -521,6 +522,7 @@ function spyRevealed(g: Game, u: Unit) {
   for (const b of g.state.buildings)
     if ((b.type === 'tower' || b.type === 'intel') && b.built && dist(u, buildingCenter(b)) < SPY.towerRange * (b.type === 'intel' ? 1.6 : 1)) return true;
   if (spyNinjaNear(g, u.x, u.y, SPEC.spyReveal)) return true;
+  if (byakuganNear(g, u.x, u.y)) return true; // o Byakugan vê através da camuflagem
   // faro dos ninken
   if (g.state.units.some((o) => !o.dead && o.animal === 'dog' && o.faction === 'village' && dist(u, o) < sniffRange(o))) return true;
   return g.state.units.some(

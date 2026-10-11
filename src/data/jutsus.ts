@@ -18,7 +18,8 @@ export type JutsuEffect =
   | 'heal' // cura um aliado
   | 'shield' // reduz dano recebido
   | 'bind' // dano + prende o alvo (Mokuton)
-  | 'mode'; // veste um modo de combate (Oito Portões, manto de Raiton; game/modes.ts)
+  | 'mode' // veste um modo de combate (Oito Portões, manto de Raiton, Susano'o; game/modes.ts)
+  | 'ignite'; // acende chamas no alvo que queimam `power` ao longo de `duration` s (Amaterasu; game/dojutsu.ts)
 
 export interface JutsuDef {
   id: string;
@@ -176,6 +177,23 @@ const LIST: JutsuDef[] = [
     nature: null, kekkei: 'shakuton', type: 'ninjutsu', rank: 3, chakra: 30, cooldown: 8, range: 130, power: 30, effect: 'aoe',
     radius: 70, color: '#ffb347', req: { ninjutsu: 4 }, cost: { ryo: 180 }, learnTime: 40, vfx: 'heat',
   },
+  // ---- dōjutsu (Sharingan e Byakugan; os golpes Hyuga ficam com os taijutsu e exigem o Byakugan)
+  {
+    id: 'kanashibari', name: 'Sharingan: Kanashibari', shout: 'Kanashibari!', desc: 'Um olhar do Sharingan prende o alvo numa ilusão.',
+    nature: null, kekkei: 'sharingan', type: 'genjutsu', rank: 2, chakra: 14, cooldown: 9, range: 120, power: 0, effect: 'stun',
+    duration: 1.8, color: '#ff3a3a', req: { genjutsu: 3 }, cost: { ryo: 110 }, learnTime: 30, vfx: 'genjutsu',
+  },
+  {
+    id: 'amaterasu', name: 'Amaterasu', shout: 'Amaterasu!', desc: 'Chamas negras acendem no alvo e queimam até apagar sozinhas.',
+    nature: null, kekkei: 'sharingan', type: 'ninjutsu', rank: 4, chakra: 40, cooldown: 14, range: 170, power: 70, effect: 'ignite',
+    duration: 6, color: '#b04ae0', req: { genjutsu: 6, ninjutsu: 6 }, cost: { ryo: 480 }, learnTime: 75, vfx: 'dark',
+  },
+  {
+    id: 'susanoo', name: "Susano'o", shout: "Susano'o!", desc: 'Um guerreiro de chakra envolve o corpo: segura os golpes e bate mais forte.',
+    nature: null, kekkei: 'sharingan', type: 'ninjutsu', rank: 5, chakra: 60, cooldown: 45, range: 0, power: 0, effect: 'mode', mode: 'susanoo',
+    moves: [['cast', 1, 0.3], ['cast', 3, 0.3]],
+    color: '#9a5cff', req: { genjutsu: 7, ninjutsu: 7, stamina: 6 }, cost: { ryo: 600 }, learnTime: 90,
+  },
   // ---- proibidos (pergaminhos achados nas ruínas)
   {
     id: 'kuroduki', name: 'Kinjutsu: Lua Negra', shout: 'Lua Negra!', desc: 'Ilusão proibida: mergulha o alvo num pesadelo que o paralisa por muito tempo.',
@@ -269,25 +287,25 @@ const LIST: JutsuDef[] = [
   },
   {
     id: 'kusho', name: 'Hakke Kūshō', shout: 'Hakke Kūshō!', desc: 'Palma que dispara um golpe de ar à distância.',
-    nature: null, type: 'taijutsu', rank: 2, chakra: 12, cooldown: 5, range: 130, power: 20, effect: 'projectile', projSpeed: 380, projKind: 'jet', stun: 0.3, vfx: 'wind',
+    nature: null, kekkei: 'byakugan', type: 'taijutsu', rank: 2, chakra: 12, cooldown: 5, range: 130, power: 20, effect: 'projectile', projSpeed: 380, projKind: 'jet', stun: 0.3, vfx: 'wind',
     moves: [['cast', 3, 0.3], ['strike', 3, 0.12]],
     color: '#bfe0ff', req: { taijutsu: 3, inteligencia: 3 }, cost: { ryo: 100 }, learnTime: 26,
   },
   {
     id: 'rokujuyon', name: 'Hakke Rokujūyon Shō', shout: '64 Palmas!', desc: 'Golpes de palma nos pontos de chakra: o alvo fica travado.',
-    nature: null, type: 'taijutsu', rank: 4, chakra: 26, cooldown: 12, range: 28, power: 40, effect: 'melee', stun: 1.6, vfx: 'wind',
+    nature: null, kekkei: 'byakugan', type: 'taijutsu', rank: 4, chakra: 26, cooldown: 12, range: 28, power: 40, effect: 'melee', stun: 1.6, vfx: 'wind',
     moves: [['cast', 3, 0.06], ['strike', 1, 0.06], ['cast', 3, 0.06], ['strike', 1, 0.06], ['cast', 3, 0.06], ['strike', 1, 0.06], ['cast', 3, 0.16], ['strike', 3, 0.12]],
     color: '#bfe0ff', req: { taijutsu: 6, inteligencia: 5 }, cost: { ryo: 320 }, learnTime: 58,
   },
   {
     id: 'kaiten', name: 'Hakkeshō Kaiten', shout: 'Kaiten!', desc: 'Gira soltando chakra: um domo que segura os golpes.',
-    nature: null, type: 'taijutsu', rank: 3, chakra: 20, cooldown: 14, range: 0, power: 0, effect: 'shield', duration: 2.5, vfx: 'wind',
+    nature: null, kekkei: 'byakugan', type: 'taijutsu', rank: 3, chakra: 20, cooldown: 14, range: 0, power: 0, effect: 'shield', duration: 2.5, vfx: 'wind',
     moves: [['cast', 1, 0.9, 0, 'spin'], ['cast', 3, 0.15]],
     color: '#bfe0ff', req: { taijutsu: 5, inteligencia: 4, stamina: 4 }, cost: { ryo: 220 }, learnTime: 44,
   },
   {
     id: 'soshiken', name: 'Jūho Sōshiken', shout: 'Sōshiken!', desc: 'Punhos de leão de chakra que travam o alvo.',
-    nature: null, type: 'taijutsu', rank: 4, chakra: 28, cooldown: 11, range: 28, power: 44, effect: 'melee', stun: 0.6, vfx: 'wind',
+    nature: null, kekkei: 'byakugan', type: 'taijutsu', rank: 4, chakra: 28, cooldown: 11, range: 28, power: 44, effect: 'melee', stun: 0.6, vfx: 'wind',
     moves: [['strike', 0, 0.1], ['strike', 2, 0.16], ['strike', 0, 0.08], ['strike', 2, 0.18], ['strike', 3, 0.12]],
     color: '#7fb0ff', req: { taijutsu: 6, inteligencia: 5 }, cost: { ryo: 330 }, learnTime: 58,
   },

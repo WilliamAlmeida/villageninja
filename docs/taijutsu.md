@@ -52,7 +52,7 @@ espelhar o lado a cada passo (giro), deslocar o sprite para cima (salto/no ar), 
 Todos os golpes da tabela entraram como jutsu (`data/jutsus.ts`, fim da lista), menos Kawazu Kumite (já é o Modo
 Sábio) e Hachimon (fica para um estado de "portões"); mais Rasengan (investida com a esfera na mão, `handOrb`) e
 Rasenshuriken (projétil `spinner`). Altura do salto: 4º campo do passo (`moves`), o corpo sobe e a sombra fica no
-chão. Efeito: 5º campo, `spin` (giro espelhando) ou `roll` (bola girando). Investida com área ao chegar: `dashRadius`.
+chão. Os golpes Hyuga (Kūshō, 64 Palmas, Kaiten, Sōshiken) exigem o Byakugan (`kekkei: 'byakugan'`). Efeito: 5º campo, `spin` (giro espelhando) ou `roll` (bola girando). Investida com área ao chegar: `dashRadius`.
 Alvo lançado ao alto: `launch`. Reação ao dano: `MOVE_SEQS` (`hurt-light`, `hurt-down`, `hurt-launch`), por
 `playHurt` em combat.ts; o duelo do Exame em nocaute fica caído.
 

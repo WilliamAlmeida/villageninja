@@ -13,6 +13,7 @@ import { STRIKE_ANIM } from '../game/combat';
 import dollPoses from '../data/doll-poses.json';
 import { JUTSUS } from '../data/jutsus';
 import { bijuu, bijuuScale } from '../data/bijuu';
+import { eyeOf } from '../game/dojutsu';
 import { MOVE_SEQS, type MoveFx, moveAt, movesTime } from '../data/moves';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
@@ -418,9 +419,9 @@ function sageGlow(ctx: Ctx, pic: HTMLImageElement | HTMLCanvasElement, x: number
 }
 
 /** Modo Sábio, atrás do boneco: chamas de energia natural subindo pelas bordas do corpo (laranja → amarelo, somem no alto). */
-function sageWisps(ctx: Ctx, u: Unit, t: number, low = '#ff8a2b', high = '#ffd34d', rise = 30) {
+function sageWisps(ctx: Ctx, u: Unit, t: number, low = '#ff8a2b', high = '#ffd34d', rise = 30, op: GlobalCompositeOperation = 'lighter') {
   ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalCompositeOperation = op;
   for (let i = 0; i < 7; i++) {
     const k = (t * 0.9 + i / 7 + u.id * 0.13) % 1; // 0 = nasce embaixo, 1 = some no alto
     const side = (i % 2 ? 1 : -1) * (7 + (i % 3) * 1.8); // pelas bordas, não pelo meio do corpo
@@ -511,6 +512,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     sageWisps(ctx, u, t, '#5fe07a', '#d8ffe0', 40);
     sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, '#2fa04a', '#9fffb0');
   } else if (md?.kind === 'raiton') sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, '#4ab0ff', '#fff6a0');
+  else if (md?.kind === 'susanoo') susanoo(ctx, pic, ux, uy, height, flip, frame, row, t);
   drawArt(ctx, pic, ux, uy, height, flip, frame, row);
   // clarão branco de quem levou dano
   if (u.hitFlash > 0) {
@@ -518,6 +520,13 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     drawArt(ctx, whiteArt(pic), ux, uy, height, flip, frame, row);
   }
   if (md?.kind === 'raiton') raitonSparks(ctx, ux, uy, height, t, u.id);
+  // Sharingan/Byakugan acesos na luta: o brilho nos olhos (não de costas nem caído)
+  if (u.eyeOn && row !== SHEET_ROWS.back && pz?.pose !== 'hurt') {
+    const off = posed ? (dollPoses.offsets as Record<string, number[][]>)[pz!.pose]?.[row * 4 + pz!.frame] : undefined;
+    eyeGlints(ctx, u, ux, uy, height, row, flip, off, t);
+  }
+  // Amaterasu: chamas negras subindo pelo corpo
+  if (u.burn) sageWisps(ctx, u, t * 1.6, '#120814', '#4a1a5a', 24, 'source-over');
   // Rasengan: a esfera de chakra girando na mão, na corrida e no golpe
   const orbJ = u.dash?.id ?? (u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
   const orb = orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
@@ -564,6 +573,73 @@ function poseOf(u: Unit, t: number): PoseNow | null {
     return { pose: 'strike', frame: u.anim > 0.28 ? 2 : 3, h: 0 };
   }
   return null;
+}
+
+/**
+ * Susano'o, atrás do boneco: a silhueta dele em roxo, bem maior e translúcida (o guerreiro de chakra), com costelas
+ * em arco e o contorno pulsando.
+ */
+function susanoo(ctx: Ctx, pic: HTMLImageElement | HTMLCanvasElement, x: number, y: number, h: number, flip: boolean, frame: number, row: number, t: number) {
+  const pulse = 0.5 + Math.sin(t * 4) * 0.5;
+  ctx.save();
+  ctx.globalAlpha *= 0.28 + pulse * 0.1;
+  drawArt(ctx, solidArt(pic, '#7a3ae0'), x, y + 3, h * 2.1, flip, frame, row);
+  ctx.globalAlpha = 0.5;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = '#c8a0ff';
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 4; i++) {
+    const ry = y - h * (0.55 + i * 0.16);
+    const rw = h * (0.42 - i * 0.05);
+    ctx.beginPath();
+    ctx.ellipse(x, ry, rw, rw * 0.35, 0, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.stroke();
+  }
+  ctx.restore();
+  sageGlow(ctx, pic, x, y, h, flip, frame, row, t, '#7a3ae0', '#d8b8ff');
+}
+
+/**
+ * Olhos acesos (dōjutsu) no rosto do quadro parado da caminhada (olhos a 75% da altura, ±3 px de frente, um só de
+ * lado), seguindo a cabeça nas poses. Sharingan: pontos vermelhos; Byakugan: brancos com as veias saltando.
+ */
+function eyeGlints(ctx: Ctx, u: Unit, x: number, y: number, h: number, row: number, flip: boolean, off: number[] | undefined, t: number) {
+  const eye = eyeOf(u);
+  if (!eye) return;
+  const k = h / 30; // px de mundo por px do boneco de 30 de altura (célula 56 → 30)
+  const cell = h / 56; // px de mundo por px da célula da pose (o corpo ocupa 56 px dela)
+  const ox = (off?.[0] ?? 0) * cell * (flip ? -1 : 1);
+  const oy = (off?.[1] ?? 0) * cell;
+  const ey = y - h * 0.75 + oy;
+  const xs = row === SHEET_ROWS.side ? [x + (flip ? -3.5 : 3.5) * k + ox] : [x - 3 * k + ox, x + 2.5 * k + ox];
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const ex of xs) {
+    const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, 2.6 * k);
+    gr.addColorStop(0, eye === 'sharingan' ? 'rgba(255,60,60,0.9)' : 'rgba(240,236,255,0.9)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(ex - 3 * k, ey - 3 * k, 6 * k, 6 * k);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = eye === 'sharingan' ? '#ff1a1a' : '#f4f0ff';
+  for (const ex of xs) ctx.fillRect(ex - 0.5 * k, ey - 0.5 * k, 1 * k, 1 * k);
+  if (eye === 'byakugan') {
+    // veias: riscos curtos saindo do canto dos olhos, pulsando
+    ctx.globalAlpha = 0.55 + Math.sin(t * 5) * 0.2;
+    ctx.strokeStyle = '#8a80c0';
+    ctx.lineWidth = 0.5 * k;
+    for (const ex of xs)
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(ex + s * 0.8 * k, ey);
+        ctx.lineTo(ex + s * 2 * k, ey - 1.2 * k);
+        ctx.moveTo(ex + s * 0.8 * k, ey + 0.3 * k);
+        ctx.lineTo(ex + s * 2.2 * k, ey + 0.6 * k);
+        ctx.stroke();
+      }
+  }
+  ctx.restore();
 }
 
 /** Caudas de chakra do manto da fera: uma curva por cauda saindo das costas, balançando como chama. */

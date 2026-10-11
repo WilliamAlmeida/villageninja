@@ -1,7 +1,8 @@
-// Modos de combate (manto de chakra): manto da fera do Jinchuuriki, Oito Portões e manto de Raiton. Um só por vez
+// Modos de combate (manto de chakra): manto da fera do Jinchuuriki, Oito Portões, manto de Raiton e Susano'o. Um só por vez
 // (`Unit.mode`); dano, velocidade, defesa e esquiva entram por estas funções em combat.ts e movement.ts.
 import { bijuu, BIJUU_MODE, MODES, type ModeKind } from '../data/bijuu';
 import { chance } from '../core/rng';
+import { eyeTick } from './dojutsu';
 import { fx, fxMoment, fxText } from './fx';
 import type { Game } from './game';
 import type { Unit } from './types';
@@ -32,6 +33,7 @@ export function enterMode(g: Game, u: Unit, kind: ModeKind, tails?: number) {
 /** A cada passo: o tempo corre, Oito Portões consomem a vida, o manto regenera e solta ondas de chakra; o Jinchuuriki
  *  veste o manto sozinho quando a luta aperta. */
 export function modeTick(g: Game, u: Unit, dt: number) {
+  eyeTick(g, u); // Sharingan/Byakugan acendem com a luta
   if (u.modeCd) u.modeCd = Math.max(0, u.modeCd - dt);
   const host = u.ninja?.bijuu;
   if (host && !u.mode && !u.modeCd && u.combatTimer > 0 && !u.hidden && u.stun <= 0 && (u.hp < u.maxHp * 0.65 || bossNear(g, u))) {

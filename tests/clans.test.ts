@@ -23,6 +23,8 @@ function founder(g: Game, nature: 'fuuton' | 'suiton' | 'katon' = 'fuuton'): Uni
   u.name = 'Hoshino Kenta';
   u.ninja!.level = 6;
   u.ninja!.nature = nature;
+  // atributos baixos: nenhum dōjutsu (que pede atributo alto) desperta por acaso
+  for (const k of Object.keys(u.ninja!.stats) as (keyof NonNullable<typeof u.ninja>['stats'])[]) u.ninja!.stats[k] = 3;
   return u;
 }
 

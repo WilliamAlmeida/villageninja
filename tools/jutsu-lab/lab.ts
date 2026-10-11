@@ -137,6 +137,9 @@ function cast(who: 'ninja' | 'enemy') {
   n.sannin = undefined;
   n.kageArt = undefined;
   n.bijuu = undefined;
+  n.kekkei = null;
+  caster.eyeOn = undefined;
+  caster.mirror = undefined;
   caster.mode = undefined;
   caster.sage = 0;
   caster.mark = undefined;
@@ -173,6 +176,7 @@ const jutsuActs: Act[] = JUTSU_LIST.map((j) => ({
     const n = caster.ninja!;
     n.jutsu = [j.id, null];
     n.cd = [0, 0];
+    n.kekkei = j.kekkei ?? null; // jutsu de clã: o ninja tem a kekkei genkai (olhos acesos no Sharingan/Byakugan)
     caster.attackCd = 0;
     if (j.effect === 'heal') {
       // cura: o aliado ferido aparece ao lado
@@ -317,6 +321,35 @@ const bijuuActs: Act[] = [...BIJUU.map((b) => ({ b, wild: false })), { b: BIJUU[
   },
 }));
 
+/** Dōjutsu: o boneco solta um Goukakyuu no ninja do Sharingan, que copia e devolve; o Byakugan golpeia com o Punho
+ *  Gentil (cada golpe tira chakra do alvo). Amaterasu, Susano'o, Kanashibari e os golpes Hyuga estão em Jutsus. */
+const eyeActs: Act[] = [
+  {
+    label: 'Sharingan: copiar',
+    color: '#e0202a',
+    tip: 'O boneco solta um Goukakyuu; o Sharingan copia e devolve o mesmo jutsu.',
+    run: () => {
+      strike(null, 5, 140);
+      caster.ninja!.kekkei = 'sharingan';
+      const d = dummy.ninja!;
+      d.jutsu = ['goukakyuu', null];
+      d.cd = [0, 0];
+      dummy.chakra = dummy.maxChakra;
+      castJutsu(g, dummy, 0, caster);
+      d.jutsu = [null, null];
+    },
+  },
+  {
+    label: 'Byakugan: Punho Gentil',
+    color: '#cfc8ff',
+    tip: 'Golpes corpo a corpo com o Byakugan: cada um fecha pontos de chakra do alvo.',
+    run: () => {
+      strike(null, 5, 30);
+      caster.ninja!.kekkei = 'byakugan';
+    },
+  },
+];
+
 const orgActs: Act[] = (Object.keys(ORG_MEMBERS) as OrgMemberId[]).map((id) => ({
   label: ORG_MEMBERS[id].art,
   tip: `${ORG_MEMBERS[id].name}, ${ORG_MEMBERS[id].title}`,
@@ -366,6 +399,7 @@ const GROUPS: [string, Act[], string?][] = [
   ['Golpes', strikeActs],
   ['Lâminas lendárias', bladeActs, 'Equipa a lâmina e golpeia o boneco por uns segundos.'],
   ['Sannin', sanninActs],
+  ['Dōjutsu', eyeActs, "Sharingan e Byakugan. Os jutsus de cada olho (Amaterasu, Susano'o, golpes Hyuga) estão em Jutsus."],
   ['Bestas com cauda (manto)', bijuuActs, 'O ninja vira Jinchuuriki e veste o manto da fera; golpeia o boneco por uns segundos.'],
   ['Ordem do Eclipse', orgActs, 'O membro usa a técnica num aliado da vila.'],
   ['Quinteto do Som', soundActs],
@@ -426,6 +460,7 @@ document.getElementById('reset')!.onclick = () => {
     u.hp = u.maxHp;
     u.attackCd = 0;
     u.knockT = 0;
+    u.burn = undefined;
     if (u.ninja) u.ninja.cd = [0, 0];
   }
   cast('ninja');

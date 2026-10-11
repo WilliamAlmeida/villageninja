@@ -34,7 +34,7 @@ export const bijuuScale = (tails: number) => ({ hp: 0.7 + tails * 0.22, damage: 
 export const SEAL = { cost: { ryo: 600, paper: 20 }, minLevel: 12 };
 
 /** Modos de combate (manto de chakra): bônus enquanto duram (game/modes.ts). */
-export type ModeKind = 'bijuu' | 'gates' | 'raiton';
+export type ModeKind = 'bijuu' | 'gates' | 'raiton' | 'susanoo';
 export const MODES: Record<ModeKind, { name: string; color: string; time: number; cooldown: number; damage: number; speed: number; guard: number; dodge: number; drain: number }> = {
   /** Manto da fera: dano e velocidade (crescem com as caudas, em `modeDamage`), segura golpes e regenera. */
   bijuu: { name: 'Manto de chakra', color: '#ff3a1a', time: 14, cooldown: 45, damage: 1.15, speed: 1.25, guard: 0.75, dodge: 0, drain: -0.01 },
@@ -42,6 +42,8 @@ export const MODES: Record<ModeKind, { name: string; color: string; time: number
   gates: { name: 'Oito Portões', color: '#5fe07a', time: 10, cooldown: 0, damage: 1.5, speed: 1.4, guard: 1, dodge: 0, drain: 0.025 },
   /** Manto de Raiton: corpo coberto de raios, rápido e difícil de acertar. */
   raiton: { name: 'Manto de Raiton', color: '#ffe066', time: 12, cooldown: 0, damage: 1.1, speed: 1.35, guard: 0.9, dodge: 0.25, drain: 0 },
+  /** Susano'o (Sharingan): o guerreiro de chakra segura quase todo golpe e bate forte, mas pesa (mais lento). */
+  susanoo: { name: "Susano'o", color: '#9a5cff', time: 12, cooldown: 0, damage: 1.3, speed: 0.85, guard: 0.35, dodge: 0, drain: 0 },
 };
 
 /** Manto da fera: a partir de 4 caudas solta ondas de chakra em volta; a chance de perder o controle cresce com elas

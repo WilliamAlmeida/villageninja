@@ -57,8 +57,8 @@ import { CARE, catchingUp, isRookie } from '../game/care';
 import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
 import { FIELD_FOCUS_BONUS, MARKET_GOOD_LIST, MARKET_GOODS, type MarketGood } from '../data/specialize';
 import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHUNSHIN } from '../game/techniques';
-import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, surname } from '../game/clans';
-import { KEKKEI, KEKKEI_LIST, type KekkeiId } from '../data/kekkei';
+import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, needLabel, surname } from '../game/clans';
+import { KEKKEI, KEKKEI_LIST, KEKKEI_STAT, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemDef, type ItemSlot } from '../data/items';
@@ -1953,7 +1953,7 @@ export class Panel {
         const opts = awakenOptions(g, c);
         html += `<div class="btnrow">`;
         if (g.state.level < 2) html += `<span class="why">{lock} Kekkei genkai: ${levelDef(2).name}</span>`;
-        else if (!opts.length) html += `<span class="why" ${tipAttr('Despertar kekkei genkai', 'O clã precisa de ninjas de duas naturezas compatíveis (ex.: 風+水 = 氷 Gelo). Veja os pares na lista de kekkei genkai.', true)}>Falta um par de naturezas</span>`;
+        else if (!opts.length) html += `<span class="why" ${tipAttr('Despertar kekkei genkai', `O clã precisa de ninjas que cumpram as duas condições (ex.: 風+水 = 氷 Gelo; 火 + Genjutsu ${KEKKEI_STAT}+ = Sharingan). Veja a lista de kekkei genkai.`, true)}>Faltam as condições</span>`;
         else
           for (const k of opts)
             html += `<button class="btn" data-act="awaken" data-arg="${c.id}" data-k="${k.id}" ${blocked(g, [], AWAKEN_COST)} ${tipAttr(`Despertar ${k.name}`, `Kekkei genkai ${k.pt}.`)}>${k.kanji} Despertar ${k.name} ${costTag(AWAKEN_COST)}</button>`;
@@ -1963,7 +1963,7 @@ export class Panel {
     }
     html += `<h4>Kekkei genkai</h4><ul class="kklist">`;
     for (const k of KEKKEI_LIST)
-      html += `<li style="--c:${k.color}"><span class="kk-k">${k.kanji}</span><span>${k.name}<small>${k.pt}</small></span><b>${NATURES[k.natures[0]].kanji} + ${NATURES[k.natures[1]].kanji}</b></li>`;
+      html += `<li style="--c:${k.color}" ${k.desc ? tipAttr(`${k.name} (${k.pt})`, k.desc, true) : ''}><span class="kk-k">${k.kanji}</span><span>${k.name}<small>${k.pt}</small></span><b>${k.need.map(needLabel).join(' + ')}</b></li>`;
     html += `</ul>`;
     return { html, t: {}, b: {} };
   }

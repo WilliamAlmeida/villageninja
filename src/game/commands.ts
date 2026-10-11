@@ -15,6 +15,7 @@ import { inTerritory } from './village';
 import { canFlip, doorPos } from './world';
 import { academyRecruitLevel, workersOf } from './upgrade';
 import { needsScroll, studyable } from './library';
+import { copyable } from './dojutsu';
 
 export type Result = { ok: true } | { ok: false; error: string };
 const ok: Result = { ok: true };
@@ -213,8 +214,11 @@ export interface JutsuOption {
  */
 export function jutsuOptions(u: Unit, open: readonly string[] = []): JutsuOption[] {
   const n = u.ninja!;
+  // Sharingan: o que já viu em combate dá para aprender sem o pergaminho e fora da natureza (game/dojutsu.ts)
+  const copied = (j: JutsuDef) => n.kekkei === 'sharingan' && !!n.seen?.includes(j.id) && copyable(j);
   const allowed = (j: JutsuDef) =>
-    ((!j.forbidden && !needsScroll(j)) || open.includes(j.id)) && (j.kekkei ? n.kekkei === j.kekkei : j.nature === null || j.nature === n.nature);
+    copied(j) ||
+    (((!j.forbidden && !needsScroll(j)) || open.includes(j.id)) && (j.kekkei ? n.kekkei === j.kekkei : j.nature === null || j.nature === n.nature));
   return JUTSU_LIST.filter(allowed).map((def) => {
     const known = n.jutsu.includes(def.id);
     if (known) return { def, ok: false, reason: 'Já conhece', known };

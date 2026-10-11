@@ -4,7 +4,7 @@ import { foodMult } from '../mood';
 import { BUILDINGS } from '../../data/buildings';
 import { derive } from '../../data/ninja';
 import { interruptCast } from '../techniques';
-import { resolveStrike } from '../combat';
+import { burnTick, resolveStrike } from '../combat';
 import type { Game } from '../game';
 import { doorPos } from '../world';
 
@@ -44,6 +44,9 @@ export function statusSystem(g: Game, dt: number) {
     if (u.sanninCd) u.sanninCd = Math.max(0, u.sanninCd - dt);
     if (u.sage) u.sage = Math.max(0, u.sage - dt) || undefined;
     if (u.mark && (u.mark.t -= dt) <= 0) u.mark = undefined;
+    if (u.mirror && (u.mirror.t -= dt) <= 0) u.mirror = undefined;
+    if (u.burn) burnTick(g, u, dt); // Amaterasu
+    if (u.dead) continue;
     // atordoado (ou fora de combate há um tempo) perde os selos que estava fazendo
     if (u.cast && (u.stun > 0 || u.combatTimer <= 0)) interruptCast(g, u, u.stun <= 0);
     if (u.ninja) {
