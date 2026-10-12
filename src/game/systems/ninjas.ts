@@ -331,6 +331,8 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
 
 function decide(g: Game, u: Unit, night: boolean) {
   const n = u.ninja!;
+  // parado decidindo = fora de qualquer prédio (uma ordem que o tirou de dentro de casa, ex. estudar, não o deixa invisível)
+  u.hidden = false;
   // mapa de missão: nada de treinar, estudar ou dormir; acompanham o líder e lutam com quem chegar
   if (g.state.sceneInfo) {
     if (followLeader(g, u)) return;

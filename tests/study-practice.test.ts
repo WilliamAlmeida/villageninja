@@ -57,3 +57,16 @@ describe('estudo de jutsu: lê na Academia, pratica no campo', () => {
     for (const x of g.state.units) if (x.faction === 'village') expect(x.hp).toBeGreaterThanOrEqual(hp.get(x.id) ?? 0);
   });
 });
+
+describe('estudo de jutsu: saindo de casa', () => {
+  test('quem dormia em casa sai visível para a Academia', () => {
+    const { g, u } = setup(7, 'mizurappa');
+    // volta o estado como se estivesse dormindo em casa quando a ordem chegou
+    u.ninja!.learning = null;
+    u.state = 'sleep';
+    u.hidden = true;
+    expect(teachJutsu(g, u.id, 'mizurappa', 1).ok).toBe(true);
+    expect(until(g, 3, () => u.state === 'toLearn')).toBe(true);
+    expect(u.hidden).toBe(false);
+  });
+});
