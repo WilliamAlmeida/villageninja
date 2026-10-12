@@ -643,7 +643,8 @@ export class Renderer {
    * `x`/`baseY`: meio da base (onde apoia); `left`/`top`/`w`/`h`: o retângulo desenhado.
    */
   artBox(b: Building, level: number) {
-    const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
+    // a Residência guarda o nível da vila (+1) em `level` (syncHokage); sem ele (prévia do editor), o da vila
+    const lvl = b.level ?? (b.type === 'hokage' ? level + 1 : 1);
     // Editor de cenário: desenha exatamente a variante escolhida na lista (face do Monte, tema, estação)
     if (this.previewArt && art(this.previewArt)) return this.boxFor(b, this.previewArt, lvl);
     const faces = b.type === 'monument' ? `monument-f${Math.max(1, Math.min(6, this.kages))}` : '';
@@ -826,7 +827,7 @@ export class Renderer {
     const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level);
     // arte do nível do prédio (upgrade), se existir; senão a do nível 1.
     // A Residência do Hokage não tem upgrade próprio: cresce junto com o nível da vila (Aldeia = 1 … Grande Vila Oculta = 4).
-    const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
+    const lvl = b.level ?? (b.type === 'hokage' ? level + 1 : 1);
     // a arte vem do artBox (nível, tema do mapa, faces do Monte, estação da cerejeira, variante do editor)
     const chosen = this.artBox(b, level);
     const artName = chosen?.artName ?? (lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type);

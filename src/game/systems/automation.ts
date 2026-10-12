@@ -1,6 +1,7 @@
 import { autoCraftTick, autoSenseiTick, autoTeachTick } from '../automation';
 import { enforceTeamRules, markSenseis } from '../teams';
 import { autoRepairTick } from '../wear';
+import { syncHokage } from '../upgrade';
 import { releaseSanninDogs } from '../ninken';
 import type { Game } from '../game';
 
@@ -11,6 +12,7 @@ export function automationSystem(g: Game, dt: number) {
   acc += dt;
   if (acc < 2) return;
   acc = 0;
+  syncHokage(g); // a Residência cresce com o nível da vila (espera se faltar espaço)
   enforceTeamRules(g); // Kage sem equipe; ANBU e Sannin só entre si (conserta também saves antigos)
   markSenseis(g); // capa do sensei na cor da equipe
   releaseSanninDogs(g); // Sannin não fica com ninken

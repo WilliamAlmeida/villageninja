@@ -130,7 +130,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `lab.pause()`, `lab.step(s)`, `lab.act('Chidori')`.
 - **Upgrade de prédios** (nível 1–3; `data/upgrades.ts` + `game/upgrade.ts`): casa, fazenda, lenhador, pedreira, mercado,
   torre, hospital, campo de treino e academia (estudo mais rápido, recruta já sai com nível). A Residência do Hokage
-  não tem upgrade: a arte segue o nível da vila (`hokage-2..4`). A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
+  não tem upgrade: o nível dela (`Building.level`) segue o da vila (+1, `syncHokage` na automação) e o
+  terreno cresce junto: 3×3, 3×3, 4×4, 5×5 (`sizes`; sem espaço, espera; save v37); arte `hokage`, `hokage-2..4`. A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
   Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
 - **Tamanho do mapa por estado** (`GameState.mapW/mapH`; `VILLAGE_W/H` = 112×112 e `SCENE_W/H` = 72×48 em config.ts):
@@ -146,6 +147,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   tela (`visibleTiles` pela câmera), guardados por 6 s fora dela e na metade da resolução com zoom < 0,75; a memória é
   a do que se vê e o mapa não esbarra no limite de imagem do celular. Detalhe de cada tile com aleatoriedade fixa por
   tile (sai igual em qualquer bloco); as ondinhas da água só nos tiles à vista.
+  **Construções no padrão novo** (`scripts/building-art.py <lote>`; funções comuns em `scripts/iso_art.py`): uma imagem
+  por peça no Codex com o gabarito v2 do terreno do nível, a arte de hoje como identidade, as casas do piloto como estilo
+  e o nível anterior já novo como referência; recorte, tamanho pela base (= losango) e grade do boneco →
+  `docs/arte/predios/final/`; `--instalar` copia com backup (`docs/arte/_backup/<data>/<lote>/`), põe escala/posição
+  no layout.json e tira peças antigas, ART_SCALE provisório e a marca de editada à mão. Lotes em `BATCHES` (feito: kage).
 - **Terreno por nível** (`BuildingDef.sizes`, `defOf(b)` e `layoutKey(b)` em data/buildings.ts): a casa nível 3 ocupa 3×3
   (cresce para a direita e para baixo a partir do canto). Onde o tamanho importa e há um prédio, use `defOf(b)`, não
   `BUILDINGS[b.type]`; terreno/porta/pontos do layout desse nível ficam em `<tipo>-<nível>`. O upgrade pede o espaço
@@ -606,7 +612,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v36.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v37.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

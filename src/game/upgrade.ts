@@ -117,6 +117,38 @@ export function startUpgrade(g: Game, id: number): Result {
   return { ok: true };
 }
 
+/**
+ * A Residência do Hokage não tem upgrade próprio: o nível dela (`Building.level`) acompanha o da vila (Aldeia = 1 …
+ * Grande Vila Oculta = 4) e o terreno cresce junto (`sizes`: 3×3, 3×3, 4×4, 5×5, para a direita e para baixo). Sem
+ * espaço livre, espera (avisa uma vez) e tenta de novo no próximo passo da automação. A arte segue este nível.
+ */
+export function syncHokage(g: Game) {
+  const hk = g.hokage();
+  if (!hk) return;
+  while (levelOf(hk) < g.state.level + 1) {
+    const next = levelOf(hk) + 1;
+    const room = growRoom(g, hk, next);
+    if (room) {
+      if (!hk.waitRoom) g.toast(`{alert} A Residência quer crescer com a vila, mas falta espaço. ${room}`, 'warn', doorPos(hk));
+      hk.waitRoom = true;
+      return;
+    }
+    delete hk.waitRoom;
+    growTo(g, hk, next);
+  }
+}
+
+/** Sobe o prédio para o nível `next`; com terreno maior, tira árvore/rocha e rua de baixo e refaz a colisão. */
+function growTo(g: Game, b: Building, next: number) {
+  const grew = defOf({ type: b.type, level: next }).w !== defOf(b).w;
+  b.level = next;
+  if (!grew) return;
+  const d = defOf(b);
+  for (const n of [...g.state.nodes]) if (n.tx >= b.tx && n.tx < b.tx + d.w && n.ty >= b.ty && n.ty < b.ty + d.h) g.removeNode(n.id);
+  clearRoadsUnder(g.state, b.tx, b.ty, d.w, d.h);
+  g.world.rebuild();
+}
+
 /** Um construtor trabalhou `dt` segundos no upgrade. */
 export function workUpgrade(g: Game, b: Building, dt: number) {
   if (b.upgrade == null) return;
@@ -131,18 +163,10 @@ export function workUpgrade(g: Game, b: Building, dt: number) {
     return;
   }
   delete b.waitRoom;
-  const grew = defOf({ type: b.type, level: levelOf(b) + 1 }).w !== defOf(b).w;
-  b.level = levelOf(b) + 1;
   b.upgrade = null;
-  if (grew) {
-    // o terreno novo: árvore/rocha embaixo sai, a rua embaixo sai, a colisão se refaz
-    const d = defOf(b);
-    for (const n of [...g.state.nodes]) if (n.tx >= b.tx && n.tx < b.tx + d.w && n.ty >= b.ty && n.ty < b.ty + d.h) g.removeNode(n.id);
-    clearRoadsUnder(g.state, b.tx, b.ty, d.w, d.h);
-    g.world.rebuild();
-  }
+  growTo(g, b, levelOf(b) + 1); // o terreno novo: árvore/rocha embaixo sai, a rua embaixo sai, a colisão se refaz
   const def = defOf(b);
   const c = buildingCenter(b);
   fxText(g, c.x, c.y - 40, `${def.name} nível ${b.level}!`, '#ffd34d', true);
-  g.toast(`${def.icon} ${def.name} subiu para o nível ${b.level}: ${UPGRADES[b.type]!.perks[b.level - 1]}.`, 'good', doorPos(b));
+  g.toast(`${def.icon} ${def.name} subiu para o nível ${b.level}: ${UPGRADES[b.type]!.perks[levelOf(b) - 1]}.`, 'good', doorPos(b));
 }

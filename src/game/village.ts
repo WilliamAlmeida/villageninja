@@ -72,7 +72,7 @@ export function upgradeVillage(g: Game): Result {
   if (missing) return { ok: false, error: `Falta: ${missing.label} (${missing.have}/${missing.need}).` };
   if (!g.pay(st.def.cost)) return { ok: false, error: 'Recursos insuficientes.' };
   g.state.level = st.def.level;
-  g.world.rebuild();
+  g.world.rebuild(); // a Residência cresce junto no próximo passo da automação (syncHokage)
   const hk = g.hokage();
   if (hk) {
     const c = buildingCenter(hk);

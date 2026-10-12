@@ -264,6 +264,14 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   35: (s) => {
     growMap(s, VILLAGE_W, VILLAGE_H, 0x2b1);
   },
+  // v37: a Residência do Hokage guarda o nível (o da vila + 1) e o terreno cresce com ele (Vila Oculta 4×4, Grande Vila
+  // Oculta 5×5): cresce no lugar ou muda para o espaço livre mais perto
+  36: (s) => {
+    for (const st of [s, s.scene].filter(Boolean)) {
+      for (const b of st.buildings ?? []) if (b.type === 'hokage') b.level = (s.level ?? 0) + 1;
+      for (const [lv, size] of Object.entries(BUILDINGS.hokage.sizes ?? {})) growBuildings(st, 'hokage', size![0], size![1], Number(lv));
+    }
+  },
 };
 
 /**

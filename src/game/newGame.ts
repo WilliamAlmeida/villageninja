@@ -94,9 +94,10 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
     return g.addBuilding({ id: g.newId(), type, tx, ty, built: true, progress: def.buildTime, desired: def.workers ?? 0, workers: [], cd: 0 });
   };
   const hk = place('hokage', CENTER_TX - 1, CENTER_TY - 2);
+  // a Residência cresce para a direita e para baixo até 5×5 com a vila: casa e fazenda iniciais deixam esse espaço
   place('house', CENTER_TX - 5, CENTER_TY - 2);
-  place('house', CENTER_TX + 3, CENTER_TY - 2);
-  place('farm', CENTER_TX - 1, CENTER_TY + 3);
+  place('house', CENTER_TX + 5, CENTER_TY - 2);
+  place('farm', CENTER_TX - 1, CENTER_TY + 4);
 
   const d = doorPos(hk);
   for (let i = 0; i < 6; i++) createVillager(g, d.x + (i - 3) * 14, d.y + 12 + (i % 2) * 10);

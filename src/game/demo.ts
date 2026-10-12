@@ -8,6 +8,7 @@ import { ITEM_LIST } from '../data/items';
 import { JUTSU_LIST } from '../data/jutsus';
 import { RANKS, type Rank } from '../data/ninja';
 import { UPGRADES } from '../data/upgrades';
+import { syncHokage } from './upgrade';
 import type { BladeId } from '../data/blades';
 import { appointAnbu } from './anbu';
 import { grantBlade } from './blades';
@@ -48,6 +49,7 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   for (const site of s.sites) site.found = true;
 
   s.kageHistory.push({ name: 'Senju Hashira', day: 9 }); // um Kage anterior (o Monte dos Kages pede)
+  syncHokage(g); // Residência da Grande Vila Oculta (5×5) antes de espalhar os prédios em volta
   placeAll(g);
   // ruas calçadas: as passagens em volta dos prédios perto da Residência viram calçada
   const door = doorTile(g.hokage()!);

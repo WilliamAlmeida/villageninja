@@ -82,6 +82,8 @@ const LIST: BuildingDef[] = [
     type: 'hokage', name: 'Residência do Hokage', icon: '{castle}', desc: 'Centro da vila. Abriga 2 pessoas, serve de refúgio e seus guardas arremessam kunais.',
     w: 3, h: 3, cost: {}, buildTime: 0, housing: 2, unique: true, buildable: false, healRate: 2, lights: true,
     roof: '#c0392b', wall: '#eadcb8',
+    // o nível dela é o da vila + 1 (`syncHokage`): Vila Oculta 4×4, Grande Vila Oculta 5×5
+    sizes: { 3: [4, 4], 4: [5, 5] },
   },
   {
     type: 'house', name: 'Casa', icon: '{house}', desc: 'Abriga 4 moradores.',
