@@ -94,3 +94,13 @@ describe('animação do treino pelo atributo', () => {
     expect(n.trainStat).toBeUndefined();
   });
 });
+
+describe('foco trocado no meio do treino', () => {
+  test('sentado meditando, trocou para Taijutsu: levanta e já soca', () => {
+    const { g, n } = training(708, 'ninjutsu');
+    n.ninja!.focus = 'taijutsu';
+    const w = watch(g, n);
+    expect(n.trainStat).toBe('taijutsu');
+    expect(w.moves.has('train-tai')).toBe(true);
+  });
+});

@@ -19,6 +19,7 @@ import { fx, fxText } from '../fx';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
 import { trainKey, trainTick } from '../progression';
+import { statCapOf } from '../sannin';
 import { academyLearnMult } from '../upgrade';
 import { libraryLearnMult } from '../library';
 import { carried, carryMax, refillItem } from '../gear';
@@ -564,6 +565,13 @@ function runLap(g: Game, u: Unit, dt: number, speed: number) {
  */
 function trainMotion(g: Game, u: Unit, dt: number) {
   u.moving = false;
+  // foco trocado no meio do treino: passa a treinar (e animar) o novo na hora
+  const n = u.ninja!;
+  if (n.focus && n.focus !== u.trainStat && n.stats[n.focus] < statCapOf(n)) {
+    u.trainStat = n.focus;
+    u.trainLap = undefined;
+    u.anim = 0;
+  }
   const k = u.trainStat;
   const idle = u.anim <= 0;
   switch (k) {
