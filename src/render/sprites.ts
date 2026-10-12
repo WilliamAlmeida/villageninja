@@ -15,6 +15,7 @@ import { JUTSUS } from '../data/jutsus';
 import { bijuu, bijuuScale } from '../data/bijuu';
 import { eyeOf } from '../game/dojutsu';
 import { MOVE_SEQS, type MoveFx, moveAt, movesTime, SEAL_REHEARSAL } from '../data/moves';
+import { NATURES } from '../data/natures';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -566,7 +567,17 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, '#2fa04a', '#9fffb0');
   } else if (md?.kind === 'raiton') sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, '#4ab0ff', '#fff6a0');
   else if (md?.kind === 'susanoo') susanoo(ctx, pic, ux, uy, height, flip, frame, row, t);
+  // meditando no treino: aura de chakra na cor da natureza (Ninjutsu) ou o brilho roxo da ilusão (Genjutsu), suave
+  if (meditating(u)) {
+    const gen = trainStatOf(u) === 'genjutsu';
+    const c = gen ? '#c890ff' : (NATURES[u.ninja!.nature]?.color ?? '#9fd8ff');
+    ctx.save();
+    ctx.globalAlpha *= 0.55;
+    sageGlow(ctx, pic, ux, uy, height, flip, frame, row, t, gen ? '#7a3ae0' : c, gen ? '#e8d0ff' : '#ffffff');
+    ctx.restore();
+  }
   drawArt(ctx, pic, ux, uy, height, flip, frame, row);
+  if (u.state === 'train' && !u.moving && u.anim <= 0 && trainStatOf(u) === 'inteligencia' && row !== SHEET_ROWS.back) lapScroll(ctx, ux, uy, height);
   // clarão branco de quem levou dano
   if (u.hitFlash > 0) {
     ctx.globalAlpha *= Math.min(1, u.hitFlash / 0.15) * 0.85;
@@ -618,7 +629,11 @@ function poseOf(u: Unit, t: number): PoseNow | null {
   if (u.carrySack && u.anim <= 0) return { pose: 'carry', frame: u.moving ? Math.floor(t * 8 + u.id) % 4 : 1, h: 0 };
   // plateia na arquibancada do Exame: sentado no degrau; treino de chakra (Nin/Gen/Selos/Int) parado: meditando
   if (u.perch != null && !u.moving) return { pose: 'sit', frame: 0, h: 0 };
-  if (u.state === 'train' && !u.moving && u.anim <= 0 && MEDITATE.has(u.ninja?.focus ?? '')) return { pose: 'sit', frame: 2, h: 0 };
+  if (u.state === 'train' && !u.moving && u.anim <= 0) {
+    const k = trainStatOf(u);
+    if (k === 'inteligencia') return { pose: 'sit', frame: 1, h: 0 };
+    if (MEDITATE.has(k)) return { pose: 'sit', frame: 2, h: 0 };
+  }
   if (u.anim <= 0 || u.moving) return null;
   if (u.animKind === 'moves' && u.moveJutsu) {
     const seq = MOVE_SEQS[u.moveJutsu] ?? JUTSUS[u.moveJutsu]?.moves;
@@ -806,7 +821,25 @@ function handOrb(ctx: Ctx, x: number, y: number, color: string, t: number, size 
 }
 
 /** Focos de treino que o ninja faz meditando (sentado de pernas cruzadas). */
-const MEDITATE = new Set(['ninjutsu', 'genjutsu', 'selos', 'inteligencia']);
+const MEDITATE = new Set(['ninjutsu', 'genjutsu']);
+/** O que o ninja está treinando agora (save antigo sem `trainStat`: o foco dele). */
+const trainStatOf = (u: Unit) => u.trainStat ?? u.ninja?.focus ?? '';
+/** Meditando no treino de Ninjutsu/Genjutsu (sentado, parado): ganha a aura no desenho. */
+const meditating = (u: Unit) => u.state === 'train' && !u.moving && u.anim <= 0 && MEDITATE.has(trainStatOf(u));
+
+/** Pergaminho aberto no colo de quem treina Inteligência (sentado de pernas cruzadas; só desenho, sem arte). */
+function lapScroll(ctx: Ctx, x: number, y: number, h: number) {
+  const w = h * 0.42;
+  const sh = h * 0.13;
+  const top = y - h * 0.3;
+  ctx.fillStyle = '#efe2bf';
+  ctx.fillRect(x - w / 2, top, w, sh);
+  ctx.fillStyle = '#b9a47a';
+  for (let i = 1; i <= 3; i++) ctx.fillRect(x - w / 2 + w * 0.15, top + (sh * i) / 4.5, w * 0.7, 0.6);
+  ctx.fillStyle = '#7a4a26';
+  ctx.fillRect(x - w / 2 - 1.5, top - 1, 2, sh + 2);
+  ctx.fillRect(x + w / 2 - 0.5, top - 1, 2, sh + 2);
+}
 
 /** Pose agora: folha, quadro, altura do corpo acima do chão e efeito (girar, rolar). */
 type PoseNow = { pose: DollPose; frame: number; h: number; fx?: MoveFx };

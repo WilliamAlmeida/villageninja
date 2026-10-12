@@ -1,0 +1,96 @@
+import { describe, expect, test } from 'bun:test';
+import { SIM_DT } from '../src/config';
+import type { StatKey } from '../src/data/ninja';
+import { createNinja } from '../src/game/entities';
+import { createNewGame } from '../src/game/newGame';
+import { SYSTEMS } from '../src/game/systems';
+import type { Game } from '../src/game/game';
+import type { Unit } from '../src/game/types';
+
+/** Ninja mandado treinar com o foco dado; devolve quando chega no campo. */
+const training = (seed: number, focus: StatKey) => {
+  const g = createNewGame(SYSTEMS, seed);
+  for (const u of g.state.units) if (u.kind !== 'villager') u.dead = true;
+  g.state.timers.animal = g.state.timers.raid = 1e9;
+  g.addBuilding({ id: g.newId(), type: 'training', tx: 38, ty: 22, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+  const n = createNinja(g, 36 * 32, 24 * 32, 'genin', 0);
+  n.ninja!.order = 'train';
+  n.ninja!.focus = focus;
+  for (let t = 0; t < 60 && n.state !== 'train'; t += SIM_DT) {
+    g.state.time = 30;
+    g.step(SIM_DT);
+  }
+  expect(n.state).toBe('train');
+  expect(n.trainStat).toBe(focus);
+  return { g, n };
+};
+
+/** O que aparece durante 3 s de treino. */
+const watch = (g: Game, n: Unit) => {
+  const seen = { moves: new Set<string>(), seals: false, moved: 0, still: 0 };
+  let x = n.x;
+  let y = n.y;
+  for (let t = 0; t < 3 && n.state === 'train'; t += SIM_DT) {
+    g.state.time = 30;
+    g.step(SIM_DT);
+    if (n.animKind === 'moves' && n.anim > 0 && n.moveJutsu) seen.moves.add(n.moveJutsu);
+    if (n.animKind === 'seals' && n.anim > 0) seen.seals = true;
+    seen.moved += Math.hypot(n.x - x, n.y - y);
+    if (!n.moving && n.anim <= 0) seen.still++;
+    x = n.x;
+    y = n.y;
+  }
+  return seen;
+};
+
+describe('animação do treino pelo atributo', () => {
+  test('Taijutsu soca e chuta; Força bate pesado', () => {
+    let s = training(701, 'taijutsu');
+    expect(watch(s.g, s.n).moves.has('train-tai')).toBe(true);
+    s = training(702, 'forca');
+    expect(watch(s.g, s.n).moves.has('train-forca')).toBe(true);
+  });
+
+  test('Velocidade corre em volta do campo mais rápido que a Stamina, que também salta', () => {
+    const v = training(703, 'velocidade');
+    const fast = watch(v.g, v.n).moved;
+    const st = training(704, 'stamina');
+    const s = (() => {
+      const r = { moved: 0, jump: false };
+      for (let i = 0; i < 3; i++) {
+        const w = watch(st.g, st.n);
+        r.moved += w.moved / 3;
+        r.jump ||= w.moves.has('train-jump');
+      }
+      return r;
+    })();
+    expect(fast).toBeGreaterThan(150);
+    expect(s.moved).toBeGreaterThan(40);
+    expect(fast).toBeGreaterThan(s.moved);
+    expect(s.jump).toBe(true);
+  });
+
+  test('Selos faz os selos em ciclo; Ninjutsu, Genjutsu e Inteligência ficam sentados parados', () => {
+    const s = training(705, 'selos');
+    expect(watch(s.g, s.n).seals).toBe(true);
+    for (const k of ['ninjutsu', 'genjutsu', 'inteligencia'] as const) {
+      const m = training(706, k);
+      const w = watch(m.g, m.n);
+      expect(w.moved).toBe(0);
+      expect(w.moves.size).toBe(0);
+      expect(w.still).toBeGreaterThan(0);
+    }
+  });
+
+  test('o treino sobe o atributo que foi animado', () => {
+    const { g, n } = training(707, 'velocidade');
+    const before = n.ninja!.stats.velocidade;
+    for (let t = 0; t < 10 && n.state === 'train'; t += SIM_DT) {
+      g.state.time = 30;
+      g.step(SIM_DT);
+    }
+    expect(n.state).not.toBe('train');
+    expect(n.ninja!.stats.velocidade).toBeGreaterThan(before);
+    expect(n.trainStat).toBeUndefined();
+  });
+});

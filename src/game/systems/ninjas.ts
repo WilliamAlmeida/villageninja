@@ -2,7 +2,8 @@ import { TILE } from '../../config';
 import { chance, pick, rand, randi } from '../../core/rng';
 import { BUILDINGS } from '../../data/buildings';
 import { FORBIDDEN_RISK, JUTSUS } from '../../data/jutsus';
-import { movesTime, SEAL_REHEARSAL } from '../../data/moves';
+import { MOVE_SEQS, movesTime, SEAL_REHEARSAL } from '../../data/moves';
+import { NATURES } from '../../data/natures';
 import { SITES } from '../../data/sites';
 import { guardiansOf, resolveSite, scoutTarget, sitePos } from '../explore';
 import { refreshDerived } from '../entities';
@@ -17,7 +18,7 @@ import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
-import { trainTick } from '../progression';
+import { trainKey, trainTick } from '../progression';
 import { academyLearnMult } from '../upgrade';
 import { libraryLearnMult } from '../library';
 import { carried, carryMax, refillItem } from '../gear';
@@ -278,19 +279,15 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
       if (followPath(g, u, dt)) {
         u.state = 'train';
         u.timer = 7;
+        u.trainStat = trainKey(u, senseiNear(g, u), g.building(u.trainId)) ?? undefined;
+        u.trainLap = undefined;
       }
       break;
     case 'train':
-      u.moving = false;
-      u.anim = 0.2;
-      if (Math.random() < dt * 1.5) {
-        u.facing = rand(0, Math.PI * 2);
-        fx(g, 'slash', u.x + Math.cos(u.facing) * 12, u.y + Math.sin(u.facing) * 12, { r: 10, color: '#ffffff', life: 0.25 });
-      }
+      trainMotion(g, u, dt);
       if (u.timer <= 0) {
-        trainTick(g, u, senseiNear(g, u), g.building(u.trainId));
-        u.state = 'idle';
-        u.trainId = undefined;
+        trainTick(g, u, senseiNear(g, u), g.building(u.trainId), u.trainStat);
+        endTraining(u);
       }
       break;
     case 'follow': {
@@ -516,6 +513,102 @@ function rehearse(g: Game, u: Unit, dt: number) {
   } else {
     u.anim = SEAL_REHEARSAL;
     u.animKind = 'seals';
+  }
+}
+
+// ------------------------------------------------------------------ treino no campo (só desenho)
+/** Raio máximo da volta de corrida (px) e velocidade da Velocidade e da Stamina (px/s). */
+const LAP = { maxR: 30, minR: 10, fast: 115, slow: 70 };
+
+function endTraining(u: Unit) {
+  u.state = 'idle';
+  u.trainId = undefined;
+  u.trainStat = undefined;
+  u.trainLap = undefined;
+  u.moving = false;
+}
+
+/** Toca uma sequência de treino de data/moves.ts. */
+function playSeq(u: Unit, key: string) {
+  u.anim = movesTime(MOVE_SEQS[key]!);
+  u.animKind = 'moves';
+  u.moveJutsu = key;
+}
+
+/** Corre em volta do meio do campo (Velocidade e Stamina). */
+function runLap(g: Game, u: Unit, dt: number, speed: number) {
+  const b = g.building(u.trainId);
+  if (!b) return;
+  const def = BUILDINGS[b.type];
+  const cx = (b.tx + def.w / 2) * TILE;
+  const cy = (b.ty + def.h / 2) * TILE;
+  if (!u.trainLap) {
+    const r = Math.min(LAP.maxR, Math.min(def.w, def.h) * TILE * 0.35, Math.max(LAP.minR, Math.hypot(u.x - cx, u.y - cy)));
+    u.trainLap = { a: Math.atan2(u.y - cy, u.x - cx), r };
+  }
+  const L = u.trainLap;
+  L.a += (dt * speed) / L.r;
+  const x = cx + Math.cos(L.a) * L.r;
+  const y = cy + Math.sin(L.a) * L.r;
+  if (!g.world.walkablePx(x, y)) return; // não corre por dentro de obstáculo; espera parado
+  u.facing = Math.atan2(y - u.y, x - u.x);
+  u.x = x;
+  u.y = y;
+  u.moving = true;
+}
+
+/**
+ * Animação do treino pelo atributo (só desenho, nada muda no ganho): Taijutsu soca e chuta, Força bate pesado com poeira,
+ * Velocidade corre rápido em volta do campo deixando vultos, Stamina corre mais devagar e salta, Selos faz os três selos
+ * em ciclo; Ninjutsu e Genjutsu meditam (com aura, no desenho) e Inteligência lê sentado (sprites.ts, `poseOf`).
+ */
+function trainMotion(g: Game, u: Unit, dt: number) {
+  u.moving = false;
+  const k = u.trainStat;
+  const idle = u.anim <= 0;
+  switch (k) {
+    case 'taijutsu':
+      if (idle && Math.random() < dt * 4) {
+        if (chance(0.3)) u.facing = rand(0, Math.PI * 2);
+        playSeq(u, 'train-tai');
+        fx(g, 'slash', u.x + Math.cos(u.facing) * 12, u.y + Math.sin(u.facing) * 12, { r: 10, color: '#ffffff', life: 0.25 });
+      }
+      break;
+    case 'forca':
+      // o impacto: 0,57 s depois de começar (prepara 0,45 + avança 0,12)
+      if (u.animKind === 'moves' && u.moveJutsu === 'train-forca' && u.anim <= 0.57 && u.anim > 0.57 - dt) {
+        const x = u.x + Math.cos(u.facing) * 14;
+        const y = u.y + Math.sin(u.facing) * 14;
+        fx(g, 'ring', x, y, { r: 14, color: '#c39257', life: 0.45 });
+      }
+      if (idle && Math.random() < dt * 2) {
+        if (chance(0.25)) u.facing = rand(0, Math.PI * 2);
+        playSeq(u, 'train-forca');
+      }
+      break;
+    case 'velocidade':
+      if (Math.random() < dt * 1.2) fx(g, 'afterimage', u.x, u.y, { uid: u.id, facing: u.facing, life: 0.3 });
+      runLap(g, u, dt, LAP.fast);
+      break;
+    case 'stamina':
+      if (!idle) break; // no ar: o salto não anda
+      if (Math.random() < dt * 0.4) playSeq(u, 'train-jump');
+      else runLap(g, u, dt, LAP.slow);
+      break;
+    case 'selos': {
+      if (u.animKind === 'seals' && u.anim <= 0.3 && u.anim > 0.3 - dt) {
+        const c = NATURES[u.ninja!.nature]?.color ?? '#9fd8ff';
+        fx(g, 'ring', u.x + Math.cos(u.facing) * 14, u.y + Math.sin(u.facing) * 14 - 6, { r: 9, color: c, life: 0.35 });
+      }
+      if (idle) {
+        u.anim = SEAL_REHEARSAL;
+        u.animKind = 'seals';
+      }
+      break;
+    }
+    default:
+      // Ninjutsu, Genjutsu, Inteligência: sentado, sem animação de golpe
+      u.anim = 0;
   }
 }
 

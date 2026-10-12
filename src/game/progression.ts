@@ -37,8 +37,8 @@ export function gainXp(g: Game, u: Unit, amount: number) {
   }
 }
 
-/** Uma sessão de treino no Campo de Treino. Com o sensei por perto rende 50% a mais. */
-export function trainTick(g: Game, u: Unit, sensei: Unit | null = null, field?: Building) {
+/** Atributo que um treino vai subir (escolhido ao começar, para a animação bater com ele). */
+export function trainKey(u: Unit, sensei: Unit | null = null, field?: Building): StatKey | null {
   const n = u.ninja!;
   const cap = statCapOf(n);
   const open = STAT_KEYS.filter((k) => n.stats[k] < cap);
@@ -46,7 +46,13 @@ export function trainTick(g: Game, u: Unit, sensei: Unit | null = null, field?: 
   const senseiPick = sensei?.ninja && !n.focus && Math.random() < 0.5 ? topStats(sensei).find((k) => open.includes(k)) : undefined;
   // foco do ninja; sem ele, o foco do campo; depois o sensei ou o acaso
   const fieldFocus = field?.focus && open.includes(field.focus) ? field.focus : undefined;
-  const key = n.focus && n.stats[n.focus] < cap ? n.focus : (fieldFocus ?? senseiPick ?? (open.length ? pick(open) : null));
+  return n.focus && n.stats[n.focus] < cap ? n.focus : (fieldFocus ?? senseiPick ?? (open.length ? pick(open) : null));
+}
+
+/** Uma sessão de treino no Campo de Treino. Com o sensei por perto rende 50% a mais. */
+export function trainTick(g: Game, u: Unit, sensei: Unit | null = null, field?: Building, chosen?: StatKey) {
+  const n = u.ninja!;
+  const key = chosen && n.stats[chosen] < statCapOf(n) ? chosen : trainKey(u, sensei, field);
   // sensei +50%; campo de treino com upgrade +30% por nível
   const mult = (sensei ? 1.5 : 1) * trainMult(g);
   if (key) {

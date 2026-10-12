@@ -69,7 +69,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   recupera), chute (`kick`: joelho erguido · chute alto · rasteira · guarda), selos (`cast`: três selos · solta o jutsu), no ar (`air`:
   agacha · encolhido · chute voador · aterrissa), atingido (`hurt`: recua · arremessado · caído · levantando; célula mais
   larga, centrada), sentado (`sit`: no degrau · pernas cruzadas · meditando · dormindo; a plateia do Exame no degrau, o
-  treino de Nin/Gen/Selos/Int parado meditando) e carregando (`carry`: caminhada com o saco no ombro, quem volta de
+  treino de Nin/Gen meditando, de Int lendo sentado) e carregando (`carry`: caminhada com o saco no ombro, quem volta de
   expedição com espólio por `Unit.carrySack` s), gabaritos `docs/arte/gabarito-<pose>.png`. Passo = `[pose, quadro, s, altura?, 'spin'|'roll'?]`
   (`data/moves.ts`); a altura levanta o corpo e deixa a sombra no chão. Reação ao dano (`MOVE_SEQS`, `playHurt`). Golpe novo = coreografia em `JutsuDef.moves` (`[pose, quadro, s]`,
   tocada por `playMoves` em combat.ts e `poseOf` em sprites.ts), sem sprite nova; o mapa dos taijutsu do anime e de quais
@@ -323,6 +323,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   sai com o pergaminho nas costas e pratica no Campo de Treino mais perto da Academia (sem campo, no pátio em frente;
   estados `toPractice`/`practice`), ensaiando sem dano (`rehearse`): coreografia do golpe (`moves`), soco no taijutsu
   sem coreografia, ou os três selos e um brilho na cor do jutsu (`animKind 'seals'`, `SEAL_REHEARSAL` em data/moves.ts).
+  **Treino no campo** (`trainMotion`, só desenho; o atributo é escolhido ao chegar, `trainKey` → `Unit.trainStat`): Taijutsu
+  soco+chute (`train-tai` em `MOVE_SEQS`), Força golpe lento com poeira (`train-forca`), Velocidade corre em volta do campo
+  com vultos (`runLap`, `Unit.trainLap`), Stamina corre mais devagar e salta (`train-jump`), Selos os três selos em ciclo,
+  Ninjutsu/Genjutsu meditam com aura (natureza / roxo, `meditating` em sprites.ts) e Inteligência lê sentado com o
+  pergaminho no colo (`lapScroll`, desenhado por código). Nenhuma folha nova.
 - **Locais que voltam** (`siteTick` em explore.ts, sistema explore): ruína/baú feitos e mina esgotada somem e reaparecem
   noutro lugar depois de `SITE_RESPAWN_DAYS` (de preferência na névoa). A mina aguenta `MINE_USES` expedições
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).

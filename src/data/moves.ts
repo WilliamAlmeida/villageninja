@@ -12,6 +12,11 @@ export type JutsuMove = [MovePose, number, number, number?, MoveFx?];
 export const MOVE_SEQS: Record<string, JutsuMove[]> = {
   'hurt-light': [['hurt', 0, 0.22]],
   'hurt-down': [['hurt', 1, 0.16, 5], ['hurt', 2, 0.5], ['hurt', 3, 0.3]],
+  // treino no campo (systems/ninjas.ts, `trainMotion`): Taijutsu = soco + chute + rasteira; Força = golpe lento e pesado;
+  // Stamina = salto entre as voltas da corrida
+  'train-tai': [['strike', 0, 0.14], ['strike', 1, 0.1], ['strike', 2, 0.16], ['kick', 0, 0.14], ['kick', 1, 0.2], ['kick', 2, 0.18], ['kick', 3, 0.2]],
+  'train-forca': [['strike', 0, 0.45], ['strike', 1, 0.12], ['strike', 2, 0.32], ['strike', 3, 0.25]],
+  'train-jump': [['air', 0, 0.14], ['air', 1, 0.16, 12], ['air', 1, 0.16, 16], ['air', 1, 0.12, 8], ['air', 3, 0.16]],
   'hurt-launch': [['hurt', 1, 0.14, 10], ['hurt', 1, 0.22, 22], ['hurt', 1, 0.14, 8], ['hurt', 2, 0.45], ['hurt', 3, 0.3]],
 };
 
