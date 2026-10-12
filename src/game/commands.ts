@@ -8,7 +8,7 @@ import { pick } from '../core/rng';
 import { convertToNinja, refreshDerived } from './entities';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
-import { addStat, focusCapped, nextRank } from './progression';
+import { addStat, focusCapped, nextRank, trainBlocked } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
@@ -274,6 +274,8 @@ export function promote(g: Game, unitId: number): Result {
 export function setOrder(g: Game, unitId: number, order: NinjaOrder): Result {
   const u = g.unit(unitId);
   if (!u?.ninja) return fail('Inválido.');
+  const full = order === 'train' && trainBlocked(u.ninja);
+  if (full) return fail(full);
   u.ninja.order = order;
   if (u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn' && u.state !== 'practice' && u.state !== 'toPractice') {
     u.state = 'idle';

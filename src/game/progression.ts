@@ -19,6 +19,19 @@ export function addStat(u: Unit, key: StatKey, amount: number): number {
   return n.stats[key] - before;
 }
 
+/** Todos os atributos no teto da patente: o treino não tem o que subir (o painel some com o foco e bloqueia "Treinar"). */
+export const statsMaxed = (n: NinjaInfo) => STAT_KEYS.every((k) => n.stats[k] >= statCapOf(n));
+
+/** Motivo de não poder mandar treinar (tudo no teto), ou null. */
+export function trainBlocked(n: NinjaInfo): string | null {
+  if (!statsMaxed(n)) return null;
+  const cap = statCapOf(n);
+  const who = n.sannin ? 'Sannin' : RANKS[n.rank].name;
+  if (cap >= 10) return `Todos os atributos já estão no máximo (${cap}).`;
+  const next = n.rank === 'genin' ? 'Promova a Chunin para treinar até 7.' : n.rank === 'chunin' ? 'Promova a Jounin para treinar até 9.' : `Só o Kage e os Sannin passam de ${cap}.`;
+  return `Todos os atributos já estão no máximo para ${who} (${cap}). ${next}`;
+}
+
 /** Motivo de não poder focar o treino neste atributo (já no teto da patente), ou null. */
 export function focusCapped(n: NinjaInfo, k: StatKey): string | null {
   const cap = statCapOf(n);
@@ -77,6 +90,11 @@ export function trainTick(g: Game, u: Unit, sensei: Unit | null = null, field?: 
     if (n.focus === key && focusCapped(n, key)) {
       n.focus = null;
       g.toast(`{barbell} ${u.name} chegou ao máximo de ${STAT_INFO[key].label}; o foco do treino voltou para Aleatório.`, 'info', u);
+    }
+    // tudo no teto: a rotina "Treinar" não tem mais o que fazer, volta para Auto
+    if (n.order === 'train' && statsMaxed(n)) {
+      n.order = 'auto';
+      g.toast(`{barbell} ${u.name} está com todos os atributos no máximo da patente; a rotina voltou para Auto.`, 'info', u);
     }
     refreshDerived(u);
   }

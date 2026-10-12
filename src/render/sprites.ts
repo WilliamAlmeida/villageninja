@@ -298,6 +298,22 @@ export function swordsmanPortrait(id: MistBlade): string | null {
 export function bladeIcon(id: string): string | null {
   const key = `blade|${id}`;
   if (known(key)) return portraits.get(key)!;
+  // a espada solta (o desenho da arma em si), deitada na diagonal com a lâmina para cima à direita; sem ela, o recorte
+  // da camada nas costas (pequena e de lado)
+  const loose = typeof document !== 'undefined' ? swordPic(id) : null;
+  if (loose) {
+    const S = 3; // aumento em pixels inteiros (o CSS reduz para o tamanho do cartão)
+    const side = Math.ceil(((loose.width + loose.height) / Math.SQRT2) * S) + 4;
+    const c = document.createElement('canvas');
+    c.width = c.height = side;
+    const cx = c.getContext('2d')!;
+    cx.imageSmoothingEnabled = false;
+    cx.translate(side / 2, side / 2);
+    cx.rotate(Math.PI / 4);
+    cx.drawImage(loose, (-loose.width * S) / 2, (-loose.height * S) / 2, loose.width * S, loose.height * S);
+    return canvasUrl(key, c);
+  }
+  if (art(`sword-${id}`)) return null; // a espada solta existe mas ainda carrega: espera (não guarda o recorte pequeno)
   const pic = art(`layer-sword-${id}`);
   const colors = SWORDS[id];
   if (!pic || !colors || typeof document === 'undefined') return null;

@@ -16,14 +16,15 @@ ITEMS = [
     ('lantern', 'a single tall Japanese stone lantern (toro) on a square stone base with a little warm light inside'),
     ('shrine', 'a sacred round boulder wrapped with a thick twisted straw rope (shimenawa) with white zigzag paper strips, on a tiny patch of moss'),
     ('statue', 'a small stone statue of a lucky beckoning cat with one paw raised, on a square stone pedestal'),
-    ('fountain', 'a round stone fountain with clear blue water, a small central spout and a few lily pads, stone rim'),
+    # fonte e lago ocupam 2×2 tiles: o desenho preenche o losango do chão (senão a peça fica enorme ou parece solta)
+    ('fountain', 'a small square plaza of light grey paving stones shaped like a flat 2:1 isometric diamond tile, with a SMALL round stone fountain in its center (low stone basin with clear blue water, a short central spout, two lily pads); the fountain takes only the middle third of the plaza'),
     ('pagoda', 'a small three-tier Japanese pagoda with red wooden walls, dark green curved tiled roofs and a golden spire, on a stone platform'),
     ('cherry', 'a single small cherry blossom tree in full spring bloom, fluffy pink canopy, dark brown trunk, a few pink petals on the ground'),
     ('cherry-green', 'the SAME small cherry tree in summer: fluffy green leaf canopy instead of pink flowers, same trunk and shape'),
     ('cherry-bare', 'the SAME small cherry tree in winter: bare dark brown branches with no leaves, same trunk and shape'),
     ('bench', 'a simple wooden park bench with a little stone path under it'),
     ('flowers', 'a small square raised flower bed with a wooden border full of colorful flowers (red, yellow, purple)'),
-    ('pond', 'a small irregular koi pond with clear blue water, two orange koi fish, round stones around the edge and a tiny wooden bridge'),
+    ('pond', 'a small koi pond dug into a flat 2:1 isometric diamond-shaped patch of grass: clear blue water with two orange koi fish, a rim of SMALL flat grey stones, a few reeds and one tiny wooden plank bridge; seen from the same isometric angle as the reference, flat on the ground'),
     ('banner', 'a tall wooden pole with a long vertical red cloth banner with a white spiral emblem, on a small stone base'),
     # alternativas para os locais do mapa (a ruína e a mina do jogo foram editadas à mão pelo autor; estas ficam à parte)
     ('ruin-alt', 'ancient ninja temple ruins: three broken grey stone pillars, a collapsed weathered red torii gate, a cracked stone floor with moss and vines, and a small stone altar with a sealed glowing scroll'),
@@ -34,25 +35,13 @@ ITEMS = [
 COLS, ROWS = 4, 2
 
 
-def run(on, gap=4):
-    best, start, last = (0, 0), None, None
-    for i, v in enumerate(list(on) + [False] * (gap + 1)):
-        if v:
-            if start is None or i - last > gap + 1:
-                start = i
-            last = i
-            if last - start > best[1] - best[0]:
-                best = (start, last + 1)
-    return best
-
-
 def main_box(cell):
+    """Caixa do desenho inteiro da casa: todos os pixels opacos menos os pontinhos soltos (fiapos de fundo). A versão
+    antiga cortava pelo maior trecho contínuo de colunas e decepava a lagoa e a fonte nas bordas."""
+    from PIL import ImageFilter
     a = cell.getchannel('A').point(lambda v: 255 if v > 40 else 0)
-    w, h = a.size
-    px = a.load()
-    x0, x1 = run([sum(1 for y in range(h) if px[x, y]) > 2 for x in range(w)])
-    y0, y1 = run([sum(1 for x in range(x0, x1) if px[x, y]) > 2 for y in range(h)])
-    return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
+    a = a.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))  # some com fiapos de 1–2 px
+    return a.getbbox()
 
 
 only = next((set(a.split('=', 1)[1].split(',')) for a in sys.argv if a.startswith('--only=')), None)

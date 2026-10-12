@@ -50,7 +50,12 @@ for (const [k, n] of Object.entries(SWORD_NAMES)) PART_NAMES[`layer-sword-${k}`]
 for (const [k, n] of Object.entries(MASK_NAMES)) PART_NAMES[`layer-mask-${k}`] = `Máscara: ${n}`;
 /** Atlas de interface: abrem divididos nas casas (cada quadro = um ícone/selo); o nome de cada casa vem do pxicons.ts. */
 const ATLASES: Record<string, Atlas> = { 'ui/icons': ICONS, 'ui/badge-ranks': BADGE_RANKS };
-const SHEET_RE = /^(ninja|villager|rogue|org-|layer-|dog|boar|wolf|bear|snake|crow|monkey|spider|tiger|rhino|hydra|golem|puppet|toad|slug|tower-guard)/;
+/**
+ * Folha de personagem/bicho (grade 4×3): tudo que está em characters/, animals/ e no corpo/peças do ninja
+ * (scripts/artpaths.py). Pela pasta, não por uma lista de nomes (a lista esquecia o Som, as Bestas…).
+ */
+const SHEET_DIR = /^(characters|animals|ninja\/body|ninja\/layers)\//;
+const isSheet = (name: string) => SHEET_DIR.test(pathOf(name));
 const KEY_SWATCHES = [
   ['#ff8cff', '#ff00ff', '#a0009f'], ['#fff799', '#ffee00', '#b0a000'], ['#9ff6ff', '#00e5ff', '#0090a0'], ['#7dff8a', '#2ecc40', '#1e8a2b'], ['#18101c'],
 ];
@@ -128,7 +133,7 @@ function currentPoint(): [number, number] | null {
 
 // ------------------------------------------------------------------ origem, corpo e sombra (layout.json)
 /** Folha de personagem/bicho (tem origem e sombra no jogo)? */
-const unitSheet = () => mode === 'doll' || (!!fileName && SHEET_RE.test(fileName));
+const unitSheet = () => mode === 'doll' || (!!fileName && isSheet(fileName));
 /**
  * Origem (pés), altura do corpo e sombra da arte aberta, em px do quadro (o padrão quando o layout não diz). A origem é a
  * do quadro (`feet`, quando ele tem uma própria) ou a da folha (`foot`); `general` = a da folha, `own` = o quadro tem a sua.
@@ -1058,7 +1063,7 @@ const openDirs = new Set<string>(JSON.parse(localStorage.getItem('spr-dirs') ?? 
  */
 /** Filtro por tipo na lista de arquivos: tudo, folhas (grade 4×3), imagens únicas ou só as editadas à mão. */
 let fileKind: 'all' | 'sheet' | 'single' | 'edited' = 'all';
-const kindOk = (name: string) => fileKind === 'all' || (fileKind === 'sheet' ? SHEET_RE.test(name) : fileKind === 'single' ? !SHEET_RE.test(name) : edited.has(name));
+const kindOk = (name: string) => fileKind === 'all' || (fileKind === 'sheet' ? isSheet(name) : fileKind === 'single' ? !isSheet(name) : edited.has(name));
 function renderFiles() {
   const q = $<HTMLInputElement>('filter').value.trim().toLowerCase();
   const ul = $('files');
@@ -1100,12 +1105,12 @@ function renderFiles() {
 
 function fileItem(name: string, label: string, depth: number) {
   const li = document.createElement('li');
-  li.innerHTML = `${ico(SHEET_RE.test(name) ? 'person' : 'image')}<span class="nm">${label}</span>${edited.has(name) ? '<span class="tag">editada</span>' : ''}`;
+  li.innerHTML = `${ico(isSheet(name) ? 'person' : 'image')}<span class="nm">${label}</span>${edited.has(name) ? '<span class="tag">editada</span>' : ''}`;
   li.style.paddingLeft = `${8 + depth * 14}px`;
   li.classList.toggle('on', name === fileName);
   li.onclick = async () => {
     fileName = name;
-    const sheet = SHEET_RE.test(name);
+    const sheet = isSheet(name);
     const atlas = ATLASES[name];
     $<HTMLInputElement>('fCols').value = String(atlas?.cols ?? (sheet ? 4 : 1));
     $<HTMLInputElement>('fRows').value = String(atlas?.rows ?? (sheet ? 3 : 1));

@@ -761,8 +761,10 @@ export class Renderer {
     // arte do nível do prédio (upgrade), se existir; senão a do nível 1.
     // A Residência do Hokage não tem upgrade próprio: cresce junto com o nível da vila (Aldeia = 1 … Grande Vila Oculta = 4).
     const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
-    const artName = lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type;
-    const pic = art(artName);
+    // a arte vem do artBox (nível, tema do mapa, faces do Monte, estação da cerejeira, variante do editor)
+    const chosen = this.artBox(b, level);
+    const artName = chosen?.artName ?? (lvl > 1 && art(`${b.type}-${lvl}`) ? `${b.type}-${lvl}` : b.type);
+    const pic = chosen?.pic ?? art(artName);
     if (!pic) {
       ctx.save();
       ctx.translate(front.x - (b.tx + d.w / 2) * TILE, front.y - 6 - (b.ty + d.h) * TILE);
@@ -773,7 +775,7 @@ export class Renderer {
     const k = b.built ? 1 : b.progress / Math.max(1, d.buildTime);
     ctx.save();
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
-    const box = this.artBox(b, level)!;
+    const box = chosen ?? this.artBox(b, level)!;
     const h = box.h;
     drawArt(ctx, pic, box.x, box.baseY, h, box.flip);
     if (SEASON_VIEW.snow > 0.03 && (!d.walkable || b.type === 'farm' || b.type === 'herbgarden')) {

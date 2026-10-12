@@ -261,6 +261,9 @@ export interface Unit {
   /** Treino em andamento (só para a animação): o atributo que está subindo e a volta da corrida (centro, ângulo e raio; raio 0 = sem espaço). */
   trainStat?: StatKey;
   trainLap?: { cx: number; cy: number; a: number; r: number };
+  /** Boneco do campo que está golpeando (índice dos pontos `postN`) e a perna da volta de corrida pelos bonecos. */
+  trainPost?: number;
+  trainLeg?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
   hitBy?: number[];
   /** Membro da Ordem do Eclipse (técnica própria, arte própria). */

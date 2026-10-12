@@ -18,7 +18,7 @@ import { canHit } from '../factions';
 import { fx, fxText } from '../fx';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
-import { trainKey, trainTick } from '../progression';
+import { statsMaxed, trainKey, trainTick } from '../progression';
 import { statCapOf } from '../sannin';
 import { academyLearnMult } from '../upgrade';
 import { libraryLearnMult } from '../library';
@@ -28,6 +28,7 @@ import { pickFoe } from '../tactics';
 import { isNight } from '../time';
 import type { Building, Unit } from '../types';
 import { doorPos, siteTiles, tileCenter, toTile } from '../world';
+import { fieldPosts, fieldRoute, freePost, postStand, quietSpot, RUN_STATS, STRIKE_STATS } from '../trainingField';
 
 const DEFEND_RADIUS = 240;
 /**
@@ -280,7 +281,7 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
       if (followPath(g, u, dt)) {
         u.state = 'train';
         u.timer = 7;
-        u.trainStat = trainKey(u, senseiNear(g, u), g.building(u.trainId)) ?? undefined;
+        u.trainStat ??= trainKey(u, senseiNear(g, u), g.building(u.trainId)) ?? undefined; // veio com a equipe
         u.trainLap = undefined;
       }
       break;
@@ -371,7 +372,7 @@ function decide(g: Game, u: Unit, night: boolean) {
     }
   }
   if (n.order === 'auto' && followLeader(g, u)) return;
-  const wantsTrain = n.order === 'train' || (n.order === 'auto' && chance(0.65));
+  const wantsTrain = !statsMaxed(n) && (n.order === 'train' || (n.order === 'auto' && chance(0.65)));
   // campo com vaga (o do foco do ninja primeiro, depois o mais perto); todos cheios: faz outra coisa
   const field = wantsTrain && !night ? pickField(g, u) : null;
   if (field && goTrain(g, u, field)) return;
@@ -394,7 +395,7 @@ function followLeader(g: Game, u: Unit): boolean {
   if (!leader || leader === u || leader.hidden || leader.command?.kind === 'retreat') return false;
   const i = Math.max(0, t.memberIds.filter((id) => id !== leader.id).indexOf(u.id));
   const o = formationOffset(i);
-  if (leader.state === 'train' || leader.state === 'toTrain') {
+  if ((leader.state === 'train' || leader.state === 'toTrain') && !statsMaxed(u.ninja!)) {
     // treina no mesmo campo do líder se houver vaga; senão, no campo livre mais perto
     const same = g.building(leader.trainId);
     if (same && hasSlot(g, same)) {
@@ -416,12 +417,17 @@ function followLeader(g: Game, u: Unit): boolean {
 
 /** Vai até um ponto do campo de treino e ocupa uma vaga nele. */
 function goTrain(g: Game, u: Unit, b: Building): boolean {
-  const def = BUILDINGS[b.type];
-  const x = (b.tx + rand(0.3, def.w - 0.3)) * TILE;
-  const y = (b.ty + rand(0.3, def.h - 0.3)) * TILE;
-  if (!setDestination(g, u, x, y)) return false;
+  // o atributo sai antes de ir: quem golpeia vai para um boneco, quem corre para a volta, o resto para um canto calmo
+  const key = trainKey(u, senseiNear(g, u), b) ?? undefined;
+  const post = key && STRIKE_STATS.includes(key) ? freePost(g, u, b) : null;
+  const route = key && RUN_STATS.includes(key) ? fieldRoute(b) : null;
+  const p = post != null ? postStand(fieldPosts(b)[post]!) : route ? route[0]! : quietSpot(g, b);
+  if (!setDestination(g, u, p.x, p.y)) return false;
   u.state = 'toTrain';
   u.trainId = b.id;
+  u.trainStat = key;
+  u.trainPost = post ?? undefined;
+  u.trainLeg = route ? 1 : undefined;
   return true;
 }
 
@@ -534,6 +540,8 @@ function endTraining(u: Unit) {
   u.trainId = undefined;
   u.trainStat = undefined;
   u.trainLap = undefined;
+  u.trainPost = undefined;
+  u.trainLeg = undefined;
   u.moving = false;
 }
 
@@ -546,6 +554,31 @@ function playSeq(u: Unit, key: string) {
 
 /** Corre em volta do campo (Velocidade e Stamina); false se não há volta livre (o chamador faz outra coisa). */
 function runLap(g: Game, u: Unit, dt: number, speed: number): boolean {
+  // com os bonecos marcados no campo: a volta passa por fora deles, de um ao outro
+  const b = g.building(u.trainId);
+  const route = b ? fieldRoute(b) : null;
+  if (route) {
+    let leg = (u.trainLeg ?? 0) % route.length;
+    let t = route[leg]!;
+    if (Math.hypot(t.x - u.x, t.y - u.y) < 4) {
+      leg = (leg + 1) % route.length;
+      t = route[leg]!;
+    }
+    u.trainLeg = leg;
+    const d = Math.hypot(t.x - u.x, t.y - u.y);
+    const step = Math.min(d, dt * speed);
+    const x = u.x + ((t.x - u.x) / (d || 1)) * step;
+    const y = u.y + ((t.y - u.y) / (d || 1)) * step;
+    if (!g.world.walkablePx(x, y)) {
+      u.trainLeg = leg + 1; // perna bloqueada: pula para o próximo boneco
+      return true;
+    }
+    u.facing = Math.atan2(t.y - u.y, t.x - u.x);
+    u.x = x;
+    u.y = y;
+    u.moving = true;
+    return true;
+  }
   if (!u.trainLap) {
     const lap = freeLap(g, u);
     if (!lap) return false;
@@ -596,10 +629,17 @@ function trainMotion(g: Game, u: Unit, dt: number) {
   }
   const k = u.trainStat;
   const idle = u.anim <= 0;
+  // golpeando um boneco do campo: sempre de frente para ele
+  const field = u.trainPost != null ? g.building(u.trainId) : undefined;
+  const post = field ? fieldPosts(field)[u.trainPost!] : undefined;
+  const aim = () => {
+    if (post) u.facing = Math.atan2(post.y - u.y, post.x - u.x);
+    else if (chance(0.3)) u.facing = rand(0, Math.PI * 2);
+  };
   switch (k) {
     case 'taijutsu':
       if (idle && Math.random() < dt * 4) {
-        if (chance(0.3)) u.facing = rand(0, Math.PI * 2);
+        aim();
         playSeq(u, 'train-tai');
         fx(g, 'slash', u.x + Math.cos(u.facing) * 12, u.y + Math.sin(u.facing) * 12, { r: 10, color: '#ffffff', life: 0.25 });
       }
@@ -612,7 +652,7 @@ function trainMotion(g: Game, u: Unit, dt: number) {
         fx(g, 'ring', x, y, { r: 14, color: '#c39257', life: 0.45 });
       }
       if (idle && Math.random() < dt * 2) {
-        if (chance(0.25)) u.facing = rand(0, Math.PI * 2);
+        aim();
         playSeq(u, 'train-forca');
       }
       break;

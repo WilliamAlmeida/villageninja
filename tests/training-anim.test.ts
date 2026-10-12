@@ -3,8 +3,9 @@ import { SIM_DT } from '../src/config';
 import type { StatKey } from '../src/data/ninja';
 import { createNinja } from '../src/game/entities';
 import { createNewGame } from '../src/game/newGame';
-import { setFocus } from '../src/game/commands';
-import { focusCapped, trainTick } from '../src/game/progression';
+import { setFocus, setOrder } from '../src/game/commands';
+import { focusCapped, statsMaxed, trainTick } from '../src/game/progression';
+import { fieldPosts, fieldRoute, freePost } from '../src/game/trainingField';
 import { CENTER_TX, CENTER_TY } from '../src/game/world';
 import { SYSTEMS } from '../src/game/systems';
 import type { Game } from '../src/game/game';
@@ -139,5 +140,49 @@ describe('foco num atributo já no teto', () => {
     trainTick(g, n, null, undefined, 'forca');
     expect(n.ninja!.stats.forca).toBe(5);
     expect(n.ninja!.focus).toBeNull();
+  });
+});
+
+describe('campo de treino com bonecos marcados', () => {
+  test('Taijutsu vai a um boneco e golpeia de frente para ele; dois ninjas pegam bonecos diferentes', () => {
+    const { g, n } = training(711, 'taijutsu');
+    const b = g.building(n.trainId)!;
+    const posts = fieldPosts(b);
+    expect(posts.length).toBeGreaterThanOrEqual(3);
+    expect(n.trainPost).toBeDefined();
+    const p = posts[n.trainPost!]!;
+    expect(Math.hypot(p.x - n.x, p.y - n.y)).toBeLessThan(24);
+    watch(g, n);
+    expect(Math.abs(Math.atan2(p.y - n.y, p.x - n.x) - n.facing)).toBeLessThan(0.01);
+    const other = createNinja(g, n.x + 40, n.y, 'genin', 0);
+    expect(freePost(g, other, b)).not.toBe(n.trainPost);
+  });
+
+  test('Velocidade corre pela volta dos bonecos (por fora deles)', () => {
+    const { g, n } = training(712, 'velocidade');
+    const route = fieldRoute(g.building(n.trainId)!)!;
+    expect(route.length).toBeGreaterThanOrEqual(3);
+    const legs = new Set<number>();
+    for (let t = 0; t < 4; t += SIM_DT) {
+      g.state.time = 30;
+      g.step(SIM_DT);
+      if (n.trainLeg != null) legs.add(n.trainLeg);
+    }
+    expect(legs.size).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('todos os atributos no teto', () => {
+  test('não deixa mandar treinar e a rotina volta para Auto ao chegar no teto', () => {
+    const g = createNewGame(SYSTEMS, 713);
+    const n = createNinja(g, 1100, 800, 'genin', 0);
+    for (const k of Object.keys(n.ninja!.stats) as StatKey[]) n.ninja!.stats[k] = 5;
+    expect(statsMaxed(n.ninja!)).toBe(true);
+    const r = setOrder(g, n.id, 'train');
+    expect(r.ok).toBe(false);
+    n.ninja!.stats.forca = 4.99;
+    n.ninja!.order = 'train';
+    trainTick(g, n, null, undefined, 'forca');
+    expect(n.ninja!.order as string).toBe('auto');
   });
 });

@@ -1061,7 +1061,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .bl-title span { margin-left: auto; font-weight: 700; color: var(--warn); }
 .blist { display: flex; flex-wrap: nowrap; gap: 0.4rem; margin-top: 0.3rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding: 0 0.1rem; padding-bottom: 0.3rem; scrollbar-width: thin; }
 .bl { position: relative; flex: 0 0 8.6rem; height: 5.6rem; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: flex-end; padding: 0.3rem 0.45rem; border-radius: 0.55rem; border: 1px solid var(--line); background: radial-gradient(circle at 60% 35%, rgba(255, 214, 150, 0.1), rgba(0, 0, 0, 0.35)); overflow: hidden; }
-.bl .bl-ic { position: absolute; right: 0; top: 46%; height: 135%; width: auto; max-width: 80%; object-fit: contain; transform: translateY(-50%) rotate(-12deg); opacity: 0.35; filter: grayscale(0.8) brightness(0.8); image-rendering: pixelated; pointer-events: none; }
+.bl .bl-ic { position: absolute; right: 0; top: 46%; height: 135%; width: auto; max-width: 80%; object-fit: contain; transform: translateY(-50%); opacity: 0.35; filter: grayscale(0.8) brightness(0.8); image-rendering: pixelated; pointer-events: none; }
 .bl.on { border-color: rgba(255, 211, 77, 0.55); box-shadow: inset 0 0 12px rgba(255, 211, 77, 0.08); }
 .bl.on .bl-ic { opacity: 0.85; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
 .bl b { position: relative; font-size: 0.86rem; line-height: 1.1; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
@@ -1904,7 +1904,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
 .inv-sl { position: absolute; top: 0.15rem; left: 0.35rem; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .inv-none .ic { width: 1.2rem; height: 1.2rem; opacity: 0.4; }
 .inv-ic .ic { width: 1.9rem; height: 1.9rem; }
-.inv-blade { height: 2.4rem; width: auto; max-width: 100%; object-fit: contain; image-rendering: pixelated; transform: rotate(-20deg); }
+.inv-blade { height: 2.4rem; width: auto; max-width: 100%; object-fit: contain; image-rendering: pixelated; }
 .inv-stats { display: flex; flex-direction: column; justify-content: center; gap: 0.15rem; padding: 0.3rem 0.4rem; border-radius: 0.6rem; background: rgba(0, 0, 0, 0.25); font-size: 0.72rem; }
 .inv-stats span { display: flex; gap: 0.2rem; align-items: center; white-space: nowrap; }
 .inv-stats .ic { width: 0.85rem; height: 0.85rem; }

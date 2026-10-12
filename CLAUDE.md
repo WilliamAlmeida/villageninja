@@ -191,7 +191,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   desenhados por `atlasCell` (icons.ts); um arquivo só em vez de dezenas (pelo túnel, PNGs soltos atrasavam as janelas).
   **Organização das artes**: interface = glifo; recurso e item = casa do atlas (item SEMPRE em pixel art: `itemPx` em panel.ts
   força a casa mesmo havendo glifo, e cada item tem o seu ícone: `vest-crystal`, `chakra-crystal`, `blade-dark`; lâmina
-  lendária = recorte do sprite); o atlas só guarda o que aparece (ícone com glifo e sem `pxIco` não entra; `.perf/atlaskeep.py`
+  lendária = a espada solta `sword-<id>` deitada na diagonal, `bladeIcon`); o atlas só guarda o que aparece (ícone com glifo e sem `pxIco` não entra; `.perf/atlaskeep.py`
   confere); ilustração maior que 64 px solta em `ui/art`; o que é desenhado no mapa (recolorido/animado/em peças) solto em
   `src/art`. O que saiu fica em `docs/arte/_backup/<data>/` com um LEIAME (o autor apaga à mão). Ilustrações soltas até
   256 px, pré-carregadas. **Gerar vários de uma vez**: `scripts/ui-grid.py` pede uma grade (ex.: 4×4) numa geração e
@@ -334,6 +334,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   com vultos (`runLap`; a volta é escolhida inteira livre ao começar, `freeLap`/`Unit.trainLap`; sem espaço, golpes), Stamina corre mais devagar e salta (`train-jump`), Selos os três selos em ciclo,
   Ninjutsu/Genjutsu meditam com aura (natureza / roxo, `meditating` em sprites.ts) e Inteligência lê sentado com o
   pergaminho no colo (`lapScroll`, desenhado por código). Trocar o foco no meio do treino troca na hora. Nenhuma folha nova.
+  **Bonecos do campo** (`game/trainingField.ts`, pontos `post1..5` do tipo `training` no Editor de cenário): o destino
+  sai pelo atributo em `goTrain` (Taijutsu/Força: o boneco menos usado, `freePost`, golpeando de frente; Velocidade/
+  Stamina: a volta por fora dos bonecos, `fieldRoute`; o resto: canto longe deles, `quietSpot`); sem pontos, o jeito
+  antigo (volta livre `freeLap`). Tudo no teto (`statsMaxed`): some o foco, "Treinar" bloqueado (`trainBlocked`),
+  rotina Treinar volta para Auto e o Auto não treina.
   Foco em atributo já no teto da patente fica bloqueado (`focusCapped` em progression.ts: botão com `blocked` e o aviso
   dizendo a patente que libera; `setFocus` recusa); chegando ao teto treinando, o foco volta para Aleatório com aviso.
 - **Locais que voltam** (`siteTick` em explore.ts, sistema explore): ruína/baú feitos e mina esgotada somem e reaparecem

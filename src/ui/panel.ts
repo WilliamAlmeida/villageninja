@@ -34,7 +34,7 @@ import {
   costLabel, demolish, jutsuOptions, promote, recruitNinja, RECRUIT_COST, setDesiredWorkers, setFocus, setOrder, teachJutsu,
   type Result,
 } from '../game/commands';
-import { focusCapped, nextRank } from '../game/progression';
+import { focusCapped, nextRank, statsMaxed, trainBlocked } from '../game/progression';
 import { nextLevelStatus, upgradeVillage } from '../game/village';
 import {
   abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
@@ -741,8 +741,10 @@ export class Panel {
     html += `</div>`;
     html += `<h4>Rotina</h4><div class="seg">`;
     for (const [k, label] of ROUTINES)
-      html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}" ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
+      html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}" ${k === 'train' ? blocked(this.app.game, [trainBlocked(n)], undefined, 'Atributos no máximo') : ''} ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
     html += `</div>`;
+    // tudo no teto da patente: não há o que focar
+    if (statsMaxed(n)) return html + this.teamSection(u, team);
     html += `<h4>Foco do treino</h4><div class="chips">`;
     const bySensei = team?.senseiId != null && team.senseiId !== u.id;
     const auto = bySensei ? 'Sensei decide' : 'Aleatório';
