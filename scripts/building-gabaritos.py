@@ -198,7 +198,83 @@ def pixel_comparacao():
     can.save(OUT / 'pixel-comparacao.png')
 
 
+def piloto_comparacao():
+    """Antes × depois de cada peça do piloto (scripts/pilot-art.py) na escala do jogo, sobre o losango do terreno, com o
+    ninja ao lado; a torre nova montada (base, vigia a 100% no ponto da plataforma, topo)."""
+    import json
+    import re
+    meta_p = ROOT / 'docs' / 'arte' / 'piloto' / 'meta.json'
+    if not meta_p.exists():
+        return
+    meta = json.loads(meta_p.read_text(encoding='utf8'))
+    final = ROOT / 'docs' / 'arte' / 'piloto' / 'final'
+    art_src = (ROOT / 'src' / 'render' / 'art.ts').read_text(encoding='utf8')
+    blk = art_src[art_src.index('export const ART_SCALE'):]
+    blk = blk[:blk.index('};')]
+    art_scale = {m.group(1) or m.group(2): float(m.group(3)) for m in re.finditer(r"(?:'([\w-]+)'|(\b[a-z][\w]*)):\s*([\d.]+)", blk)}
+    lay = json.loads((ROOT / 'src' / 'data' / 'layout.json').read_text(encoding='utf8'))['arts']
+    node_h = {'tree0': 48, 'tree1': 48, 'stump0': 20, 'stump1': 20, 'rock': 22, 'rock-cracked': 22, 'rock-pebbles': 11, 'ore': 26, 'ore-empty': 22}
+    Zc = 3
+    cards = []
+    for name, m in meta.items():
+        w, h = m['tiles']
+        cw_ = 2 * ((w + h) * 24 + 70) * Zc + 60
+        tall = 250 if (w + h) > 2 else 120
+        can = Image.new('RGBA', (cw_, tall * Zc), (88, 136, 66, 255))
+        d = ImageDraw.Draw(can)
+        for j, (title, path, sc, dx, dy, nh) in enumerate((
+            ('hoje', art_file(name), art_scale.get(name, 1) * (lay.get(name, {}).get('scale', 1)), lay.get(name, {}).get('dx', 0), lay.get(name, {}).get('dy', 0), node_h.get(name)),
+            ('novo', final / f'{name}.png', m['scale'], m['dx'], m['dy'], None),
+        )):
+            if not Path(path).exists():
+                continue
+            im = Image.open(path).convert('RGBA')
+            ox = (j + 0.5) * cw_ / 2
+            oy = can.height - 30 * Zc
+            dia = iso(w, h, ox, oy, Zc)
+            d.polygon(dia, outline=(0, 255, 255, 255))
+            if nh and j == 0:  # objeto (árvore, rocha) hoje: pela altura fixa do jogo
+                hh = nh * Zc
+                ww = im.width * hh / im.height
+                left, top = ox - ww / 2, oy + 0.2 * 24 * Zc - hh
+            elif j == 1 and name in node_h:  # objeto novo: tamanho natural na grade do boneco
+                ww, hh = im.width * NINJA_K * Zc, im.height * NINJA_K * Zc
+                left, top = ox + dx * Zc - ww / 2, oy + (4 + dy) * Zc - hh
+            else:
+                ww = (w + h) * 24 * sc * Zc
+                hh = ww * im.height / im.width
+                left, top = ox + dx * Zc - ww / 2, oy + (4 + dy) * Zc - hh
+            big = im.resize((max(1, round(ww)), max(1, round(hh))), Image.NEAREST)
+            can.alpha_composite(big, (round(left), round(top)))
+            if j == 1 and name == 'tower':
+                gx, gy = m['marks']['guard']
+                put_ninja(can, round(ox + dx * Zc + gx * Zc), round(top + hh + gy * Zc), Zc)
+                topp = final / 'tower-top.png'
+                if topp.exists():
+                    t2 = Image.open(topp).convert('RGBA').resize(big.size, Image.NEAREST)
+                    can.alpha_composite(t2, (round(left), round(top)))
+            put_ninja(can, round(ox + (w + h) * 13 * Zc), oy + 2 * Zc, Zc)
+            label(d, round(ox - 60), 10, f'{name} — {title}', bold=True)
+        cards.append(can)
+    if not cards:
+        return
+    per = 3
+    cwm = max(c.width for c in cards)
+    rows = [cards[i:i + per] for i in range(0, len(cards), per)]
+    out = Image.new('RGBA', (cwm * per + 8 * per, sum(max(c.height for c in r) + 8 for r in rows)), (30, 30, 30, 255))
+    y = 0
+    for r in rows:
+        for j, c in enumerate(r):
+            out.alpha_composite(c, (j * (cwm + 8), y))
+        y += max(c.height for c in r) + 8
+    out.save(OUT / 'piloto-comparacao.png')
+    print('ok piloto-comparacao.png')
+
+
 OUT.mkdir(parents=True, exist_ok=True)
+if '--piloto' in sys.argv:
+    piloto_comparacao()
+    sys.exit()
 gabarito_alturas()
 torre_camadas()
 pixel_comparacao()
