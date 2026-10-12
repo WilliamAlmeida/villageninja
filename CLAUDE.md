@@ -151,7 +151,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   por peça no Codex com o gabarito v2 do terreno do nível, a arte de hoje como identidade, as casas do piloto como estilo
   e o nível anterior já novo como referência; recorte, tamanho pela base (= losango) e grade do boneco →
   `docs/arte/predios/final/`; `--instalar` copia com backup (`docs/arte/_backup/<data>/<lote>/`), põe escala/posição
-  no layout.json e tira peças antigas, ART_SCALE provisório e a marca de editada à mão. Lotes em `BATCHES` (feito: kage).
+  no layout.json e tira peças antigas, ART_SCALE provisório e a marca de editada à mão. Lotes em `BATCHES` (feitos: kage;
+  lote1 = academia, hospital, biblioteca com os 3 níveis, mercado). O nível 3 ocupa mais terreno em mercado, forja,
+  farmácia, selos, lenhador, pedreira (3×3), academia (4×4), hospital e biblioteca (4×3) (`sizes`; save v38: cresce no
+  lugar, muda para o espaço livre mais perto ou volta ao nível 2 com a obra pronta esperando espaço).
 - **Terreno por nível** (`BuildingDef.sizes`, `defOf(b)` e `layoutKey(b)` em data/buildings.ts): a casa nível 3 ocupa 3×3
   (cresce para a direita e para baixo a partir do canto). Onde o tamanho importa e há um prédio, use `defOf(b)`, não
   `BUILDINGS[b.type]`; terreno/porta/pontos do layout desse nível ficam em `<tipo>-<nível>`. O upgrade pede o espaço
@@ -613,7 +616,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v37.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v38.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

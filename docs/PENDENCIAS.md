@@ -47,6 +47,10 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Torre níveis 2 e 3: usam a mesma torre do nível 1 (base + topo com o vigia; pedido do autor, os bônus seguem por nível)
 - [ ] Torres dos mapas temáticos (pescadores, deserto) em camadas
 - [x] Residência do Kage nos 4 níveis (3×3, 3×3, 4×4, 5×5; scripts/building-art.py kage)
+- [x] Lote 1: Academia, Hospital, Biblioteca (agora com arte nos 3 níveis) e Mercado; nível 3 com terreno maior (save v38)
+- [ ] Lote 2: Forja, Farmácia, Selos, Lenhador e Pedreira
+- [ ] Lote 3: Mercado, Casa e Torre dos mapas temáticos (pescadores, deserto)
+- [ ] Lote 4: Missões, Mina de Ferro, Horta, Porto, Inteligência, Marionetes, Canil; depois as decorações
 - [ ] Refazer o resto das construções e decorações no padrão (gabarito v2, grade do boneco, paleta), em lotes com aprovação (`scripts/building-art.py`)
 - [ ] Tirar o sistema de peça "por cima do vigia" (`LayoutPiece.over`) quando nenhuma torre usar mais (as em camadas não usam)
 

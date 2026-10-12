@@ -56,6 +56,7 @@ describe('vigia da torre', () => {
     assignWatch(g, tower.id, n.id);
     run(g, 15, () => n.state === 'towerWatch');
     const helper = createNinja(g, d.x + 150, d.y, 'jounin', 0);
+    helper.hp = helper.maxHp = 9999; // não sai para descansar no meio (o teste é sobre o vigia ficar lá em cima)
     const rogue = createRogue(g, d.x + 160, d.y + 10, 1);
     rogue.hp = rogue.maxHp = 9999;
     run(g, 2);

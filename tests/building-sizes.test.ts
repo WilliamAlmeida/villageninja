@@ -119,3 +119,21 @@ describe('Residência do Hokage cresce com a vila (3×3, 3×3, 4×4, 5×5)', () 
     }
   });
 });
+
+test('save v37 → v38: nível 3 de mercado/academia/hospital… cresce sem sobrepor; sem lugar, volta ao 2 esperando espaço', () => {
+  const { g, b } = setup(1401);
+  b.type = 'market';
+  b.level = 3;
+  const s = JSON.parse(JSON.stringify(g.state));
+  s.version = 37;
+  const m = migrate(s)!;
+  const mk = m.buildings.find((o) => o.id === b.id)!;
+  if (mk.waitRoom) expect(mk.level).toBe(2);
+  else expect([defOf(mk).w, defOf(mk).h]).toEqual([3, 3]);
+  for (const o of m.buildings) {
+    if (o === mk) continue;
+    const d = defOf(o);
+    const e = defOf(mk);
+    expect(mk.tx < o.tx + d.w && mk.tx + e.w > o.tx && mk.ty < o.ty + d.h && mk.ty + e.h > o.ty).toBe(false);
+  }
+});

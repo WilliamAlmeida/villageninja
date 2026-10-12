@@ -42,11 +42,52 @@ KAGE = ('the residence and office of the village leader (the Kage): a ROUND cyli
         'and dark wooden posts, RED lacquered conical roofs in tiers with a dark round finial on top, red banners with a '
         'white flame emblem, paper lanterns; the main wooden double door faces the viewer at the FRONT')
 
-# lote → peças: (nome da arte, (tiles w, tiles h, altura total em H), descrição). Na ordem dos níveis: cada uma usa a
-# anterior do lote como referência de "o mesmo prédio, menor".
+ACADEMY = ('the Ninja Academy: cream plaster walls with dark wooden frames, ORANGE-red ceramic tiled pagoda roofs with '
+           'curved eaves, red banners with a white leaf-swirl emblem, round wooden training targets near the door')
+HOSPITAL = 'the village hospital: white plaster walls, GREEN ceramic tiled roofs, red cross signs, a small chimney'
+LIBRARY = ('the Jutsu Library: dark wooden frames, DARK BLUE ceramic tiled roof with curved eaves, an open front showing '
+           'shelves full of scrolls, paper lanterns, a low wooden fence around a small yard')
+MARKET = ('the village market shop: cream walls, a flat ORANGE roof, cloth awnings over wooden stalls with crates of fruit, '
+          'vegetables and goods, paper lanterns, stone paving in front')
+
+# lote → peças: (nome da arte, (tiles w, tiles h, altura total em H), descrição). Na ordem dos níveis: do nível 2 em
+# diante cada uma usa a anterior DO MESMO PRÉDIO (já nova) como referência de "o mesmo prédio, menor". A identidade é a
+# arte de hoje do prédio (todos os níveis que existirem).
 BATCHES = {
+    'lote1': {
+        'items': [
+            ('academy', (3, 3, 3.3), f'LEVEL 1: {ACADEMY}. A one-story school hall under one big hip roof, two round targets'),
+            ('academy-2', (3, 3, 4.2),
+             'LEVEL 2: THE SAME academy grown to two stories with a two-tier pagoda roof and a small bell turret on top, a '
+             'porch with posts, banners and targets'),
+            ('academy-3', (4, 4, 5.4),
+             'LEVEL 3 on a BIGGER plot: a grand three-story academy with two side wings, a stone base, a courtyard gate, '
+             'banners with the emblem and a bell tower; clearly bigger and richer than level 2, same style'),
+            ('hospital', (3, 2, 2.8), f'LEVEL 1: {HOSPITAL}. A one-story clinic under a hip roof, the door with a red cross sign, a narrow garden strip'),
+            ('hospital-2', (3, 2, 3.3),
+             'LEVEL 2: THE SAME hospital grown: L-shaped with an attached side ward under its own green roof, more windows, a '
+             'bench and potted plants'),
+            ('hospital-3', (4, 3, 4.4),
+             'LEVEL 3 on a BIGGER plot: a two-story main building with two side wings, a covered entrance porch and a small '
+             'herb garden with a stone path; clearly bigger than level 2, same style'),
+            ('library', (3, 2, 3.0), f'LEVEL 1: {LIBRARY}. A one-story scroll hall'),
+            ('library-2', (3, 2, 3.6),
+             'LEVEL 2: THE SAME library grown to two stories with a balcony on the second floor, more shelves and a reading '
+             'table with scrolls in the yard'),
+            ('library-3', (4, 3, 4.7),
+             'LEVEL 3 on a BIGGER plot: a two-story library hall with a tall three-floor archive tower on one side, a stone '
+             'base, stone lanterns and the fenced yard with a scroll rack; clearly bigger than level 2, same style'),
+            ('market', (2, 2, 2.4), f'LEVEL 1: {MARKET}. A small one-story shop with one awning and two crates'),
+            ('market-2', (2, 2, 2.8),
+             'LEVEL 2: THE SAME shop grown on the same plot and clearly BIGGER and TALLER than level 1: a small upper loft '
+             'floor with a balcony, stalls with awnings on BOTH visible sides, many more crates, baskets and sacks, a hanging '
+             'wooden sign and more lanterns'),
+            ('market-3', (3, 3, 3.8),
+             'LEVEL 3 on a BIGGER plot: a two-story merchant house with a balcony and banners and a covered row of stalls in '
+             'front with many crates, barrels and lanterns; clearly bigger than level 2, same style'),
+        ],
+    },
     'kage': {
-        'identity': ['src/art/buildings/hokage.png', 'src/art/buildings/hokage-2.png', 'src/art/buildings/hokage-3.png', 'src/art/buildings/hokage-4.png'],
         'items': [
             ('hokage', (3, 3, 3.2),
              f'LEVEL 1 (a small hamlet): {KAGE}. A modest ONE-story round hall on a low stone base under ONE wide red conical '
@@ -90,12 +131,20 @@ def template(path, w, h, hh):
     return (W, H), ds
 
 
-def identity_sheet(batch, cfg):
-    """As artes de hoje do lote lado a lado (a identidade do prédio para o Codex)."""
-    p = OUT / batch / '_hoje.png'
+def base_of(name):
+    """Prédio da arte: 'academy-3' → 'academy'."""
+    return re.sub(r'-\d+$', '', name)
+
+
+def identity_sheet(batch, name):
+    """As artes de hoje do prédio (todos os níveis que existirem) lado a lado: a identidade para o Codex. Lidas do
+    backup quando o lote já foi instalado (aí as de src/art já são as novas)."""
+    base = base_of(name)
+    p = OUT / batch / f'_hoje-{base}.png'
     if p.exists():
         return p
-    ims = [Image.open(ROOT / f).convert('RGBA') for f in cfg['identity']]
+    files = [art_file(n) for n in [base] + [f'{base}-{k}' for k in range(2, 5)]]
+    ims = [Image.open(f).convert('RGBA') for f in files if f.exists()]
     hmax = max(i.height for i in ims)
     out = Image.new('RGBA', (sum(i.width for i in ims) + 40 * (len(ims) - 1), hmax), (255, 255, 255, 255))
     x = 0
@@ -113,8 +162,9 @@ def generate(batch, cfg, i, item):
     size, _ = template(tpl, w, h, hh)
     if src.exists():
         return src
-    refs = [tpl, identity_sheet(batch, cfg), ROOT / STYLE]
-    prev = OUT / batch / f'_{cfg["items"][i - 1][0]}.png' if i else None
+    refs = [tpl, identity_sheet(batch, name), ROOT / STYLE]
+    before = cfg['items'][i - 1][0] if i else None
+    prev = OUT / batch / f'_{before}.png' if before and base_of(before) == base_of(name) else None
     text = (
         f'ONE isometric game building for a cozy ninja village builder, alone in the image. Ground footprint {w}x{h} tiles, '
         f'total height {hh:.1f} ninjas (top of the roof). {desc}. '

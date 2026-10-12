@@ -66,7 +66,11 @@ describe('equipes', () => {
     const g = createNewGame(SYSTEMS, 4);
     const team = g.state.teams[0]!;
     const d0 = doorPos(g.hokage()!);
-    const sensei = createNinja(g, d0.x - 120, d0.y + 60, 'jounin', 0); // perto da vila (o mapa é grande)
+    const sensei = createNinja(g, d0.x, d0.y + 100, 'jounin', 0); // no pátio em frente à Residência (o mapa é grande)
+    // só o seguir: sem bicho, invasão nem guardião de ruína por perto (a equipe iria lutar e se espalhar)
+    g.state.timers.animal = 1e9;
+    g.state.timers.raid = 1e9;
+    g.state.sites = [];
     joinAsSensei(g, team.id, sensei.id);
     run(g, 20);
     const [a, b] = team.memberIds.map((id) => g.unit(id)!);

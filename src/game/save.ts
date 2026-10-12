@@ -272,6 +272,17 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
       for (const [lv, size] of Object.entries(BUILDINGS.hokage.sizes ?? {})) growBuildings(st, 'hokage', size![0], size![1], Number(lv));
     }
   },
+  // v38: o nível 3 de mercado, academia, hospital, biblioteca, forja, farmácia, selos, lenhador e pedreira ficou maior
+  // (padrão novo da arte): cresce no lugar, muda para o espaço livre mais perto ou, sem nenhum, volta ao nível 2 com a
+  // obra pronta esperando espaço
+  37: (s) => {
+    const types: BuildingType[] = ['market', 'academy', 'hospital', 'library', 'forge', 'pharmacy', 'sealshop', 'lumber', 'quarry'];
+    for (const st of [s, s.scene].filter(Boolean))
+      for (const t of types) {
+        const size = BUILDINGS[t].sizes?.[3];
+        if (size) growBuildings(st, t, size[0], size[1], 3);
+      }
+  },
 };
 
 /**
@@ -388,15 +399,25 @@ function growBuildings(s: any, type: BuildingType, W: number, H: number, level?:
         return tx < o.tx + d.w && tx + W > o.tx && ty < o.ty + d.h && ty + H > o.ty;
       });
     };
-    if (!free(a.tx, a.ty))
-      search: for (let r = 1; r <= 8; r++)
+    let ok = free(a.tx, a.ty);
+    if (!ok)
+      search: for (let r = 1; r <= 12; r++)
         for (let dy = -r; dy <= r; dy++)
           for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !free(a.tx + dx, a.ty + dy)) continue;
             a.tx += dx;
             a.ty += dy;
+            ok = true;
             break search;
           }
+    if (!ok && level != null && level > 1 && a.type !== 'hokage') {
+      // nenhum lugar livre por perto: fica no nível de antes, com a obra do upgrade pronta esperando o espaço
+      // (workUpgrade/growRoom: cresce quando liberarem)
+      a.level = level - 1;
+      a.upgrade = 1e9;
+      a.waitRoom = true;
+      continue;
+    }
     s.nodes = (s.nodes ?? []).filter((n: { tx: number; ty: number }) => n.tx < a.tx || n.tx >= a.tx + W || n.ty < a.ty || n.ty >= a.ty + H);
   }
 }

@@ -99,21 +99,25 @@ const LIST: BuildingDef[] = [
   {
     type: 'lumber', name: 'Lenhador', icon: '{axe}', desc: '2 lenhadores cortam árvores próximas.',
     w: 2, h: 2, cost: { wood: 20, stone: 5 }, buildTime: 10, workers: 2, job: 'lumber', buildable: true,
+    sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#7b5233', wall: '#a57c4f',
   },
   {
     type: 'quarry', name: 'Pedreira', icon: '{pickaxe}', desc: '2 mineradores quebram rochas próximas.',
     w: 2, h: 2, cost: { wood: 30 }, buildTime: 12, workers: 2, job: 'miner', buildable: true,
+    sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#5f666e', wall: '#a5a29a',
   },
   {
     type: 'market', name: 'Mercado', icon: '{lantern}', desc: 'Um comerciante gera ryo.',
     w: 2, h: 2, cost: { wood: 40, stone: 20 }, buildTime: 16, workers: 1, job: 'merchant', buildable: true, lights: true,
+    sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#c9822b', wall: '#e3cfa3',
   },
   {
     type: 'academy', name: 'Academia Ninja', icon: '{scroll}', desc: 'Recruta novos ninjas e ensina jutsus.',
     w: 3, h: 3, cost: { wood: 60, stone: 40, ryo: 50 }, buildTime: 25, unique: true, buildable: true, lights: true,
+    sizes: { 3: [4, 4] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#d35400', wall: '#f0e0c0',
   },
   {
@@ -124,6 +128,7 @@ const LIST: BuildingDef[] = [
   {
     type: 'hospital', name: 'Hospital', icon: '{medic}', desc: 'Cura rapidamente ninjas feridos.',
     w: 3, h: 2, cost: { wood: 50, stone: 40, ryo: 40 }, buildTime: 22, unique: true, buildable: true, healRate: 7, lights: true, minLevel: 1,
+    sizes: { 3: [4, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#2e8b57', wall: '#f4f4f0',
   },
   {
@@ -134,6 +139,7 @@ const LIST: BuildingDef[] = [
   {
     type: 'library', name: 'Biblioteca de Jutsus', icon: '{books}', desc: 'Guarda os pergaminhos: abra um aqui para os ninjas poderem estudar aquele jutsu (rank C em diante). Estudo mais rápido.',
     w: 3, h: 2, cost: { wood: 80, stone: 60, ryo: 150 }, buildTime: 24, unique: true, buildable: true, lights: true, minLevel: 1,
+    sizes: { 3: [4, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#6c3483', wall: '#efe3c8',
   },
   {
@@ -154,16 +160,19 @@ const LIST: BuildingDef[] = [
   {
     type: 'forge', name: 'Forja', icon: '{anvil}', desc: 'Um ferreiro fabrica armas e coletes com ferro.',
     w: 2, h: 2, cost: { wood: 50, stone: 40, ryo: 60 }, buildTime: 18, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 1,
+    sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#5a3a2a', wall: '#9a8a7a',
   },
   {
     type: 'pharmacy', name: 'Farmácia', icon: '{flask}', desc: 'Um boticário prepara pílulas com ervas.',
     w: 2, h: 2, cost: { wood: 40, stone: 20, ryo: 50 }, buildTime: 16, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 1,
+    sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#2e7d6b', wall: '#f0ead8',
   },
   {
     type: 'sealshop', name: 'Oficina de Selos', icon: '{paper}', desc: 'Faz papel de selo com madeira e papéis-bomba.',
     w: 2, h: 2, cost: { wood: 60, stone: 30, ryo: 120 }, buildTime: 20, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 2,
+    sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#8e2a22', wall: '#f3e7cf',
   },
   {
