@@ -7,7 +7,7 @@ import { fxText } from './fx';
 import { catchingUp } from './care';
 import { statCapOf } from './sannin';
 import type { Game } from './game';
-import type { Building, Unit } from './types';
+import type { Building, NinjaInfo, Unit } from './types';
 import { FIELD_FOCUS_BONUS } from '../data/specialize';
 
 /** Aumenta um atributo respeitando o teto do rank. Retorna o ganho real. */
@@ -17,6 +17,20 @@ export function addStat(u: Unit, key: StatKey, amount: number): number {
   const before = n.stats[key];
   n.stats[key] = Math.min(cap, before + amount);
   return n.stats[key] - before;
+}
+
+/** Motivo de não poder focar o treino neste atributo (já no teto da patente), ou null. */
+export function focusCapped(n: NinjaInfo, k: StatKey): string | null {
+  const cap = statCapOf(n);
+  if (n.stats[k] < cap) return null;
+  const label = STAT_INFO[k].label;
+  const who = n.sannin ? 'Sannin' : RANKS[n.rank].name;
+  if (cap >= 10) return `${label} já está no máximo (${cap}).`;
+  const next =
+    n.rank === 'genin' ? `Promova a Chunin para subir até ${RANKS.chunin.statCap}.`
+    : n.rank === 'chunin' ? `Promova a Jounin para subir até ${RANKS.jounin.statCap}.`
+    : `Só o Kage e os Sannin passam de ${cap}.`;
+  return `${label} já está no máximo para ${who} (${cap}). ${next}`;
 }
 
 export function gainXp(g: Game, u: Unit, amount: number) {
@@ -59,6 +73,11 @@ export function trainTick(g: Game, u: Unit, sensei: Unit | null = null, field?: 
     const focusBonus = field?.focus === key ? FIELD_FOCUS_BONUS : 1;
     const gain = addStat(u, key, 0.12 * mult * focusBonus * (0.8 + n.stats.inteligencia * 0.05));
     if (gain > 0) fxText(g, u.x, u.y - 22, `+${STAT_INFO[key].short}`, STAT_INFO[key].color);
+    // o foco chegou ao teto: volta para o aleatório (senão o treino subiria outro atributo com o botão ainda marcado)
+    if (n.focus === key && focusCapped(n, key)) {
+      n.focus = null;
+      g.toast(`{barbell} ${u.name} chegou ao máximo de ${STAT_INFO[key].label}; o foco do treino voltou para Aleatório.`, 'info', u);
+    }
     refreshDerived(u);
   }
   // Monte dos Kages inspira: +30% de XP no treino

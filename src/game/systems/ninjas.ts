@@ -476,14 +476,22 @@ function goPractice(g: Game, u: Unit): boolean {
     const def = BUILDINGS[near.type];
     for (let i = 0; i < 3; i++) spots.push({ x: (near.tx + rand(0.3, def.w - 0.3)) * TILE, y: (near.ty + rand(0.3, def.h - 0.3)) * TILE });
   }
-  for (let i = 0; i < 3; i++) spots.push({ x: door.x + rand(-28, 28), y: door.y + rand(18, 40) });
-  spots.push(door);
+  for (let i = 0; i < 10; i++) spots.push({ x: door.x + rand(-40, 40), y: door.y + rand(14, 56) });
   for (const p of spots)
-    if (setDestination(g, u, p.x, p.y)) {
+    if (g.world.walkablePx(p.x, p.y) && setDestination(g, u, p.x, p.y)) {
       u.state = 'toPractice';
       return true;
     }
-  return false;
+  // sem lugar livre por perto: pratica ali mesmo, na porta
+  if (Math.hypot(u.x - door.x, u.y - door.y) > 24) {
+    if (!setDestination(g, u, door.x, door.y)) return false;
+    u.state = 'toPractice';
+    return true;
+  }
+  u.moving = false;
+  u.state = 'practice';
+  u.timer = rand(0.3, 1);
+  return true;
 }
 
 /**

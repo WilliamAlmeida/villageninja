@@ -328,6 +328,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   com vultos (`runLap`; a volta é escolhida inteira livre ao começar, `freeLap`/`Unit.trainLap`; sem espaço, golpes), Stamina corre mais devagar e salta (`train-jump`), Selos os três selos em ciclo,
   Ninjutsu/Genjutsu meditam com aura (natureza / roxo, `meditating` em sprites.ts) e Inteligência lê sentado com o
   pergaminho no colo (`lapScroll`, desenhado por código). Trocar o foco no meio do treino troca na hora. Nenhuma folha nova.
+  Foco em atributo já no teto da patente fica bloqueado (`focusCapped` em progression.ts: botão com `blocked` e o aviso
+  dizendo a patente que libera; `setFocus` recusa); chegando ao teto treinando, o foco volta para Aleatório com aviso.
 - **Locais que voltam** (`siteTick` em explore.ts, sistema explore): ruína/baú feitos e mina esgotada somem e reaparecem
   noutro lugar depois de `SITE_RESPAWN_DAYS` (de preferência na névoa). A mina aguenta `MINE_USES` expedições
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).

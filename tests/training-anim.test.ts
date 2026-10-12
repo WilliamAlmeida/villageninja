@@ -3,6 +3,8 @@ import { SIM_DT } from '../src/config';
 import type { StatKey } from '../src/data/ninja';
 import { createNinja } from '../src/game/entities';
 import { createNewGame } from '../src/game/newGame';
+import { setFocus } from '../src/game/commands';
+import { focusCapped, trainTick } from '../src/game/progression';
 import { CENTER_TX, CENTER_TY } from '../src/game/world';
 import { SYSTEMS } from '../src/game/systems';
 import type { Game } from '../src/game/game';
@@ -113,5 +115,29 @@ describe('foco trocado no meio do treino', () => {
     const w = watch(g, n);
     expect(n.trainStat).toBe('taijutsu');
     expect(w.moves.has('train-tai')).toBe(true);
+  });
+});
+
+describe('foco num atributo já no teto', () => {
+  test('não deixa escolher e diz por quê', () => {
+    const g = createNewGame(SYSTEMS, 709);
+    const n = createNinja(g, 1100, 800, 'genin', 0);
+    n.ninja!.stats.taijutsu = 5;
+    const r = setFocus(g, n.id, 'taijutsu');
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.error).toContain('Chunin');
+    expect(focusCapped(n.ninja!, 'velocidade')).toBeNull();
+    n.ninja!.rank = 'chunin';
+    expect(setFocus(g, n.id, 'taijutsu').ok).toBe(true);
+  });
+
+  test('chegou ao teto treinando: o foco volta para Aleatório', () => {
+    const g = createNewGame(SYSTEMS, 710);
+    const n = createNinja(g, 1100, 800, 'genin', 0);
+    n.ninja!.stats.forca = 4.99;
+    n.ninja!.focus = 'forca';
+    trainTick(g, n, null, undefined, 'forca');
+    expect(n.ninja!.stats.forca).toBe(5);
+    expect(n.ninja!.focus).toBeNull();
   });
 });

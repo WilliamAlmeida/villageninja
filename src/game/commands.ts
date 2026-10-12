@@ -8,7 +8,7 @@ import { pick } from '../core/rng';
 import { convertToNinja, refreshDerived } from './entities';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
-import { addStat, nextRank } from './progression';
+import { addStat, focusCapped, nextRank } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
@@ -286,6 +286,8 @@ export function setOrder(g: Game, unitId: number, order: NinjaOrder): Result {
 export function setFocus(g: Game, unitId: number, focus: StatKey | null): Result {
   const u = g.unit(unitId);
   if (!u?.ninja) return fail('Inválido.');
+  const capped = focus && focusCapped(u.ninja, focus);
+  if (capped) return fail(capped);
   u.ninja.focus = focus;
   return ok;
 }

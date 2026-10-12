@@ -34,7 +34,7 @@ import {
   costLabel, demolish, jutsuOptions, promote, recruitNinja, RECRUIT_COST, setDesiredWorkers, setFocus, setOrder, teachJutsu,
   type Result,
 } from '../game/commands';
-import { nextRank } from '../game/progression';
+import { focusCapped, nextRank } from '../game/progression';
 import { nextLevelStatus, upgradeVillage } from '../game/village';
 import {
   abandonMission, acceptMission, autoAssign, freeTeams, MISSION_TIME, maxActiveMissions, missionOfTeam, missionPower, missionReward, missionRisk,
@@ -749,7 +749,7 @@ export class Panel {
     const autoTip = bySensei ? 'Metade das vezes o sensei puxa o treino para os pontos fortes dele.' : 'Cada sessão treina um atributo ao acaso.';
     html += `<button data-act="focus" data-arg="" class="${n.focus ? '' : 'on'}" ${tipAttr(auto, autoTip)}>${auto}</button>`;
     for (const k of STAT_KEYS)
-      html += `<button data-act="focus" data-arg="${k}" class="${n.focus === k ? 'on' : ''}" ${tipAttr(STAT_INFO[k].label, STAT_INFO[k].desc)}>${STAT_INFO[k].label}</button>`;
+      html += `<button data-act="focus" data-arg="${k}" class="${n.focus === k ? 'on' : ''}" ${blocked(this.app.game, [focusCapped(n, k)], undefined, 'Atributo no máximo')} ${tipAttr(STAT_INFO[k].label, STAT_INFO[k].desc)}>${STAT_INFO[k].label}</button>`;
     html += `</div>`;
     return html + this.teamSection(u, team);
   }

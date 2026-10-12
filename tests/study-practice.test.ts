@@ -13,6 +13,7 @@ const setup = (seed: number, jutsuId: string) => {
   const g = createNewGame(SYSTEMS, seed);
   g.state.res = { wood: 999, stone: 999, food: 999, ryo: 9999, iron: 999, herbs: 999, paper: 999, crystal: 0, gold: 0, darksteel: 0 };
   g.state.timers.animal = g.state.timers.raid = 1e9;
+  for (const x of g.state.units) if (x.faction !== 'village') x.dead = true; // bicho do mapa ferindo o aluno o manda descansar antes
   expect(placeBuilding(g, 'academy', CENTER_TX - 7, CENTER_TY + 3).ok).toBe(true);
   for (let t = 0; t < 60; t += SIM_DT) g.step(SIM_DT);
   expect(recruitNinja(g).ok).toBe(true);
