@@ -150,13 +150,20 @@ export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
     const pic = leafy ? seasonalTree(base, name, SEASON_VIEW.season) : base;
     const x = n.tx * TILE + TILE / 2 + (L?.dx ?? 0);
     const y = n.ty * TILE + TILE * 0.7 + (L?.dy ?? 0);
+    // achatamento do Editor de cenário: só a altura, em volta da base
+    const sq = L?.squash ?? 1;
+    ctx.save();
+    if (sq !== 1) {
+      ctx.translate(x, y);
+      ctx.scale(1, sq);
+      ctx.translate(-x, -y);
+    }
     drawArt(ctx, pic, x, y, h, n.variant >= 2);
     if (SEASON_VIEW.snow > 0.03 && n.type !== 'herb') {
-      ctx.save();
       ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
       drawArt(ctx, snowCap(pic, leafy ? `${name}|${SEASON_VIEW.season}` : name), x, y, h, n.variant >= 2);
-      ctx.restore();
     }
+    ctx.restore();
     return;
   }
   const img = nodeSprite(n.type, n.variant);

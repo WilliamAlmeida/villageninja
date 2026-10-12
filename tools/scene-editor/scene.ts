@@ -471,9 +471,10 @@ function renderProps() {
   } else if (mode === 'art') {
     const a = artL();
     h += `<h3>Arte</h3><div class="row"><label>Escala</label><input type="range" id="scale" min="0.4" max="2" step="0.01" value="${a.scale ?? 1}"><span>${(a.scale ?? 1).toFixed(2)}</span></div>
+      <div class="row"><label data-tip="Só a altura do desenho na tela (a imagem não muda). O Codex desenha o chão a ~30°; 0,866 leva ao 2:1 do jogo (a linha ciano é o terreno de verdade).">Achatamento</label><input type="range" id="squash" min="0.75" max="1" step="0.002" value="${a.squash ?? 1}"><span>${(a.squash ?? 1).toFixed(3)}</span><button id="squash21" data-tip="Chão de ~30° para o 2:1 do jogo">0,866</button></div>
       <div class="row"><label>X</label><input type="number" id="dx" step="1" value="${a.dx ?? 0}"><label>Y</label><input type="number" id="dy" step="1" value="${a.dy ?? 0}"></div>
       <div class="row"><label ${''}>Profundidade</label><input type="number" id="depth" step="1" value="${a.depth ?? 0}"><span class="hint">+ fica na frente de quem está perto; − atrás</span></div>
-      <p class="hint">A linha laranja é onde a arte "toca o chão": quem tem os pés abaixo dela aparece na frente; acima, atrás.</p>
+      <p class="hint">A linha laranja é onde a arte "toca o chão": quem tem os pés abaixo dela aparece na frente; acima, atrás. O losango ciano é o terreno de verdade (2:1): a base do desenho deve cair nele.</p>
       <div class="row"><button id="artreset">Voltar ao padrão</button></div>`;
   } else if (mode === 'points') {
     const defs = pointDefs();
@@ -611,8 +612,16 @@ props.addEventListener('click', (e) => {
     place();
     changed();
   }
+  if (id === 'squash21') {
+    snapshot();
+    a.squash = 0.866;
+    touchLayout();
+    changed();
+    renderProps();
+  }
   if (id === 'artreset') {
     snapshot();
+    delete a.squash;
     delete a.scale;
     delete a.dx;
     delete a.dy;
@@ -665,6 +674,14 @@ props.addEventListener('input', (e) => {
     (t.nextElementSibling as HTMLElement).textContent = `${brush}px`;
   }
 
+  if (t.id === 'squash') {
+    const v = Number(t.value);
+    if (v >= 0.999) delete a.squash;
+    else a.squash = +v.toFixed(3);
+    (t.nextElementSibling as HTMLElement).textContent = v.toFixed(3);
+    touchLayout();
+    changed();
+  }
   if (t.id === 'scale' || t.id === 'dx' || t.id === 'dy' || t.id === 'depth') {
     if (t.id === 'scale') {
       a.scale = Number(t.value);
@@ -1020,6 +1037,20 @@ function drawOverlay() {
   octx.setTransform(dpr, 0, 0, dpr, 0, 0);
   octx.clearRect(0, 0, over.width, over.height);
   const b = box();
+  // Arte: o losango verdadeiro do terreno (2:1, como o jogo projeta), para comparar com a base desenhada
+  if (mode === 'art' && building) {
+    const d = BUILDINGS[building.type];
+    const c = [[building.tx, building.ty + d.h], [building.tx + d.w, building.ty + d.h], [building.tx + d.w, building.ty], [building.tx, building.ty]]
+      .map(([x, y]) => project(x! * TILE, y! * TILE))
+      .map((p) => sceneToScreen(p.x, p.y));
+    octx.strokeStyle = '#3ff0ff';
+    octx.lineWidth = 2;
+    octx.setLineDash([]);
+    octx.beginPath();
+    c.forEach((p, i) => (i ? octx.lineTo(p.x, p.y) : octx.moveTo(p.x, p.y)));
+    octx.closePath();
+    octx.stroke();
+  }
   // Arte: a linha onde o desenho toca o chão (profundidade): pés abaixo dela = na frente; acima = atrás
   if (shows('base')) {
     const n = s.nodes[0];

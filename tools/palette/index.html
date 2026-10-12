@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paleta do cenário — Vila Ninja</title>
+    <link rel="stylesheet" href="../shared/tools.css" />
+    <style>
+      body { height: auto; min-height: 100%; }
+      header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+      header b { color: var(--accent-hi); font-size: 15px; }
+      header a { color: var(--muted); text-decoration: none; }
+      header .count { color: var(--muted); }
+      header .saved { color: #7ddc6b; font-size: 12px; }
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+      .chips button.on { border-color: var(--accent-hi); color: var(--accent-hi); }
+      main { padding: 14px 16px 40px; }
+      p.hint { color: var(--muted); margin: 0 0 12px; max-width: 900px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+      .card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 2px solid var(--line); border-radius: 10px; background: var(--card); cursor: pointer; user-select: none; }
+      .card:hover { border-color: var(--muted); }
+      .card.on { border-color: #7ddc6b; box-shadow: 0 0 0 2px rgba(125, 220, 107, 0.25); }
+      .card .pic { height: 150px; display: flex; align-items: flex-end; justify-content: center; background: #5a8a44; border-radius: 6px; overflow: hidden; }
+      .card img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+      .card .nm { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .card .ok { position: absolute; top: 6px; right: 8px; display: none; color: #7ddc6b; font-weight: 800; font-size: 18px; }
+      .card.on .ok { display: block; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="/">Início</a>
+      <b>Paleta do cenário</b>
+      <div class="chips" id="dirs"></div>
+      <span class="count" id="count"></span>
+      <button id="none">Desmarcar tudo</button>
+      <span class="saved" id="saved"></span>
+    </header>
+    <main>
+      <p class="hint">Marque (clique) as artes de cenário de que você mais gosta: cores, luz e acabamento. A paleta única do cenário sai das marcadas (<code>scripts/palette-from-favorites.py</code>). Grava sozinho em <code>docs/design/arte-iso/paleta-favoritos.json</code>.</p>
+      <div class="grid" id="grid"></div>
+    </main>
+    <script type="module" src="./palette.ts"></script>
+  </body>
+</html>

@@ -13,12 +13,15 @@ import home from '../tools/home/index.html';
 import page from '../tools/sprite-editor/index.html';
 import lab from '../tools/jutsu-lab/index.html';
 import cenario from '../tools/scene-editor/index.html';
+import paleta from '../tools/palette/index.html';
 
 const ROOT = join(import.meta.dir, '..');
 const ART = join(ROOT, 'src', 'art');
 const BACKUP = join(ROOT, 'docs', 'arte', 'backup-editor');
 const EDITS = join(ART, 'art-edits.json');
 const LAYOUT = join(ROOT, 'src', 'data', 'layout.json');
+/** Artes de cenário marcadas como preferidas na /paleta (a paleta única sai delas). */
+const FAVORITES = join(ROOT, 'docs', 'design', 'arte-iso', 'paleta-favoritos.json');
 /**
  * Arquivo editável: qualquer PNG de src/art e das pastas dela (ninja/layers, buildings, ui/kit2…), pelo caminho relativo
  * ("buildings/academy.png"); só letras minúsculas, números e hífen em cada parte (nada de "..").
@@ -49,6 +52,24 @@ Bun.serve({
     '/lab': lab,
     // editor de cenário: peças (camadas), terreno (muro/portão), escala, pontos; grava src/data/layout.json
     '/cenario': cenario,
+    // paleta do cenário: marcar as artes preferidas (scripts/palette-from-favorites.py tira a paleta delas)
+    '/paleta': paleta,
+    '/api/palette': {
+      GET: () => (existsSync(FAVORITES) ? new Response(Bun.file(FAVORITES), { headers: { ...noStore, 'Content-Type': 'application/json' } }) : Response.json({ picked: [] }, { headers: noStore })),
+      PUT: async (req) => {
+        let data: { picked?: unknown };
+        try {
+          data = JSON.parse(await req.text());
+        } catch {
+          return new Response('JSON inválido', { status: 400 });
+        }
+        const picked = Array.isArray(data.picked) ? data.picked.filter((f): f is string => typeof f === 'string' && NAME.test(f)) : null;
+        if (!picked) return new Response('Formato inválido', { status: 400 });
+        mkdirSync(join(ROOT, 'docs', 'design', 'arte-iso'), { recursive: true });
+        writeFileSync(FAVORITES, JSON.stringify({ picked, updated: new Date().toISOString() }, null, 1) + '\n');
+        return Response.json({ ok: true });
+      },
+    },
     '/api/layout': {
       GET: () => new Response(Bun.file(LAYOUT), { headers: { ...noStore, 'Content-Type': 'application/json' } }),
       PUT: async (req) => {

@@ -27,6 +27,11 @@ export interface LayoutPiece {
 export interface ArtLayout {
   /** Multiplica o tamanho padrão do desenho. */
   scale?: number;
+  /**
+   * Achatamento vertical (0,75–1; padrão 1): multiplica só a altura do desenho na tela, sem mexer na imagem. Para levar
+   * a arte desenhada a ~30° (o ângulo do Codex) ao chão 2:1 do jogo, 0,866. Cada arte decide o seu no Editor de cenário.
+   */
+  squash?: number;
   /** Deslocamento do desenho (px da cena no tamanho 1×). */
   dx?: number;
   dy?: number;

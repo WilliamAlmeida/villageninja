@@ -29,7 +29,7 @@ import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
 import { isRoad } from '../game/roads';
 import { buildingCenter, doorPos, doorTile, nodeArt } from '../game/world';
-import { art, artFoot, ART_SCALE, drawArt, smoothIfShrunk } from './art';
+import { art, artFoot, ART_SCALE, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
@@ -647,13 +647,29 @@ export class Renderer {
     if (!pic || !pic.naturalWidth) return null;
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
     const L = artLayout(artName);
-    const h = ((width * (ART_SCALE[artName] ?? 1) * (L?.scale ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
-    const w = (h / pic.naturalHeight) * pic.naturalWidth;
+    const h0 = ((width * (ART_SCALE[artName] ?? 1) * (L?.scale ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
+    const w = (h0 / pic.naturalHeight) * pic.naturalWidth;
+    const h = h0 * (L?.squash ?? 1); // achatamento do Editor de cenário: só a altura
     // espelhado (prédio de margem): a arte vira em volta da ponta da frente, então o deslocamento lateral também
     const flip = !!b.flip;
     const x = front.x + (flip ? -1 : 1) * (L?.dx ?? 0);
     const baseY = front.y + 4 + (L?.dy ?? 0);
     return { artName, pic, lvl, front, width, h, w, x, baseY, left: x - w / 2, top: baseY - h, flip };
+  }
+
+  /** Desenha a arte inteira no retângulo da caixa (largura e altura próprias: o achatamento muda só a altura). */
+  private drawBox(img: HTMLImageElement | HTMLCanvasElement, box: { left: number; top: number; w: number; h: number; x: number; flip: boolean }) {
+    const ctx = this.ctx;
+    const nw = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
+    ctx.save();
+    smoothIfShrunk(ctx, box.w, nw);
+    if (box.flip) {
+      ctx.translate(box.x, 0);
+      ctx.scale(-1, 1);
+      ctx.translate(-box.x, 0);
+    }
+    ctx.drawImage(img, box.left, box.top, box.w, box.h);
+    ctx.restore();
   }
 
   /** (chão) Prédio de margem: terra batida sob as células de muro e a sombra do píer na água sob as de água. */
@@ -802,11 +818,11 @@ export class Renderer {
     if (!b.built) ctx.globalAlpha = 0.35 + 0.45 * k;
     const box = chosen ?? this.artBox(b, level)!;
     const h = box.h;
-    drawArt(ctx, pic, box.x, box.baseY, h, box.flip);
+    this.drawBox(pic, box);
     if (SEASON_VIEW.snow > 0.03 && (!d.walkable || b.type === 'farm' || b.type === 'herbgarden')) {
       ctx.globalAlpha *= Math.min(1, SEASON_VIEW.snow * 1.4);
       // canteiros: neve pintada no próprio desenho (terra branca, plantas e cerca aparecendo); prédios: no telhado
-      drawArt(ctx, d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), box.x, box.baseY, h, box.flip);
+      this.drawBox(d.walkable ? snowField(pic, artName) : snowCap(pic, artName, true), box);
     }
     ctx.restore();
     // inverno: fumaça saindo das chaminés das casas
@@ -1169,7 +1185,7 @@ export class Renderer {
     if (!pic || !pic.naturalWidth) return null;
     const L = artLayout(name);
     const w = (site.kind === 'chest' ? 30 : site.kind === 'ruin' ? 84 : 90) * (L?.scale ?? 1);
-    const h = (w / pic.naturalWidth) * pic.naturalHeight;
+    const h = (w / pic.naturalWidth) * pic.naturalHeight * (L?.squash ?? 1);
     const cx = x + (L?.dx ?? 0);
     const top = y + (L?.dy ?? 0) + w * 0.18 - h;
     const f = artFoot(pic); // onde o desenho toca o chão (anel e brilho centrados aí)
@@ -1218,7 +1234,7 @@ export class Renderer {
     // (a base isométrica 2:1 tem o centro meia largura/2 acima da ponta de baixo)
     const chest = site.kind === 'chest';
     const pw = pic ? (chest ? (w * pic.naturalWidth) / 96 : w) : 0;
-    const ph = pic ? (pw / pic.naturalWidth) * pic.naturalHeight : 0;
+    const ph = pic ? (pw / pic.naturalWidth) * pic.naturalHeight * (L?.squash ?? 1) : 0;
     const left = x - pw / 2 + (chest && site.done ? -w * 0.06 : 0);
     const top = (chest ? y + w * 0.12 : y + w * 0.18) - ph;
     const f = pic ? artFoot(pic) : { cx: 0.5, by: 1, hw: 0.4 };
@@ -1620,7 +1636,7 @@ export class Renderer {
     if (!box) return;
     const ctx = this.ctx;
     ctx.globalAlpha = 0.6;
-    drawArt(ctx, box.pic, box.x, box.baseY, box.h, box.flip);
+    this.drawBox(box.pic, box);
     ctx.globalAlpha = 1;
   }
 }
