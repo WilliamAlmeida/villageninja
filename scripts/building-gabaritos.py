@@ -231,6 +231,8 @@ def piloto_comparacao():
             im = Image.open(path).convert('RGBA')
             ox = (j + 0.5) * cw_ / 2
             oy = can.height - 30 * Zc
+            # hoje: o terreno de antes (a casa nível 3 era 2×2); novo: o do piloto
+            w, h = (2, 2) if (j == 0 and name == 'house-3') else tuple(m['tiles'])
             dia = iso(w, h, ox, oy, Zc)
             d.polygon(dia, outline=(0, 255, 255, 255))
             if nh and j == 0:  # objeto (árvore, rocha) hoje: pela altura fixa do jogo

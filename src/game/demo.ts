@@ -216,8 +216,8 @@ function placeAll(g: Game) {
     }
     for (const [tx, ty] of spots) {
       if (have(t) >= want) break;
-      // folga de um tile em volta para o mapa não virar um bloco só
-      const def = BUILDINGS[t];
+      // folga de um tile em volta para o mapa não virar um bloco só, pelo terreno do nível final (a casa 3 é 3×3)
+      const def = defOf({ type: t, level: UPGRADES[t] ? 3 : 1 });
       const roomy = s.buildings.every((b) => {
         const o = defOf(b);
         return tx + def.w + 1 <= b.tx || b.tx + o.w + 1 <= tx || ty + def.h + 1 <= b.ty || b.ty + o.h + 1 <= ty;

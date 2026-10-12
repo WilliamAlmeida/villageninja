@@ -371,6 +371,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   **Gabarito de chão** (`scripts/iso_template.py`, usado pelo `deco-grid.py`): o Codex recebe como 1ª referência uma
   folha com o losango 2:1 EXATO do terreno de cada peça (tamanho em tiles de data/buildings.ts) na casa dela, e o recorte
   usa a largura do losango; sem ele a base saía no ângulo/tamanho errado. Prédio novo deve usar o mesmo gabarito.
+  **Piloto do padrão novo** (`scripts/pilot-art.py`: gabarito v2 com a altura em ninjas, recorte do objeto principal, escala
+  única por folha nos prédios, grade do boneco 0,536 px, até 64 cores; `--instalar` copia para src/art com backup e ajusta o
+  layout): torre nível 1 em camadas (`tower` + `tower-top`, vigia a 100%), casas 1–3 (a 3 em 3×3), banco, gato, árvores
+  (84/90 px), rochas (24) e veios (27) — alturas dos objetos em `NODE_ART_H`/`STAGE_H` (sprites.ts).
   **Estudo da arte isométrica** em `docs/design-arte-iso.md` (`scripts/iso-audit.py` mede ângulo, encaixe no terreno e
   tamanho do pixel de cada arte contra a projeção do jogo): regras em discussão com o autor antes de refazer.
   Baús sem chão na arte (`scripts/strip-ground.py` → `<nome>-nograss.png`, usado pelo prepare-art; `SAME_SCALE`) e com

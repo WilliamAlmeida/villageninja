@@ -35,7 +35,8 @@ STYLE = 'docs/arte/iso/house-2.png'
 HOUSE = ('a cozy ninja village house: cream plaster walls with dark wooden frames, a stone base, a dark wooden sliding '
          'door with paper panels, small square windows, a dark blue ceramic tiled roof with curved Japanese eaves')
 SHEETS = {
-    'casas': {
+    # a torre saiu da 1ª folha (_torre.png); a base e o topo saem dela por edição (tower_layers)
+    'torre': {
         'cols': 4, 'rows': 1, 'fill': 0.8,
         'items': [
             ('tower', (2, 2, sum(TOWER.values())),
@@ -43,9 +44,19 @@ SHEETS = {
              f'side, a wooden PLATFORM at {TOWER["plataforma"]} ninja heights with a waist-high wooden railing all around, then '
              f'four tall pillars holding a dark blue tiled pagoda roof {TOWER["pe_direito"]} ninja heights above the platform; '
              f'the platform is OPEN between the railing and the roof (room for a person standing there), no person drawn'),
-            ('house', (2, 2, STD['andar'] + STD['telhado']), f'LEVEL 1: a small one-story {HOUSE}'),
-            ('house-2', (2, 2, STD['andar'] + STD['telhado']), f'LEVEL 2: the SAME house upgraded, still one story but wider, with a covered wooden porch and a flower box'),
-            ('house-3', (2, 2, 2 * STD['andar'] + STD['telhado']), f'LEVEL 3: the SAME house upgraded to TWO floors, a wooden balcony on the second floor, bigger roof with ridge ornaments'),
+        ],
+    },
+    # casas: cada nível bem diferente do anterior; o nível 3 ocupa 3×3 (cresce para os lados, não só para cima)
+    'casas': {
+        'cols': 3, 'rows': 1, 'fill': 0.85,
+        'items': [
+            ('house', (2, 2, STD['andar'] + STD['telhado']), f'LEVEL 1: a small simple one-story {HOUSE}'),
+            ('house-2', (2, 2, STD['andar'] + STD['telhado']),
+             'LEVEL 2: the same family house grown: one story but L-shaped with an attached side room, a covered wooden porch '
+             'with posts in front of the door, two stone lanterns, more windows, a flower box'),
+            ('house-3', (3, 3, 2 * STD['andar'] + STD['telhado']),
+             'LEVEL 3 on a BIGGER plot: a grand two-story family house (balcony on the second floor) with a one-story side wing '
+             'and a small walled garden with a bonsai and stepping stones; clearly wider and richer than level 2, same style'),
         ],
     },
     'pequenos': {
@@ -70,6 +81,13 @@ SHEETS = {
         ],
     },
 }
+
+
+# tamanho por peça quando a altura-alvo não é a regra (pedido do autor, 2026-10-12): o banco com a largura do de hoje
+# (é um banco de praça, não uma cadeira), o gato com a altura do de hoje; os tocos novos não entram (os de hoje casam
+# melhor com as árvores novas)
+SIZE = {'bench': ('w', 40.8), 'statue': ('h', 43.6)}
+SKIP = {'stump0', 'stump1'}
 
 
 def generate(sheet, cfg):
@@ -125,10 +143,40 @@ def to_grid(im, scene_w):
     alpha = a[:, :, 3] > 110
     rgb = Image.fromarray(a[:, :, :3], 'RGB')
     pal = palette()
-    q = rgb.quantize(palette=pal, dither=Image.Dither.NONE) if pal else rgb.quantize(48, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    q = rgb.quantize(palette=pal, dither=Image.Dither.NONE) if pal else rgb.quantize(64, method=Image.Quantize.MAXCOVERAGE, dither=Image.Dither.NONE)
     out = np.array(q.convert('RGBA'))
     out[:, :, 3] = np.where(alpha, 255, 0)
     return Image.fromarray(out, 'RGBA')
+
+
+def drop_specks(img, frac=0.006):
+    """Tira da imagem final os pedacinhos soltos (menos de `frac` dos pixels opacos), como pontas de beiral que se
+    descolaram na redução. Só para prédios (nos objetos, pedriscos soltos são de verdade)."""
+    from collections import deque
+    a = np.array(img)
+    m = a[:, :, 3] > 0
+    total = m.sum()
+    seen = np.zeros(m.shape, bool)
+    h, w = m.shape
+    for sy, sx in zip(*np.nonzero(m)):
+        if seen[sy, sx]:
+            continue
+        comp = [(sy, sx)]
+        seen[sy, sx] = True
+        q = deque(comp)
+        while q:
+            y, x = q.popleft()
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not seen[yy, xx]:
+                        seen[yy, xx] = True
+                        q.append((yy, xx))
+                        comp.append((yy, xx))
+        if len(comp) < total * frac:
+            for y, x in comp:
+                a[y, x, 3] = 0
+    return Image.fromarray(a, 'RGBA')
 
 
 def tower_split(full, g, box, k):
@@ -169,9 +217,10 @@ def tower_split(full, g, box, k):
     return top
 
 
-def main_object(mask):
-    """Caixa (x0, y0, x1, y1) do objeto principal da casa: o maior pedaço opaco e o que estiver colado nele (até 6 px),
-    sem fiapos de fundo nem pedaços de vizinhos. Componentes conexos numa grade reduzida (4 px)."""
+def main_object(mask, cell=None):
+    """Caixa (x0, y0, x1, y1) do objeto principal: o pedaço opaco com mais pixels DENTRO da casa `cell` (x0, y0, x1, y1 na
+    janela; sem ela, o maior) e o que estiver colado nele, sem fiapos de fundo nem pedaços de vizinhos. A janela pode ser
+    maior que a casa: o objeto que passa da borda dela (beiral, galho) não é cortado. Componentes numa grade de 4 px."""
     from collections import deque
     S = 4
     h, w = mask.shape
@@ -194,18 +243,59 @@ def main_object(mask):
                     lab[yy, xx] = n
                     q.append((yy, xx))
         sizes.append(c)
-    big = int(np.argmax(sizes))
+    if cell:
+        cx0, cy0, cx1, cy1 = (v // S for v in cell)
+        inside = np.bincount(lab[cy0:cy1, cx0:cx1].ravel(), minlength=len(sizes))
+        inside[0] = 0
+        big = int(np.argmax(inside))
+    else:
+        big = int(np.argmax(sizes))
     keep = lab == big
     ys, xs = np.nonzero(keep)
     bx0, by0, bx1, by1 = xs.min(), ys.min(), xs.max(), ys.max()
-    for n in range(1, len(sizes)):  # pedaços pequenos colados (folhas soltas, pedrinhas)
-        if n == big:
+    for n in range(1, len(sizes)):  # pedaços pequenos dentro do contorno (folhas soltas, pedrinhas); nada do vizinho
+        if n == big or sizes[n] > sizes[big] * 0.15 or sizes[n] < max(6, sizes[big] * 0.004):
             continue
         ys2, xs2 = np.nonzero(lab == n)
-        if xs2.min() <= bx1 + 2 and xs2.max() >= bx0 - 2 and ys2.min() <= by1 + 2 and ys2.max() >= by0 - 2:
+        if xs2.min() >= bx0 - 1 and xs2.max() <= bx1 + 1 and ys2.min() >= by0 - 1 and ys2.max() <= by1 + 1:
             keep |= lab == n
     ys, xs = np.nonzero(keep)
     return xs.min() * S, ys.min() * S, (xs.max() + 1) * S, (ys.max() + 1) * S
+
+
+_SHEET_SCALE: dict = {}
+
+
+def base_span(m):
+    """A base do prédio: a linha mais larga do terço de baixo da máscara (largura e o meio, em px)."""
+    lo = int(m.shape[0] * 0.67)
+    best, span = (0, 0), 0
+    for r in range(lo, m.shape[0]):
+        c = np.nonzero(m[r])[0]
+        if len(c) and c.max() - c.min() + 1 > span:
+            span, best = c.max() - c.min() + 1, (c.min(), c.max())
+    return span, best
+
+
+def sheet_scale(cfg, ds, im, a, cw, ch):
+    """px da cena por px da folha para os prédios (terreno maior que 1×1) desta folha: mediana de largura do losango (cena)
+    / base medida (folha)."""
+    key = id(cfg)
+    if key in _SHEET_SCALE:
+        return _SHEET_SCALE[key]
+    ratios = []
+    for i, (name, (w, h, _), _) in enumerate(cfg['items']):
+        if w * h == 1 or name in SKIP:
+            continue
+        x, y = round((i % cfg['cols']) * cw), round((i // cfg['cols']) * ch)
+        wx0, wy0 = max(0, x - round(cw * 0.3)), max(0, y - round(ch * 0.15))
+        wx1, wy1 = min(1536, round(x + cw * 1.3)), min(1024, round(y + ch * 1.15))
+        ox0, oy0, ox1, oy1 = main_object(a[wy0:wy1, wx0:wx1], (x - wx0, y - wy0, round(x + cw) - wx0, round(y + ch) - wy0))
+        span, _ = base_span(a[wy0 + oy0:wy0 + oy1, wx0 + ox0:wx0 + ox1])
+        ratios.append((w + h) * 24 / span)
+    _SHEET_SCALE[key] = float(np.median(ratios)) if ratios else 1.0
+    print('escala da folha (prédios):', round(_SHEET_SCALE[key], 4), 'px da cena por px')
+    return _SHEET_SCALE[key]
 
 
 def process(sheet, cfg, path, ds, meta):
@@ -220,17 +310,25 @@ def process(sheet, cfg, path, ds, meta):
     a = np.array(im)[:, :, 3] > 40
     FINAL.mkdir(parents=True, exist_ok=True)
     for i, (name, (w, h, hh), _) in enumerate(cfg['items']):
+        if name in SKIP:
+            continue
         x, y = round((i % cfg['cols']) * cw), round((i // cfg['cols']) * ch)
-        cell = a[y:round(y + ch), x:round(x + cw)]
-        if not cell.any():
+        if not a[y:round(y + ch), x:round(x + cw)].any():
             print('vazio', name)
             continue
-        ox0, oy0, ox1, oy1 = main_object(cell)
-        crop = im.crop((x + ox0, y + oy0, x + ox1, y + oy1))
+        # janela com folga além da casa (o que passa da borda dela não é cortado)
+        wx0, wy0 = max(0, x - round(cw * 0.3)), max(0, y - round(ch * 0.15))
+        wx1, wy1 = min(1536, round(x + cw * 1.3)), min(1024, round(y + ch * 1.15))
+        ox0, oy0, ox1, oy1 = main_object(a[wy0:wy1, wx0:wx1], (x - wx0, y - wy0, round(x + cw) - wx0, round(y + ch) - wy0))
+        crop = im.crop((wx0 + ox0, wy0 + oy0, wx0 + ox1, wy0 + oy1))
         crop.save(OUT / f'{name}.png')
         m = np.array(crop)[:, :, 3] > 40
         diam_w = (w + h) * 24
-        if w * h == 1:
+        if name in SIZE:
+            kind, v = SIZE[name]
+            scene_w = v if kind == 'w' else crop.width * v / crop.height
+            base_dx = 0.0
+        elif w * h == 1:
             target_h = hh * H_SCENE
             scene_w = crop.width * target_h / crop.height
             base_dx = 0.0
@@ -243,9 +341,14 @@ def process(sheet, cfg, path, ds, meta):
                 c = np.nonzero(m[r])[0]
                 if len(c) and c.max() - c.min() + 1 > span:
                     span, best = c.max() - c.min() + 1, (c.min(), c.max())
-            scene_w = crop.width * diam_w / span
-            base_dx = ((best[0] + best[1] + 1) / 2 - crop.width / 2) * scene_w / crop.width
+            # px da cena por px da folha: a MESMA para todos os prédios da folha (o Codex desenha todos na mesma escala; medir
+            # cada um separadamente fazia a casa 1 sair maior que a 2): a mediana de "largura do losango / base medida"
+            per = sheet_scale(cfg, ds, im, a, cw, ch)
+            scene_w = crop.width * per
+            base_dx = ((best[0] + best[1] + 1) / 2 - crop.width / 2) * per
         full = to_grid(crop, scene_w)
+        if w * h > 1:
+            full = drop_specks(full)
         h_scene = full.height * PIX
         meta[name] = {
             'tiles': [w, h], 'target_H': hh, 'height_H': round(h_scene / H_SCENE, 2), 'img': list(full.size),
@@ -297,7 +400,158 @@ def tower_split_manual(meta):
     print('torre dividida: base + topo; vigia', marks)
 
 
+TOWER_EDITS = {
+    'base': ('Edit image 1: redraw EXACTLY the same watchtower, same size, same position on the canvas, same pixel art, '
+             'but REMOVE the roof, REMOVE the railing on the two FRONT sides of the platform (the sides nearest the viewer) '
+             'and REMOVE the three front pillars ABOVE the platform floor. KEEP the stone base, the lower pillars with their '
+             'braces, the ladder, the WHOLE wooden platform floor (now fully visible, with its front edge), the railing on '
+             'the two BACK sides and the back pillar. Pure white background, nothing else.'),
+    'top': ('Edit image 1: keep ONLY these parts of the SAME watchtower, at exactly the same size and position on the '
+            'canvas: the roof, the three front pillars from the platform floor up to the roof, and the railing on the two '
+            'FRONT sides of the platform (nearest the viewer). ERASE to pure white everything else: the stone base, the '
+            'lower pillars and braces, the ladder, the platform floor, the back railing and the back pillar.'),
+}
+
+
+def align(ref, im, search=60):
+    """Escala e deslocamento que levam `im` a coincidir com `ref` (RGBA do mesmo tamanho): o que mais acerta a cor onde
+    as duas são opacas. Busca grossa em 1/8 do tamanho (escala 0,8–1,2 em passos de 2,5%) e fina no tamanho cheio.
+    Devolve (k, dx, dy): `im` reduzida/ampliada por k em volta do canto e deslocada por (dx, dy)."""
+    def arr(img, f):
+        a = np.array(img.resize((max(1, round(img.width * f)), max(1, round(img.height * f))), Image.NEAREST)).astype(int)
+        return a
+
+    def score(R, I, dx, dy):
+        h, w = R.shape[:2]
+        ih, iw = I.shape[:2]
+        ox0, oy0 = max(0, dx), max(0, dy)
+        ox1, oy1 = min(w, dx + iw), min(h, dy + ih)
+        if ox1 - ox0 < 10 or oy1 - oy0 < 10:
+            return -1e9
+        r = R[oy0:oy1, ox0:ox1]
+        i = I[oy0 - dy:oy1 - dy, ox0 - dx:ox1 - dx]
+        both = (r[:, :, 3] > 40) & (i[:, :, 3] > 40)
+        n = both.sum()
+        if n < 50:
+            return -1e9
+        diff = np.abs(r[:, :, :3] - i[:, :, :3]).sum(axis=2)[both].mean()
+        return n / (1 + diff)
+
+    q = 0.125
+    Rq = arr(ref, q)
+    best = (-1e9, 1.0, 0, 0)
+    for k in np.arange(0.8, 1.2001, 0.025):
+        Iq = arr(im, q * k)
+        sr = round(search * q)
+        for dx in range(-sr - round(im.width * q * (k - 1) / 2), sr + 1, 1):
+            for dy in range(-sr - round(im.height * q * (k - 1)), sr + 1, 1):
+                sc = score(Rq, Iq, dx, dy)
+                if sc > best[0]:
+                    best = (sc, float(k), dx, dy)
+    _, k, dx, dy = best
+    R = np.array(ref).astype(int)
+    I = arr(im, k)
+    fine = max(((dx * 8 + ddx, dy * 8 + ddy) for ddx in range(-8, 9, 2) for ddy in range(-8, 9, 2)), key=lambda d: score(R, I, *d))
+    fine = max(((fine[0] + ddx, fine[1] + ddy) for ddx in (-1, 0, 1) for ddy in (-1, 0, 1)), key=lambda d: score(R, I, *d))
+    return k, fine[0], fine[1]
+
+
+def tower_layers(meta):
+    """Base e topo da torre como DUAS imagens geradas (não um recorte da inteira: entre as tábuas do parapeito aparecia o
+    piso, que ia junto para o topo e cobria as pernas do vigia). Parte da torre inteira já gerada (docs/arte/piloto/
+    tower.png, no tamanho da folha), pede as duas edições ao Codex no mesmo quadro, alinha cada uma à inteira e reduz
+    as duas exatamente como a inteira (mesmo tamanho final)."""
+    full = Image.open(OUT / 'tower.png').convert('RGBA')
+    S = 1024
+    canvas = Image.new('RGBA', (S, S), (255, 255, 255, 255))
+    off = ((S - full.width) // 2, S - full.height - 40)
+    canvas.alpha_composite(full, off)
+    ref = OUT / '_tower-ref.png'
+    canvas.convert('RGB').save(ref)
+    ref_rgba = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+    ref_rgba.alpha_composite(full, off)
+    layers = {}
+    for part, prompt in TOWER_EDITS.items():
+        raw = OUT / f'_tower-{part}.png'
+        if not raw.exists():
+            subprocess.run(['node', 'scripts/codex-image.mjs', str(raw), prompt, '--ref', os.path.relpath(ref, ROOT), '--size', f'{S}x{S}', '--vaos'], cwd=ROOT, check=True)
+        im = Image.open(raw).convert('RGBA')
+        if im.size != (S, S):
+            im = im.resize((S, S), Image.LANCZOS)
+        k, dx, dy = align(ref_rgba, im)
+        im = im.resize((round(S * k), round(S * k)), Image.NEAREST)
+        moved = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+        moved.paste(im, (dx, dy), im)
+        layers[part] = moved.crop((off[0], off[1], off[0] + full.width, off[1] + full.height))
+        print(f'torre {part}: escala {k:.3f}, deslocamento {dx},{dy}')
+    scene_w = meta['tower']['img'][0] * PIX
+    for part, name in (('base', 'tower'), ('top', 'tower-top')):
+        out = np.array(to_grid(layers[part], scene_w))
+        # resto do fundo branco do Codex (fiapos entre as pilastras): quase branco e sem cor vira transparente
+        rgb = out[:, :, :3].astype(int)
+        whiteish = (rgb.min(axis=2) > 215) & (rgb.max(axis=2) - rgb.min(axis=2) < 28)
+        out[whiteish, 3] = 0
+        Image.fromarray(out, 'RGBA').save(FINAL / f'{name}.png')
+    sw, sh = meta['tower']['img'][0] * PIX, meta['tower']['img'][1] * PIX
+    marks = [[round((x - 0.5) * sw, 1), round(-(1 - y) * sh, 1)] for x, y in TOWER_GUARD]
+    meta['tower']['marks'] = {'guard': marks[0], 'guard2': marks[1], 'guard3': marks[2]}
+
+
+def install():
+    """Copia o piloto para src/art (backup das antigas e do trecho do layout em docs/arte/_backup/<data>/piloto/), ajusta
+    o layout.json (escala/posição pela meta; vigia da torre) e tira as trocadas da lista de editadas à mão. As alturas
+    dos objetos (árvore, rocha) e o registro do topo da torre ficam no código (render/sprites.ts, render/art.ts)."""
+    import datetime
+    import shutil
+    sys.path.insert(0, str(Path(__file__).parent))
+    from artpaths import art_file, ART, EDITS
+    meta = json.loads((OUT / 'meta.json').read_text(encoding='utf8'))
+    names = [n for n in meta if n not in SKIP] + ['tower-top']
+    bk = ROOT / 'docs' / 'arte' / '_backup' / datetime.date.today().isoformat() / 'piloto'
+    bk.mkdir(parents=True, exist_ok=True)
+    layout_p = ROOT / 'src' / 'data' / 'layout.json'
+    L = json.loads(layout_p.read_text(encoding='utf8'))
+    old_layout = {n: L['arts'].get(n) for n in names}
+    (bk / 'layout-antigo.json').write_text(json.dumps(old_layout, indent=1, ensure_ascii=False) + '\n', encoding='utf8')
+    art_src = (ROOT / 'src' / 'render' / 'art.ts').read_text(encoding='utf8')
+    edits = json.loads(EDITS.read_text(encoding='utf8'))
+    for n in names:
+        dst = art_file(n)
+        if dst.exists():
+            shutil.copy2(dst, bk / f'{n}.png')
+        shutil.copy2(FINAL / f'{n}.png', dst)
+        rel = dst.relative_to(ART).as_posix()
+        if rel in edits:
+            edits.remove(rel)
+        m = meta.get(n)
+        if not m:
+            continue
+        a = {}
+        if m['tiles'] != [1, 1] or n in ('bench', 'statue'):
+            # prédio/decoração: largura do losango × ART_SCALE × scale → a escala da meta já é a final
+            import re
+            mm = re.search(rf"'{re.escape(n)}':\s*([\d.]+)|\b{re.escape(n)}:\s*([\d.]+)", art_src[art_src.index('export const ART_SCALE'):art_src.index('export const artUrl')])
+            art_scale = float(next(g for g in mm.groups() if g)) if mm else 1.0
+            a = {'scale': round(m['scale'] / art_scale, 4), 'dx': m['dx'], 'dy': m['dy']}
+        if 'marks' in m:
+            a['marks'] = m['marks']
+        if a:
+            L['arts'][n] = a
+        else:
+            L['arts'].pop(n, None)
+    layout_p.write_text(json.dumps(L, indent=1, ensure_ascii=False) + '\n', encoding='utf8')
+    EDITS.write_text(json.dumps(sorted(edits), indent=2, ensure_ascii=False) + '\n', encoding='utf8')
+    (bk / 'LEIAME.md').write_text(
+        '# Artes trocadas pelo piloto do padrão novo (docs/design-arte-iso.md)\n\n'
+        'Como estavam em src/art antes da instalação (inclusive as editadas à mão: banco, casa nível 3, torre) e o trecho do '
+        'layout.json delas (layout-antigo.json). Pode apagar quando quiser.\n', encoding='utf8')
+    print('instalado:', ', '.join(names), '| backup em', bk.relative_to(ROOT).as_posix())
+
+
 def main():
+    if '--instalar' in sys.argv:
+        install()
+        return
     OUT.mkdir(parents=True, exist_ok=True)
     only_process = '--so-processar' in sys.argv
     meta = {}
@@ -311,7 +565,7 @@ def main():
             path, ds = generate(sheet, cfg)
         process(sheet, cfg, path, ds, meta)
     if 'tower' in meta:
-        tower_split_manual(meta)
+        tower_layers(meta)
     (OUT / 'meta.json').write_text(json.dumps(meta, indent=1, ensure_ascii=False) + '\n', encoding='utf8')
     print('meta em', (OUT / 'meta.json').relative_to(ROOT).as_posix())
 

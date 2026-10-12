@@ -38,6 +38,14 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Pose carregando (volta de expedição com espólio, raptado do Som) (57f41d5)
 - [x] Peças novas: capa (do sensei, na cor da equipe) e pergaminho nas costas (quem está estudando) (57f41d5)
 
+## 4. Padrão novo da arte isométrica (docs/design-arte-iso.md; piloto instalado em 2026-10-12 para o autor ver no jogo)
+- [ ] Autor conferir o piloto no jogo e nos editores (torre nível 1 em camadas, casas 1–3 com a 3 em 3×3, banco, gato,
+      árvores, rochas, veios) e limpar as rebarbas brancas que sobrarem
+- [ ] Marcar as preferidas em /paleta → `python scripts/palette-from-favorites.py` → aprovar a paleta → reaplicar no piloto
+- [ ] Torre níveis 2 e 3 em camadas (base + topo) no mesmo padrão; torres dos mapas temáticos (pescadores, deserto)
+- [ ] Refazer o resto das construções e decorações no padrão (gabarito v2, grade do boneco, paleta), em lotes com aprovação
+- [ ] Tirar o sistema de peça "por cima do vigia" (`LayoutPiece.over`) quando nenhuma torre usar mais (as em camadas não usam)
+
 ## Fora da lista (só quando o autor pedir)
 - "Preparar defesa" com prazo (adiado pelo autor).
 - Testar `CODEX_MODEL=gpt-6-luna` nas imagens.

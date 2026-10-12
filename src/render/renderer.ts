@@ -918,7 +918,10 @@ export class Renderer {
     const moving = !throwing && k < 1 && dist > 0.5;
     const LOOK = [Math.PI / 2, 0, Math.PI, Math.PI / 2];
     const facing = throwing ? base.facing : moving ? Math.atan2(to.y - from.y, to.x - from.x) : LOOK[(seg + u.id) % LOOK.length]!;
-    return { ...base, x, y: y - 9, moving, facing, drawScale: 0.7 }; // os pés ficam 9 px abaixo do ponto
+    // a 100% na torre em camadas (arte com `-top`, feita para caber o ninja); 70% nas artes antigas, pequenas para ele
+    const box = this.artBox(lift.b, this.level);
+    const full = !!box && !!art(`${box.artName}-top`);
+    return { ...base, x, y: y - 9, moving, facing, drawScale: full ? 1 : 0.7 }; // os pés ficam 9 px abaixo do ponto
   }
 
   /** Transparência atual da torre (a menor das peças dela): o vigia esmaece junto quando alguém passa atrás. */

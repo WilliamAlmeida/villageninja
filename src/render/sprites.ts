@@ -124,13 +124,14 @@ function nodeSprite(type: ResourceNode['type'], variant: number) {
 }
 
 /** Altura (px) da arte de cada tipo de nó. */
-const NODE_ART_H: Record<ResourceNode['type'], number> = { tree: 48, rock: 22, ore: 26, herb: 24 };
+// alturas na cena (zoom 1; ninja = 30): árvore 2,8 ninjas, rocha 0,8, veio 0,9 (padrão de docs/design-arte-iso.md)
+const NODE_ART_H: Record<ResourceNode['type'], number> = { tree: 84, rock: 24, ore: 27, herb: 24 };
 
 /** Árvore já virou toco? (estágio do desenho: quase no fim) */
 export const isStump = (n: ResourceNode) => n.type === 'tree' && n.amount / n.max < 0.25;
 
 /** Altura (px) de cada estágio que não é o recurso inteiro. */
-const STAGE_H: Record<string, number> = { stump0: 20, stump1: 20, 'rock-cracked': 22, 'rock-pebbles': 11, 'ore-empty': 22 };
+const STAGE_H: Record<string, number> = { stump0: 20, stump1: 20, 'rock-cracked': 24, 'rock-pebbles': 7.5, 'ore-empty': 24 };
 /** Estágio sem arte ainda (carregando, save antigo): o desenho que existia antes. */
 const STAGE_FALLBACK: Record<string, string> = { 'ore-empty': 'rock-cracked', 'rock-pebbles': 'rock-cracked' };
 
