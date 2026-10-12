@@ -1,6 +1,6 @@
 // Missões: o quadro da Mesa de Missões, aceitar/abandonar e o resultado.
 // A execução no mapa (IA da equipe e dos alvos) fica em systems/missions.ts.
-import { DAY_LENGTH, MAP_H, MAP_W, TILE } from '../config';
+import { DAY_LENGTH, TILE } from '../config';
 import { pick, rand, weightedPick } from '../core/rng';
 import { MISSION_RANKS, MISSION_TEMPLATES, OFFER_RANKS, type Enemy, type MissionTemplate } from '../data/missions';
 import { randomGiven } from '../data/names';
@@ -13,7 +13,7 @@ import { findPath, nearestWalkable } from './pathfinding';
 import { gainXp } from './progression';
 import { teamUnits } from './teams';
 import type { Cost, Mission, Team, Unit } from './types';
-import { CENTER_TX, CENTER_TY, cellCenter, doorTile, tileCenter, toTile } from './world';
+import { centerOf, doorTile, tileCenter, toTile } from './world';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -51,8 +51,11 @@ export const missionOfTeam = (g: Game, teamId: number) => g.state.missions.find(
 /** Um ponto alcançável a pé, longe da vila: na floresta ou perto da borda. */
 export function pickSite(g: Game, kind: 'forest' | 'edge'): { x: number; y: number } | null {
   const hk = g.hokage();
-  const from = hk ? doorTile(hk) : { tx: CENTER_TX, ty: CENTER_TY };
-  const far = (tx: number, ty: number) => Math.hypot(tx - CENTER_TX, ty - CENTER_TY) >= MIN_DIST;
+  const c = centerOf(g.state);
+  const from = hk ? doorTile(hk) : c;
+  const far = (tx: number, ty: number) => Math.hypot(tx - c.tx, ty - c.ty) >= MIN_DIST;
+  const W = g.world.mapW;
+  const H = g.world.mapH;
   const ok = (tx: number, ty: number) => g.world.walkable(tx, ty) && far(tx, ty) && !!findPath(g.world, from.tx, from.ty, tx, ty);
   const trees = g.state.nodes.filter((n) => n.type === 'tree' && far(n.tx, n.ty));
   for (let i = 0; i < 40; i++) {
@@ -65,8 +68,8 @@ export function pickSite(g: Game, kind: 'forest' | 'edge'): { x: number; y: numb
       [tx, ty] = w;
     } else {
       const side = Math.floor(rand(0, 4));
-      tx = side === 0 ? Math.floor(rand(2, 5)) : side === 1 ? Math.floor(rand(MAP_W - 5, MAP_W - 2)) : Math.floor(rand(3, MAP_W - 3));
-      ty = side === 2 ? Math.floor(rand(2, 5)) : side === 3 ? Math.floor(rand(MAP_H - 5, MAP_H - 2)) : Math.floor(rand(3, MAP_H - 3));
+      tx = side === 0 ? Math.floor(rand(2, 5)) : side === 1 ? Math.floor(rand(W - 5, W - 2)) : Math.floor(rand(3, W - 3));
+      ty = side === 2 ? Math.floor(rand(2, 5)) : side === 3 ? Math.floor(rand(H - 5, H - 2)) : Math.floor(rand(3, H - 3));
     }
     if (ok(tx, ty)) return { x: tileCenter(tx), y: tileCenter(ty) };
   }
@@ -268,8 +271,8 @@ function spawnObjective(g: Game, m: Mission) {
 /** Emboscada na escolta: bandidos saem da mata à frente do mercador. */
 export function spawnAmbush(g: Game, m: Mission, merchant: Unit) {
   const ahead = merchant.path[Math.min(merchant.path.length - 1, 14)];
-  const ax = ahead != null ? cellCenter(ahead).x : merchant.x;
-  const ay = ahead != null ? cellCenter(ahead).y : merchant.y;
+  const ax = ahead != null ? g.world.cellCenter(ahead).x : merchant.x;
+  const ay = ahead != null ? g.world.cellCenter(ahead).y : merchant.y;
   for (const e of templateOf(m).ambush ?? []) {
     const p = around(g, ax, ay, 2.5 * TILE);
     const u = spawnEnemy(g, m, e, p.x, p.y);

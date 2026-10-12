@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { MAP_W, SUB } from '../src/config';
+import { SUB } from '../src/config';
 import { BUILDINGS } from '../src/data/buildings';
 import { tileOf } from '../src/data/layout';
 import { placeBuilding, shoreSpot } from '../src/game/commands';
@@ -23,7 +23,7 @@ function shoreGame(side: 'x' | 'y') {
   for (let y = y0 - 3; y <= y0 + 10; y++)
     for (let x = x0 - 3; x <= x0 + 10; x++) {
       const wet = side === 'y' ? y >= y0 + 2 : x >= x0 + 2;
-      s.tiles[y * MAP_W + x] = wet ? T.WATER : T.GRASS;
+      s.tiles[y * s.mapW + x] = wet ? T.WATER : T.GRASS;
     }
   g.world.rebuild();
   return { g, x0, y0 };
@@ -39,13 +39,13 @@ test('Porto: só na beira da água, com o píer em cima da água e a porta em te
   expect(placeBuilding(g, 'port', spot.tx, spot.ty, spot.flip).ok).toBe(true);
   const b = g.state.buildings.find((o) => o.type === 'port')!;
   const door = doorTile(b);
-  expect(g.state.tiles[door.ty * MAP_W + door.tx]).not.toBe(T.WATER);
+  expect(g.state.tiles[door.ty * g.state.mapW + door.tx]).not.toBe(T.WATER);
   // as células de água ficam sobre tiles de água
   const d = BUILDINGS.port;
   for (let fy = 0; fy < d.h * SUB; fy++)
     for (let fx = 0; fx < d.w * SUB; fx++)
       if (tileOf('port', fx, fy) === '~' && fy % SUB === 0 && fx % SUB === 0 && tileOf('port', fx, fy + 1) === '~')
-        expect(g.state.tiles[(b.ty + Math.floor(fy / SUB)) * MAP_W + b.tx + Math.floor(fx / SUB)]).toBe(T.WATER);
+        expect(g.state.tiles[(b.ty + Math.floor(fy / SUB)) * g.state.mapW + b.tx + Math.floor(fx / SUB)]).toBe(T.WATER);
 });
 
 test('Porto: com a água do outro lado, o jogo espelha (troca x por y no terreno)', () => {

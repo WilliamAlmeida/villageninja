@@ -1,5 +1,5 @@
 // Exploração: névoa (tiles explorados num bitset), locais especiais escondidos e o que acontece ao investigá-los.
-import { DAY_LENGTH, MAP_H, MAP_W, SUB, TILE } from '../config';
+import { DAY_LENGTH, SUB, TILE } from '../config';
 import { defOf, layoutKey } from '../data/buildings';
 import { extraOf } from '../data/layout';
 import { chance, mulberry32, pick } from '../core/rng';
@@ -10,15 +10,14 @@ import { createRogue } from './entities';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { Cost, GameState, Site, Unit } from './types';
-import { CENTER_TX, CENTER_TY, idx, inBounds, T, tileCenter, toTile } from './world';
+import { centerOf, idx, inBounds, type MapSize, T, tileCenter, toTile } from './world';
 
-const WORDS = Math.ceil((MAP_W * MAP_H) / 32);
-
-export const emptyExplored = () => new Array<number>(WORDS).fill(0);
+/** Bitset vazio do tamanho do mapa. */
+export const emptyExplored = (m: MapSize) => new Array<number>(Math.ceil((m.mapW * m.mapH) / 32)).fill(0);
 
 export function isExplored(s: GameState, tx: number, ty: number) {
-  if (!inBounds(tx, ty)) return false;
-  const i = idx(tx, ty);
+  if (!inBounds(s, tx, ty)) return false;
+  const i = idx(s, tx, ty);
   return ((s.explored[i >> 5]! >>> (i & 31)) & 1) === 1;
 }
 export const isExploredPx = (s: GameState, x: number, y: number) => isExplored(s, toTile(x), toTile(y));
@@ -27,10 +26,10 @@ export const isExploredPx = (s: GameState, x: number, y: number) => isExplored(s
 export function revealCircle(s: GameState, cx: number, cy: number, r: number): number {
   let added = 0;
   const r2 = r * r;
-  for (let y = Math.max(0, cy - r); y <= Math.min(MAP_H - 1, cy + r); y++)
-    for (let x = Math.max(0, cx - r); x <= Math.min(MAP_W - 1, cx + r); x++) {
+  for (let y = Math.max(0, cy - r); y <= Math.min(s.mapH - 1, cy + r); y++)
+    for (let x = Math.max(0, cx - r); x <= Math.min(s.mapW - 1, cx + r); x++) {
       if ((x - cx) ** 2 + (y - cy) ** 2 > r2) continue;
-      const i = idx(x, y);
+      const i = idx(s, x, y);
       const bit = 1 << (i & 31);
       const w = s.explored[i >> 5]!;
       if (w & bit) continue;
@@ -48,7 +47,7 @@ export const bumpFog = () => fogVersion++;
 export function exploredPercent(s: GameState) {
   let n = 0;
   for (const w of s.explored) for (let v = w >>> 0; v; v &= v - 1) n++;
-  return Math.round((n / (MAP_W * MAP_H)) * 100);
+  return Math.round((n / (s.mapW * s.mapH)) * 100);
 }
 
 /** Espalha os locais especiais longe da vila, em terra firme e sem se amontoar (determinístico pela seed). */
@@ -92,14 +91,15 @@ function siteSpot(s: GameState, rng: () => number, extra: Site[] = [], wantFog =
     [...s.sites, ...extra].some((o) => Math.abs(o.tx - tx) < 6 && Math.abs(o.ty - ty) < 6) ||
     s.nodes.some((n) => n.tx === tx && n.ty === ty) ||
     nearBuilding(s, tx, ty);
+  const c = centerOf(s);
   for (let tries = 0; tries < 800; tries++) {
-    const tx = 2 + Math.floor(rng() * (MAP_W - 4));
-    const ty = 2 + Math.floor(rng() * (MAP_H - 5));
-    if (Math.hypot(tx - CENTER_TX, (ty - CENTER_TY) * 1.2) < SITE_MIN_DIST) continue;
+    const tx = 2 + Math.floor(rng() * (s.mapW - 4));
+    const ty = 2 + Math.floor(rng() * (s.mapH - 5));
+    if (Math.hypot(tx - c.tx, (ty - c.ty) * 1.2) < SITE_MIN_DIST) continue;
     if (wantFog && tries < 400 && isExplored(s, tx, ty)) continue; // de preferência ainda na névoa (dá o que explorar)
     // o local e os vizinhos precisam ser terra (dá para chegar e investigar)
     let land = true;
-    for (let y = ty - 1; y <= ty + 1 && land; y++) for (let x = tx - 1; x <= tx + 1 && land; x++) land = s.tiles[idx(x, y)] !== T.WATER;
+    for (let y = ty - 1; y <= ty + 1 && land; y++) for (let x = tx - 1; x <= tx + 1 && land; x++) land = s.tiles[idx(s, x, y)] !== T.WATER;
     if (!land || taken(tx, ty)) continue;
     return { tx, ty };
   }
@@ -172,7 +172,8 @@ export function siteTick(g: Game, dt: number) {
 
 /** Começo do jogo (ou save antigo): revela os arredores da vila. */
 export function revealStart(s: GameState) {
-  revealCircle(s, CENTER_TX, CENTER_TY, SIGHT.start);
+  const c = centerOf(s);
+  revealCircle(s, c.tx, c.ty, SIGHT.start);
   for (const b of s.buildings) revealCircle(s, b.tx + 1, b.ty + 1, 6);
 }
 
@@ -225,7 +226,8 @@ export function resolveSite(g: Game, site: Site, u: Unit): string {
     }
   } else {
     // baú: recursos que crescem com a distância da vila; às vezes uma armadilha
-    const far = Math.hypot(site.tx - CENTER_TX, site.ty - CENTER_TY) / 10;
+    const c = centerOf(s);
+    const far = Math.hypot(site.tx - c.tx, site.ty - c.ty) / 10;
     const loot: Cost = pick([
       { wood: Math.round(60 * far), stone: Math.round(40 * far) },
       { ryo: Math.round(70 * far) },
@@ -254,13 +256,13 @@ export function scoutTarget(g: Game, u: Unit): { x: number; y: number } | null {
   const s = g.state;
   const cx = toTile(u.x);
   const cy = toTile(u.y);
-  const maxR = Math.max(MAP_W, MAP_H);
+  const maxR = Math.max(s.mapW, s.mapH);
   for (let r = 3; r < maxR; r += 2) {
     const opts: [number, number][] = [];
     for (let y = cy - r; y <= cy + r; y++)
       for (let x = cx - r; x <= cx + r; x++) {
         if (Math.abs(x - cx) !== r && Math.abs(y - cy) !== r) continue; // só a borda do anel
-        if (!inBounds(x, y) || isExplored(s, x, y) || !g.world.walkable(x, y)) continue;
+        if (!inBounds(s, x, y) || isExplored(s, x, y) || !g.world.walkable(x, y)) continue;
         if (isExplored(s, x + 1, y) || isExplored(s, x - 1, y) || isExplored(s, x, y + 1) || isExplored(s, x, y - 1)) opts.push([x, y]);
       }
     if (opts.length) {

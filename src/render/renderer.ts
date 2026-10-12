@@ -1,4 +1,4 @@
-import { CELL, MAX_DPR, SUB, TILE, WORLD_H, WORLD_W } from '../config';
+import { CELL, MAX_DPR, SUB, TILE } from '../config';
 import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
@@ -26,7 +26,6 @@ import { drawThemeDeco, type ThemeDeco, themeDecos } from './themeProps';
 import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
-import { MAP_H, MAP_W } from '../config';
 import { isRoad } from '../game/roads';
 import { buildingCenter, doorPos, doorTile, nodeArt } from '../game/world';
 import { art, artFoot, ART_SCALE, smoothIfShrunk } from './art';
@@ -138,6 +137,7 @@ export class Renderer {
 
   render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
+    cam.map = s; // a câmera fica dentro do mapa que está na tela (a vila é maior que os mapas de missão)
     this.level = s.level;
     this.season = seasonOf(s);
     this.kages = s.kageHistory?.length ?? 0;
@@ -145,7 +145,7 @@ export class Renderer {
     this.seed = s.seed;
     let cache = this.maps.get(s);
     if (!cache) {
-      cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal() };
+      cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal(s) };
       this.maps.set(s, cache);
     }
     this.terrain = cache.terrain;
@@ -205,7 +205,7 @@ export class Renderer {
     this.seasonal.drawWet(ctx);
     this.seasonal.drawGround(ctx, s);
     this.seasonal.drawCloudShadows(ctx, s);
-    ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, WORLD_W + FOG_PAD * 2 * TILE, WORLD_H + FOG_PAD * 2 * TILE);
+    ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, (s.mapW + FOG_PAD * 2) * TILE, (s.mapH + FOG_PAD * 2) * TILE);
 
     // chão batido sob prédios (o de margem: só sob as células de terra, e sombra na água sob o píer e o barco)
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
@@ -950,8 +950,8 @@ export class Renderer {
     const ctx = this.ctx;
     const winter = this.season === 'winter';
     const P = (x: number, y: number) => project(x * TILE, y * TILE);
-    for (let ty = 0; ty < MAP_H; ty++)
-      for (let tx = 0; tx < MAP_W; tx++) {
+    for (let ty = 0; ty < s.mapH; ty++)
+      for (let tx = 0; tx < s.mapW; tx++) {
         if (!isRoad(s, tx, ty) || !isExplored(s, tx, ty)) continue;
         const a = P(tx, ty);
         const b = P(tx + 1, ty);
@@ -1155,10 +1155,13 @@ export class Renderer {
 
   /** Textura da névoa (refeita só quando o estado ou o explorado muda). */
   private fogTexture(s: GameState) {
-    if (!this.fog) {
+    // um tamanho por mapa (a vila é maior que os mapas de missão): troca de mapa refaz as duas texturas
+    if (!this.fog || this.fog.width !== s.mapW + FOG_PAD * 2 || this.fog.height !== s.mapH + FOG_PAD * 2) {
       this.fog = document.createElement('canvas');
-      this.fog.width = MAP_W + FOG_PAD * 2;
-      this.fog.height = MAP_H + FOG_PAD * 2;
+      this.fog.width = s.mapW + FOG_PAD * 2;
+      this.fog.height = s.mapH + FOG_PAD * 2;
+      this.fogSoft = null;
+      this.fogOf = null;
     }
     if (this.fogVer !== fogVersion || this.fogOf !== s) {
       this.fogVer = fogVersion;
@@ -1479,7 +1482,7 @@ export class Renderer {
     if (dim) {
       ctx.fillStyle = 'rgba(0,0,0,0.32)';
       ctx.beginPath();
-      ctx.rect(0, 0, WORLD_W, WORLD_H);
+      ctx.rect(0, 0, g.state.mapW * TILE, g.state.mapH * TILE);
       ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
       ctx.fill('evenodd');
     }

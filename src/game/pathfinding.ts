@@ -1,9 +1,10 @@
-import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB } from '../config';
-import { fidx, inFine, type World } from './world';
+import { CELL, MAX_MAP_H, MAX_MAP_W, SUB } from '../config';
+import type { World } from './world';
 import { isRoadCell, ROAD } from './roads';
 
-// A* em grade 8-direções, nas células de colisão (meio tile), com buffers reaproveitados (zero alocação por busca).
-const N = FINE_W * FINE_H;
+// A* em grade 8-direções, nas células de colisão (meio tile), com buffers reaproveitados (zero alocação por busca),
+// do tamanho do maior mapa (cada mapa indexa pela largura dele, `World.fidx`).
+const N = MAX_MAP_W * SUB * MAX_MAP_H * SUB;
 const gScore = new Float32Array(N);
 const fScore = new Float32Array(N);
 const came = new Int32Array(N);
@@ -82,10 +83,10 @@ export function nearestWalkable(w: World, tx: number, ty: number, maxR = 8): [nu
 export function nearestCell(w: World, fx: number, fy: number, maxR = 16, region = 0, firm = false): [number, number] | null {
   if (firm) {
     const c = nearestCell(w, fx, fy, 3, region, false);
-    const near = c && !w.soft[fidx(c[0], c[1])] ? c : nearestCellWhere(w, fx, fy, 3, (x, y) => !w.soft[fidx(x, y)] && (!region || w.region[fidx(x, y)] === region));
+    const near = c && !w.soft[w.fidx(c[0], c[1])] ? c : nearestCellWhere(w, fx, fy, 3, (x, y) => !w.soft[w.fidx(x, y)] && (!region || w.region[w.fidx(x, y)] === region));
     if (near) return near;
   }
-  return nearestCellWhere(w, fx, fy, maxR, (x, y) => !region || w.region[fidx(x, y)] === region);
+  return nearestCellWhere(w, fx, fy, maxR, (x, y) => !region || w.region[w.fidx(x, y)] === region);
 }
 
 function nearestCellWhere(w: World, fx: number, fy: number, maxR: number, extra: (x: number, y: number) => boolean): [number, number] | null {
@@ -111,13 +112,13 @@ function nearestCellWhere(w: World, fx: number, fy: number, maxR: number, extra:
 /** Caminho entre tiles (do meio de um ao meio do outro): lista de células (sem a inicial) ou null. */
 export function findPath(w: World, sx: number, sy: number, gx: number, gy: number, maxIter = 6000): number[] | null {
   const c = (t: number, max: number) => Math.max(0, Math.min(max - 1, t)) * SUB + (SUB >> 1);
-  return findCells(w, c(sx, MAP_W), c(sy, MAP_H), c(gx, MAP_W), c(gy, MAP_H), maxIter * SUB * SUB);
+  return findCells(w, c(sx, w.mapW), c(sy, w.mapH), c(gx, w.mapW), c(gy, w.mapH), maxIter * SUB * SUB);
 }
 
 /** Caminho entre dois pontos (px). */
 export function findPathPx(w: World, ax: number, ay: number, bx: number, by: number, maxIter = 6000 * SUB * SUB): number[] | null {
   const c = (v: number, max: number) => Math.max(0, Math.min(max - 1, Math.floor(v / CELL)));
-  return findCells(w, c(ax, FINE_W), c(ay, FINE_H), c(bx, FINE_W), c(by, FINE_H), maxIter);
+  return findCells(w, c(ax, w.fineW), c(ay, w.fineH), c(bx, w.fineW), c(by, w.fineH), maxIter);
 }
 
 /** A* nas células: lista de índices de célula (sem a inicial) ou null. Destino bloqueado vai para a célula livre mais perto. */
@@ -128,16 +129,17 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
     const s = nearestCell(w, sx, sy);
     if (!s) return null;
     [sx, sy] = s;
-    pre = fidx(sx, sy);
+    pre = w.fidx(sx, sy);
   }
   // destino: a célula livre mais perto (de preferência fora de rocha/árvore). Noutra ilha (cercado, outro lado do
   // rio) não há caminho: falha NA HORA em vez de varrer o mapa inteiro (quem chamou tenta outra coisa: Shunshin…)
   const g = nearestCell(w, gx, gy, 24, 0, true);
   if (!g) return null;
   [gx, gy] = g;
-  if (w.region[fidx(gx, gy)] !== w.region[fidx(sx, sy)]) return null;
-  const start = fidx(sx, sy);
-  const goal = fidx(gx, gy);
+  if (w.region[w.fidx(gx, gy)] !== w.region[w.fidx(sx, sy)]) return null;
+  const start = w.fidx(sx, sy);
+  const goal = w.fidx(gx, gy);
+  const FW = w.fineW;
   if (start === goal) return pre != null ? [pre] : [];
 
   gen++;
@@ -159,13 +161,13 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
       if (pre != null) path.push(pre);
       return path.reverse();
     }
-    const cx = cur % FINE_W;
-    const cy = (cur / FINE_W) | 0;
+    const cx = cur % FW;
+    const cy = (cur / FW) | 0;
     for (const [dx, dy, cost] of DIRS) {
       const nx = cx + dx;
       const ny = cy + dy;
-      if (!inFine(nx, ny)) continue;
-      const ni = fidx(nx, ny);
+      if (!w.inFine(nx, ny)) continue;
+      const ni = w.fidx(nx, ny);
       if (closed[ni] === gen || !w.walkableCell(nx, ny)) continue;
       if (dx !== 0 && dy !== 0 && (!w.walkableCell(cx + dx, cy) || !w.walkableCell(cx, cy + dy))) continue;
       const ng = gScore[cur]! + cost * (isRoadCell(w.state, nx, ny) ? ROAD.pathCost : 1) + (w.soft[ni] ? SOFT_COST : 0);

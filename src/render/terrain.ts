@@ -1,4 +1,4 @@
-import { MAP_H, MAP_W, TILE, WORLD_H, WORLD_W } from '../config';
+import { TILE } from '../config';
 import { mulberry32 } from '../core/rng';
 import type { GameState } from '../game/types';
 import { idx, inBounds, T } from '../game/world';
@@ -15,29 +15,31 @@ const BASE: Record<number, string> = {
 /** Desenha o terreno uma única vez num canvas offscreen. */
 export function renderTerrain(state: GameState): HTMLCanvasElement {
   const c = document.createElement('canvas');
-  c.width = WORLD_W;
-  c.height = WORLD_H;
+  c.width = state.mapW * TILE;
+  c.height = state.mapH * TILE;
+  const MAP_W = state.mapW;
+  const MAP_H = state.mapH;
   const ctx = c.getContext('2d')!;
   const rng = mulberry32(state.seed ^ 0x5bd1e995);
 
   const depth = waterDepth(state);
   for (let y = 0; y < MAP_H; y++)
     for (let x = 0; x < MAP_W; x++) {
-      const t = state.tiles[idx(x, y)]!;
+      const t = state.tiles[idx(state, x, y)]!;
       // água fica mais escura longe da margem
-      ctx.fillStyle = t === T.WATER ? DEEP[Math.min(DEEP.length - 1, depth[idx(x, y)]!)]! : (BASE[t] ?? '#000');
+      ctx.fillStyle = t === T.WATER ? DEEP[Math.min(DEEP.length - 1, depth[idx(state, x, y)]!)]! : (BASE[t] ?? '#000');
       ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
     }
 
   // transições suaves entre tipos de terreno
   for (let y = 0; y < MAP_H; y++)
     for (let x = 0; x < MAP_W; x++) {
-      const t = state.tiles[idx(x, y)]!;
+      const t = state.tiles[idx(state, x, y)]!;
       for (const [dx, dy] of [[1, 0], [0, 1]] as const) {
         const nx = x + dx;
         const ny = y + dy;
-        if (!inBounds(nx, ny)) continue;
-        const o = state.tiles[idx(nx, ny)]!;
+        if (!inBounds(state, nx, ny)) continue;
+        const o = state.tiles[idx(state, nx, ny)]!;
         if (o === t) continue;
         const g = ctx.createLinearGradient(
           x * TILE + (dx ? TILE * 0.6 : 0), y * TILE + (dy ? TILE * 0.6 : 0),
@@ -55,7 +57,7 @@ export function renderTerrain(state: GameState): HTMLCanvasElement {
   // detalhes
   for (let y = 0; y < MAP_H; y++)
     for (let x = 0; x < MAP_W; x++) {
-      const t = state.tiles[idx(x, y)]!;
+      const t = state.tiles[idx(state, x, y)]!;
       const px = x * TILE;
       const py = y * TILE;
       if (t === T.ROCK) {
@@ -64,7 +66,7 @@ export function renderTerrain(state: GameState): HTMLCanvasElement {
           ctx.fillStyle = k % 2 ? '#3a332d' : '#26211d';
           ctx.fillRect(px + rng() * 22, py + rng() * 22, 6 + rng() * 10, 5 + rng() * 8);
         }
-        const open = (dx: number, dy: number) => inBounds(x + dx, y + dy) && state.tiles[idx(x + dx, y + dy)] !== T.ROCK;
+        const open = (dx: number, dy: number) => inBounds(state, x + dx, y + dy) && state.tiles[idx(state, x + dx, y + dy)] !== T.ROCK;
         ctx.fillStyle = 'rgba(160,140,120,0.35)';
         if (open(0, 1)) ctx.fillRect(px, py + TILE - 4, TILE, 4);
         if (open(1, 0)) ctx.fillRect(px + TILE - 4, py, 4, TILE);
@@ -105,7 +107,7 @@ export function renderTerrain(state: GameState): HTMLCanvasElement {
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
           const nx = x + dx;
           const ny = y + dy;
-          if (!inBounds(nx, ny) || state.tiles[idx(nx, ny)] === T.WATER) continue;
+          if (!inBounds(state, nx, ny) || state.tiles[idx(state, nx, ny)] === T.WATER) continue;
           const band = (w: number, color: string) => {
             ctx.fillStyle = color;
             if (dx === 1) ctx.fillRect(px + TILE - w, py, w, TILE);
@@ -128,7 +130,7 @@ export function renderTerrain(state: GameState): HTMLCanvasElement {
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
           const nx = x + dx;
           const ny = y + dy;
-          if (!inBounds(nx, ny) || state.tiles[idx(nx, ny)] !== T.WATER) continue;
+          if (!inBounds(state, nx, ny) || state.tiles[idx(state, nx, ny)] !== T.WATER) continue;
           ctx.fillStyle = 'rgba(60,40,20,0.18)';
           if (dx === 1) ctx.fillRect(px + TILE - 5, py, 5, TILE);
           if (dx === -1) ctx.fillRect(px, py, 5, TILE);
@@ -143,14 +145,16 @@ const DEEP = ['#4a93cf', '#3a80c0', '#2f6fb0', '#285fa0', '#225391'];
 
 /** Distância (em tiles) de cada tile de água até a margem mais próxima; 0 para terra. */
 export function waterDepth(state: GameState): Uint8Array {
+  const MAP_W = state.mapW;
+  const MAP_H = state.mapH;
   const d = new Uint8Array(MAP_W * MAP_H);
   const q: number[] = [];
   for (let y = 0; y < MAP_H; y++)
     for (let x = 0; x < MAP_W; x++) {
-      const i = idx(x, y);
+      const i = idx(state, x, y);
       if (state.tiles[i] !== T.WATER) continue;
       d[i] = 255;
-      const shore = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).some(([dx, dy]) => inBounds(x + dx, y + dy) && state.tiles[idx(x + dx, y + dy)] !== T.WATER);
+      const shore = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).some(([dx, dy]) => inBounds(state, x + dx, y + dy) && state.tiles[idx(state, x + dx, y + dy)] !== T.WATER);
       if (shore) {
         d[i] = 1;
         q.push(i);
@@ -161,8 +165,8 @@ export function waterDepth(state: GameState): Uint8Array {
     const x = i % MAP_W;
     const y = (i - x) / MAP_W;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      if (!inBounds(x + dx, y + dy)) continue;
-      const j = idx(x + dx, y + dy);
+      if (!inBounds(state, x + dx, y + dy)) continue;
+      const j = idx(state, x + dx, y + dy);
       if (d[j] === 255) {
         d[j] = Math.min(254, d[i]! + 1);
         q.push(j);
@@ -175,6 +179,7 @@ export function waterDepth(state: GameState): Uint8Array {
 
 /** (chão) Ondinhas animadas na água: arcos brancos que surgem e somem, mais nas águas fundas. */
 export function drawWaterAnim(ctx: CanvasRenderingContext2D, state: GameState, depth: Uint8Array, time: number) {
+  const MAP_W = state.mapW;
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 1.2;
   for (let i = 0; i < depth.length; i++) {

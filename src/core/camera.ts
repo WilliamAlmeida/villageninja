@@ -1,5 +1,5 @@
-import { MAX_ZOOM, MIN_ZOOM, WORLD_H, WORLD_W } from '../config';
-import { project, SCENE, unproject } from './iso';
+import { MAX_ZOOM, MIN_ZOOM, TILE, VILLAGE_H, VILLAGE_W } from '../config';
+import { project, sceneBox, unproject } from './iso';
 import { clamp } from './math';
 
 /**
@@ -7,8 +7,10 @@ import { clamp } from './math';
  * Quem está fora do render fala em coordenadas de mundo (focus, screenToWorld, worldToScreen).
  */
 export class Camera {
-  x = project(WORLD_W / 2, WORLD_H / 2).x;
-  y = project(WORLD_W / 2, WORLD_H / 2).y;
+  /** Tamanho do mapa na tela (o main põe o do estado que está sendo desenhado: a vila ou o mapa de missão). */
+  map = { mapW: VILLAGE_W, mapH: VILLAGE_H };
+  x = project((VILLAGE_W * TILE) / 2, (VILLAGE_H * TILE) / 2).x;
+  y = project((VILLAGE_W * TILE) / 2, (VILLAGE_H * TILE) / 2).y;
   zoom = 1.1;
   /** Zoom máximo (o Editor de cenário aproxima bem mais que o jogo). */
   maxZoom = MAX_ZOOM;
@@ -105,7 +107,8 @@ export class Camera {
   /** O mapa vira um losango: o centro da tela fica sempre dentro da caixa dele. */
   private clamp() {
     this.zoom = clamp(this.zoom, MIN_ZOOM, this.maxZoom);
-    this.x = clamp(this.x, SCENE.minX, SCENE.maxX);
-    this.y = clamp(this.y, SCENE.minY, SCENE.maxY);
+    const b = sceneBox(this.map);
+    this.x = clamp(this.x, b.minX, b.maxX);
+    this.y = clamp(this.y, b.minY, b.maxY);
   }
 }

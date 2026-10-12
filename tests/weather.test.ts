@@ -26,7 +26,7 @@ describe('nuvens de chuva', () => {
   test('em dia de chuva nuvens cruzam o mapa e só chove embaixo delas', () => {
     const g = rainyGame(601);
     const s = g.state;
-    expect(s.clouds.length).toBe(3);
+    expect(s.clouds.length).toBe(Math.round((3 * s.mapW * s.mapH) / (72 * 48))); // 3 no mapa de 72×48, mais no maior
     const c = s.clouds[0]!;
     expect(underRain(s, c.x, c.y)).toBe(true);
     s.clouds = [c];

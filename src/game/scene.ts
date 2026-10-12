@@ -1,7 +1,7 @@
 // Mapas de missão jogáveis: quando a equipe chega a um vilarejo para saquear ou anexar à força, a invasão vira um
 // mapa próprio (a vila deles no mesmo estilo da sua) simulado ao lado da vila, que continua andando. A equipe é
 // copiada para lá; ao terminar, o resultado (vida, XP, atributos, mortes) volta para os ninjas originais.
-import { MAP_H, MAP_W } from '../config';
+import { SCENE_H, SCENE_W } from '../config';
 import { chance, mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { ACTION_LABEL, REGION, REL } from '../data/region';
@@ -24,7 +24,16 @@ import { nodePower, regionOf } from './region';
 import { SCENE_SYSTEMS } from './systems';
 import { createTeam, joinAsMember, joinAsSensei } from './teams';
 import type { Cost, Expedition, GameState, SceneInfo, SceneTheme, Unit } from './types';
-import { CENTER_TX, CENTER_TY, doorPos, idx, T, tileCenter, toTile } from './world';
+import { doorPos, T, tileCenter, toTile } from './world';
+
+// os mapas de missão têm sempre o tamanho fixo de 72×48 (a vila é maior): tudo aqui usa este tamanho e este centro
+const MAP_W = SCENE_W;
+const MAP_H = SCENE_H;
+export const SCENE_CX = Math.floor(SCENE_W / 2);
+export const SCENE_CY = Math.floor(SCENE_H / 2);
+const CENTER_TX = SCENE_CX;
+const CENTER_TY = SCENE_CY;
+const idx = (tx: number, ty: number) => ty * MAP_W + tx;
 import { shoreSpot } from './commands';
 import { recordFallen } from './memorial';
 
@@ -124,7 +133,7 @@ export function createVillageScene(home: Game, e: Expedition): GameState {
   const def = REGION[e.node!]!;
   const power = nodePower(home.state, def);
   const seed = (home.state.seed ^ (e.id * 2654435761)) >>> 0;
-  const s = baseState(seed);
+  const s = baseState(seed, true);
   s.time = home.state.time;
   s.day = home.state.day;
   s.level = power >= 50 ? 2 : power >= 30 ? 1 : 0;
@@ -404,7 +413,7 @@ function carveCave(s: GameState, rnd: () => number) {
 /** Caverna gerada por autômato celular: galerias ligadas da entrada (à esquerda) até a descida (o ponto mais longe). */
 export function createMineScene(home: Game, e: Expedition, floor: number): GameState {
   const seed = (home.state.seed ^ (e.id * 40503) ^ (floor * 2246822519)) >>> 0;
-  const s = baseState(seed);
+  const s = baseState(seed, true);
   const rnd = mulberry32(seed);
   const { wall, start, far, dist, cells: q } = carveCave(s, rnd);
   const W = MAP_W;
@@ -472,7 +481,7 @@ const ISLAND_FAUNA: Record<string, AnimalType[]> = { vulcao: ['rhino', 'boar', '
 /** Base comum dos mapas de região (ilha e prova): estado do mapa e jogo, sem vila. */
 function regionMap(home: Game, e: Expedition) {
   const seed = (home.state.seed ^ (e.id * 2654435761) ^ 0x51a7) >>> 0;
-  const s = baseState(seed);
+  const s = baseState(seed, true);
   s.time = home.state.time;
   s.day = home.state.day;
   s.towersFaction = 'enemy';
@@ -601,7 +610,7 @@ export function createTrialScene(home: Game, e: Expedition): GameState {
 /** Covil da Ordem: caverna escura, aranhas pelo caminho e, no fundo, os guardiões e o líder. */
 export function createHideoutScene(home: Game, e: Expedition): GameState {
   const seed = (home.state.seed ^ (e.id * 97531) ^ 0xec11) >>> 0;
-  const s = baseState(seed);
+  const s = baseState(seed, true);
   const rnd = mulberry32(seed);
   const cave = carveCave(s, rnd);
   s.time = home.state.time;
@@ -640,7 +649,7 @@ export function createHideoutScene(home: Game, e: Expedition): GameState {
 /** Esconderijo do Som: caverna com o líder e dois membros guardando o raptado. */
 export function createSoundScene(home: Game, e: Expedition): GameState {
   const seed = (home.state.seed ^ (e.id * 86243) ^ 0x50d) >>> 0;
-  const s = baseState(seed);
+  const s = baseState(seed, true);
   const rnd = mulberry32(seed);
   const cave = carveCave(s, rnd);
   s.time = home.state.time;

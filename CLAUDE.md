@@ -133,6 +133,14 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   não tem upgrade: a arte segue o nível da vila (`hokage-2..4`). A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
   Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
+- **Tamanho do mapa por estado** (`GameState.mapW/mapH`; `VILLAGE_W/H` = 102×68 e `SCENE_W/H` = 72×48 em config.ts):
+  não há mais `MAP_W`/`WORLD_W` globais. Índices e limites vêm do mapa: `World.idx/inBounds/fidx/inFine/cellCenter` e
+  `world.mapW/fineW`, ou `idx(s, …)`/`inBounds(s, …)`/`centerOf(s)` com o estado (`CENTER_TX/TY` = centro da VILA; os
+  mapas de missão usam `SCENE_CX/CY` em scene.ts). Bitsets (`emptyExplored(s)`, `emptyRoads(s)`), câmera (`camera.map`,
+  posto pelo `Renderer.render`), névoa, terreno e estações (`new Seasonal(s)`) pelo tamanho do estado; buffers do A* do
+  tamanho do maior (`MAX_MAP_W/H`). Save v35 (`growMap` em save.ts): a vila 72×48 foi para o meio do mapa novo
+  (+15, +10 tiles) com tudo que tem posição (rotas = células remapeadas, névoa, ruas) e o terreno em volta gerado pela
+  seed com a costura suavizada; território ×1,4 (17/24/33 e o mapa todo); nuvens de chuva pela área.
 - **Terreno por nível** (`BuildingDef.sizes`, `defOf(b)` e `layoutKey(b)` em data/buildings.ts): a casa nível 3 ocupa 3×3
   (cresce para a direita e para baixo a partir do canto). Onde o tamanho importa e há um prédio, use `defOf(b)`, não
   `BUILDINGS[b.type]`; terreno/porta/pontos do layout desse nível ficam em `<tipo>-<nível>`. O upgrade pede o espaço
@@ -593,7 +601,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v34.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v35.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token
@@ -616,7 +624,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Decisões de design (do autor)
 - Combate automático + ordens do jogador; pixel art no futuro (Fase 2 adiada até haver arte);
-  sandbox com marcos; missões no próprio mapa; mapa 72×48 com território que cresce por nível.
+  sandbox com marcos; missões no próprio mapa; mapa da vila 102×68 (era 72×48) com território que cresce por nível.
 - Se o jogo for publicado: trocar nomes do anime (Chidori, Kage Bunshin, Hyōton…) por nomes originais.
 
 ## Estado atual

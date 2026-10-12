@@ -1,5 +1,5 @@
 import { canHit } from '../factions';
-import { MAP_H, MAP_W, TILE } from '../../config';
+import { TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
 import { ANIMALS, type AnimalDef } from '../../data/animals';
 import { defOf } from '../../data/buildings';
@@ -21,7 +21,7 @@ import { isNight } from '../time';
 import type { Game } from '../game';
 import { chase, followPath, setDestination } from '../movement';
 import type { Building, Unit } from '../types';
-import { buildingCenter, CENTER_TX, CENTER_TY, doorPos, tileCenter, toTile } from '../world';
+import { buildingCenter, centerOf, doorPos, tileCenter, toTile } from '../world';
 import { pickFoe } from '../tactics';
 
 /** Animais selvagens, ninjas renegados e clones das sombras. */
@@ -75,7 +75,7 @@ function animal(g: Game, u: Unit, dt: number) {
   if (u.life <= 0) {
     if (u.state !== 'leave') {
       u.state = 'leave';
-      const e = nearestEdge(u.x, u.y);
+      const e = nearestEdge(g, u.x, u.y);
       setDestination(g, u, e.x, e.y);
     }
     if (followPath(g, u, dt, 0.8)) u.dead = true;
@@ -87,8 +87,9 @@ function animal(g: Game, u: Unit, dt: number) {
     const tx = toTile(u.x);
     const ty = toTile(u.y);
     const towardVillage = Math.random() < 0.3;
-    const gx = towardVillage ? Math.round(tx + (CENTER_TX - tx) * 0.3) : tx + randi(-4, 4);
-    const gy = towardVillage ? Math.round(ty + (CENTER_TY - ty) * 0.3) : ty + randi(-4, 4);
+    const c = centerOf(g.state);
+    const gx = towardVillage ? Math.round(tx + (c.tx - tx) * 0.3) : tx + randi(-4, 4);
+    const gy = towardVillage ? Math.round(ty + (c.ty - ty) * 0.3) : ty + randi(-4, 4);
     setDestination(g, u, tileCenter(gx), tileCenter(gy));
   }
   followPath(g, u, dt, 0.5);
@@ -152,7 +153,7 @@ function rogue(g: Game, u: Unit, dt: number) {
     g.toast(`{ryo} ${u.name} roubou ${stolen} ryo da Residência do Hokage!`, 'danger', u);
     g.state.flags.raidStole = true;
     u.state = 'escape';
-    const e = nearestEdge(u.x, u.y);
+    const e = nearestEdge(g, u.x, u.y);
     setDestination(g, u, e.x, e.y);
   }
 }
@@ -222,7 +223,7 @@ function titan(g: Game, u: Unit, dt: number, aggro: number) {
 /** Vai embora pela borda mais próxima (o que levou, levou). */
 function flee(g: Game, u: Unit) {
   u.state = 'escape';
-  const e = nearestEdge(u.x, u.y);
+  const e = nearestEdge(g, u.x, u.y);
   setDestination(g, u, e.x, e.y);
 }
 
@@ -732,9 +733,9 @@ function kennelRest(u: Unit, dt: number) {
   u.hp = Math.min(u.maxHp, u.hp + u.maxHp * KENNEL_HEAL * dt);
 }
 
-function nearestEdge(x: number, y: number) {
-  const W = MAP_W * TILE;
-  const H = MAP_H * TILE;
+function nearestEdge(g: Game, x: number, y: number) {
+  const W = g.world.mapW * TILE;
+  const H = g.world.mapH * TILE;
   const opts = [
     { d: x, x: TILE / 2, y },
     { d: W - x, x: W - TILE / 2, y },

@@ -27,7 +27,7 @@ import { autoTeams } from './teams';
 import type { Game, System } from './game';
 import type { Unit } from './types';
 import { territoryCenter } from './village';
-import { doorPos, doorTile, idx, inBounds } from './world';
+import { doorPos, doorTile } from './world';
 import { pave } from './roads';
 import { recordFallen } from './memorial';
 import { assignWatch, watchCandidates } from './towerWatch';
@@ -51,7 +51,7 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   placeAll(g);
   // ruas calçadas: as passagens em volta dos prédios perto da Residência viram calçada
   const door = doorTile(g.hokage()!);
-  const occ = (x: number, y: number) => inBounds(x, y) && g.world.occupied[idx(x, y)] > 0;
+  const occ = (x: number, y: number) => g.world.buildingIdAt(x, y) > 0;
   for (let ty = door.ty - 9; ty <= door.ty + 9; ty++)
     for (let tx = door.tx - 9; tx <= door.tx + 9; tx++)
       if (!occ(tx, ty) && (occ(tx + 1, ty) || occ(tx - 1, ty) || occ(tx, ty + 1) || occ(tx, ty - 1))) pave(g, tx, ty);

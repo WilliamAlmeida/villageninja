@@ -1,4 +1,4 @@
-import { MAP_H, MAP_W, SAVE_KEY, SAVE_VERSION } from '../config';
+import { SAVE_KEY, SAVE_VERSION, SUB, TILE, VILLAGE_H, VILLAGE_W } from '../config';
 import { Game, type System } from './game';
 import type { GameState } from './types';
 import { JUTSUS } from '../data/jutsus';
@@ -6,9 +6,13 @@ import { needsScroll } from './library';
 import { emptyExplored, generateSites, isExplored, revealStart } from './explore';
 import { emptyRoads } from './roads';
 import { newRegion } from './region';
-import { generateMap, idx, T } from './world';
+import { generateMap, T } from './world';
 import { newOrg } from './org';
 import { BUILDINGS, type BuildingType, defOf } from '../data/buildings';
+
+// Até a v34 todo mapa era 72×48 (a vila e os de missão): save sem tamanho é desse tamanho (`migrate` põe).
+const LEGACY_W = 72;
+const LEGACY_H = 48;
 
 /**
  * Migrações de save: cada entrada transforma a versão N na N+1.
@@ -65,7 +69,7 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   },
   9: (s) => {
     // névoa e locais especiais: revela os arredores da vila e o que os ninjas já andaram (território atual)
-    s.explored = emptyExplored();
+    s.explored = emptyExplored(s);
     s.sites = [];
     s.scrolls = [];
     revealStart(s);
@@ -100,7 +104,7 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   13: (s) => {
     // recursos agora crescem de volta: o que já tinha sumido do mapa volta como toco / rocha rachada
     let next = s.nextId;
-    const { nodes } = generateMap(s.seed, () => next++);
+    const { nodes } = generateMap(s.seed, () => next++, s.mapW, s.mapH);
     const taken = new Set(s.nodes.map((n: { tx: number; ty: number }) => `${n.tx},${n.ty}`));
     const under = (tx: number, ty: number) =>
       s.buildings.some((b: { type: BuildingType; tx: number; ty: number }) => {
@@ -170,8 +174,8 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     for (const a of s.buildings ?? []) {
       if (a.type !== 'arena') continue;
       const free = (tx: number, ty: number) => {
-        if (tx < 1 || ty < 1 || tx + W > MAP_W - 1 || ty + W > MAP_H - 1) return false;
-        for (let y = ty; y < ty + W; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[idx(x, y)] === T.WATER) return false;
+        if (tx < 1 || ty < 1 || tx + W > s.mapW - 1 || ty + W > s.mapH - 1) return false;
+        for (let y = ty; y < ty + W; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[y * s.mapW + x] === T.WATER) return false;
         return !s.buildings.some((o: { id: number; type: BuildingType; tx: number; ty: number }) => {
           if (o === a) return false;
           const d = defOf(o);
@@ -228,8 +232,8 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     if (s.scene) s.scene.fallen = [];
   },
   30: (s) => {
-    s.roads = emptyRoads();
-    if (s.scene) s.scene.roads = emptyRoads();
+    s.roads = emptyRoads(s);
+    if (s.scene) s.scene.roads = emptyRoads(s.scene);
   },
   // v32: vigia da torre (Building.guardId, Unit.onTower; game/towerWatch.ts). Nenhuma torre começa vigiada; o
   // guarda desenhado de antes (Building.shot/aim) saiu.
@@ -250,7 +254,109 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     const [W, H] = BUILDINGS.house.sizes![3]!;
     for (const st of [s, s.scene].filter(Boolean)) growBuildings(st, 'house', W, H, 3);
   },
+  // v35: o mapa da vila cresceu de 72×48 para 102×68 (os prédios ficaram maiores com o padrão novo da arte): a vila
+  // vai para o meio do mapa novo e o terreno em volta é gerado; os mapas de missão continuam 72×48
+  34: (s) => {
+    growMap(s, VILLAGE_W, VILLAGE_H);
+  },
 };
+
+/**
+ * Aumenta o mapa da vila para W×H com o mapa de antes no meio: tudo que tem posição anda junto (prédios, recursos,
+ * locais, unidades e as rotas delas, equipes, missões, nuvens, névoa e ruas); o terreno de fora vem de um mapa novo
+ * gerado pela seed, com a costura suavizada (lago cortado na beira de antes continua 2 tiles; água nova colada
+ * nela vira grama). Efeitos e projéteis no ar somem.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function growMap(s: any, W: number, H: number) {
+  const ow: number = s.mapW;
+  const oh: number = s.mapH;
+  if ((W <= ow && H <= oh) || !s.tiles?.length) return; // save de teste sem mapa: nada a mover
+  const ox = Math.floor((W - ow) / 2);
+  const oy = Math.floor((H - oh) / 2);
+  const dx = ox * TILE;
+  const dy = oy * TILE;
+  const fresh = generateMap(s.seed ^ 0x6a11e, () => s.nextId++, W, H);
+  const old = s.tiles as number[];
+  const inOld = (x: number, y: number) => x >= ox && y >= oy && x < ox + ow && y < oy + oh;
+  const tiles = new Array<number>(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (inOld(x, y)) {
+        tiles[y * W + x] = old[(y - oy) * ow + x - ox]!;
+        continue;
+      }
+      // costura: perto da beira de antes, a água continua a de antes (2 tiles) e a nova não encosta
+      const ex = Math.max(ox, Math.min(ox + ow - 1, x));
+      const ey = Math.max(oy, Math.min(oy + oh - 1, y));
+      const near = Math.max(Math.abs(x - ex), Math.abs(y - ey)) <= 2;
+      const edge = old[(ey - oy) * ow + ex - ox]!;
+      let t = fresh.tiles[y * W + x]!;
+      if (near) t = edge === T.WATER ? T.WATER : t === T.WATER || t === T.SAND ? T.GRASS : t;
+      tiles[y * W + x] = t;
+    }
+  // areia de novo só fora do mapa de antes: terra colada na água vira areia, areia sem água ao lado vira grama
+  const wet = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y * W + x] === T.WATER;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (inOld(x, y) || tiles[i] === T.WATER) continue;
+      const shore = wet(x + 1, y) || wet(x - 1, y) || wet(x, y + 1) || wet(x, y - 1);
+      if (shore) tiles[i] = T.SAND;
+      else if (tiles[i] === T.SAND) tiles[i] = T.GRASS;
+    }
+
+  // bitsets (névoa, ruas): o de antes no meio, o resto apagado
+  const regrid = (bits: number[] | undefined) => {
+    const out = new Array<number>(Math.ceil((W * H) / 32)).fill(0);
+    if (!bits) return out;
+    for (let i = 0; i < ow * oh; i++) {
+      if (!((bits[i >> 5]! >>> (i & 31)) & 1)) continue;
+      const j = (Math.floor(i / ow) + oy) * W + (i % ow) + ox;
+      out[j >> 5] |= 1 << (j & 31);
+    }
+    return out;
+  };
+  s.explored = regrid(s.explored);
+  s.roads = regrid(s.roads);
+
+  // posições
+  const pt = (p: { x: number; y: number } | null | undefined) => {
+    if (p) (p.x += dx), (p.y += dy);
+  };
+  const tl = (p: { tx: number; ty: number }) => ((p.tx += ox), (p.ty += oy));
+  for (const b of s.buildings ?? []) tl(b);
+  for (const n of s.nodes ?? []) tl(n);
+  for (const site of s.sites ?? []) tl(site);
+  const taken = new Set((s.nodes ?? []).map((n: { tx: number; ty: number }) => `${n.tx},${n.ty}`));
+  for (const n of fresh.nodes) if (!inOld(n.tx, n.ty) && tiles[n.ty * W + n.tx] !== T.WATER && !taken.has(`${n.tx},${n.ty}`)) s.nodes.push(n);
+  // rotas: índices de célula de colisão (meio tile) na grade de antes → na nova
+  const ofw = ow * SUB;
+  const fw = W * SUB;
+  const cell = (i: number) => (Math.floor(i / ofw) + oy * SUB) * fw + (i % ofw) + ox * SUB;
+  for (const u of s.units ?? []) {
+    u.x += dx;
+    u.y += dy;
+    u.goalX += dx;
+    u.goalY += dy;
+    if (u.homeX != null) u.homeX += dx;
+    if (u.homeY != null) u.homeY += dy;
+    pt(u.anchor);
+    if (u.dash) (u.dash.lx += dx), (u.dash.ly += dy);
+    if (u.trainLap) (u.trainLap.cx += dx), (u.trainLap.cy += dy);
+    if (u.command?.kind === 'move') pt(u.command);
+    u.path = (u.path ?? []).map(cell);
+  }
+  for (const t of s.teams ?? []) pt(t.anchor);
+  for (const m of s.missions ?? []) pt(m);
+  for (const c of s.clouds ?? []) pt(c);
+  pt(s.pendingBoss);
+  s.effects = [];
+  s.projectiles = [];
+  s.tiles = tiles;
+  s.mapW = W;
+  s.mapH = H;
+}
 
 /**
  * Prédios do `type` (só os do nível `level`, se dado) que cresceram para w×h: ficam no lugar se couber, senão no lugar
@@ -261,8 +367,8 @@ function growBuildings(s: any, type: BuildingType, W: number, H: number, level?:
   for (const a of s.buildings ?? []) {
     if (a.type !== type || (level != null && (a.level ?? 1) !== level)) continue;
     const free = (tx: number, ty: number) => {
-      if (tx < 1 || ty < 1 || tx + W > MAP_W - 1 || ty + H > MAP_H - 1) return false;
-      for (let y = ty; y < ty + H; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[idx(x, y)] === T.WATER || s.tiles[idx(x, y)] === T.ROCK) return false;
+      if (tx < 1 || ty < 1 || tx + W > s.mapW - 1 || ty + H > s.mapH - 1) return false;
+      for (let y = ty; y < ty + H; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[y * s.mapW + x] === T.WATER || s.tiles[y * s.mapW + x] === T.ROCK) return false;
       return !s.buildings.some((o: { id: number; type: BuildingType; tx: number; ty: number }) => {
         if (o === a) return false;
         const d = defOf(o);
@@ -285,6 +391,11 @@ function growBuildings(s: any, type: BuildingType, W: number, H: number, level?:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function migrate(s: any): GameState | null {
   if (typeof s?.version !== 'number') return null;
+  // saves de antes da v35 não guardam o tamanho: era 72×48 (a vila e o mapa de missão)
+  for (const st of [s, s.scene].filter(Boolean)) {
+    st.mapW ??= LEGACY_W;
+    st.mapH ??= LEGACY_H;
+  }
   while (s.version < SAVE_VERSION) {
     const m = MIGRATIONS[s.version];
     if (!m) return null;

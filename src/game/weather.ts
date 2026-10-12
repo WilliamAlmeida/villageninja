@@ -1,6 +1,6 @@
 // Nuvens de chuva no mapa: em dia de chuva (ou tempestade fora do inverno) algumas nuvens cruzam o mapa com o vento.
 // Só chove embaixo delas, e é lá que valem os efeitos da chuva (colheita, velocidade, natureza mais forte).
-import { WORLD_H, WORLD_W } from '../config';
+import { TILE } from '../config';
 import { rand } from '../core/rng';
 import { CLOUDS, type Weather } from '../data/seasons';
 import type { Cloud, GameState } from './types';
@@ -15,9 +15,11 @@ function spawn(s: GameState, inside: boolean): Cloud {
   const r = rand(CLOUDS.rMin, CLOUDS.rMax);
   const w = windOf(s);
   const speed = rand(CLOUDS.speed[0], CLOUDS.speed[1]);
+  const W = s.mapW * TILE;
+  const H = s.mapH * TILE;
   return {
-    x: inside ? rand(0, WORLD_W) : w > 0 ? -r : WORLD_W + r,
-    y: rand(r * 0.3, WORLD_H - r * 0.3),
+    x: inside ? rand(0, W) : w > 0 ? -r : W + r,
+    y: rand(r * 0.3, H - r * 0.3),
     r,
     vx: speed * w,
     vy: rand(-4, 4),
@@ -26,14 +28,18 @@ function spawn(s: GameState, inside: boolean): Cloud {
 
 /** Move as nuvens; em dia de chuva mantém a quantidade do dia (começa já espalhadas pelo mapa). */
 export function cloudsTick(s: GameState, season: string, dt: number) {
-  const want = rainyDay(s, season) ? CLOUDS.count[s.weather as 'rain' | 'storm'] : 0;
+  // a quantidade do dia é para o mapa de 72×48: mapa maior, mais nuvens (a mesma cobertura)
+  const area = (s.mapW * s.mapH) / (72 * 48);
+  const want = rainyDay(s, season) ? Math.round(CLOUDS.count[s.weather as 'rain' | 'storm'] * area) : 0;
   if (want && !s.clouds.length) for (let i = 0; i < want; i++) s.clouds.push(spawn(s, true));
   for (const c of s.clouds) {
     c.x += c.vx * dt;
     c.y += c.vy * dt;
   }
   // saiu do mapa: some (sem chuva no dia, as nuvens que restam só terminam de passar)
-  s.clouds = s.clouds.filter((c) => c.x > -c.r * 1.2 && c.x < WORLD_W + c.r * 1.2 && c.y > -c.r * 1.2 && c.y < WORLD_H + c.r * 1.2);
+  const W = s.mapW * TILE;
+  const H = s.mapH * TILE;
+  s.clouds = s.clouds.filter((c) => c.x > -c.r * 1.2 && c.x < W + c.r * 1.2 && c.y > -c.r * 1.2 && c.y < H + c.r * 1.2);
   while (s.clouds.length < want) s.clouds.push(spawn(s, false));
 }
 

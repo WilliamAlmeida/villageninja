@@ -1,4 +1,4 @@
-import { DAY_LENGTH, SAVE_VERSION } from '../config';
+import { DAY_LENGTH, SAVE_VERSION, SCENE_H, SCENE_W, VILLAGE_H, VILLAGE_W } from '../config';
 import { emptyRes } from '../data/resources';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { createNinja, createVillager, rollInnateCount } from './entities';
@@ -11,13 +11,21 @@ import { newRegion } from './region';
 import { newOrg } from './org';
 import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
-/** Estado inicial com o terreno gerado e tudo vazio (base da vila nova e dos mapas de missão). */
-export function baseState(seed: number): GameState {
+/**
+ * Estado inicial com o terreno gerado e tudo vazio (base da vila nova e dos mapas de missão). `scene`: tamanho de mapa
+ * de missão (72×48) em vez do da vila.
+ */
+export function baseState(seed: number, scene = false): GameState {
   let nextId = 1;
-  const { tiles, nodes } = generateMap(seed, () => nextId++);
+  const mapW = scene ? SCENE_W : VILLAGE_W;
+  const mapH = scene ? SCENE_H : VILLAGE_H;
+  const m = { mapW, mapH };
+  const { tiles, nodes } = generateMap(seed, () => nextId++, mapW, mapH);
   return {
     version: SAVE_VERSION,
     seed,
+    mapW,
+    mapH,
     level: 0,
     time: (DAY_LENGTH * 2) / 24, // 08:00
     day: 1,
@@ -43,8 +51,8 @@ export function baseState(seed: number): GameState {
     lastExam: null,
     projectiles: [],
     effects: [],
-    explored: emptyExplored(),
-    roads: emptyRoads(),
+    explored: emptyExplored(m),
+    roads: emptyRoads(m),
     sites: [],
     scrolls: [],
     jutsuOpen: [],

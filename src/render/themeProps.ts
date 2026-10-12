@@ -1,11 +1,11 @@
 // Enfeites dos mapas temáticos (só desenho, fora do estado): barcos, redes e peixe secando na Vila dos Pescadores;
 // palmeiras, poço, tendas, cactos e potes na Cidade dos Mercadores. Espalhados pela semente do mapa, longe dos prédios.
 // Arte: atlas src/art/props/theme-props.png (scripts/theme-art.py; mesma ordem de THEME_PROPS).
-import { MAP_W, TILE } from '../config';
+import { TILE } from '../config';
 import { mulberry32 } from '../core/rng';
 import { defOf } from '../data/buildings';
 import type { GameState } from '../game/types';
-import { CENTER_TX, CENTER_TY, idx, inBounds, T } from '../game/world';
+import { centerOf, idx, inBounds, T } from '../game/world';
 import { isStairs, PLATEAU_R } from '../game/scene';
 import { art, smoothIfShrunk } from './art';
 
@@ -48,12 +48,14 @@ export function themeDecos(s: GameState): ThemeDeco[] {
   const hit = cache.get(s);
   if (hit) return hit;
   const rnd = mulberry32(s.seed ^ 0x51ed);
-  const tile = (tx: number, ty: number) => (inBounds(tx, ty) ? s.tiles[idx(tx, ty)] : T.ROCK);
+  const { tx: CENTER_TX, ty: CENTER_TY } = centerOf(s);
+  const MAP_W = s.mapW;
+  const tile = (tx: number, ty: number) => (inBounds(s, tx, ty) ? s.tiles[idx(s, tx, ty)] : T.ROCK);
   // prédios (com um tile de folga), recursos e a chegada da equipe ficam livres
-  const busy = new Set<number>(s.nodes.map((n) => idx(n.tx, n.ty)));
+  const busy = new Set<number>(s.nodes.map((n) => idx(s, n.tx, n.ty)));
   for (const b of s.buildings) {
     const d = defOf(b);
-    for (let y = b.ty - 1; y <= b.ty + d.h; y++) for (let x = b.tx - 1; x <= b.tx + d.w; x++) if (inBounds(x, y)) busy.add(idx(x, y));
+    for (let y = b.ty - 1; y <= b.ty + d.h; y++) for (let x = b.tx - 1; x <= b.tx + d.w; x++) if (inBounds(s, x, y)) busy.add(idx(s, x, y));
   }
   const near = (tx: number, ty: number, t: number) => [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dx, dy]) => tile(tx + dx!, ty + dy!) === t);
   const nearBuilding = (tx: number, ty: number) =>

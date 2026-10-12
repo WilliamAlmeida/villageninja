@@ -1,4 +1,4 @@
-import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB, TILE, VILLAGE_MARGIN } from '../config';
+import { CELL, SUB, TILE, VILLAGE_H, VILLAGE_MARGIN, VILLAGE_W } from '../config';
 import { lerp } from '../core/math';
 import { mulberry32 } from '../core/rng';
 import { BUILDINGS, type BuildingType, defOf, layoutKey } from '../data/buildings';
@@ -9,19 +9,24 @@ import { inTerritory } from './village';
 /** ROCK: parede de caverna (bloqueia como a água; só nos mapas de mina). */
 export const T = { GRASS: 0, GRASS2: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5 } as const;
 
-export const CENTER_TX = Math.floor(MAP_W / 2);
-export const CENTER_TY = Math.floor(MAP_H / 2);
+/** Centro do mapa da vila (onde nasce a Residência num jogo novo). Mapas de missão: `centerOf(s)`. */
+export const CENTER_TX = Math.floor(VILLAGE_W / 2);
+export const CENTER_TY = Math.floor(VILLAGE_H / 2);
 
-export const idx = (tx: number, ty: number) => ty * MAP_W + tx;
-export const inBounds = (tx: number, ty: number) => tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H;
+/** O que dá o tamanho de um mapa em tiles (o estado ou o `World`). */
+export interface MapSize {
+  mapW: number;
+  mapH: number;
+}
+export const centerOf = (m: MapSize) => ({ tx: Math.floor(m.mapW / 2), ty: Math.floor(m.mapH / 2) });
+export const idx = (m: MapSize, tx: number, ty: number) => ty * m.mapW + tx;
+export const inBounds = (m: MapSize, tx: number, ty: number) => tx >= 0 && ty >= 0 && tx < m.mapW && ty < m.mapH;
+/** Tamanho do mapa em px de mundo. */
+export const worldW = (m: MapSize) => m.mapW * TILE;
+export const worldH = (m: MapSize) => m.mapH * TILE;
 export const toTile = (v: number) => Math.floor(v / TILE);
 export const tileCenter = (t: number) => t * TILE + TILE / 2;
-/** Células de colisão (meio tile, CELL px). */
-export const fidx = (fx: number, fy: number) => fy * FINE_W + fx;
-export const inFine = (fx: number, fy: number) => fx >= 0 && fy >= 0 && fx < FINE_W && fy < FINE_H;
 export const toCell = (v: number) => Math.floor(v / CELL);
-/** Centro (px) da célula de índice `i`. */
-export const cellCenter = (i: number) => ({ x: (i % FINE_W) * CELL + CELL / 2, y: Math.floor(i / FINE_W) * CELL + CELL / 2 });
 
 export function doorTile(b: Building) {
   const p = layoutPoint(layoutKey(b), 'door', b.flip); // ajustado no Editor de cenário
@@ -73,31 +78,68 @@ export function buildingCenter(b: Building) {
 }
 
 /** Dados derivados do estado (grade de colisão etc.). Não é salvo. */
-export class World {
+export class World implements MapSize {
+  /** Tamanho em tiles e em células de colisão (do estado; não muda depois de criado). */
+  readonly mapW: number;
+  readonly mapH: number;
+  readonly fineW: number;
+  readonly fineH: number;
   /** Tile bloqueado se qualquer pedaço dele for (para escolher lugar de nascer, trabalhar etc.). */
-  readonly blocked = new Uint8Array(MAP_W * MAP_H);
+  readonly blocked: Uint8Array;
   /** Colisão de verdade, em meio tile (CELL px): caminhos, empurrões e `walkablePx`. */
-  readonly fine = new Uint8Array(FINE_W * FINE_H);
+  readonly fine: Uint8Array;
   /** Colisão sem os recursos (terreno, prédios, locais): base para refazer só a parte das rochas/árvores. */
-  private baseFine = new Uint8Array(FINE_W * FINE_H);
-  private baseBlocked = new Uint8Array(MAP_W * MAP_H);
+  private baseFine: Uint8Array;
+  private baseBlocked: Uint8Array;
   private nodeSig = '';
   /**
    * Células "macias" (rocha, árvore com terreno no Editor de cenário): o caminho desvia delas sempre que há volta
    * razoável (custo alto no A*), mas atravessa se não houver outra saída — um aglomerado de rochas nunca prende ninguém.
    */
-  readonly soft = new Uint8Array(FINE_W * FINE_H);
+  readonly soft: Uint8Array;
   /**
    * "Ilha" de cada célula livre (as que se alcançam andando; 0 = muro). Uma busca de caminho para outra ilha não
    * varre o mapa: vai direto à célula alcançável mais perto do destino. Refeita quando a colisão muda.
    */
-  readonly region = new Int32Array(FINE_W * FINE_H);
-  private regionStack = new Int32Array(FINE_W * FINE_H);
-  readonly occupied = new Int32Array(MAP_W * MAP_H);
+  readonly region: Int32Array;
+  private regionStack: Int32Array;
+  readonly occupied: Int32Array;
   private villageRects: { x0: number; y0: number; x1: number; y1: number }[] = [];
 
   constructor(public state: GameState) {
+    this.mapW = state.mapW;
+    this.mapH = state.mapH;
+    this.fineW = this.mapW * SUB;
+    this.fineH = this.mapH * SUB;
+    const tiles = this.mapW * this.mapH;
+    const cells = this.fineW * this.fineH;
+    this.blocked = new Uint8Array(tiles);
+    this.baseBlocked = new Uint8Array(tiles);
+    this.occupied = new Int32Array(tiles);
+    this.fine = new Uint8Array(cells);
+    this.baseFine = new Uint8Array(cells);
+    this.soft = new Uint8Array(cells);
+    this.region = new Int32Array(cells);
+    this.regionStack = new Int32Array(cells);
     this.rebuild();
+  }
+
+  /** Índice do tile e da célula de colisão; dentro do mapa? */
+  idx(tx: number, ty: number) {
+    return ty * this.mapW + tx;
+  }
+  inBounds(tx: number, ty: number) {
+    return tx >= 0 && ty >= 0 && tx < this.mapW && ty < this.mapH;
+  }
+  fidx(fx: number, fy: number) {
+    return fy * this.fineW + fx;
+  }
+  inFine(fx: number, fy: number) {
+    return fx >= 0 && fy >= 0 && fx < this.fineW && fy < this.fineH;
+  }
+  /** Centro (px) da célula de índice `i`. */
+  cellCenter(i: number) {
+    return { x: (i % this.fineW) * CELL + CELL / 2, y: Math.floor(i / this.fineW) * CELL + CELL / 2 };
   }
 
   rebuild() {
@@ -105,7 +147,7 @@ export class World {
     this.blocked.fill(0);
     this.fine.fill(0);
     this.occupied.fill(0);
-    for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blockTile(i % MAP_W, Math.floor(i / MAP_W));
+    for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blockTile(i % this.mapW, Math.floor(i / this.mapW));
     this.villageRects = [];
     for (const b of s.buildings) {
       const d = defOf(b);
@@ -113,7 +155,7 @@ export class World {
       const custom = b.built && tileOf(layoutKey(b), 0, 0) !== undefined;
       for (let y = b.ty; y < b.ty + d.h; y++)
         for (let x = b.tx; x < b.tx + d.w; x++) {
-          this.occupied[idx(x, y)] = b.id;
+          if (this.inBounds(x, y)) this.occupied[this.idx(x, y)] = b.id;
           if (!custom && !d.walkable) this.blockTile(x, y);
         }
       if (custom)
@@ -139,6 +181,7 @@ export class World {
     const r = this.region;
     r.fill(0);
     const st = this.regionStack;
+    const FW = this.fineW;
     let id = 0;
     for (let i = 0; i < r.length; i++) {
       if (r[i] || this.fine[i]) continue;
@@ -148,11 +191,11 @@ export class World {
       r[i] = id;
       while (top) {
         const c = st[--top]!;
-        const x = c % FINE_W;
+        const x = c % FW;
         if (x > 0 && !r[c - 1] && !this.fine[c - 1]) (r[c - 1] = id), (st[top++] = c - 1);
-        if (x < FINE_W - 1 && !r[c + 1] && !this.fine[c + 1]) (r[c + 1] = id), (st[top++] = c + 1);
-        if (c >= FINE_W && !r[c - FINE_W] && !this.fine[c - FINE_W]) (r[c - FINE_W] = id), (st[top++] = c - FINE_W);
-        if (c + FINE_W < r.length && !r[c + FINE_W] && !this.fine[c + FINE_W]) (r[c + FINE_W] = id), (st[top++] = c + FINE_W);
+        if (x < FW - 1 && !r[c + 1] && !this.fine[c + 1]) (r[c + 1] = id), (st[top++] = c + 1);
+        if (c >= FW && !r[c - FW] && !this.fine[c - FW]) (r[c - FW] = id), (st[top++] = c - FW);
+        if (c + FW < r.length && !r[c + FW] && !this.fine[c + FW]) (r[c + FW] = id), (st[top++] = c + FW);
       }
     }
   }
@@ -170,9 +213,9 @@ export class World {
           if (r.rows[y]![x] !== '#') continue;
           const fx = r.x0 * SUB + x;
           const fy = r.y0 * SUB + y;
-          if (!inFine(fx, fy)) continue;
-          this.soft[fidx(fx, fy)] = 1;
-          this.blocked[idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1; // ninguém nasce/trabalha em cima
+          if (!this.inFine(fx, fy)) continue;
+          this.soft[this.fidx(fx, fy)] = 1;
+          this.blocked[this.idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1; // ninguém nasce/trabalha em cima
         }
     }
     this.nodeSig = sig.join(',');
@@ -191,9 +234,9 @@ export class World {
     for (let sy = 0; sy < SUB; sy++) for (let sx = 0; sx < SUB; sx++) this.blockCell(tx * SUB + sx, ty * SUB + sy);
   }
   private blockCell(fx: number, fy: number) {
-    if (!inFine(fx, fy)) return;
-    this.fine[fidx(fx, fy)] = 1;
-    this.blocked[idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1;
+    if (!this.inFine(fx, fy)) return;
+    this.fine[this.fidx(fx, fy)] = 1;
+    this.blocked[this.idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1;
   }
 
   /** Locais à vista (ruína, entrada de mina…) com muro no layout bloqueiam esses tiles. */
@@ -211,22 +254,22 @@ export class World {
   }
 
   walkable(tx: number, ty: number) {
-    return inBounds(tx, ty) && this.blocked[idx(tx, ty)] === 0;
+    return this.inBounds(tx, ty) && this.blocked[this.idx(tx, ty)] === 0;
   }
   walkablePx(x: number, y: number) {
     return this.walkableCell(toCell(x), toCell(y));
   }
   walkableCell(fx: number, fy: number) {
-    return inFine(fx, fy) && this.fine[fidx(fx, fy)] === 0;
+    return this.inFine(fx, fy) && this.fine[this.fidx(fx, fy)] === 0;
   }
   /** Livre e sem rocha/árvore (o que dá para andar em linha reta sem contornar nada). */
   clearPx(x: number, y: number) {
     const fx = toCell(x);
     const fy = toCell(y);
-    return inFine(fx, fy) && this.fine[fidx(fx, fy)] === 0 && this.soft[fidx(fx, fy)] === 0;
+    return this.inFine(fx, fy) && this.fine[this.fidx(fx, fy)] === 0 && this.soft[this.fidx(fx, fy)] === 0;
   }
   buildingIdAt(tx: number, ty: number) {
-    return inBounds(tx, ty) ? this.occupied[idx(tx, ty)]! : 0;
+    return this.inBounds(tx, ty) ? this.occupied[this.idx(tx, ty)]! : 0;
   }
 
   inVillage(x: number, y: number) {
@@ -237,16 +280,16 @@ export class World {
   /** O prédio cabe em (tx, ty)? `level`: o terreno do nível (`defOf`; a casa nível 3 é 3×3). */
   canPlace(type: BuildingType, tx: number, ty: number, flip = false, level = 1): boolean {
     const d = defOf({ type, level });
-    if (tx < 1 || ty < 1 || tx + d.w > MAP_W - 1 || ty + d.h > MAP_H - 2) return false;
+    if (tx < 1 || ty < 1 || tx + d.w > this.mapW - 1 || ty + d.h > this.mapH - 2) return false;
     if (flip && !canFlip(type)) return false;
     // 1 tile de folga entre prédios garante que sempre exista caminho.
     for (let y = ty - 1; y <= ty + d.h; y++)
-      for (let x = tx - 1; x <= tx + d.w; x++) if (inBounds(x, y) && this.occupied[idx(x, y)] !== 0) return false;
+      for (let x = tx - 1; x <= tx + d.w; x++) if (this.inBounds(x, y) && this.occupied[this.idx(x, y)] !== 0) return false;
     if (d.shore && tileOf(type, 0, 0) !== undefined) {
       if (!this.shoreFits(type, tx, ty, flip)) return false;
     } else
       for (let y = ty; y <= ty + d.h; y++)
-        for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[idx(x, y)] === T.WATER || this.state.tiles[idx(x, y)] === T.ROCK) return false;
+        for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[this.idx(x, y)] === T.WATER || this.state.tiles[this.idx(x, y)] === T.ROCK) return false;
     for (const n of this.state.nodes)
       // rocha/veio esgotado (rachado, crescendo de volta) não bloqueia: some quando constroem em cima
       if ((n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
@@ -269,14 +312,14 @@ export class World {
           if (k === '~') wet = true;
           else if (k === '#') dry = true;
         }
-        const t = tiles[idx(tx + x, ty + y)];
+        const t = tiles[this.idx(tx + x, ty + y)];
         if (t === T.ROCK) return false;
         if (wet && !dry && t !== T.WATER) return false;
         if (dry && !wet && t === T.WATER) return false;
       }
     const door = doorTile({ type, tx, ty, flip } as Building);
-    if (!inBounds(door.tx, door.ty)) return false;
-    const dt = tiles[idx(door.tx, door.ty)];
+    if (!this.inBounds(door.tx, door.ty)) return false;
+    const dt = tiles[this.idx(door.tx, door.ty)];
     return dt !== T.WATER && dt !== T.ROCK;
   }
 }
@@ -287,9 +330,9 @@ export function canFlip(type: BuildingType): boolean {
   return !!d.shore && d.w === d.h;
 }
 
-function makeNoise(rng: () => number, cell: number) {
-  const gw = Math.ceil(MAP_W / cell) + 2;
-  const gh = Math.ceil(MAP_H / cell) + 2;
+function makeNoise(rng: () => number, cell: number, W: number, H: number) {
+  const gw = Math.ceil(W / cell) + 2;
+  const gh = Math.ceil(H / cell) + 2;
   const g = new Float32Array(gw * gh);
   for (let i = 0; i < g.length; i++) g[i] = rng();
   return (x: number, y: number) => {
@@ -309,33 +352,41 @@ function makeNoise(rng: () => number, cell: number) {
   };
 }
 
-/** Gera terreno e recursos a partir de uma seed. O centro fica livre para a vila. */
-export function generateMap(seed: number, nextId: () => number): { tiles: number[]; nodes: ResourceNode[] } {
+/**
+ * Gera terreno e recursos a partir de uma seed, em `W`×`H` tiles (padrão: o mapa da vila). O centro fica livre para a
+ * vila; `clear` (tiles) é o raio desse miolo sem água nem floresta (cresce com o mapa).
+ */
+export function generateMap(seed: number, nextId: () => number, W = VILLAGE_W, H = VILLAGE_H): { tiles: number[]; nodes: ResourceNode[] } {
   const rng = mulberry32(seed);
-  const n1 = makeNoise(rng, 9);
-  const n2 = makeNoise(rng, 6);
-  const n3 = makeNoise(rng, 5);
-  const n4 = makeNoise(rng, 3);
-  const tiles = new Array<number>(MAP_W * MAP_H).fill(T.GRASS);
-  const dc = (x: number, y: number) => Math.hypot(x - CENTER_TX, (y - CENTER_TY) * 1.2);
+  const n1 = makeNoise(rng, 9, W, H);
+  const n2 = makeNoise(rng, 6, W, H);
+  const n3 = makeNoise(rng, 5, W, H);
+  const n4 = makeNoise(rng, 3, W, H);
+  const m = { mapW: W, mapH: H };
+  const at = (x: number, y: number) => y * W + x;
+  const tiles = new Array<number>(W * H).fill(T.GRASS);
+  const c = centerOf(m);
+  // o miolo livre acompanha o tamanho do mapa (72×48: o de sempre)
+  const k = Math.sqrt((W * H) / (72 * 48));
+  const dc = (x: number, y: number) => Math.hypot(x - c.tx, (y - c.ty) * 1.2) / k;
 
-  for (let y = 0; y < MAP_H; y++)
-    for (let x = 0; x < MAP_W; x++) {
-      const i = idx(x, y);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = at(x, y);
       const w = n1(x, y) * 0.75 + n4(x, y) * 0.25;
       if (w > 0.64 && dc(x, y) > 13) tiles[i] = T.WATER;
       else if (dc(x, y) < 3.3) tiles[i] = T.DIRT;
       else if (n2(x + 50, y) > 0.55) tiles[i] = T.GRASS2;
     }
   // areia nas margens
-  for (let y = 0; y < MAP_H; y++)
-    for (let x = 0; x < MAP_W; x++) {
-      const i = idx(x, y);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = at(x, y);
       if (tiles[i] === T.WATER) continue;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
         const nx = x + dx;
         const ny = y + dy;
-        if (inBounds(nx, ny) && tiles[idx(nx, ny)] === T.WATER) {
+        if (inBounds(m, nx, ny) && tiles[at(nx, ny)] === T.WATER) {
           tiles[i] = T.SAND;
           break;
         }
@@ -343,9 +394,9 @@ export function generateMap(seed: number, nextId: () => number): { tiles: number
     }
 
   const nodes: ResourceNode[] = [];
-  for (let y = 1; y < MAP_H - 1; y++)
-    for (let x = 1; x < MAP_W - 1; x++) {
-      const t = tiles[idx(x, y)];
+  for (let y = 1; y < H - 1; y++)
+    for (let x = 1; x < W - 1; x++) {
+      const t = tiles[at(x, y)];
       if (t !== T.GRASS && t !== T.GRASS2) continue;
       const d = dc(x, y);
       const forest = n2(x, y) * 0.7 + n3(x, y) * 0.3;

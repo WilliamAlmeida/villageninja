@@ -586,6 +586,9 @@ export interface GameState {
   time: number;
   day: number;
   speed: number;
+  /** Tamanho do mapa em tiles (vila 102×68, mapas de missão 72×48; `tiles` tem mapW×mapH). */
+  mapW: number;
+  mapH: number;
   tiles: number[];
   nodes: ResourceNode[];
   buildings: Building[];

@@ -1,7 +1,7 @@
 // Enfeites dos andares da mina (só desenho, fora do estado): estalagmites, cristais e cogumelos que brilham, poças,
 // ossos, carrinho, escoras com lanterna, tochas e caixotes, espalhados pela caverna a partir da semente do mapa.
 // Arte: atlas src/art/props/cave-props.png (scripts/cave-props.py; mesma ordem de CAVE_PROPS).
-import { MAP_W, TILE } from '../config';
+import { TILE } from '../config';
 import { project } from '../core/iso';
 import { mulberry32 } from '../core/rng';
 import type { GameState } from '../game/types';
@@ -52,8 +52,8 @@ export function caveDecos(s: GameState): CaveDeco[] {
   const hit = cache.get(s);
   if (hit) return hit;
   const rnd = mulberry32(s.seed ^ 0xc4e5);
-  const rock = (tx: number, ty: number) => !inBounds(tx, ty) || s.tiles[idx(tx, ty)] === T.ROCK;
-  const taken = new Set<number>([...s.nodes.map((n) => idx(n.tx, n.ty)), ...s.sites.map((x) => idx(x.tx, x.ty))]);
+  const rock = (tx: number, ty: number) => !inBounds(s, tx, ty) || s.tiles[idx(s, tx, ty)] === T.ROCK;
+  const taken = new Set<number>([...s.nodes.map((n) => idx(s, n.tx, n.ty)), ...s.sites.map((x) => idx(s, x.tx, x.ty))]);
   const entry = s.sceneInfo.entry;
   const out: CaveDeco[] = [];
   const pick = (list: [string, number][]) => {
@@ -61,7 +61,7 @@ export function caveDecos(s: GameState): CaveDeco[] {
     for (const [n, w] of list) if ((r -= w) < 0) return P[n]!;
     return null;
   };
-  const W = MAP_W;
+  const W = s.mapW;
   for (let i = 0; i < s.tiles.length; i++) {
     if (s.tiles[i] === T.ROCK || taken.has(i)) continue;
     const tx = i % W;

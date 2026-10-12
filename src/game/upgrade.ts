@@ -8,7 +8,6 @@ import type { Game } from './game';
 import type { Building, Cost } from './types';
 import { buildingCenter, doorPos, idx, inBounds, T } from './world';
 import { inTerritory } from './village';
-import { MAP_H, MAP_W } from '../config';
 import { clearRoadsUnder } from './roads';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -91,13 +90,13 @@ export function growRoom(g: Game, b: Building, next: number): string | null {
   // sem água/rocha nem recurso de pé, dentro do mapa e do território (as mesmas regras de `World.canPlace`)
   const s = g.state;
   const { tx, ty } = b;
-  let fits = tx >= 1 && ty >= 1 && tx + grown.w <= MAP_W - 1 && ty + grown.h <= MAP_H - 2 && inTerritory(s, tx, ty, grown.w, grown.h + 1);
+  let fits = tx >= 1 && ty >= 1 && tx + grown.w <= s.mapW - 1 && ty + grown.h <= s.mapH - 2 && inTerritory(s, tx, ty, grown.w, grown.h + 1);
   for (let y = ty - 1; fits && y <= ty + grown.h; y++)
     for (let x = tx - 1; fits && x <= tx + grown.w; x++) {
       const o = g.world.buildingIdAt(x, y);
       if (o && o !== b.id) fits = false;
       const inside = x >= tx && x < tx + grown.w && y >= ty && y < ty + grown.h;
-      if (inside && inBounds(x, y) && (s.tiles[idx(x, y)] === T.WATER || s.tiles[idx(x, y)] === T.ROCK)) fits = false;
+      if (inside && inBounds(s, x, y) && (s.tiles[idx(s, x, y)] === T.WATER || s.tiles[idx(s, x, y)] === T.ROCK)) fits = false;
     }
   if (fits)
     fits = !s.nodes.some((n) => (n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + grown.w && n.ty >= ty && n.ty < ty + grown.h);

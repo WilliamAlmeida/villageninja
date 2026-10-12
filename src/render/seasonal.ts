@@ -2,13 +2,13 @@
 // clima. Aqui ficam a neve no chão (com trilhas pisadas, pegadas e o derretimento do Katon), as poças congeladas do
 // Suiton, o gelo na água, a neve no alto de prédios/árvores/rochas, as árvores de outono e de inverno, os montes de
 // neve, os bonecos de neve e as lanternas do festival.
-import { DAY_LENGTH, MAP_H, MAP_W, TILE, WORLD_H, WORLD_W } from '../config';
+import { DAY_LENGTH, TILE } from '../config';
 import { mulberry32 } from '../core/rng';
 import { defOf } from '../data/buildings';
 import { SEASON_DAYS, type Season } from '../data/seasons';
 import { festivalOn, isSnowing, seasonOf } from '../game/mood';
 import type { GameState } from '../game/types';
-import { doorPos, idx, T } from '../game/world';
+import { doorPos, idx, type MapSize, T } from '../game/world';
 import { project } from '../core/iso';
 
 type Ctx = CanvasRenderingContext2D;
@@ -22,8 +22,6 @@ const hash = (x: number, y: number) => {
 
 /** Lado (px de mundo) de cada célula da camada de neve. */
 const CELL = 8;
-const GW = WORLD_W / CELL;
-const GH = WORLD_H / CELL;
 /** Segundos entre atualizações da textura de neve (trilhas e derretimento mudam devagar). */
 const REFRESH = 0.5;
 
@@ -67,11 +65,14 @@ const PRINT_LIFE = 8;
 const PATCH_LIFE = 25;
 
 export class Seasonal {
+  /** Tamanho da camada de neve/chuva em células de CELL px (do mapa: a vila é maior que os de missão). */
+  private readonly GW: number;
+  private readonly GH: number;
   private seed = -1;
-  private noise = new Float32Array(GW * GH);
-  private water = new Uint8Array(GW * GH);
-  private trample = new Float32Array(GW * GH);
-  private melt = new Float32Array(GW * GH);
+  private noise: Float32Array;
+  private water: Uint8Array;
+  private trample: Float32Array;
+  private melt: Float32Array;
   private snowCanvas: HTMLCanvasElement | null = null;
   private img: ImageData | null = null;
   private since = REFRESH;
@@ -80,8 +81,8 @@ export class Seasonal {
   private steps = new Map<number, { x: number; y: number; side: number }>();
   private patches: { x: number; y: number; r: number; t: number }[] = [];
   // chuva: chão molhado/poças, gotas caindo, respingos e raios
-  private puddle = new Float32Array(GW * GH);
-  private wet = new Float32Array(GW * GH);
+  private puddle: Float32Array;
+  private wet: Float32Array;
   private wetCanvas: HTMLCanvasElement | null = null;
   private wetImg: ImageData | null = null;
   private wetSince = REFRESH;
@@ -96,13 +97,25 @@ export class Seasonal {
   private iceShown = -1;
   private seen = new WeakSet<object>();
 
+  constructor(m: MapSize) {
+    this.GW = (m.mapW * TILE) / CELL;
+    this.GH = (m.mapH * TILE) / CELL;
+    const n = this.GW * this.GH;
+    this.noise = new Float32Array(n);
+    this.water = new Uint8Array(n);
+    this.trample = new Float32Array(n);
+    this.melt = new Float32Array(n);
+    this.puddle = new Float32Array(n);
+    this.wet = new Float32Array(n);
+  }
+
   /** Ruído estável por mapa (manchas de neve) e onde é água (sem neve). */
   private setup(s: GameState) {
     this.seed = s.seed;
     const rnd = mulberry32(s.seed ^ 0x2f6b9e1d);
     const octave = (step: number) => {
-      const w = Math.ceil(GW / step) + 2;
-      const h = Math.ceil(GH / step) + 2;
+      const w = Math.ceil(this.GW / step) + 2;
+      const h = Math.ceil(this.GH / step) + 2;
       const v = Float32Array.from({ length: w * h }, () => rnd());
       return (x: number, y: number) => {
         const fx = x / step;
@@ -123,14 +136,14 @@ export class Seasonal {
     const big = octave(10);
     const small = octave(3);
     const pud = octave(5);
-    for (let y = 0; y < GH; y++)
-      for (let x = 0; x < GW; x++) {
-        const i = y * GW + x;
+    for (let y = 0; y < this.GH; y++)
+      for (let x = 0; x < this.GW; x++) {
+        const i = y * this.GW + x;
         this.noise[i] = big(x, y) * 0.7 + small(x, y) * 0.3;
         this.puddle[i] = pud(x, y);
         const tx = Math.floor((x * CELL) / TILE);
         const ty = Math.floor((y * CELL) / TILE);
-        this.water[i] = s.tiles[idx(tx, ty)] === T.WATER ? 1 : 0;
+        this.water[i] = s.tiles[idx(s, tx, ty)] === T.WATER ? 1 : 0;
       }
     this.trample.fill(0);
     this.melt.fill(0);
@@ -160,11 +173,11 @@ export class Seasonal {
       if (u.dead || u.hidden || u.away != null || !u.moving || u.kind === 'clone') continue;
       const cx = Math.floor(u.x / CELL);
       const cy = Math.floor((u.y + 6) / CELL);
-      if (cx < 0 || cy < 0 || cx >= GW || cy >= GH) continue;
-      const i = cy * GW + cx;
+      if (cx < 0 || cy < 0 || cx >= this.GW || cy >= this.GH) continue;
+      const i = cy * this.GW + cx;
       // cada passagem pisa ~15%: caminho usado sempre vira trilha
       this.trample[i] = Math.min(1, this.trample[i]! + dt * 1.2);
-      if (cx + 1 < GW) this.trample[i + 1] = Math.min(1, this.trample[i + 1]! + dt * 0.5);
+      if (cx + 1 < this.GW) this.trample[i + 1] = Math.min(1, this.trample[i + 1]! + dt * 0.5);
       if (light || this.cover(i, s.snow) < 0.35) continue;
       // pegadas: um passo a cada ~7 px, alternando o pé
       const last = this.steps.get(u.id);
@@ -179,7 +192,7 @@ export class Seasonal {
 
   /** Pegadas na tela e o quanto o chão em (x, y) está pisado / derretido (0–1). Para testes. */
   stats(x: number, y: number) {
-    const i = Math.floor(y / CELL) * GW + Math.floor(x / CELL);
+    const i = Math.floor(y / CELL) * this.GW + Math.floor(x / CELL);
     return { prints: this.prints.length, patches: this.patches.length, trample: this.trample[i] ?? 0, melt: this.melt[i] ?? 0 };
   }
 
@@ -210,7 +223,7 @@ export class Seasonal {
         const cx = Math.floor(d.x / CELL);
         const cy = Math.floor(d.y / CELL);
         // na água o respingo também vale (anel); fica só o limite de quantidade
-        if (cx >= 0 && cy >= 0 && cx < GW && cy < GH && this.splashes.length < 300) this.splashes.push({ x: d.x, y: d.y, t: 0 });
+        if (cx >= 0 && cy >= 0 && cx < this.GW && cy < this.GH && this.splashes.length < 300) this.splashes.push({ x: d.x, y: d.y, t: 0 });
       }
     }
     this.drops = kept;
@@ -236,15 +249,15 @@ export class Seasonal {
       const k = this.wetSince;
       this.wetSince = 0;
       let any = false;
-      for (let i = 0; i < GW * GH; i++) if (this.wet[i]! > 0) (this.wet[i] = Math.max(0, this.wet[i]! - k * 0.006)), (any ||= this.wet[i]! > 0);
+      for (let i = 0; i < this.GW * this.GH; i++) if (this.wet[i]! > 0) (this.wet[i] = Math.max(0, this.wet[i]! - k * 0.006)), (any ||= this.wet[i]! > 0);
       for (const c of s.clouds) {
         const r = Math.ceil(c.r / CELL);
         const cx = Math.floor(c.x / CELL);
         const cy = Math.floor(c.y / CELL);
-        for (let y = Math.max(0, cy - r); y <= Math.min(GH - 1, cy + r); y++)
-          for (let x = Math.max(0, cx - r); x <= Math.min(GW - 1, cx + r); x++) {
+        for (let y = Math.max(0, cy - r); y <= Math.min(this.GH - 1, cy + r); y++)
+          for (let x = Math.max(0, cx - r); x <= Math.min(this.GW - 1, cx + r); x++) {
             if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue;
-            const i = y * GW + x;
+            const i = y * this.GW + x;
             if (this.water[i]) continue;
             this.wet[i] = Math.min(1, this.wet[i]! + k * 0.06);
             any = true;
@@ -258,12 +271,12 @@ export class Seasonal {
   private wetTexture() {
     if (!this.wetCanvas) {
       this.wetCanvas = document.createElement('canvas');
-      this.wetCanvas.width = GW;
-      this.wetCanvas.height = GH;
-      this.wetImg = this.wetCanvas.getContext('2d')!.createImageData(GW, GH);
+      this.wetCanvas.width = this.GW;
+      this.wetCanvas.height = this.GH;
+      this.wetImg = this.wetCanvas.getContext('2d')!.createImageData(this.GW, this.GH);
     }
     const px = this.wetImg!.data;
-    for (let i = 0; i < GW * GH; i++) {
+    for (let i = 0; i < this.GW * this.GH; i++) {
       const w = this.wet[i]!;
       const o = i * 4;
       // poça nos pontos baixos (ruído próprio); no resto, só o chão mais escuro
@@ -289,7 +302,7 @@ export class Seasonal {
     if (!this.anyWet || !this.wetCanvas) return;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(this.wetCanvas, 0, 0, WORLD_W, WORLD_H);
+    ctx.drawImage(this.wetCanvas, 0, 0, this.GW * CELL, this.GH * CELL);
     ctx.restore();
   }
 
@@ -381,10 +394,10 @@ export class Seasonal {
       for (let dx = -c; dx <= c; dx++) {
         const gx = cx + dx;
         const gy = cy + dy;
-        if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+        if (gx < 0 || gy < 0 || gx >= this.GW || gy >= this.GH) continue;
         const d = Math.hypot(dx, dy) * CELL;
         if (d > r) continue;
-        const i = gy * GW + gx;
+        const i = gy * this.GW + gx;
         arr[i] = Math.max(arr[i]!, v * (1 - (d / r) * 0.5));
       }
     this.since = REFRESH; // mostra já
@@ -403,9 +416,9 @@ export class Seasonal {
   private snowTexture(s: GameState) {
     if (!this.snowCanvas) {
       this.snowCanvas = document.createElement('canvas');
-      this.snowCanvas.width = GW;
-      this.snowCanvas.height = GH;
-      this.img = this.snowCanvas.getContext('2d')!.createImageData(GW, GH);
+      this.snowCanvas.width = this.GW;
+      this.snowCanvas.height = this.GH;
+      this.img = this.snowCanvas.getContext('2d')!.createImageData(this.GW, this.GH);
     }
     if (this.since >= REFRESH) {
       const k = this.since;
@@ -415,7 +428,7 @@ export class Seasonal {
       const back = k * (snowing ? 0.02 : 0.004);
       const regrow = k * (snowing ? 0.03 : 0.004);
       const px = this.img!.data;
-      for (let i = 0; i < GW * GH; i++) {
+      for (let i = 0; i < this.GW * this.GH; i++) {
         const tr = (this.trample[i] = Math.max(0, this.trample[i]! - back));
         const me = (this.melt[i] = Math.max(0, this.melt[i]! - regrow));
         const a = this.cover(i, s.snow) * (1 - 0.65 * tr) * (1 - me);
@@ -440,8 +453,8 @@ export class Seasonal {
     const R = 16; // px da textura por tile
     if (!this.iceCanvas) {
       this.iceCanvas = document.createElement('canvas');
-      this.iceCanvas.width = MAP_W * R;
-      this.iceCanvas.height = MAP_H * R;
+      this.iceCanvas.width = s.mapW * R;
+      this.iceCanvas.height = s.mapH * R;
     }
     if (level !== this.iceShown) {
       this.iceShown = level;
@@ -459,8 +472,8 @@ export class Seasonal {
       const rnd = mulberry32(s.seed ^ 0x1ce);
       for (let i = 0; i < depth.length; i++) {
         if (!frozen(i)) continue;
-        const x = (i % MAP_W) * R;
-        const y = Math.floor(i / MAP_W) * R;
+        const x = (i % s.mapW) * R;
+        const y = Math.floor(i / s.mapW) * R;
         m.fillStyle = depth[i]! <= 1 ? 'rgb(224,239,249)' : 'rgb(204,228,245)';
         m.fillRect(x, y, R, R);
         for (let k = 0; k < 3; k++) {
@@ -479,8 +492,8 @@ export class Seasonal {
       // brilhos e rachaduras por cima (só onde congelou)
       for (let i = 0; i < depth.length; i++) {
         if (!frozen(i)) continue;
-        const x = (i % MAP_W) * R;
-        const y = Math.floor(i / MAP_W) * R;
+        const x = (i % s.mapW) * R;
+        const y = Math.floor(i / s.mapW) * R;
         c.fillStyle = 'rgba(255,255,255,0.55)';
         if (rnd() < 0.5) c.fillRect(x + 2 + rnd() * 8, y + 2 + rnd() * 8, 5, 1.5);
         if (rnd() < 0.35) {
@@ -496,7 +509,7 @@ export class Seasonal {
     }
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(this.iceCanvas, 0, 0, WORLD_W, WORLD_H);
+    ctx.drawImage(this.iceCanvas, 0, 0, s.mapW * TILE, s.mapH * TILE);
     ctx.restore();
   }
 
@@ -506,7 +519,7 @@ export class Seasonal {
       const tex = this.snowTexture(s);
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(tex, 0, 0, WORLD_W, WORLD_H);
+      ctx.drawImage(tex, 0, 0, s.mapW * TILE, s.mapH * TILE);
       ctx.restore();
     }
     if (s.snow > 0.3) {

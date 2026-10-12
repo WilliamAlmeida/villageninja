@@ -3,6 +3,7 @@ import { DAY_LENGTH, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
+import { CENTER_TX, CENTER_TY } from '../src/game/world';
 import { adoptDog, dogOf, freeDogs, giveDog, KENNEL_DOGS, releaseDog, releaseSanninDogs, sniffRange } from '../src/game/ninken';
 import { SYSTEMS } from '../src/game/systems';
 import { occupantsOf } from '../src/game/interior';
@@ -128,9 +129,10 @@ describe('ninken', () => {
   test('adotar pede o Canil; o cão acompanha o dono e, se ele cair, volta para o Canil sem dono', () => {
     const g = createNewGame(SYSTEMS, 121);
     Object.assign(g.state.res, { food: 999, ryo: 999 });
-    const n = createNinja(g, 700, 500, 'genin', 0);
+    // perto da vila (o cão sem dono precisa de caminho até o Canil)
+    const n = createNinja(g, (CENTER_TX - 8) * 32, (CENTER_TY + 4) * 32, 'genin', 0);
     expect(adoptDog(g, n.id).ok).toBe(false);
-    g.addBuilding({ id: g.newId(), type: 'kennel', tx: 2, ty: 2, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    g.addBuilding({ id: g.newId(), type: 'kennel', tx: CENTER_TX - 14, ty: CENTER_TY - 2, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
     expect(adoptDog(g, n.id).ok).toBe(true);
     expect(adoptDog(g, n.id).ok).toBe(false); // um por ninja
     const dog = dogOf(g, n)!;

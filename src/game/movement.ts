@@ -7,14 +7,14 @@ import { bladeMove } from './blades';
 import type { Game } from './game';
 import { findPathPx } from './pathfinding';
 import type { Unit } from './types';
-import { cellCenter, fidx, toCell } from './world';
+import { toCell } from './world';
 
 /** Última busca que falhou por unidade (só memória): não repete a mesma busca sem saída a cada passo. */
 const failed = new WeakMap<Unit, { cell: number; until: number }>();
 
 /** Calcula rota até (x,y). Retorna false se não houver caminho. */
 export function setDestination(g: Game, u: Unit, x: number, y: number): boolean {
-  const goal = fidx(toCell(x), toCell(y));
+  const goal = g.world.fidx(toCell(x), toCell(y));
   const f = failed.get(u);
   if (f && f.cell === goal && g.state.time < f.until) {
     u.hasGoal = false;
@@ -29,10 +29,10 @@ export function setDestination(g: Game, u: Unit, x: number, y: number): boolean 
     return false;
   }
   u.path = p;
-  const last = p.length ? p[p.length - 1]! : fidx(toCell(u.x), toCell(u.y));
-  if (last !== fidx(toCell(x), toCell(y))) {
+  const last = p.length ? p[p.length - 1]! : g.world.fidx(toCell(u.x), toCell(u.y));
+  if (last !== g.world.fidx(toCell(x), toCell(y))) {
     // destino bloqueado: vai até a célula livre mais próxima
-    ({ x, y } = cellCenter(last));
+    ({ x, y } = g.world.cellCenter(last));
   }
   u.goalX = x;
   u.goalY = y;
@@ -49,7 +49,7 @@ export function followPath(g: Game, u: Unit, dt: number, mult = 1): boolean {
   let tx: number;
   let ty: number;
   if (u.path.length > 1) {
-    ({ x: tx, y: ty } = cellCenter(u.path[0]!));
+    ({ x: tx, y: ty } = g.world.cellCenter(u.path[0]!));
   } else {
     tx = u.goalX;
     ty = u.goalY;
