@@ -275,7 +275,7 @@ export function setOrder(g: Game, unitId: number, order: NinjaOrder): Result {
   const u = g.unit(unitId);
   if (!u?.ninja) return fail('Inválido.');
   u.ninja.order = order;
-  if (u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn') {
+  if (u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn' && u.state !== 'practice' && u.state !== 'toPractice') {
     u.state = 'idle';
     u.timer = 0;
     u.hidden = false;

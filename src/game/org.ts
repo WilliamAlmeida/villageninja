@@ -245,7 +245,7 @@ export function prepareDefense(g: Game): { ok: true; count: number } | { ok: fal
     const team = g.state.teams.find((t) => t.memberIds.includes(u.id) || t.senseiId === u.id);
     if (team && onMission.has(team.id)) continue;
     u.ninja.order = 'patrol';
-    if (u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn' && u.state !== 'rest') {
+    if (u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn' && u.state !== 'practice' && u.state !== 'toPractice' && u.state !== 'rest') {
       u.state = 'idle';
       u.timer = 0;
       u.hidden = false;

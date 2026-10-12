@@ -34,3 +34,6 @@ export function moveAt(seq: JutsuMove[], elapsed: number): { pose: MovePose; fra
   const last = seq[seq.length - 1]!;
   return { pose: last[0], frame: last[1], h: 0, fx: last[4] };
 }
+
+/** Ensaio de selos de quem pratica um jutsu novo (três selos + soltar, só desenho; systems/ninjas.ts). */
+export const SEAL_REHEARSAL = 1.2;

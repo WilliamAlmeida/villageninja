@@ -319,6 +319,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   `SCROLL_COST` por rank, `openScroll`) para aparecer em "Ensinar jutsu" (`jutsuOptions(u, studyable(state))`). Nível 1
   abre até C, 2 até B, 3 até A/S (`LIBRARY.maxRank`) e acelera o estudo (`libraryLearnMult`). Kekkei e proibidos à parte.
   `state.jutsuOpen` (migração 22 abre o que a vila já sabe/estuda). Drawer: abas Fechados/Abertos.
+  **Estudo** (systems/ninjas.ts, `studyTick`): a 1ª metade dentro da Academia (escondido, lendo); passada `PRACTICE_FROM`
+  sai com o pergaminho nas costas e pratica no Campo de Treino mais perto da Academia (sem campo, no pátio em frente;
+  estados `toPractice`/`practice`), ensaiando sem dano (`rehearse`): coreografia do golpe (`moves`), soco no taijutsu
+  sem coreografia, ou os três selos e um brilho na cor do jutsu (`animKind 'seals'`, `SEAL_REHEARSAL` em data/moves.ts).
 - **Locais que voltam** (`siteTick` em explore.ts, sistema explore): ruína/baú feitos e mina esgotada somem e reaparecem
   noutro lugar depois de `SITE_RESPAWN_DAYS` (de preferência na névoa). A mina aguenta `MINE_USES` expedições
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).

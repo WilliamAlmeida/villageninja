@@ -156,7 +156,7 @@ export interface Unit {
   combatTimer: number;
   anim: number;
   /** O que o `anim` está mostrando (só desenho: escolhe a pose do ninja em camadas): golpe de mão, arremesso, jutsu solto. */
-  animKind?: 'strike' | 'throw' | 'cast' | 'release' | 'impact' | 'moves';
+  animKind?: 'strike' | 'throw' | 'cast' | 'release' | 'impact' | 'moves' | 'seals';
   /** Jutsu cuja coreografia (`JutsuDef.moves`) o `anim` está tocando (animKind 'moves'). */
   moveJutsu?: string;
   hidden: boolean;

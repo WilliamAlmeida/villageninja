@@ -278,7 +278,7 @@ export function setTeamOrder(g: Game, teamId: number, order: NinjaOrder): Result
   if (!t) return fail('Equipe não encontrada.');
   for (const u of teamUnits(g, t)) {
     u.ninja!.order = order;
-    if (!u.command && u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn') {
+    if (!u.command && u.state !== 'fight' && u.state !== 'learn' && u.state !== 'toLearn' && u.state !== 'practice' && u.state !== 'toPractice') {
       u.state = 'idle';
       u.timer = 0;
       u.hidden = false;

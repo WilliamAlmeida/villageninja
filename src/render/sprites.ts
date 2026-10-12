@@ -14,7 +14,7 @@ import dollPoses from '../data/doll-poses.json';
 import { JUTSUS } from '../data/jutsus';
 import { bijuu, bijuuScale } from '../data/bijuu';
 import { eyeOf } from '../game/dojutsu';
-import { MOVE_SEQS, type MoveFx, moveAt, movesTime } from '../data/moves';
+import { MOVE_SEQS, type MoveFx, moveAt, movesTime, SEAL_REHEARSAL } from '../data/moves';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
@@ -624,6 +624,8 @@ function poseOf(u: Unit, t: number): PoseNow | null {
     const seq = MOVE_SEQS[u.moveJutsu] ?? JUTSUS[u.moveJutsu]?.moves;
     if (seq) return moveAt(seq, movesTime(seq) - u.anim);
   }
+  // ensaio de selos praticando um jutsu novo: os três selos em sequência e o braço esticado no fim
+  if (u.animKind === 'seals') return { pose: 'cast', frame: u.anim > 0.3 ? Math.min(2, Math.floor((SEAL_REHEARSAL - u.anim) / 0.3)) : 3, h: 0 };
   if (u.animKind === 'impact') return { pose: 'strike', frame: u.anim > 0.15 ? 2 : 3, h: 0 };
   if (u.animKind === 'release') return { pose: 'cast', frame: 3, h: 0 };
   // ritmo rápido: um selo relâmpago (mãos juntas) e o braço esticado soltando

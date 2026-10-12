@@ -2,6 +2,7 @@ import { TILE } from '../../config';
 import { chance, pick, rand, randi } from '../../core/rng';
 import { BUILDINGS } from '../../data/buildings';
 import { FORBIDDEN_RISK, JUTSUS } from '../../data/jutsus';
+import { movesTime, SEAL_REHEARSAL } from '../../data/moves';
 import { SITES } from '../../data/sites';
 import { guardiansOf, resolveSite, scoutTarget, sitePos } from '../explore';
 import { refreshDerived } from '../entities';
@@ -239,33 +240,26 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
         u.state = 'learn';
       }
       break;
-    case 'learn': {
-      const L = n.learning;
-      if (!L || !g.findBuilt('academy')) {
+    case 'learn':
+      // 1ª metade: lendo o pergaminho dentro da Academia; passou da metade, sai para praticar no campo
+      if (studyTick(g, u, dt)) break;
+      if (n.learning!.progress >= n.learning!.total * PRACTICE_FROM) {
         u.hidden = false;
-        u.state = 'idle';
-        break;
-      }
-      L.progress += dt * derive(n.stats).learnMult * libraryLearnMult(g) * academyLearnMult(g);
-      if (L.progress >= L.total) {
-        n.jutsu[L.slot] = L.jutsuId;
-        n.cd[L.slot] = 0;
-        n.learning = null;
-        u.hidden = false;
-        u.state = 'idle';
-        const def = JUTSUS[L.jutsuId]!;
-        fxText(g, u.x, u.y - 30, def.shout, def.color, true);
-        g.toast(`{scroll} ${u.name} aprendeu ${def.name}!`, 'good', u);
-        // jutsu proibido cobra um preço do corpo
-        if (def.forbidden && chance(FORBIDDEN_RISK)) {
-          n.stats.stamina = Math.max(1, n.stats.stamina - 1);
-          refreshDerived(u);
-          u.hp = Math.min(u.hp, u.maxHp);
-          g.toast(`{alert} O jutsu proibido deixou sequela: ${u.name} perdeu Stamina.`, 'warn', u);
-        }
+        if (!goPractice(g, u)) u.hidden = true;
       }
       break;
-    }
+    case 'toPractice':
+      if (!n.learning) u.state = 'idle';
+      else if (followPath(g, u, dt)) {
+        u.state = 'practice';
+        u.timer = rand(0.3, 1);
+      }
+      break;
+    case 'practice':
+      u.moving = false;
+      if (studyTick(g, u, dt)) break;
+      rehearse(g, u, dt);
+      break;
     case 'toRest':
       if (followPath(g, u, dt)) {
         // descansa lá dentro (hospital/Residência): fora, os feridos amontoados viravam alvo fácil de área
@@ -353,6 +347,8 @@ function decide(g: Game, u: Unit, night: boolean) {
     const academy = g.findBuilt('academy');
     if (!academy) {
       n.learning = null;
+    } else if (n.learning.progress >= n.learning.total * PRACTICE_FROM && goPractice(g, u)) {
+      return;
     } else {
       const p = doorPos(academy);
       if (setDestination(g, u, p.x, p.y)) u.state = 'toLearn';
@@ -427,6 +423,98 @@ function goTrain(g: Game, u: Unit, b: Building): boolean {
   u.state = 'toTrain';
   u.trainId = b.id;
   return true;
+}
+
+// ------------------------------------------------------------------ estudo de jutsu
+/** Parte do estudo (0–1) a partir da qual o ninja sai da Academia e vai praticar ao ar livre. */
+export const PRACTICE_FROM = 0.5;
+/** Intervalo entre um ensaio e outro na prática (s). */
+const REHEARSE_EVERY: [number, number] = [2.2, 3.6];
+
+/** Avança o estudo (dentro da Academia ou praticando); true se acabou ou não dá mais para estudar. */
+function studyTick(g: Game, u: Unit, dt: number): boolean {
+  const n = u.ninja!;
+  const L = n.learning;
+  if (!L || !g.findBuilt('academy')) {
+    u.hidden = false;
+    u.state = 'idle';
+    return true;
+  }
+  L.progress += dt * derive(n.stats).learnMult * libraryLearnMult(g) * academyLearnMult(g);
+  if (L.progress < L.total) return false;
+  n.jutsu[L.slot] = L.jutsuId;
+  n.cd[L.slot] = 0;
+  n.learning = null;
+  u.hidden = false;
+  u.state = 'idle';
+  const def = JUTSUS[L.jutsuId]!;
+  fxText(g, u.x, u.y - 30, def.shout, def.color, true);
+  g.toast(`{scroll} ${u.name} aprendeu ${def.name}!`, 'good', u);
+  // jutsu proibido cobra um preço do corpo
+  if (def.forbidden && chance(FORBIDDEN_RISK)) {
+    n.stats.stamina = Math.max(1, n.stats.stamina - 1);
+    refreshDerived(u);
+    u.hp = Math.min(u.hp, u.maxHp);
+    g.toast(`{alert} O jutsu proibido deixou sequela: ${u.name} perdeu Stamina.`, 'warn', u);
+  }
+  return true;
+}
+
+/** Vai praticar: um ponto do Campo de Treino mais perto da Academia; sem campo, o pátio em frente à Academia. */
+function goPractice(g: Game, u: Unit): boolean {
+  const academy = g.findBuilt('academy');
+  if (!academy) return false;
+  const door = doorPos(academy);
+  const fields = g.builtOf('training');
+  const near = [...fields].sort((a, b) => {
+    const pa = doorPos(a);
+    const pb = doorPos(b);
+    return Math.hypot(pa.x - door.x, pa.y - door.y) - Math.hypot(pb.x - door.x, pb.y - door.y);
+  })[0];
+  const spots: { x: number; y: number }[] = [];
+  if (near) {
+    const def = BUILDINGS[near.type];
+    for (let i = 0; i < 3; i++) spots.push({ x: (near.tx + rand(0.3, def.w - 0.3)) * TILE, y: (near.ty + rand(0.3, def.h - 0.3)) * TILE });
+  }
+  for (let i = 0; i < 3; i++) spots.push({ x: door.x + rand(-28, 28), y: door.y + rand(18, 40) });
+  spots.push(door);
+  for (const p of spots)
+    if (setDestination(g, u, p.x, p.y)) {
+      u.state = 'toPractice';
+      return true;
+    }
+  return false;
+}
+
+/**
+ * Ensaio na prática (só desenho, sem dano): golpe com coreografia toca os passos dela; taijutsu sem coreografia, o soco;
+ * ninjutsu/genjutsu/cura, os três selos e o braço esticado soltando um brilho na cor do jutsu.
+ */
+function rehearse(g: Game, u: Unit, dt: number) {
+  const def = JUTSUS[u.ninja!.learning!.jutsuId];
+  if (!def) return;
+  // fim dos selos: o brilho do jutsu sai da mão
+  if (u.animKind === 'seals' && u.anim <= 0.3 && u.anim > 0.3 - dt) {
+    const hx = u.x + Math.cos(u.facing) * 16;
+    const hy = u.y + Math.sin(u.facing) * 16 - 6;
+    fx(g, 'ring', hx, hy, { r: 12, color: def.color, life: 0.4 });
+  }
+  if (u.timer > 0) return;
+  u.timer = rand(...REHEARSE_EVERY);
+  u.facing = rand(0, Math.PI * 2);
+  if (def.moves?.length) {
+    u.anim = movesTime(def.moves);
+    u.animKind = 'moves';
+    u.moveJutsu = def.id;
+  } else if (def.type === 'taijutsu') {
+    u.anim = 0.5;
+    u.animKind = 'strike';
+    u.strike = undefined;
+    fx(g, 'slash', u.x + Math.cos(u.facing) * 12, u.y + Math.sin(u.facing) * 12, { r: 10, color: '#ffffff', life: 0.25 });
+  } else {
+    u.anim = SEAL_REHEARSAL;
+    u.animKind = 'seals';
+  }
 }
 
 function goRest(g: Game, u: Unit) {
