@@ -50,7 +50,7 @@ describe('nuvens de chuva', () => {
   test('sem chuva no dia, as nuvens que sobraram terminam de passar e não voltam', () => {
     const g = rainyGame(603);
     g.state.weather = 'clear';
-    run(g, 260);
+    run(g, 420); // a nuvem mais lenta (12 px/s) leva ~300 s para cruzar os 112 tiles
     expect(g.state.clouds.length).toBe(0);
   });
 

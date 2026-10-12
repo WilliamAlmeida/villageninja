@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { canMove, moveBuilding, placeBuilding } from '../src/game/commands';
 import { createNewGame } from '../src/game/newGame';
+import { territoryRadius } from '../src/game/village';
 import { doorPos } from '../src/game/world';
 
 /** Primeiro lugar livre para o tipo, perto da Residência do Hokage. */
@@ -45,9 +46,14 @@ test('mover a Residência do Hokage não pode deixar prédios fora do territóri
   g.state.res.stone = 999;
   const hk = g.hokage()!;
   // prédio na borda do território: arrastar o centro para longe o deixaria de fora
-  const edge = freeSpot(g, (tx, ty) => g.world.canPlace('house', tx, ty) && Math.abs(tx - hk.tx) >= 6);
+  const r = territoryRadius(g.state);
+  let edge: { tx: number; ty: number } | null = null;
+  for (let dx = r - 5; dx <= r - 2 && !edge; dx++)
+    for (const sx of [1, -1])
+      for (let dy = -2; dy <= 2 && !edge; dy++) if (g.world.canPlace('house', hk.tx + sx * dx, hk.ty + dy)) edge = { tx: hk.tx + sx * dx, ty: hk.ty + dy };
+  expect(edge).not.toBeNull();
+  edge = edge!;
   expect(placeBuilding(g, 'house', edge.tx, edge.ty).ok).toBe(true);
   const far = { tx: hk.tx + (hk.tx > edge.tx ? 9 : -9), ty: hk.ty };
-  const r = canMove(g, hk.id, far.tx, far.ty);
-  expect(r.ok).toBe(false);
+  expect(canMove(g, hk.id, far.tx, far.ty).ok).toBe(false);
 });

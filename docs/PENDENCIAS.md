@@ -41,7 +41,7 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 ## 4. Padrão novo da arte isométrica (docs/design-arte-iso.md; piloto instalado em 2026-10-12 para o autor ver no jogo)
 - [x] Autor conferir o piloto no jogo e nos editores (aprovado: "agora sim gostei")
 - [ ] Autor limpar as rebarbas brancas que sobrarem
-- [x] Mapa da vila 102×68 (era 72×48; save v35 centraliza a vila no mapa novo; missões seguem 72×48)
+- [x] Mapa da vila 112×112 (era 72×48; save v36 centraliza a vila no mapa novo; missões seguem 72×48) e chão em blocos
 - [ ] Autor conferir o mapa novo no save dele (costura do terreno nas bordas antigas, invasões vindo de mais longe)
 - [ ] Marcar as preferidas em /paleta → `python scripts/palette-from-favorites.py` → aprovar a paleta → reaplicar no piloto
 - [ ] Torre níveis 2 e 3 em camadas (base + topo) no mesmo padrão; torres dos mapas temáticos (pescadores, deserto)

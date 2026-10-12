@@ -25,7 +25,7 @@ function setup(seed: number, genins = 3) {
   g.reindex();
   g.addBuilding({ id: g.newId(), type: 'arena', tx, ty, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
   for (const u of g.state.units.filter((x) => x.kind === 'ninja')) u.ninja!.level = 2;
-  for (let i = 2; i < genins; i++) createNinja(g, 1200, 800).ninja!.level = 3;
+  for (let i = 2; i < genins; i++) createNinja(g, (CENTER_TX + 1) * 32, (CENTER_TY + 1) * 32).ninja!.level = 3;
   return g;
 }
 

@@ -33,7 +33,8 @@ describe('economia', () => {
     const g = createNewGame(SYSTEMS, 2);
     expect(g.state.nodes.some((n) => n.type === 'ore')).toBe(true);
     // mina ao lado de um veio, com 2 mineiros
-    const ore = g.state.nodes.find((n) => n.type === 'ore')!;
+    // um veio onde a mina cabe ao lado (dentro do mapa e do território; o primeiro pode estar na borda)
+    const ore = g.state.nodes.find((n) => n.type === 'ore' && g.world.canPlace('ironmine', n.tx + 3, n.ty - 1))!;
     const mine = g.addBuilding({ id: g.newId(), type: 'ironmine', tx: ore.tx + 3, ty: ore.ty - 1, built: true, progress: 99, desired: 2, workers: [], cd: 0 });
     for (let i = 0; i < 4; i++) createVillager(g, doorPos(mine).x, doorPos(mine).y);
     run(g, 60);

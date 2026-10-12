@@ -65,7 +65,8 @@ describe('equipes', () => {
   test('membros seguem o líder', () => {
     const g = createNewGame(SYSTEMS, 4);
     const team = g.state.teams[0]!;
-    const sensei = createNinja(g, 300, 300, 'jounin', 0);
+    const d0 = doorPos(g.hokage()!);
+    const sensei = createNinja(g, d0.x - 120, d0.y + 60, 'jounin', 0); // perto da vila (o mapa é grande)
     joinAsSensei(g, team.id, sensei.id);
     run(g, 20);
     const [a, b] = team.memberIds.map((id) => g.unit(id)!);

@@ -1,11 +1,13 @@
 // Constantes globais do jogo. Ajuste aqui para balancear sem mexer nos sistemas.
 export const TILE = 32;
 /**
- * Tamanho do mapa em tiles: cada mapa guarda o seu (`GameState.mapW/mapH`; `World.W/H`). A vila é 102×68 (save v35:
- * era 72×48 e cresceu em volta, com a vila no meio); os mapas de missão (mina, ilha, saque, covil, prova) ficam 72×48.
+ * Tamanho do mapa em tiles: cada mapa guarda o seu (`GameState.mapW/mapH`; `World.mapW/mapH`). A vila é 112×112
+ * (quadrada: na vista isométrica preenche o losango inteiro; era 72×48 até a v34 e 102×68 na v35, crescendo em volta
+ * com a vila no meio); os mapas de missão (mina, ilha, saque, covil, prova) ficam 72×48. O chão é desenhado em blocos
+ * (render/terrain.ts), então o tamanho não esbarra em limite de imagem.
  */
-export const VILLAGE_W = 102;
-export const VILLAGE_H = 68;
+export const VILLAGE_W = 112;
+export const VILLAGE_H = 112;
 export const SCENE_W = 72;
 export const SCENE_H = 48;
 /** Maior mapa possível (buffers de rascunho da busca de caminho). */
@@ -25,7 +27,7 @@ export const FOOD_PER_DAY = 5;
 export const VILLAGE_MARGIN = 5;
 
 export const SAVE_KEY = 'villageninja.save.v1';
-export const SAVE_VERSION = 35;
+export const SAVE_VERSION = 36;
 export const AUTOSAVE_INTERVAL = 20;
 
 export const MAX_DPR = 2;

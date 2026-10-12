@@ -366,8 +366,9 @@ export function generateMap(seed: number, nextId: () => number, W = VILLAGE_W, H
   const at = (x: number, y: number) => y * W + x;
   const tiles = new Array<number>(W * H).fill(T.GRASS);
   const c = centerOf(m);
-  // o miolo livre acompanha o tamanho do mapa (72×48: o de sempre)
-  const k = Math.sqrt((W * H) / (72 * 48));
+  // o miolo livre (sem floresta nem lago) acompanha o território inicial, não o mapa: no 72×48 a floresta começava a
+  // 9 tiles e os veios a 12, com território 12; o território do nível 0 é 19 agora (19/12 ≈ 1,6)
+  const k = 1.6;
   const dc = (x: number, y: number) => Math.hypot(x - c.tx, (y - c.ty) * 1.2) / k;
 
   for (let y = 0; y < H; y++)

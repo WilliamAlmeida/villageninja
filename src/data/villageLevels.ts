@@ -20,7 +20,7 @@ export interface VillageLevelDef {
   level: number;
   name: string;
   icon: string;
-  /** Raio (em tiles) a partir da Residência do Hokage onde se pode construir (×1,4 na v35, com o mapa da vila 2× maior; o último cobre o mapa todo). */
+  /** Raio (em tiles) a partir da Residência do Hokage onde se pode construir (era 12/17/23 no mapa de 72×48; cresceu com o mapa, 112×112 agora; o último cobre o mapa todo). */
   territory: number;
   req: LevelReq;
   cost: Cost;
@@ -35,17 +35,17 @@ export interface VillageLevelDef {
 
 export const VILLAGE_LEVELS: VillageLevelDef[] = [
   {
-    level: 0, name: 'Aldeia', icon: '{hut}', territory: 17, req: {}, cost: {}, tax: 2, threat: 0, popLimit: 60,
+    level: 0, name: 'Aldeia', icon: '{hut}', territory: 19, req: {}, cost: {}, tax: 2, threat: 0, popLimit: 60,
     perks: ['Prédios básicos, Academia e Campo de Treino'],
   },
   {
-    level: 1, name: 'Vila', icon: '{houses}', territory: 24, tax: 3, threat: 1, popLimit: 100,
+    level: 1, name: 'Vila', icon: '{houses}', territory: 26, tax: 3, threat: 1, popLimit: 100,
     req: { population: 14, ninjas: 4, buildings: { house: 3, academy: 1, training: 1 } },
     cost: { wood: 150, stone: 100, ryo: 200 },
     perks: ['Território maior', 'Libera Hospital, Arena, Mina de Ferro, Horta, Forja e Farmácia', 'Fundação de clãs', 'Impostos: 3 ryo por morador'],
   },
   {
-    level: 2, name: 'Vila Oculta', icon: '{castle}', territory: 33, tax: 3, threat: 2, popLimit: 150,
+    level: 2, name: 'Vila Oculta', icon: '{castle}', territory: 36, tax: 3, threat: 2, popLimit: 150,
     req: { population: 24, ninjas: 7, ranked: { rank: 'chunin', count: 2 }, buildings: { hospital: 1, market: 1, missions: 1 }, raidsRepelled: 2, missionsDone: 2 },
     cost: { wood: 300, stone: 250, ryo: 500 },
     perks: ['Território maior', 'Libera Biblioteca, Oficina de Selos, Ninjatō e Colete tático', 'Kekkei genkai dos clãs', 'Permite eleger um Kage'],

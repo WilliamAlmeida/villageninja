@@ -8,7 +8,7 @@ import { iceLevel, Seasonal, setLightWeatherFx } from '../src/render/seasonal';
 describe('visual do inverno', () => {
   test('quem anda na neve deixa pegadas e pisa uma trilha; sem neve, nada', () => {
     const g = createNewGame(SYSTEMS, 301);
-    const se = new Seasonal({ mapW: 72, mapH: 48 });
+    const se = new Seasonal(g.state);
     const u = g.state.units.find((v) => v.kind === 'villager')!;
     u.moving = true;
     const walk = () => {
@@ -35,7 +35,7 @@ describe('visual do inverno', () => {
   test('fogo derrete a neve; água sobre a neve congela', () => {
     const g = createNewGame(SYSTEMS, 302);
     g.state.snow = 0.8;
-    const se = new Seasonal({ mapW: 72, mapH: 48 });
+    const se = new Seasonal(g.state);
     se.frame(g.state, 0.016);
     se.onEffect(g.state, { kind: 'burst', x: 600, y: 600, r: 40 }, 'katon');
     expect(se.stats(600, 600).melt).toBeGreaterThan(0.9);

@@ -33,7 +33,7 @@ import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
 import { drawBuilding, drawNode, drawProjectile, drawUnit, isStump, workImpact, type WorkAction } from './sprites';
-import { drawWaterAnim, renderTerrain, waterDepth } from './terrain';
+import { Terrain } from './terrain';
 
 export interface Ghost {
   type: BuildingType;
@@ -85,9 +85,9 @@ const VFX_NATURE: Partial<Record<Vfx, Nature>> = { fire: 'katon', lava: 'katon',
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
-  private terrain: HTMLCanvasElement | null = null;
+  private terrain: Terrain | null = null;
   /** Cache por mapa (a vila e o mapa de missão alternam na tela). */
-  private maps = new WeakMap<GameState, { terrain: HTMLCanvasElement; depth: Uint8Array; seasonal: Seasonal }>();
+  private maps = new WeakMap<GameState, { terrain: Terrain; seasonal: Seasonal }>();
   private dpr = 1;
   private list: Drawable[] = [];
   /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
@@ -145,11 +145,11 @@ export class Renderer {
     this.seed = s.seed;
     let cache = this.maps.get(s);
     if (!cache) {
-      cache = { terrain: renderTerrain(s), depth: waterDepth(s), seasonal: new Seasonal(s) };
+      cache = { terrain: new Terrain(s), seasonal: new Seasonal(s) };
       this.maps.set(s, cache);
     }
     this.terrain = cache.terrain;
-    this.depth = cache.depth;
+    this.depth = cache.terrain.depth;
     this.seasonal = cache.seasonal;
     const ctx = this.ctx;
     const z = cam.zoom * this.dpr;
@@ -199,8 +199,7 @@ export class Renderer {
     // ================= passada 1: chão =================
     ctx.save();
     groundTransform(ctx);
-    ctx.drawImage(this.terrain, 0, 0);
-    drawWaterAnim(ctx, s, this.depth, time);
+    this.terrain!.draw(ctx, cam, time);
     this.seasonal.drawIce(ctx, s, this.depth);
     this.seasonal.drawWet(ctx);
     this.seasonal.drawGround(ctx, s);

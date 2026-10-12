@@ -257,7 +257,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // v35: o mapa da vila cresceu de 72×48 para 102×68 (os prédios ficaram maiores com o padrão novo da arte): a vila
   // vai para o meio do mapa novo e o terreno em volta é gerado; os mapas de missão continuam 72×48
   34: (s) => {
-    growMap(s, VILLAGE_W, VILLAGE_H);
+    growMap(s, VILLAGE_W, VILLAGE_H); // direto para o tamanho atual: uma emenda só no terreno
+  },
+  // v36: a vila cresceu de novo, para 112×112 (quadrada preenche o losango da vista isométrica; o chão em blocos não
+  // tem mais limite de tamanho). Um save que ficou em 102×68 (v35) cresce agora; o que já veio da v34 não muda.
+  35: (s) => {
+    growMap(s, VILLAGE_W, VILLAGE_H, 0x2b1);
   },
 };
 
@@ -268,7 +273,7 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
  * nela vira grama). Efeitos e projéteis no ar somem.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function growMap(s: any, W: number, H: number) {
+export function growMap(s: any, W: number, H: number, salt = 0) {
   const ow: number = s.mapW;
   const oh: number = s.mapH;
   if ((W <= ow && H <= oh) || !s.tiles?.length) return; // save de teste sem mapa: nada a mover
@@ -276,7 +281,7 @@ export function growMap(s: any, W: number, H: number) {
   const oy = Math.floor((H - oh) / 2);
   const dx = ox * TILE;
   const dy = oy * TILE;
-  const fresh = generateMap(s.seed ^ 0x6a11e, () => s.nextId++, W, H);
+  const fresh = generateMap(s.seed ^ 0x6a11e ^ salt, () => s.nextId++, W, H);
   const old = s.tiles as number[];
   const inOld = (x: number, y: number) => x >= ox && y >= oy && x < ox + ow && y < oy + oh;
   const tiles = new Array<number>(W * H);
