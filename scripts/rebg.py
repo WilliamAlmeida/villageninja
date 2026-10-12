@@ -27,7 +27,7 @@ def raw_of(png: Path):
 
 
 # artes com vãos fechados entre vigas/escadas (o branco de dentro também é fundo): --vaos
-VAOS = {'tower', 'tower-2', 'tower-3', 'port', 'ruin'}
+VAOS = {'tower', 'tower-2', 'tower-3', 'tower-fishing', 'port', 'ruin'}
 
 
 names = sys.argv[1:]

@@ -30,6 +30,7 @@ import { territoryCenter } from './village';
 import { doorPos, doorTile, idx, inBounds } from './world';
 import { pave } from './roads';
 import { recordFallen } from './memorial';
+import { assignWatch, watchCandidates } from './towerWatch';
 
 /** Quantos de cada prédio a vitrine levanta (o resto, um). */
 const COUNT: Partial<Record<BuildingType, number>> = { house: 8, farm: 3, lumber: 2, quarry: 2, market: 2, training: 2, tower: 3, ironmine: 1, herbgarden: 2, lantern: 4, cherry: 3, flowers: 2 };
@@ -182,6 +183,13 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   s.org.nextDay = s.day + 20;
   s.sound.nextDay = s.day + 20;
   s.swordsmen.nextDay = s.day + 20;
+  // uma torre com vigia já lá em cima (game/towerWatch.ts)
+  const tower = s.buildings.find((b) => b.type === 'tower' && b.built);
+  const guard = watchCandidates(g)[0];
+  if (tower && guard && assignWatch(g, tower.id, guard.id).ok) {
+    const d = doorPos(tower);
+    Object.assign(guard, { x: d.x, y: d.y, state: 'towerWatch', moving: false });
+  }
   g.reindex();
   return g;
 }

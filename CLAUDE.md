@@ -133,7 +133,15 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   não tem upgrade: a arte segue o nível da vila (`hokage-2..4`). A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
   Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
-- Torre: guarda (`tower-guard`, folha de ação) aparece na plataforma arremessando e fica uns segundos de vigia.
+- **Vigia da torre** (`game/towerWatch.ts`, seção "Vigia" no drawer da Torre; `Building.guardId` ↔ `Unit.onTower`, save
+  v32): um ninja da vila (fora de equipe, não estudando, não Kage) sobe e arremessa as kunais no lugar da torre com o dano
+  e o ritmo dele (Força/Velocidade) e o XP é dele (`watchTick` no sistema dos ninjas, antes da IA comum). Fica fora das
+  lutas comuns (`availableFighters`, auto-sensei, auto-ensino e "Montar" o ignoram); desce se for tirado, se a torre virar
+  obra, ferido (< 30%: trata até o fim e volta), mandado estudar, ou sem alternativa (inimigo a menos de 70 px da porta e
+  ninguém da vila lutando por perto). A posição lógica é a porta (é alvo de quem chega); o desenho fica na plataforma
+  (marca `guard` da arte no Editor de cenário, `Renderer.guardSpot`), depois das peças de baixo e antes das peças com
+  "Por cima do vigia" (`LayoutPiece.over`: o parapeito da frente de cada torre). Sem vigia a torre atira sozinha, sem
+  ninguém desenhado (a folha `tower-guard` saiu).
   `remove-bg.py --vaos` limpa vãos brancos fechados (torres, porto, ruína). O `remove-bg.py` só considera fundo o quase
   branco SEM cor (parede creme e grama clara encostadas no fundo ficam) e tira a franja clara do contorno.
   `python scripts/rebg.py [nome]` refaz o fundo das artes de docs/arte/iso a partir da crua do Codex (achada no
@@ -346,6 +354,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).
   Ruína e mina têm duas artes (`ruin`/`cave`, editadas pelo autor, e `ruin-alt`/`cave-alt` do Codex): cada área do mapa
   (grade 3×2) sorteia uma pela semente (`Renderer.siteArt`); o Editor de cenário lista e ajusta cada uma ("versão 2").
+  **Gabarito de chão** (`scripts/iso_template.py`, usado pelo `deco-grid.py`): o Codex recebe como 1ª referência uma
+  folha com o losango 2:1 EXATO do terreno de cada peça (tamanho em tiles de data/buildings.ts) na casa dela, e o recorte
+  usa a largura do losango; sem ele a base saía no ângulo/tamanho errado. Prédio novo deve usar o mesmo gabarito.
   Baús sem chão na arte (`scripts/strip-ground.py` → `<nome>-nograss.png`, usado pelo prepare-art; `SAME_SCALE`) e com
   sombra desenhada pelo jogo, para encaixar em qualquer piso. Baú aberto fica `CHEST_LINGER` (10 s) no chão com a arte `chest-open` e some numa nuvem de poeira (`doneFor`), e abrir dispara o efeito `treasure` (luz dourada,
   moedas, confete). Barra das cenas (`ui/scene.ts`): título com uma marca por andar, etiquetas (inimigos, equipe, saque),
@@ -562,7 +573,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v31.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v32.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

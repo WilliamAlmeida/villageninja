@@ -28,6 +28,7 @@ import { pickFoe } from '../tactics';
 import { isNight } from '../time';
 import type { Building, Unit } from '../types';
 import { doorPos, siteTiles, tileCenter, toTile } from '../world';
+import { watchTick } from '../towerWatch';
 import { fieldPosts, fieldRoute, freePost, postStand, quietSpot, RUN_STATS, STRIKE_STATS } from '../trainingField';
 
 const DEFEND_RADIUS = 240;
@@ -55,6 +56,11 @@ export function ninjaSystem(g: Game, dt: number) {
     specTick(g, u, dt); // profissão (médico, espião, marionetista) e contrato de invocação
     // consumível gasto: pega outro do estoque ao passar pela vila
     if (u.ninja!.equip.item && carried(u) < carryMax(u) && g.world.inVillage(u.x, u.y)) refillItem(g, u);
+    // vigia da torre: lá em cima arremessando; só desce tirado, ferido, com a torre caída ou sem alternativa
+    if (u.onTower != null && watchTick(g, u, dt, followPath, setDestination)) {
+      u.command = null;
+      continue;
+    }
     if (u.command && runCommand(g, u, dt)) continue;
     if (shelterTick(g, u, dt)) continue; // novato com inimigo forte demais por perto: vai se abrigar
 

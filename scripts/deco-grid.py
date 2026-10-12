@@ -8,6 +8,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from iso_template import PROMPT as TEMPLATE_PROMPT, draw as draw_template, footprint  # noqa: E402
+
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +36,8 @@ ITEMS = [
     ('memorial', 'a ninja memorial stone: a tall dark grey polished stone slab with many tiny engraved name lines, on a two-step stone base, with a small incense burner smoking, white flowers and a few kunai left at its foot'),
 ]
 COLS, ROWS = 4, 2
+# terreno dos que não são prédios (locais do mapa): o resto sai de data/buildings.ts
+FOOT = {'ruin-alt': (3, 3), 'cave-alt': (3, 3)}
 
 
 def main_box(cell):
@@ -49,6 +54,10 @@ todo = [(n, d) for n, d in ITEMS if (only and n in only) or (not only and not os
 while todo:
     batch, todo = todo[:COLS * ROWS], todo[COLS * ROWS:]
     sheet = os.path.join(ISO, f'_deco-{batch[0][0]}.png')
+    # gabarito de chão: o losango exato do terreno de cada peça na casa dela (scripts/iso_template.py)
+    foots = [FOOT.get(n) or footprint(n.split('-')[0] if n.startswith('cherry') else n) for n, _ in batch]
+    tpl = os.path.join(ISO, f'_deco-{batch[0][0]}-gabarito.png')
+    ground = draw_template(tpl, foots, COLS, ROWS)
     cells = ' '.join(f'Row {i // COLS + 1}, column {i % COLS + 1}: {d}.' for i, (_, d) in enumerate(batch))
     desc = (
         f'A SHEET of {len(batch)} separate small decoration props for a cozy ninja village builder game, arranged in a strict grid of '
@@ -56,9 +65,11 @@ while todo:
         'clear empty white space between them' + (' (cells after the last item stay empty)' if len(batch) < COLS * ROWS else '') + '. '
         'Flat 16-bit pixel art game asset, chibi cozy style, few flat colors, dark pixel outline, no gradients, 2:1 isometric view from above, '
         'same camera angle, palette and art style as the attached reference building. Pure white background, no shadow outside the objects, '
-        'no ground tiles, no labels, no text, no grid lines. When an item says THE SAME, draw it as the same tree as the previous one. ' + cells
+        'no labels, no text, no grid lines. When an item says THE SAME, draw it as the same tree as the previous one. ' + TEMPLATE_PROMPT
+        + 'Image 2 is the art style reference. ' + cells
     )
-    subprocess.run(['node', 'scripts/codex-image.mjs', sheet, desc, '--ref', 'docs/arte/iso/house.png', '--size', '1536x1024'], cwd=ROOT, check=True)
+    refs = ','.join([os.path.relpath(tpl, ROOT), 'docs/arte/iso/house.png'])
+    subprocess.run(['node', 'scripts/codex-image.mjs', sheet, desc, '--ref', refs, '--size', '1536x1024'], cwd=ROOT, check=True)
     im = Image.open(sheet).convert('RGBA')
     cw, ch = im.width / COLS, im.height / ROWS
     for i, (name, _) in enumerate(batch):
@@ -66,5 +77,9 @@ while todo:
         cell = im.crop((round(x), round(y), round(x + cw), round(y + ch)))
         box = main_box(cell)
         if box:
-            cell.crop(box).save(os.path.join(ISO, f'{name}.png'))
-            print('ok', name)
+            # na horizontal, exatamente o losango (a largura vira o terreno no prepare-art); em cima, o desenho todo
+            gr = ground[i]
+            x0, x1 = round(gr['x0'] - x), round(gr['x1'] - x)
+            bottom = max(box[3], round(gr['by'] - y))
+            cell.crop((x0, box[1], x1, bottom)).save(os.path.join(ISO, f'{name}.png'))
+            print('ok', name, f"(terreno {gr['w']}x{gr['h']})")

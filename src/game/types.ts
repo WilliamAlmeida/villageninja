@@ -263,6 +263,8 @@ export interface Unit {
   trainLap?: { cx: number; cy: number; a: number; r: number };
   /** Boneco do campo que está golpeando (índice dos pontos `postN`) e a perna da volta de corrida pelos bonecos. */
   trainPost?: number;
+  /** Vigia de torre: id da Torre de Vigia que ele guarda (game/towerWatch.ts). */
+  onTower?: number;
   trainLeg?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
   hitBy?: number[];
@@ -353,10 +355,8 @@ export interface Building {
   flip?: boolean;
   /** Upgrade em obra: segundos trabalhados (null = nenhum). O prédio continua funcionando. */
   upgrade?: number | null;
-  /** Torres: segundos desde o último arremesso contados para trás (o guarda aparece enquanto > 0; só visual). */
-  shot?: number;
-  /** Torres: ângulo (mundo) do último alvo, para o guarda olhar para ele. */
-  aim?: number;
+  /** Torre de Vigia: o ninja mandado para vigiar (game/towerWatch.ts; o dele é `Unit.onTower`). */
+  guardId?: number;
   /** Campo de Treino: atributo de foco (treino +50% nele; sem foco próprio, o ninja treina este). */
   focus?: StatKey | null;
   /** Mercado: o que o comerciante vende do excedente do estoque (além do ryo de sempre). */

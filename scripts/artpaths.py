@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / 'src' / 'art'
 EDITS = ART / 'art-edits.json'
 
-CHARACTERS = {'villager', 'villager-chop', 'villager-farm', 'villager-mine', 'tower-guard', 'rogue', 'puppet'}
+CHARACTERS = {'villager', 'villager-chop', 'villager-farm', 'villager-mine', 'rogue', 'puppet'}
 ANIMALS = {'bear', 'boar', 'crow', 'golem', 'hydra', 'monkey', 'rhino', 'slug', 'snake', 'spider', 'tiger', 'toad', 'wolf'}
 DECO = {'lantern', 'bench', 'flowers', 'banner', 'shrine', 'statue', 'cherry', 'cherry-green', 'cherry-bare', 'fountain', 'pond', 'pagoda'}
 SCENERY = {'tree0', 'tree1', 'stump0', 'stump1', 'rock', 'rock-cracked', 'rock-pebbles', 'ore', 'ore-empty', 'herb',

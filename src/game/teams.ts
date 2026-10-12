@@ -208,7 +208,7 @@ export function createTeamWith(g: Game, unitId: number): Result {
 export function autoTeams(g: Game): { ok: true; created: number; placed: number } | { ok: false; error: string } {
   enforceTeamRules(g);
   const all = g.state.units
-    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && u.ninja.rank !== 'kage' && !teamOf(g, u))
+    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && u.ninja.rank !== 'kage' && u.onTower == null && !teamOf(g, u))
     .sort((a, b) => b.ninja!.level - a.ninja!.level);
   if (!all.length) return { ok: false, error: 'Todos os ninjas já estão em equipes.' };
   // cada grupo monta equipes só entre si: comuns, ANBU e Sannin
@@ -295,11 +295,11 @@ function commandable(g: Game, ids: number[]) {
 /** Alvo que dá para mandar atacar: inimigo ou bicho vivo (convidados do exame não). */
 export const isAttackable = (t: Unit | undefined | null): t is Unit => !!t && !t.dead && !t.cloak && (t.faction === 'enemy' || t.faction === 'wild');
 
-/** Ninjas da vila que podem largar o que fazem e lutar: fora de missão e com vida acima de 35%. */
+/** Ninjas da vila que podem largar o que fazem e lutar: fora de missão e de torre e com vida acima de 35%. */
 export function availableFighters(g: Game): Unit[] {
   const onMission = new Set(g.state.missions.filter((m) => m.status === 'active').map((m) => m.teamId));
   return g.state.units.filter((u) => {
-    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || !u.ninja || u.away != null || u.hp < u.maxHp * 0.35) return false;
+    if (u.dead || u.kind !== 'ninja' || u.faction !== 'village' || !u.ninja || u.away != null || u.onTower != null || u.hp < u.maxHp * 0.35) return false;
     const t = teamOf(g, u);
     return !t || !onMission.has(t.id);
   });

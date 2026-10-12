@@ -5,7 +5,7 @@ import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
 import { BUILDINGS, type BuildingType } from '../data/buildings';
 import type { Game } from '../game/game';
-import { DEFENSES, GUARD_SHOW } from '../game/systems/towers';
+import { DEFENSES } from '../game/systems/towers';
 import { upgradeTime } from '../game/upgrade';
 
 /** Altura da plataforma da torre (fração da altura do sprite, de baixo para cima) por nível. */
@@ -29,7 +29,7 @@ import { searchTiles } from '../game/systems/villagers';
 import { MAP_H, MAP_W } from '../config';
 import { isRoad } from '../game/roads';
 import { buildingCenter, doorPos, doorTile, nodeArt } from '../game/world';
-import { art, artFoot, ART_SCALE, artFrames, drawArt, SHEET_ROWS, smoothIfShrunk } from './art';
+import { art, artFoot, ART_SCALE, drawArt, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
@@ -66,7 +66,9 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
   cave?: CaveDeco;
   theme?: ThemeDeco;
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
-  piece?: number };
+  piece?: number;
+  /** Vigia no alto da torre: onde ficam os pés dele na cena (a plataforma), em vez do ponto lógico (a porta). */
+  lift?: { x: number; y: number; towerId: number } };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -349,6 +351,13 @@ export class Renderer {
     }
     for (const u of s.units) {
       if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
+      // vigia da torre: desenhado na plataforma (entre as peças da arte, ver abaixo)
+      const tw = u.state === 'towerWatch' && u.onTower != null ? g.building(u.onTower) : undefined;
+      const spot = tw && this.guardSpot(tw, s.level);
+      if (spot) {
+        if (seen(spot)) list.push({ x: spot.x, y: spot.y, u, lift: { ...spot, towerId: tw!.id } });
+        continue;
+      }
       const p = project(u.x, u.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, u });
     }
@@ -394,6 +403,19 @@ export class Renderer {
       }
       if (d.k! <= y) d.k = y + 0.02 + d.y * 1e-5;
     }
+    // vigia da torre: logo depois da arte da torre (ou das peças de baixo) e antes das peças marcadas "por cima do
+    // vigia" (telhado, parapeito da frente), que o cobrem
+    for (const d of list) {
+      if (!d.lift) continue;
+      const mine = list.filter((o) => o.b?.id === d.lift!.towerId);
+      if (!mine.length) continue;
+      const box = this.artBox(mine[0]!.b!, s.level);
+      const L = box && artLayout(box.artName);
+      const isOver = (o: Drawable) => o.piece != null && o.piece > 0 && !!L?.pieces?.[o.piece - 1]?.over;
+      const under = mine.filter((o) => !isOver(o));
+      d.k = Math.max(...(under.length ? under : mine).map((o) => o.k!)) + 0.002;
+      mine.filter(isOver).forEach((o, i) => (o.k = d.k! + 0.001 * (i + 1)));
+    }
     list.sort((a, b) => a.k! - b.k!);
 
     this.drawCamps(g, time);
@@ -433,7 +455,8 @@ export class Renderer {
       }
       ctx.globalAlpha = 1;
       if (d.u) {
-        const u = this.projected(d.u);
+        // vigia: na plataforma da torre (os pés na linha da plataforma; o sprite fica 9 px abaixo do ponto)
+        const u = d.lift ? { ...this.projected(d.u), x: d.lift.x, y: d.lift.y - 9 } : this.projected(d.u);
         const selected = (sel?.kind === 'unit' && sel.id === u.id) || group.has(u.id);
         const tc = teamColor.get(u.kind === 'clone' ? (u.ownerId ?? -1) : u.id);
         if (tc && (!far || focus.has(u.id))) {
@@ -789,8 +812,6 @@ export class Renderer {
     const mk = artLayout(artName)?.marks;
     if (b.type === 'house' && b.built && SEASON_VIEW.season === 'winter' && !lightWeatherFx() && Math.random() < this.frameDt * 1.6)
       this.particles.chimney(mk?.chimney ? box.x + mk.chimney[0] : front.x + width * 0.16, mk?.chimney ? box.baseY + mk.chimney[1] : front.y + 4 - h * 0.86);
-    if (b.type === 'tower' && b.built && (b.shot ?? 0) > 0)
-      this.towerGuard(b, mk?.guard ? box.x + mk.guard[0] : front.x, mk?.guard ? box.baseY + mk.guard[1] : front.y + 4 - h * (GUARD_PLATFORM[lvl] ?? 0.58), time);
     // obra de upgrade: barra amarela na base
     if (b.built && b.upgrade != null) {
       const k2 = Math.min(1, b.upgrade / upgradeTime(b));
@@ -807,24 +828,15 @@ export class Renderer {
     }
   }
 
-  /** Guarda no alto da torre: arremessa a kunai (ciclo do golpe) e depois fica de vigia, olhando para o alvo. */
-  private towerGuard(b: Building, x: number, y: number, time: number) {
-    const pic = art('tower-guard');
-    if (!pic) return;
-    const since = GUARD_SHOW - (b.shot ?? 0);
-    const sheet = artFrames(pic);
-    const frame = since < 0.5 ? Math.min(sheet.frames - 1, Math.floor((since / 0.5) * sheet.frames)) : sheet.idle;
-    const a = projectAngle(b.aim ?? Math.PI / 4);
-    const dx = Math.cos(a);
-    const dy = Math.sin(a);
-    const row = Math.abs(dy) > Math.abs(dx) * 1.2 ? (dy > 0 ? SHEET_ROWS.front : SHEET_ROWS.back) : SHEET_ROWS.side;
-    const ctx = this.ctx;
-    ctx.save();
-    // some devagar no fim da vigia
-    ctx.globalAlpha = Math.min(1, (b.shot ?? 0) / 0.4);
-    drawArt(ctx, pic, x, y, 26, row === SHEET_ROWS.side && dx < 0, frame, row);
-    ctx.restore();
-    void time;
+  /**
+   * Onde ficam os pés do vigia na cena: a marca "guarda" da arte no Editor de cenário (px a partir do meio da base) ou
+   * a altura padrão da plataforma por nível.
+   */
+  guardSpot(b: Building, level: number): { x: number; y: number } | null {
+    const box = this.artBox(b, level);
+    if (!box) return null;
+    const mk = artLayout(box.artName)?.marks?.guard;
+    return mk ? { x: box.x + mk[0], y: box.baseY + mk[1] } : { x: box.x, y: box.baseY - box.h * (GUARD_PLATFORM[box.lvl] ?? 0.58) };
   }
 
   /** Shunshin: vulto do ninja onde ele estava, apagando rápido. */

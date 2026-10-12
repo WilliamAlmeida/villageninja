@@ -231,6 +231,15 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.roads = emptyRoads();
     if (s.scene) s.scene.roads = emptyRoads();
   },
+  // v32: vigia da torre (Building.guardId, Unit.onTower; game/towerWatch.ts). Nenhuma torre começa vigiada; o
+  // guarda desenhado de antes (Building.shot/aim) saiu.
+  31: (s) => {
+    for (const st of [s, s.scene].filter(Boolean))
+      for (const b of st.buildings ?? []) {
+        delete b.shot;
+        delete b.aim;
+      }
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

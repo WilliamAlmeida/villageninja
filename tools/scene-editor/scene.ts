@@ -118,6 +118,7 @@ const clean = () => {
   for (const k of Object.keys(L().types)) if (!Object.keys(L().types[k]!).length) delete L().types[k];
 };
 
+let watchDummy: Unit | null = null;
 function place() {
   // a prévia desenha a arte do item (variante), não a que o jogo escolheria pelo estado
   renderer.previewArt = item.kind === 'node' ? null : item.artName;
@@ -141,6 +142,15 @@ function place() {
     if (item.artName.startsWith('rock') || item.artName === 'ore') Object.assign(n, { type: item.artName === 'ore' ? 'ore' : 'rock', amount: item.artName === 'rock-cracked' ? 10 : 40, max: 40 });
     if (item.artName === 'herb') Object.assign(n, { type: 'herb', amount: 10, max: 10 });
     s.nodes.push(n);
+  }
+  // torre: um vigia de exemplo lá em cima, para ver as peças marcadas "por cima do vigia" cobrindo o ninja
+  s.units = s.units.filter((u) => u !== watchDummy);
+  watchDummy = null;
+  if (building?.type === 'tower') {
+    watchDummy = createNinja(g, doorPos(building).x, doorPos(building).y, 'genin', 0);
+    watchDummy.onTower = building.id;
+    watchDummy.state = 'towerWatch';
+    building.guardId = watchDummy.id;
   }
   g.reindex();
   g.world.rebuild();
@@ -433,7 +443,7 @@ function renderProps() {
         const n = i + 1;
         h += `<div class="piece ${activePiece === n ? 'on' : ''}" style="--c:${PIECE_COLORS[i % PIECE_COLORS.length]}" data-piece="${n}">
           <div class="row"><input type="text" data-name="${n}" value="${p.name.replace(/"/g, '&quot;')}"><button data-del="${n}" class="icon ghost danger" data-tip="Apagar peça">${ico('x')}</button></div>
-          <div class="row"><button data-anchor="${n}" class="${pending?.kind === 'anchor' && pending.piece === n ? 'on' : ''}">${ico('anchor')} Âncora</button><button data-fade="${n}" class="${pending?.kind === 'fade' && pending.piece === n ? 'on' : ''}">Transparência</button>${p.fade ? `<button data-fadeclr="${n}">sem área</button>` : ''}</div></div>`;
+          <div class="row"><button data-anchor="${n}" class="${pending?.kind === 'anchor' && pending.piece === n ? 'on' : ''}">${ico('anchor')} Âncora</button><button data-fade="${n}" class="${pending?.kind === 'fade' && pending.piece === n ? 'on' : ''}">Transparência</button>${p.fade ? `<button data-fadeclr="${n}">sem área</button>` : ''}</div>${building?.type === 'tower' ? `<div class="row"><label data-tip="Desenhada por cima do vigia lá em cima (telhado, parapeito da frente); o resto fica embaixo dele"><input type="checkbox" data-over="${n}" ${p.over ? 'checked' : ''}> Por cima do vigia</label></div>` : ''}</div>`;
       });
       h += `<div class="row"><button id="addpiece">${ico('plus')} Nova peça</button></div>`;
       h += `<h3>Pintura</h3><div class="row"><button id="brushpaint" class="${paintTool === 'brush' && !erase ? 'on' : ''}" data-tip="Pincel (B)">${ico('pencil')} Pincel</button><button id="bucket" class="${paintTool === 'fill' && !erase ? 'on' : ''}" data-tip="Lata de tinta (G): troca a área da máscara clicada pela peça ativa">${ico('bucket')} Lata</button><button id="polytool" class="${paintTool === 'poly' ? 'on' : ''}" data-tip="Polígono (P): pontos arrastáveis que definem a peça ativa">${ico('polygon')} Polígono</button><button id="brusherase" class="${erase ? 'on' : ''}" data-tip="Borracha (E): pincel ou lata devolvem ao resto">${ico('eraser')} Borracha</button></div>
@@ -627,6 +637,15 @@ props.addEventListener('input', (e) => {
   const a = artL();
   if (t.dataset.name) {
     a.pieces![Number(t.dataset.name) - 1]!.name = t.value;
+    changed();
+    return;
+  }
+  if (t.dataset.over) {
+    snapshot();
+    const pc = a.pieces![Number(t.dataset.over) - 1]!;
+    if (t.checked) pc.over = true;
+    else delete pc.over;
+    touchLayout();
     changed();
     return;
   }

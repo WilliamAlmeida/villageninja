@@ -84,7 +84,7 @@ export const maxLearners = (g: Game) => 2 + 2 * Math.max(0, ...g.builtOf('academ
 export function teachAll(g: Game, limit = Infinity): number {
   if (!g.findBuilt('academy')) return 0;
   const ninjas = g.state.units
-    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.away == null && u.ninja && !u.ninja.learning)
+    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.away == null && u.onTower == null && u.ninja && !u.ninja.learning)
     .filter((u) => u.ninja!.jutsu.includes(null))
     .sort((a, b) => b.ninja!.level - a.ninja!.level);
   let n = 0;
@@ -112,7 +112,7 @@ export function autoSenseiTick(g: Game): number {
     if (t.senseiId != null) continue;
     const inside = t.memberIds.map((id) => g.unit(id)).find((u) => u && !u.dead && u.ninja && u.ninja.rank !== 'genin' && !teamFit(g, t, u));
     const free = g.state.units
-      .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && (u.ninja.rank === 'jounin' || u.ninja.rank === 'chunin') && !teamOf(g, u) && !teamFit(g, t, u))
+      .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && (u.ninja.rank === 'jounin' || u.ninja.rank === 'chunin') && u.onTower == null && !teamOf(g, u) && !teamFit(g, t, u))
       .sort((a, b) => Number(b.ninja!.rank === 'jounin') - Number(a.ninja!.rank === 'jounin') || b.ninja!.level - a.ninja!.level)[0];
     const pick = inside ?? free;
     if (!pick || !joinAsSensei(g, t.id, pick.id).ok) continue;

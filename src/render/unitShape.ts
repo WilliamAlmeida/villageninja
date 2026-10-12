@@ -14,7 +14,7 @@ export function worldHeight(name: string): number {
   const animal = name.startsWith('dog') ? 'dog' : name;
   const a = ANIMALS[animal as keyof typeof ANIMALS];
   if (a) return a.size * (ART_SIZE[animal] ?? 2.6);
-  return name.startsWith('villager-') || name === 'tower-guard' ? ACTION_H : PERSON_H;
+  return name.startsWith('villager-') ? ACTION_H : PERSON_H;
 }
 
 /**
@@ -28,6 +28,6 @@ export function shadowFrac(name: string): [number, number] {
     const h = ART_SIZE[animal] ?? 2.6;
     return [1.2 / h, 0.4 / h];
   }
-  const h = name.startsWith('villager-') || name === 'tower-guard' ? ACTION_H : PERSON_H;
+  const h = name.startsWith('villager-') ? ACTION_H : PERSON_H;
   return [8 / h, 3.5 / h];
 }

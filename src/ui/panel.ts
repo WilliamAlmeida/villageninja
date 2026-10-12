@@ -55,6 +55,7 @@ import { bijuu, BIJUU, SEAL } from '../data/bijuu';
 import { AUTO_CRAFT_LEVEL, buyRare, canAutoCraft, hireBlock, hireMercenary, maxLearners, MERCS, RARE_PRICE, setKeep, teachAll } from '../game/automation';
 import { CARE, catchingUp, isRookie } from '../game/care';
 import { marketLot, setFieldFocus, setMarketGood, trainees, trainSlots } from '../game/specialize';
+import { assignWatch, removeWatch, towerGuard, watchCandidates, watchStats } from '../game/towerWatch';
 import { FIELD_FOCUS_BONUS, MARKET_GOOD_LIST, MARKET_GOODS, type MarketGood } from '../data/specialize';
 import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHUNSHIN } from '../game/techniques';
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, needLabel, surname } from '../game/clans';
@@ -739,6 +740,10 @@ export class Panel {
     html += `<button class="btn" data-act="cmd-retreat" data-arg="self">{run} Recuar</button>`;
     if (u.command) html += `<button class="btn" data-act="cmd-clear" data-arg="self">{x} Cancelar</button>`;
     html += `</div>`;
+    if (u.onTower != null) {
+      const tw = this.app.game.building(u.onTower);
+      if (tw) html += `<h4>{tower} Vigiando a torre</h4><div class="btnrow"><button class="btn" data-act="watch-off" data-arg="${tw.id}" ${tipAttr('Descer da torre', 'Sai da vigia e volta à rotina dele.')}>{x} Descer da torre</button></div>`;
+    }
     html += `<h4>Rotina</h4><div class="seg">`;
     for (const [k, label] of ROUTINES)
       html += `<button data-act="order" data-arg="${k}" class="${n.order === k ? 'on' : ''}" ${k === 'train' ? blocked(this.app.game, [trainBlocked(n)], undefined, 'Atributos no máximo') : ''} ${tipAttr(label, ROUTINE_TIP[k])}>${label}</button>`;
@@ -1403,6 +1408,7 @@ export class Panel {
         html += `<div class="bsec"><h4>{books} Ensino ${infoTip('Ensino', 'Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".')}</h4><div class="wtools">${this.teachBar()}</div></div>`;
       }
       if (bd.type === 'training') html += this.fieldSection(bd, t);
+      if (bd.type === 'tower' && bd.built) html += this.watchSection(bd);
       if (d.healRate) html += `<p class="hint">Cura ${d.healRate} HP/s de quem descansa aqui.</p>`;
     }
     html += `<div class="bfoot"><button class="btn ghost" data-act="move">{refresh} Mover <small>grátis</small></button>`;
@@ -1413,6 +1419,28 @@ export class Panel {
   }
 
   /** Campo de Treino: vagas e foco. */
+  /** Torre de Vigia: o ninja que vigia (game/towerWatch.ts) ou a lista para escolher um. */
+  private watchSection(bd: Building) {
+    const g = this.app.game;
+    const guard = towerGuard(g, bd);
+    const info = infoTip('Vigia', 'Um ninja lá em cima arremessa as kunais da torre com o dano e o ritmo dele (Força e Velocidade) e leva o XP dos abates. Fica fora das lutas comuns: só desce se você tirar, se a torre cair, se ficar muito ferido (vai se tratar e volta) ou se um inimigo chegar na torre sem ninguém mais da vila lutando por perto. Lá em cima ele também é alvo.');
+    let html = `<div class="bsec"><h4>{tower} Vigia ${info}</h4>`;
+    if (guard) {
+      const n = guard.ninja!;
+      const where = guard.state === 'towerWatch' ? 'Lá em cima' : guard.state === 'toTower' ? 'Subindo' : 'Embaixo (volta depois)';
+      html += `<div class="roster"><div class="cand krow">${this.face(guard)}<span class="rn">${esc(guard.name)}</span><span class="badges"><span class="rbadge r-${n.sannin ? 'sannin' : n.rank}">${n.sannin ? 'Sannin' : RANKS[n.rank].name}</span><span class="badge">${esc(where)}</span><span class="badge">${esc(watchStats(guard))}</span></span><span class="btnrow"><button class="btn mini" data-act="watch-off" data-arg="${bd.id}" ${tipAttr('Tirar da torre', 'Desce e volta à rotina dele.')}>{x} Tirar</button></span></div></div>`;
+      return html + `</div>`;
+    }
+    const cands = watchCandidates(g);
+    if (!cands.length) return html + `<p class="hint">Nenhum ninja livre (fora de equipe, fora da vila ou estudando não pode).</p></div>`;
+    html += `<div class="roster scrollist">`;
+    for (const u of cands.slice(0, 20)) {
+      const n = u.ninja!;
+      html += `<div class="cand krow">${this.face(u)}<span class="rn">${esc(u.name)}</span><span class="badges"><span class="rbadge r-${n.sannin ? 'sannin' : n.rank}">${n.sannin ? 'Sannin' : RANKS[n.rank].name}</span><span class="badge">${esc(watchStats(u))}</span></span><span class="btnrow"><button class="btn mini primary" data-act="watch-on" data-arg="${bd.id}:${u.id}" ${tipAttr('Mandar vigiar', 'Sobe na torre e fica lá arremessando kunais.')}>{tower} Vigiar</button></span></div>`;
+    }
+    return html + `</div></div>`;
+  }
+
   private fieldSection(bd: Building, t: Record<string, string>) {
     const g = this.app.game;
     t.slots = `${trainees(g, bd)} / ${trainSlots(bd)}`;
@@ -3062,6 +3090,13 @@ export class Panel {
       case 'repair-auto':
         setAutoRepair(g, g.state.flags.autoRepair === false);
         return this.report({ ok: true });
+      case 'watch-on': {
+        const [tid, uid] = (arg ?? '').split(':').map(Number);
+        return this.report(assignWatch(g, tid!, uid!));
+      }
+      case 'watch-off': {
+        return this.report(removeWatch(g, Number(arg)));
+      }
       case 'field-focus': {
         if (v?.kind !== 'building') return;
         return this.report(setFieldFocus(g, v.id, (arg || null) as StatKey | null));
