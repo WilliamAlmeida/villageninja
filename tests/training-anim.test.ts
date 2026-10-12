@@ -3,6 +3,7 @@ import { SIM_DT } from '../src/config';
 import type { StatKey } from '../src/data/ninja';
 import { createNinja } from '../src/game/entities';
 import { createNewGame } from '../src/game/newGame';
+import { CENTER_TX, CENTER_TY } from '../src/game/world';
 import { SYSTEMS } from '../src/game/systems';
 import type { Game } from '../src/game/game';
 import type { Unit } from '../src/game/types';
@@ -12,10 +13,20 @@ const training = (seed: number, focus: StatKey) => {
   const g = createNewGame(SYSTEMS, seed);
   for (const u of g.state.units) if (u.kind !== 'villager') u.dead = true;
   g.state.timers.animal = g.state.timers.raid = 1e9;
-  g.addBuilding({ id: g.newId(), type: 'training', tx: 38, ty: 22, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
-  const n = createNinja(g, 36 * 32, 24 * 32, 'genin', 0);
+  // campo num lugar livre perto do centro (em cima da Residência só sobraria um corredor para andar)
+  let spot = { tx: 0, ty: 0 };
+  for (let r = 4; r < 20 && !spot.tx; r++)
+    for (let a = 0; a < 16 && !spot.tx; a++) {
+      const tx = CENTER_TX + Math.round(Math.cos(a) * r);
+      const ty = CENTER_TY + Math.round(Math.sin(a) * r);
+      if (g.world.canPlace('training', tx, ty)) spot = { tx, ty };
+    }
+  expect(spot.tx).toBeGreaterThan(0);
+  g.addBuilding({ id: g.newId(), type: 'training', ...spot, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+  const n = createNinja(g, (spot.tx - 2) * 32, (spot.ty + 1) * 32, 'genin', 0);
   n.ninja!.order = 'train';
   n.ninja!.focus = focus;
+  for (const k of Object.keys(n.ninja!.stats) as StatKey[]) n.ninja!.stats[k] = 1; // longe do teto: treina o foco mesmo
   for (let t = 0; t < 60 && n.state !== 'train'; t += SIM_DT) {
     g.state.time = 30;
     g.step(SIM_DT);

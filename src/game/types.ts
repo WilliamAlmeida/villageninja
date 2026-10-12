@@ -258,9 +258,9 @@ export interface Unit {
   origin?: number;
   /** Campo de Treino em que está treinando (ou indo treinar): ocupa uma vaga. */
   trainId?: number;
-  /** Treino em andamento (só para a animação): o atributo que está subindo e a volta da corrida (ângulo/raio em volta do campo). */
+  /** Treino em andamento (só para a animação): o atributo que está subindo e a volta da corrida (centro, ângulo e raio; raio 0 = sem espaço). */
   trainStat?: StatKey;
-  trainLap?: { a: number; r: number };
+  trainLap?: { cx: number; cy: number; a: number; r: number };
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
   hitBy?: number[];
   /** Membro da Ordem do Eclipse (técnica própria, arte própria). */

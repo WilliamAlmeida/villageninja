@@ -536,26 +536,40 @@ function playSeq(u: Unit, key: string) {
   u.moveJutsu = key;
 }
 
-/** Corre em volta do meio do campo (Velocidade e Stamina). */
-function runLap(g: Game, u: Unit, dt: number, speed: number) {
-  const b = g.building(u.trainId);
-  if (!b) return;
-  const def = BUILDINGS[b.type];
-  const cx = (b.tx + def.w / 2) * TILE;
-  const cy = (b.ty + def.h / 2) * TILE;
+/** Corre em volta do campo (Velocidade e Stamina); false se não há volta livre (o chamador faz outra coisa). */
+function runLap(g: Game, u: Unit, dt: number, speed: number): boolean {
   if (!u.trainLap) {
-    const r = Math.min(LAP.maxR, Math.min(def.w, def.h) * TILE * 0.35, Math.max(LAP.minR, Math.hypot(u.x - cx, u.y - cy)));
-    u.trainLap = { a: Math.atan2(u.y - cy, u.x - cx), r };
+    const lap = freeLap(g, u);
+    if (!lap) return false;
+    u.trainLap = lap;
   }
   const L = u.trainLap;
+  if (L.r <= 0) return false;
   L.a += (dt * speed) / L.r;
-  const x = cx + Math.cos(L.a) * L.r;
-  const y = cy + Math.sin(L.a) * L.r;
-  if (!g.world.walkablePx(x, y)) return; // não corre por dentro de obstáculo; espera parado
+  const x = L.cx + Math.cos(L.a) * L.r;
+  const y = L.cy + Math.sin(L.a) * L.r;
   u.facing = Math.atan2(y - u.y, x - u.x);
   u.x = x;
   u.y = y;
   u.moving = true;
+  return true;
+}
+
+/**
+ * Volta de corrida toda livre (16 pontos sem obstáculo) em volta do ninja, o maior raio que couber; começa onde ele
+ * está (o centro fica ao lado dele). Sem nenhuma: raio 0 (marca que não dá para correr aqui).
+ */
+function freeLap(g: Game, u: Unit): NonNullable<Unit['trainLap']> {
+  for (let r = LAP.maxR; r >= LAP.minR; r -= 5)
+    for (let k = 0; k < 8; k++) {
+      const a0 = (k / 8) * Math.PI * 2; // ângulo do ninja em relação ao centro
+      const cx = u.x - Math.cos(a0) * r;
+      const cy = u.y - Math.sin(a0) * r;
+      let ok = true;
+      for (let i = 0; i < 16 && ok; i++) ok = g.world.walkablePx(cx + Math.cos((i / 16) * Math.PI * 2) * r, cy + Math.sin((i / 16) * Math.PI * 2) * r);
+      if (ok) return { cx, cy, a: a0, r };
+    }
+  return { cx: u.x, cy: u.y, a: 0, r: 0 };
 }
 
 /**
@@ -595,13 +609,14 @@ function trainMotion(g: Game, u: Unit, dt: number) {
       }
       break;
     case 'velocidade':
-      if (Math.random() < dt * 1.2) fx(g, 'afterimage', u.x, u.y, { uid: u.id, facing: u.facing, life: 0.3 });
-      runLap(g, u, dt, LAP.fast);
+      if (runLap(g, u, dt, LAP.fast)) {
+        if (Math.random() < dt * 1.2) fx(g, 'afterimage', u.x, u.y, { uid: u.id, facing: u.facing, life: 0.3 });
+      } else if (idle && Math.random() < dt * 3) playSeq(u, 'train-tai'); // sem espaço para correr: golpes rápidos
       break;
     case 'stamina':
       if (!idle) break; // no ar: o salto não anda
       if (Math.random() < dt * 0.4) playSeq(u, 'train-jump');
-      else runLap(g, u, dt, LAP.slow);
+      else if (!runLap(g, u, dt, LAP.slow) && Math.random() < dt * 1.5) playSeq(u, 'train-jump'); // sem espaço: só salta
       break;
     case 'selos': {
       if (u.animKind === 'seals' && u.anim <= 0.3 && u.anim > 0.3 - dt) {
