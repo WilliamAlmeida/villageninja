@@ -2,7 +2,7 @@ import { canHit } from '../factions';
 import { MAP_H, MAP_W, TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
 import { ANIMALS, type AnimalDef } from '../../data/animals';
-import { BUILDINGS } from '../../data/buildings';
+import { defOf } from '../../data/buildings';
 import { BOMB, HEAL, PUPPET, SPY, SUMMON } from '../../data/enemies';
 import { SPEC } from '../../data/specs';
 import { spyNinjaNear } from '../specs';
@@ -228,7 +228,7 @@ function flee(g: Game, u: Unit) {
 
 const dist = (u: Unit, p: { x: number; y: number }) => Math.hypot(u.x - p.x, u.y - p.y);
 const inside = (u: Unit, b: Building) => {
-  const d = BUILDINGS[b.type];
+  const d = defOf(b);
   return u.x > b.tx * TILE && u.x < (b.tx + d.w) * TILE && u.y > b.ty * TILE && u.y < (b.ty + d.h) * TILE;
 };
 
@@ -257,7 +257,7 @@ function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
     if (!inside(u, b)) {
       if (!u.hasGoal || u.timer <= 0) {
         u.timer = 3;
-        const d = BUILDINGS[b.type];
+        const d = defOf(b);
         setDestination(g, u, (b.tx + rand(0.3, d.w - 0.3)) * TILE, (b.ty + rand(0.3, d.h - 0.3)) * TILE);
       }
       followPath(g, u, dt);
@@ -302,7 +302,7 @@ function bombTarget(g: Game, u: Unit): Building | null {
   let best: Building | null = null;
   let bd = Infinity;
   for (const b of g.state.buildings) {
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     if (!b.built || b.type === 'hokage' || d.walkable) continue;
     const k = dist(u, buildingCenter(b));
     if (k < bd) {
@@ -345,7 +345,7 @@ function bomber(g: Game, u: Unit, dt: number): boolean {
 
 /** O papel-bomba explode: o prédio vira obra pela metade (os construtores refazem) e fere quem está perto. */
 export function bombBuilding(g: Game, src: Unit | null, b: Building) {
-  const d = BUILDINGS[b.type];
+  const d = defOf(b);
   const c = buildingCenter(b);
   fx(g, 'burst', c.x, c.y, { r: BOMB.radius, color: '#ff8a3d', life: 0.6 });
   fx(g, 'smoke', c.x, c.y - 10, { r: 30, life: 1, color: '#6b6b6b' });
@@ -447,12 +447,12 @@ function charging(g: Game, u: Unit, dt: number, def: AnimalDef) {
     // bateu em algo: se for prédio, ele perde parte da obra
     const b = g.world.walkablePx(nx, ny) ? null : buildingAtPx(g, nx, ny);
     if (b && b.built && b.type !== 'hokage') {
-      b.progress = BUILDINGS[b.type].buildTime * 0.75;
+      b.progress = defOf(b).buildTime * 0.75;
       b.built = false;
       b.upgrade = null;
       g.state.timers.jobs = 0;
       fx(g, 'burst', nx, ny, { r: 30, color: '#b9b2a2', life: 0.5 });
-      g.toast(`{paw} O ${def.name} acertou ${BUILDINGS[b.type].name} em cheio! Os moradores vão consertar.`, 'danger', b && buildingCenter(b));
+      g.toast(`{paw} O ${def.name} acertou ${defOf(b).name} em cheio! Os moradores vão consertar.`, 'danger', b && buildingCenter(b));
     }
     fx(g, 'smoke', u.x, u.y, { r: 18, life: 0.6, color: '#a89f8a' });
     u.state = 'roam';
@@ -476,7 +476,7 @@ function buildingAtPx(g: Game, x: number, y: number): Building | null {
   const tx = toTile(x);
   const ty = toTile(y);
   return g.state.buildings.find((b) => {
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     return tx >= b.tx && tx < b.tx + d.w && ty >= b.ty && ty < b.ty + d.h;
   }) ?? null;
 }
@@ -505,7 +505,7 @@ function spy(g: Game, u: Unit, dt: number): boolean {
   u.moving = false;
   u.abilityCd = (u.abilityCd ?? 0) + dt;
   if (u.abilityCd < SPY.sabotage) return true;
-  const d = BUILDINGS[b.type];
+  const d = defOf(b);
   b.built = false;
   b.progress = d.buildTime * (1 - SPY.damage);
   b.upgrade = null;

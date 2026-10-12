@@ -1,7 +1,7 @@
 // Ações do jogador. A UI só altera o jogo por aqui (fácil de testar / reaproveitar).
 import { promoteToSensei } from './teams';
 import { TILE } from '../config';
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { BUILDINGS, type BuildingType, defOf } from '../data/buildings';
 import { JUTSU_LIST, JUTSUS, type JutsuDef } from '../data/jutsus';
 import { RANKS, STAT_INFO, STAT_KEYS, type StatKey } from '../data/ninja';
 import { pick } from '../core/rng';
@@ -35,8 +35,8 @@ export function canBuild(g: Game, type: BuildingType): Result {
 }
 
 /** Fora do território → mensagem específica (as outras regras dão "Local inválido"). */
-export function placeError(g: Game, type: BuildingType, tx: number, ty: number) {
-  const d = BUILDINGS[type];
+export function placeError(g: Game, type: BuildingType, tx: number, ty: number, level = 1) {
+  const d = defOf({ type, level });
   if (!inTerritory(g.state, tx, ty, d.w, d.h + 1)) return 'Fora do território da vila. Evolua a vila para expandir.';
   return d.shore ? 'Precisa ficar na beira da água: o píer em cima da água e a casa em terra.' : 'Local inválido.';
 }
@@ -110,11 +110,11 @@ export function canMove(g: Game, id: number, tx: number, ty: number, flip = fals
   const i = s.buildings.indexOf(b);
   s.buildings.splice(i, 1);
   g.world.rebuild();
-  let r: Result = g.world.canPlace(b.type, tx, ty, flip) ? ok : fail(placeError(g, b.type, tx, ty));
+  let r: Result = g.world.canPlace(b.type, tx, ty, flip, b.level ?? 1) ? ok : fail(placeError(g, b.type, tx, ty, b.level ?? 1));
   if (r.ok && b.type === 'hokage') {
     Object.assign(b, { tx, ty });
     s.buildings.splice(i, 0, b);
-    const outside = s.buildings.some((o) => o !== b && !inTerritory(s, o.tx, o.ty, BUILDINGS[o.type].w, BUILDINGS[o.type].h + 1));
+    const outside = s.buildings.some((o) => o !== b && !inTerritory(s, o.tx, o.ty, defOf(o).w, defOf(o).h + 1));
     s.buildings.splice(i, 1);
     if (outside) r = fail('Aí algum prédio ficaria fora do território da vila.');
   }
@@ -129,7 +129,7 @@ export function moveBuilding(g: Game, id: number, tx: number, ty: number, flip =
   const r = canMove(g, id, tx, ty, flip);
   if (!r.ok) return r;
   const b = g.building(id)!;
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   const oldDoor = doorPos(b);
   const inside = g.state.units.filter((u) => u.hidden && Math.hypot(u.x - oldDoor.x, u.y - oldDoor.y) < TILE * 0.6);
   fx(g, 'smoke', oldDoor.x, oldDoor.y - 16, { r: 20, life: 0.6, color: '#d8c8a8' });
@@ -143,7 +143,7 @@ export function moveBuilding(g: Game, id: number, tx: number, ty: number, flip =
   }
   b.tx = tx;
   b.ty = ty;
-  clearRoadsUnder(g.state, tx, ty, BUILDINGS[b.type].w, BUILDINGS[b.type].h);
+  clearRoadsUnder(g.state, tx, ty, defOf(b).w, defOf(b).h);
   if (flip) b.flip = true;
   else delete b.flip;
   g.world.rebuild();
@@ -162,7 +162,7 @@ export function demolish(g: Game, id: number): Result {
   const b = g.building(id);
   if (!b) return fail('Prédio não encontrado.');
   if (b.type === 'hokage') return fail('A Residência do Hokage não pode ser demolida.');
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   g.give(def.cost, b.built ? 0.5 : 1);
   g.removeBuilding(id);
   return ok;

@@ -8,7 +8,7 @@ import { emptyRoads } from './roads';
 import { newRegion } from './region';
 import { generateMap, idx, T } from './world';
 import { newOrg } from './org';
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { BUILDINGS, type BuildingType, defOf } from '../data/buildings';
 
 /**
  * Migrações de save: cada entrada transforma a versão N na N+1.
@@ -104,7 +104,7 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     const taken = new Set(s.nodes.map((n: { tx: number; ty: number }) => `${n.tx},${n.ty}`));
     const under = (tx: number, ty: number) =>
       s.buildings.some((b: { type: BuildingType; tx: number; ty: number }) => {
-        const d = BUILDINGS[b.type];
+        const d = defOf(b);
         return tx >= b.tx - 1 && tx <= b.tx + d.w && ty >= b.ty - 1 && ty <= b.ty + d.h;
       });
     for (const n of nodes) {
@@ -174,7 +174,7 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
         for (let y = ty; y < ty + W; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[idx(x, y)] === T.WATER) return false;
         return !s.buildings.some((o: { id: number; type: BuildingType; tx: number; ty: number }) => {
           if (o === a) return false;
-          const d = BUILDINGS[o.type];
+          const d = defOf(o);
           return tx < o.tx + d.w + 1 && tx + W + 1 > o.tx && ty < o.ty + d.h + 1 && ty + W + 1 > o.ty;
         });
       };
@@ -245,19 +245,27 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   32: (s) => {
     for (const st of [s, s.scene].filter(Boolean)) growBuildings(st, 'tower', BUILDINGS.tower.w, BUILDINGS.tower.h);
   },
+  // v34: a casa nível 3 passou a ocupar 3×3 (BuildingDef.sizes): as que já são nível 3 crescem no lugar ou mudam
+  33: (s) => {
+    const [W, H] = BUILDINGS.house.sizes![3]!;
+    for (const st of [s, s.scene].filter(Boolean)) growBuildings(st, 'house', W, H, 3);
+  },
 };
 
-/** Prédios do `type` que cresceram para w×h: ficam no lugar se couber, senão no lugar livre mais perto (até 8 tiles). */
+/**
+ * Prédios do `type` (só os do nível `level`, se dado) que cresceram para w×h: ficam no lugar se couber, senão no lugar
+ * livre mais perto (até 8 tiles). Os outros prédios contam pelo tamanho do nível deles (`defOf`).
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function growBuildings(s: any, type: BuildingType, W: number, H: number) {
+function growBuildings(s: any, type: BuildingType, W: number, H: number, level?: number) {
   for (const a of s.buildings ?? []) {
-    if (a.type !== type) continue;
+    if (a.type !== type || (level != null && (a.level ?? 1) !== level)) continue;
     const free = (tx: number, ty: number) => {
       if (tx < 1 || ty < 1 || tx + W > MAP_W - 1 || ty + H > MAP_H - 1) return false;
       for (let y = ty; y < ty + H; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[idx(x, y)] === T.WATER || s.tiles[idx(x, y)] === T.ROCK) return false;
       return !s.buildings.some((o: { id: number; type: BuildingType; tx: number; ty: number }) => {
         if (o === a) return false;
-        const d = BUILDINGS[o.type];
+        const d = defOf(o);
         return tx < o.tx + d.w && tx + W > o.tx && ty < o.ty + d.h && ty + H > o.ty;
       });
     };

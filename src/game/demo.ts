@@ -3,7 +3,7 @@
 // lâminas lendárias, região com vilarejos em cada situação e o mapa todo explorado. Aberta por `?demo` na URL
 // (main.ts), não lê nem grava o save do jogador. Nada aqui é usado no jogo normal.
 import { DAY_LENGTH } from '../config';
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { BUILDINGS, type BuildingType, defOf } from '../data/buildings';
 import { ITEM_LIST } from '../data/items';
 import { JUTSU_LIST } from '../data/jutsus';
 import { RANKS, type Rank } from '../data/ninja';
@@ -57,7 +57,7 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
       if (!occ(tx, ty) && (occ(tx + 1, ty) || occ(tx - 1, ty) || occ(tx, ty + 1) || occ(tx, ty - 1))) pave(g, tx, ty);
   for (const b of s.buildings) {
     b.built = true;
-    b.progress = BUILDINGS[b.type].buildTime;
+    b.progress = defOf(b).buildTime;
     if (UPGRADES[b.type]) b.level = 3;
   }
   // um de cada estado de obra para ver os cartões: upgrade andando e prédio em construção
@@ -219,7 +219,7 @@ function placeAll(g: Game) {
       // folga de um tile em volta para o mapa não virar um bloco só
       const def = BUILDINGS[t];
       const roomy = s.buildings.every((b) => {
-        const o = BUILDINGS[b.type];
+        const o = defOf(b);
         return tx + def.w + 1 <= b.tx || b.tx + o.w + 1 <= tx || ty + def.h + 1 <= b.ty || b.ty + o.h + 1 <= ty;
       });
       if (roomy) placeBuilding(g, t, tx, ty);

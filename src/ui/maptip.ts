@@ -1,5 +1,5 @@
 // Dica do mapa (desktop): parar o mouse sobre um prédio mostra o que ele é e como está, sem precisar clicar.
-import { BUILDINGS } from '../data/buildings';
+import { defOf } from '../data/buildings';
 import { ITEMS } from '../data/items';
 import { MARKET_GOODS } from '../data/specialize';
 import { STAT_INFO } from '../data/ninja';
@@ -17,7 +17,7 @@ import { rich } from './icons';
 
 /** HTML da dica de um prédio: nome, nível, estado e o que importa naquele tipo. */
 export function buildingTip(g: Game, b: Building): string {
-  const d = BUILDINGS[b.type];
+  const d = defOf(b);
   const lines: string[] = [];
   const lvl = levelOf(b);
   if (!b.built) lines.push(`{hammer} Em obra: ${Math.floor((b.progress / Math.max(1, d.buildTime)) * 100)}%`);

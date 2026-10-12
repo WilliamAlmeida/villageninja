@@ -2,7 +2,7 @@ import type { App } from '../app';
 import { alertOpen, closeAlert, installTips, showAlert } from './popup';
 import { isShown } from './anim';
 import { bus } from '../core/events';
-import { BUILDINGS } from '../data/buildings';
+import { BUILDINGS, defOf } from '../data/buildings';
 import { buildingTip } from './maptip';
 import { SceneBar } from './scene';
 import { orderAttack, orderMove, teamUnits } from '../game/teams';
@@ -255,7 +255,7 @@ export function createUI(app: App, root: HTMLElement) {
     for (const lift of [0, 14, 28, 42]) {
       const w = app.camera.screenToWorld(sx, sy + lift * app.camera.zoom);
       const b = g.building(g.world.buildingIdAt(toTile(w.x), toTile(w.y)));
-      if (b && (lift === 0 || !BUILDINGS[b.type].walkable)) return b;
+      if (b && (lift === 0 || !defOf(b).walkable)) return b;
     }
     return undefined;
   }

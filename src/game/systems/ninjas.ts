@@ -1,6 +1,6 @@
 import { TILE } from '../../config';
 import { chance, pick, rand, randi } from '../../core/rng';
-import { BUILDINGS } from '../../data/buildings';
+import { defOf } from '../../data/buildings';
 import { FORBIDDEN_RISK, JUTSUS } from '../../data/jutsus';
 import { MOVE_SEQS, movesTime, SEAL_REHEARSAL } from '../../data/moves';
 import { NATURES } from '../../data/natures';
@@ -485,7 +485,7 @@ function goPractice(g: Game, u: Unit): boolean {
   })[0];
   const spots: { x: number; y: number }[] = [];
   if (near) {
-    const def = BUILDINGS[near.type];
+    const def = defOf(near);
     for (let i = 0; i < 3; i++) spots.push({ x: (near.tx + rand(0.3, def.w - 0.3)) * TILE, y: (near.ty + rand(0.3, def.h - 0.3)) * TILE });
   }
   for (let i = 0; i < 10; i++) spots.push({ x: door.x + rand(-40, 40), y: door.y + rand(14, 56) });

@@ -3,7 +3,7 @@
 // Arte: atlas src/art/props/theme-props.png (scripts/theme-art.py; mesma ordem de THEME_PROPS).
 import { MAP_W, TILE } from '../config';
 import { mulberry32 } from '../core/rng';
-import { BUILDINGS } from '../data/buildings';
+import { defOf } from '../data/buildings';
 import type { GameState } from '../game/types';
 import { CENTER_TX, CENTER_TY, idx, inBounds, T } from '../game/world';
 import { isStairs, PLATEAU_R } from '../game/scene';
@@ -52,12 +52,12 @@ export function themeDecos(s: GameState): ThemeDeco[] {
   // prédios (com um tile de folga), recursos e a chegada da equipe ficam livres
   const busy = new Set<number>(s.nodes.map((n) => idx(n.tx, n.ty)));
   for (const b of s.buildings) {
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     for (let y = b.ty - 1; y <= b.ty + d.h; y++) for (let x = b.tx - 1; x <= b.tx + d.w; x++) if (inBounds(x, y)) busy.add(idx(x, y));
   }
   const near = (tx: number, ty: number, t: number) => [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dx, dy]) => tile(tx + dx!, ty + dy!) === t);
   const nearBuilding = (tx: number, ty: number) =>
-    s.buildings.some((b) => tx >= b.tx - 2 && tx <= b.tx + BUILDINGS[b.type].w + 1 && ty >= b.ty - 2 && ty <= b.ty + BUILDINGS[b.type].h + 1);
+    s.buildings.some((b) => tx >= b.tx - 2 && tx <= b.tx + defOf(b).w + 1 && ty >= b.ty - 2 && ty <= b.ty + defOf(b).h + 1);
   const pick = (list: [string, number][]) => {
     let r = rnd();
     for (const [n, w] of list) if ((r -= w) < 0) return P[n]!;

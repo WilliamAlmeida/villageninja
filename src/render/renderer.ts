@@ -3,7 +3,7 @@ import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
 import { DEFENSES } from '../game/systems/towers';
 import { upgradeTime } from '../game/upgrade';
@@ -210,9 +210,9 @@ export class Renderer {
     // chão batido sob prédios (o de margem: só sob as células de terra, e sombra na água sob o píer e o barco)
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
     for (const b of s.buildings) {
-      const d = BUILDINGS[b.type];
+      const d = defOf(b);
       if (d.walkable) continue;
-      if (d.shore && tileOf(b.type, 0, 0) !== undefined) {
+      if (d.shore && tileOf(layoutKey(b), 0, 0) !== undefined) {
         this.shoreGround(b);
         continue;
       }
@@ -222,12 +222,12 @@ export class Renderer {
     }
     // campos e áreas abertas ficam deitados no chão
     // (os que têm arte isométrica vão como decalque logo depois desta passada)
-    for (const b of s.buildings) if (BUILDINGS[b.type].walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
+    for (const b of s.buildings) if (defOf(b).walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
 
     if (sel?.kind === 'building') {
       const b = g.building(sel.id);
       if (b) {
-        const d = BUILDINGS[b.type];
+        const d = defOf(b);
         ctx.strokeStyle = '#ffd34d';
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 4]);
@@ -267,8 +267,8 @@ export class Renderer {
       const box = this.artBox(b, s.level);
       const set = box && pieceSet(box.artName, box.pic);
       if (set) {
-        if (artLayout(box!.artName)!.ground ?? !!BUILDINGS[b.type].walkable) this.drawPiece(b, 0, s.level);
-      } else if (BUILDINGS[b.type].walkable && art(b.type)) this.building(b, time, night, s.level);
+        if (artLayout(box!.artName)!.ground ?? !!defOf(b).walkable) this.drawPiece(b, 0, s.level);
+      } else if (defOf(b).walkable && art(b.type)) this.building(b, time, night, s.level);
     }
     this.drawHarvest(g);
     this.drawTethers(g, time);
@@ -285,7 +285,7 @@ export class Renderer {
     const list = this.list;
     list.length = 0;
     for (const b of s.buildings) {
-      const def = BUILDINGS[b.type];
+      const def = defOf(b);
       const box = this.artBox(b, s.level);
       const set = box && pieceSet(box.artName, box.pic);
       if (set) {
@@ -387,7 +387,7 @@ export class Renderer {
       const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       for (const o of blocks) {
         const b = o.b!;
-        const def = BUILDINGS[b.type];
+        const def = defOf(b);
         if (wx < b.tx - 3 || wy < b.ty - 3 || wx > b.tx + def.w + 3 || wy > b.ty + def.h + 3) continue;
         const front = wx >= b.tx + def.w || wy >= b.ty + def.h;
         if (front && d.k! <= o.y) d.k = o.y + 0.01;
@@ -618,7 +618,7 @@ export class Renderer {
         }
         return;
       } else if (d.b) {
-        const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty);
+        const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty, d.b.level);
         const pic = art(d.b.type);
         const h = pic ? (width / pic.naturalWidth) * pic.naturalHeight : width * 0.8;
         r = { x0: front.x - width / 2, x1: front.x + width / 2, y0: front.y - h, y1: front.y };
@@ -659,7 +659,7 @@ export class Renderer {
   private boxFor(b: Building, artName: string, lvl: number) {
     const pic = art(artName);
     if (!pic || !pic.naturalWidth) return null;
-    const { front, width } = this.footprint(b.type, b.tx, b.ty);
+    const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level);
     const L = artLayout(artName);
     const h0 = ((width * (ART_SCALE[artName] ?? 1) * (L?.scale ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
     const w = (h0 / pic.naturalHeight) * pic.naturalWidth;
@@ -678,7 +678,7 @@ export class Renderer {
     if (!box || !top || !top.naturalWidth) return;
     const ctx = this.ctx;
     ctx.save();
-    if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * (b.progress / Math.max(1, BUILDINGS[b.type].buildTime));
+    if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * (b.progress / Math.max(1, defOf(b).buildTime));
     this.drawBox(top, box);
     ctx.restore();
   }
@@ -701,12 +701,12 @@ export class Renderer {
   /** (chão) Prédio de margem: terra batida sob as células de muro e a sombra do píer na água sob as de água. */
   private shoreGround(b: Building) {
     const ctx = this.ctx;
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     const cells = (want: string) => {
       ctx.beginPath();
       for (let fy = 0; fy < d.h * SUB; fy++)
         for (let fx = 0; fx < d.w * SUB; fx++)
-          if (tileOf(b.type, fx, fy, b.flip) === want) ctx.roundRect(b.tx * TILE + fx * CELL - 2, b.ty * TILE + fy * CELL - 2, CELL + 4, CELL + 4, 4);
+          if (tileOf(layoutKey(b), fx, fy, b.flip) === want) ctx.roundRect(b.tx * TILE + fx * CELL - 2, b.ty * TILE + fy * CELL - 2, CELL + 4, CELL + 4, 4);
     };
     ctx.save();
     cells('#');
@@ -725,7 +725,7 @@ export class Renderer {
     const cv = set?.canvases[i];
     if (!box || !cv) return;
     const ctx = this.ctx;
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     ctx.save();
     if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * Math.min(1, b.progress / Math.max(1, d.buildTime));
     smoothIfShrunk(ctx, box.w, box.pic.naturalWidth);
@@ -741,7 +741,7 @@ export class Renderer {
   /** Barra da obra (construção ou upgrade) na base do prédio. */
   private buildBars(b: Building, front: { x: number; y: number }) {
     const ctx = this.ctx;
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     const k = b.built ? (b.upgrade != null ? Math.min(1, b.upgrade / upgradeTime(b)) : -1) : b.progress / Math.max(1, d.buildTime);
     if (k < 0) return;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -751,8 +751,8 @@ export class Renderer {
   }
 
   /** Ponta da frente do losango da base (onde o sprite do prédio apoia) e largura do losango, na cena. */
-  private footprint(type: BuildingType, tx: number, ty: number) {
-    const d = BUILDINGS[type];
+  private footprint(type: BuildingType, tx: number, ty: number, level = 1) {
+    const d = defOf({ type, level });
     const front = project((tx + d.w) * TILE, (ty + d.h) * TILE);
     return { front, width: (d.w + d.h) * TILE * ISO_K };
   }
@@ -823,8 +823,8 @@ export class Renderer {
 
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
-    const d = BUILDINGS[b.type];
-    const { front, width } = this.footprint(b.type, b.tx, b.ty);
+    const d = defOf(b);
+    const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level);
     // arte do nível do prédio (upgrade), se existir; senão a do nível 1.
     // A Residência do Hokage não tem upgrade próprio: cresce junto com o nível da vila (Aldeia = 1 … Grande Vila Oculta = 4).
     const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
@@ -1588,7 +1588,7 @@ export class Renderer {
         const c = buildingCenter(b);
         glow(c.x, c.y, 10, 48, 'rgba(255,190,90,A)', 0.55 * night);
       }
-      if (!b.built || !BUILDINGS[b.type].lights) continue;
+      if (!b.built || !defOf(b).lights) continue;
       const d = doorPos(b);
       // no inverno as casas ficam com as janelas mais quentes (lareira acesa)
       glow(d.x, d.y, 14, winter ? 66 : 55, winter ? 'rgba(255,160,70,A)' : 'rgba(255,190,90,A)', (winter ? 0.5 : 0.35) * night);
@@ -1621,7 +1621,7 @@ export class Renderer {
   /** (chão) Grade e base do prédio que está sendo posicionado: verde = pode, vermelho = não pode. */
   private ghostGround(gh: Ghost) {
     const ctx = this.ctx;
-    const d = BUILDINGS[gh.type];
+    const d = defOf(gh);
     const x = gh.tx * TILE;
     const y = gh.ty * TILE;
     ctx.strokeStyle = 'rgba(255,255,255,0.14)';
@@ -1641,10 +1641,10 @@ export class Renderer {
     ctx.fillStyle = gh.valid ? 'rgba(80,220,100,0.35)' : 'rgba(240,60,60,0.4)';
     ctx.fillRect(x, y, d.w * TILE, d.h * TILE);
     // prédio de margem: as células que vão na água em azul
-    if (d.shore && tileOf(gh.type, 0, 0) !== undefined) {
+    if (d.shore && tileOf(layoutKey(gh), 0, 0) !== undefined) {
       ctx.fillStyle = 'rgba(70,150,255,0.45)';
       for (let fy = 0; fy < d.h * SUB; fy++)
-        for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(gh.type, fx, fy, gh.flip) === '~') ctx.fillRect(x + fx * CELL, y + fy * CELL, CELL, CELL);
+        for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(layoutKey(gh), fx, fy, gh.flip) === '~') ctx.fillRect(x + fx * CELL, y + fy * CELL, CELL, CELL);
     }
     ctx.strokeStyle = gh.valid ? '#5ee05e' : '#ff5a5a';
     ctx.lineWidth = 2;

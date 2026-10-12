@@ -1,6 +1,6 @@
 import { TILE } from '../../config';
 import { pick, rand, randi } from '../../core/rng';
-import { BUILDINGS } from '../../data/buildings';
+import { defOf } from '../../data/buildings';
 import { fx, fxText } from '../fx';
 import { farmYield, marketYield, needsBuilders, workUpgrade } from '../upgrade';
 import { harvestMult, workMult } from '../mood';
@@ -89,7 +89,7 @@ function shelterFor(g: Game, u: Unit): Building | undefined {
   let best: Building | undefined;
   let bd = Infinity;
   for (const b of g.state.buildings) {
-    if (!b.built || !(BUILDINGS[b.type].housing ?? 0)) continue;
+    if (!b.built || !(defOf(b).housing ?? 0)) continue;
     const p = doorPos(b);
     const d = Math.hypot(p.x - u.x, p.y - u.y);
     if (d < bd) {
@@ -147,7 +147,7 @@ function work(g: Game, u: Unit, dt: number) {
       u.anim = 0.2;
       if (u.timer <= 0) {
         const job = g.building(u.jobId);
-        const out = job && BUILDINGS[job.type].job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
+        const out = job && defOf(job).job === 'gardener' ? FIELD_OUTPUT.gardener : FIELD_OUTPUT.farmer;
         const amount = out.res === 'food' ? Math.max(1, Math.round(farmYield(job) * harvestMult(g.state, u.x, u.y))) : out.amount;
         g.state.res[out.res] += amount;
         fxText(g, u.x, u.y - 20, `${RES_INFO[out.res].icon} +${amount}`, '#ffe08a');
@@ -277,7 +277,7 @@ function work(g: Game, u: Unit, dt: number) {
         break;
       }
       b.progress += dt;
-      if (b.progress >= BUILDINGS[b.type].buildTime) completeBuilding(g, b);
+      if (b.progress >= defOf(b).buildTime) completeBuilding(g, b);
       break;
     }
     default:
@@ -286,7 +286,7 @@ function work(g: Game, u: Unit, dt: number) {
 }
 
 export function completeBuilding(g: Game, b: Building) {
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   b.built = true;
   b.progress = def.buildTime;
   g.world.rebuild(); // pronto: muros/portão do layout passam a valer
@@ -317,7 +317,7 @@ function decide(g: Game, u: Unit) {
 }
 
 function startJob(g: Game, u: Unit, b: Building) {
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   switch (def.job) {
     case 'farmer':
     case 'gardener': {
@@ -394,7 +394,7 @@ function nearestSite(g: Game, u: Unit) {
 
 /** Um ponto livre ao redor do canteiro de obras. */
 function siteSpot(g: Game, b: Building) {
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   const spots: { x: number; y: number }[] = [];
   for (let x = b.tx - 1; x <= b.tx + def.w; x++)
     for (const y of [b.ty - 1, b.ty + def.h]) if (g.world.walkable(x, y)) spots.push({ x: tileCenter(x), y: tileCenter(y) });

@@ -4,7 +4,7 @@
 // neve, os bonecos de neve e as lanternas do festival.
 import { DAY_LENGTH, MAP_H, MAP_W, TILE, WORLD_H, WORLD_W } from '../config';
 import { mulberry32 } from '../core/rng';
-import { BUILDINGS } from '../data/buildings';
+import { defOf } from '../data/buildings';
 import { SEASON_DAYS, type Season } from '../data/seasons';
 import { festivalOn, isSnowing, seasonOf } from '../game/mood';
 import type { GameState } from '../game/types';
@@ -513,8 +513,8 @@ export class Seasonal {
       // montes de neve encostados nas casas
       const a = Math.min(1, (s.snow - 0.3) * 2.5);
       for (const b of s.buildings) {
-        if (!b.built || BUILDINGS[b.type].walkable) continue;
-        const d = BUILDINGS[b.type];
+        if (!b.built || defOf(b).walkable) continue;
+        const d = defOf(b);
         const r = mulberry32(b.id * 7919);
         for (let k = 0; k < 2; k++) {
           const x = (b.tx + (k ? d.w : 0)) * TILE + (k ? 4 : -4) + r() * 6;

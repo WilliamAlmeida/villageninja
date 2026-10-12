@@ -47,6 +47,8 @@ export interface BuildingDef {
   desc: string;
   w: number;
   h: number;
+  /** Terreno maior em certos níveis (o prédio cresce para os lados no upgrade): nível → [w, h]. Ver `defOf`. */
+  sizes?: Partial<Record<number, [number, number]>>;
   cost: Cost;
   buildTime: number;
   housing?: number;
@@ -84,6 +86,7 @@ const LIST: BuildingDef[] = [
   {
     type: 'house', name: 'Casa', icon: '{house}', desc: 'Abriga 4 moradores.',
     w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 14, housing: 4, buildable: true, lights: true,
+    sizes: { 3: [3, 3] }, // nível 3: casa grande de dois andares com ala e jardim
     roof: '#5b7fa6', wall: '#dccaa2',
   },
   {
@@ -257,3 +260,26 @@ for (const b of LIST) {
 }
 export const BUILDINGS = Object.fromEntries(LIST.map((b) => [b.type, b])) as Record<BuildingType, BuildingDef>;
 export const BUILDING_LIST: readonly BuildingDef[] = LIST;
+
+const sized = new Map<string, BuildingDef>();
+/**
+ * Definição do prédio com o TERRENO do nível dele (`sizes`): use no lugar de `BUILDINGS[b.type]` sempre que o tamanho
+ * importa e há um prédio de verdade (o canto `tx`/`ty` fica; ele cresce para a direita e para baixo). Prédio novo nasce
+ * no nível 1 (`BUILDINGS[type]` serve).
+ */
+export function defOf(b: { type: BuildingType; level?: number }): BuildingDef {
+  const d = BUILDINGS[b.type];
+  const s = d.sizes?.[b.level ?? 1];
+  if (!s) return d;
+  const key = `${b.type}:${b.level}`;
+  let out = sized.get(key);
+  if (!out) {
+    out = { ...d, w: s[0], h: s[1] };
+    sized.set(key, out);
+  }
+  return out;
+}
+
+/** Chave do layout (terreno, porta e pontos no Editor de cenário) do prédio: `<tipo>-<nível>` nos níveis de outro tamanho. */
+export const layoutKey = (b: { type: BuildingType; level?: number }): string =>
+  BUILDINGS[b.type].sizes?.[b.level ?? 1] ? `${b.type}-${b.level}` : b.type;

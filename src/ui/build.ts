@@ -1,5 +1,5 @@
 import type { App } from '../app';
-import { BUILDING_LIST, BUILDINGS, type BuildingType } from '../data/buildings';
+import { BUILDING_LIST, BUILDINGS, type BuildingType, defOf } from '../data/buildings';
 import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, shoreSpot } from '../game/commands';
 import { toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
@@ -267,7 +267,7 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
   startMove(id: number) {
     const b = this.app.home.building(id);
     if (!b) return;
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     this.moveId = id;
     this.app.buildType = b.type;
     this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false, flip: !!b.flip };

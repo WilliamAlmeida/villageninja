@@ -357,6 +357,8 @@ export interface Building {
   flip?: boolean;
   /** Upgrade em obra: segundos trabalhados (null = nenhum). O prédio continua funcionando. */
   upgrade?: number | null;
+  /** Upgrade pronto esperando espaço para o terreno maior do nível novo (o aviso sai uma vez só). */
+  waitRoom?: boolean;
   /** Torre de Vigia: o ninja mandado para vigiar (game/towerWatch.ts; o dele é `Unit.onTower`). */
   guardId?: number;
   /** Campo de Treino: atributo de foco (treino +50% nele; sem foco próprio, o ninja treina este). */

@@ -1,12 +1,15 @@
 // Nível dos prédios: consultas usadas pelos sistemas e o comando de upgrade.
 import { MAX_QUEUE } from '../data/items';
-import { BUILDINGS } from '../data/buildings';
+import { defOf } from '../data/buildings';
 import { levelStep, MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
 import { levelDef } from '../data/villageLevels';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { Building, Cost } from './types';
-import { buildingCenter, doorPos } from './world';
+import { buildingCenter, doorPos, idx, inBounds, T } from './world';
+import { inTerritory } from './village';
+import { MAP_H, MAP_W } from '../config';
+import { clearRoadsUnder } from './roads';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -15,13 +18,13 @@ export const levelOf = (b: Building) => b.level ?? 1;
 
 /** Moradores que cabem (casas ganham +2 por nível). */
 export const housingOf = (b: Building) => {
-  const base = BUILDINGS[b.type].housing ?? 0;
+  const base = defOf(b).housing ?? 0;
   return base && b.type === 'house' ? base + (levelOf(b) - 1) * 2 : base;
 };
 
 /** Máximo de trabalhadores (lenhador e pedreira ganham +1 por nível). */
 export const workersOf = (b: Building) => {
-  const base = BUILDINGS[b.type].workers ?? 0;
+  const base = defOf(b).workers ?? 0;
   return base && (b.type === 'lumber' || b.type === 'quarry') ? base + levelOf(b) - 1 : base;
 };
 
@@ -54,7 +57,7 @@ export function academyLearnMult(g: Game) {
 export const academyRecruitLevel = (g: Game) => Math.max(1, ...g.builtOf('academy').map(levelOf));
 
 /** Tempo da obra de upgrade para o próximo nível. */
-export const upgradeTime = (b: Building) => BUILDINGS[b.type].buildTime * (0.6 + levelOf(b) * 0.5);
+export const upgradeTime = (b: Building) => defOf(b).buildTime * (0.6 + levelOf(b) * 0.5);
 
 /** Precisa de construtores: obra nova ou upgrade em andamento. */
 export const needsBuilders = (b: Building) => !b.built || b.upgrade != null;
@@ -71,7 +74,34 @@ export function upgradeStatus(g: Game, b: Building): { cost: Cost | null; reason
   const minV = def.minVillage[lvl - 1]!;
   if (g.state.level < minV) return { cost, reason: `Requer ${levelDef(minV).name}.` };
   if (!g.canAfford(cost)) return { cost, reason: 'Recursos insuficientes.' };
+  const room = growRoom(g, b, lvl + 1);
+  if (room) return { cost, reason: room };
   return { cost, reason: null };
+}
+
+/**
+ * O nível `next` ocupa mais terreno (`BuildingDef.sizes`, ex. a casa nível 3 é 3×3)? Então o terreno novo (o mesmo canto,
+ * crescendo para a direita e para baixo) tem que estar livre: devolve o motivo, ou null se cabe (ou não cresce).
+ */
+export function growRoom(g: Game, b: Building, next: number): string | null {
+  const now = defOf(b);
+  const grown = defOf({ type: b.type, level: next });
+  if (grown.w === now.w && grown.h === now.h) return null;
+  // direto na grade de ocupação (sem refazer a colisão): o terreno novo e 1 tile de folga só com este prédio ou vazio,
+  // sem água/rocha nem recurso de pé, dentro do mapa e do território (as mesmas regras de `World.canPlace`)
+  const s = g.state;
+  const { tx, ty } = b;
+  let fits = tx >= 1 && ty >= 1 && tx + grown.w <= MAP_W - 1 && ty + grown.h <= MAP_H - 2 && inTerritory(s, tx, ty, grown.w, grown.h + 1);
+  for (let y = ty - 1; fits && y <= ty + grown.h; y++)
+    for (let x = tx - 1; fits && x <= tx + grown.w; x++) {
+      const o = g.world.buildingIdAt(x, y);
+      if (o && o !== b.id) fits = false;
+      const inside = x >= tx && x < tx + grown.w && y >= ty && y < ty + grown.h;
+      if (inside && inBounds(x, y) && (s.tiles[idx(x, y)] === T.WATER || s.tiles[idx(x, y)] === T.ROCK)) fits = false;
+    }
+  if (fits)
+    fits = !s.nodes.some((n) => (n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + grown.w && n.ty >= ty && n.ty < ty + grown.h);
+  return fits ? null : `No nível ${next} ocupa ${grown.w}×${grown.h} tiles (cresce para a direita e para baixo): abra espaço em volta ou mova o prédio.`;
 }
 
 /** Começa o upgrade: paga e abre a obra (os moradores vêm trabalhar; o prédio continua funcionando). */
@@ -93,9 +123,26 @@ export function workUpgrade(g: Game, b: Building, dt: number) {
   if (b.upgrade == null) return;
   b.upgrade += dt;
   if (b.upgrade < upgradeTime(b)) return;
+  // nível com terreno maior: espera o espaço (alguém pode ter construído colado durante a obra)
+  const room = growRoom(g, b, levelOf(b) + 1);
+  if (room) {
+    b.upgrade = upgradeTime(b);
+    if (!b.waitRoom) g.toast(`{alert} ${defOf(b).name}: a obra terminou, mas falta espaço. ${room}`, 'warn', doorPos(b));
+    b.waitRoom = true;
+    return;
+  }
+  delete b.waitRoom;
+  const grew = defOf({ type: b.type, level: levelOf(b) + 1 }).w !== defOf(b).w;
   b.level = levelOf(b) + 1;
   b.upgrade = null;
-  const def = BUILDINGS[b.type];
+  if (grew) {
+    // o terreno novo: árvore/rocha embaixo sai, a rua embaixo sai, a colisão se refaz
+    const d = defOf(b);
+    for (const n of [...g.state.nodes]) if (n.tx >= b.tx && n.tx < b.tx + d.w && n.ty >= b.ty && n.ty < b.ty + d.h) g.removeNode(n.id);
+    clearRoadsUnder(g.state, b.tx, b.ty, d.w, d.h);
+    g.world.rebuild();
+  }
+  const def = defOf(b);
   const c = buildingCenter(b);
   fxText(g, c.x, c.y - 40, `${def.name} nível ${b.level}!`, '#ffd34d', true);
   g.toast(`${def.icon} ${def.name} subiu para o nível ${b.level}: ${UPGRADES[b.type]!.perks[b.level - 1]}.`, 'good', doorPos(b));

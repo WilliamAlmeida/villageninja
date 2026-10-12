@@ -1,7 +1,7 @@
 import { CELL, FINE_H, FINE_W, MAP_H, MAP_W, SUB, TILE, VILLAGE_MARGIN } from '../config';
 import { lerp } from '../core/math';
 import { mulberry32 } from '../core/rng';
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { BUILDINGS, type BuildingType, defOf, layoutKey } from '../data/buildings';
 import { extraOf, layoutPoint, tileOf, typeLayout } from '../data/layout';
 import type { Building, GameState, ResourceNode, Site } from './types';
 import { inTerritory } from './village';
@@ -24,14 +24,14 @@ export const toCell = (v: number) => Math.floor(v / CELL);
 export const cellCenter = (i: number) => ({ x: (i % FINE_W) * CELL + CELL / 2, y: Math.floor(i / FINE_W) * CELL + CELL / 2 });
 
 export function doorTile(b: Building) {
-  const p = layoutPoint(b.type, 'door', b.flip); // ajustado no Editor de cenário
+  const p = layoutPoint(layoutKey(b), 'door', b.flip); // ajustado no Editor de cenário
   if (p) return { tx: b.tx + Math.floor(p[0] / TILE), ty: b.ty + Math.floor(p[1] / TILE) };
-  const d = BUILDINGS[b.type];
+  const d = defOf(b);
   return { tx: b.tx + Math.floor(d.w / 2), ty: b.ty + d.h };
 }
 /** Ponto (px) logo em frente à porta. */
 export function doorPos(b: Building) {
-  const p = layoutPoint(b.type, 'door', b.flip);
+  const p = layoutPoint(layoutKey(b), 'door', b.flip);
   if (p) return { x: b.tx * TILE + p[0], y: b.ty * TILE + p[1] };
   const t = doorTile(b);
   return { x: tileCenter(t.tx), y: t.ty * TILE + 10 };
@@ -68,7 +68,7 @@ export function siteTiles(site: Site) {
   return { x0: site.tx - ox, y0: site.ty - oy, w, h };
 }
 export function buildingCenter(b: Building) {
-  const d = BUILDINGS[b.type];
+  const d = defOf(b);
   return { x: (b.tx + d.w / 2) * TILE, y: (b.ty + d.h / 2) * TILE };
 }
 
@@ -108,9 +108,9 @@ export class World {
     for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blockTile(i % MAP_W, Math.floor(i / MAP_W));
     this.villageRects = [];
     for (const b of s.buildings) {
-      const d = BUILDINGS[b.type];
+      const d = defOf(b);
       // células ajustadas no Editor de cenário (muro/portão, em meio tile) valem com o prédio pronto; senão a regra do prédio
-      const custom = b.built && tileOf(b.type, 0, 0) !== undefined;
+      const custom = b.built && tileOf(layoutKey(b), 0, 0) !== undefined;
       for (let y = b.ty; y < b.ty + d.h; y++)
         for (let x = b.tx; x < b.tx + d.w; x++) {
           this.occupied[idx(x, y)] = b.id;
@@ -119,11 +119,11 @@ export class World {
       if (custom)
         for (let fy = 0; fy < d.h * SUB; fy++)
           for (let fx = 0; fx < d.w * SUB; fx++) {
-            const c = tileOf(b.type, fx, fy, b.flip);
+            const c = tileOf(layoutKey(b), fx, fy, b.flip);
             if (c === '#' || c === '~') this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
           }
       // bloqueios avulsos em volta (arte maior que o terreno)
-      if (b.built) for (const [fx, fy] of extraOf(b.type, b.flip)) this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
+      if (b.built) for (const [fx, fy] of extraOf(layoutKey(b), b.flip)) this.blockCell(b.tx * SUB + fx, b.ty * SUB + fy);
       const m = VILLAGE_MARGIN * TILE;
       this.villageRects.push({ x0: b.tx * TILE - m, y0: b.ty * TILE - m, x1: (b.tx + d.w) * TILE + m, y1: (b.ty + d.h) * TILE + m });
     }
@@ -234,8 +234,9 @@ export class World {
     return false;
   }
 
-  canPlace(type: BuildingType, tx: number, ty: number, flip = false): boolean {
-    const d = BUILDINGS[type];
+  /** O prédio cabe em (tx, ty)? `level`: o terreno do nível (`defOf`; a casa nível 3 é 3×3). */
+  canPlace(type: BuildingType, tx: number, ty: number, flip = false, level = 1): boolean {
+    const d = defOf({ type, level });
     if (tx < 1 || ty < 1 || tx + d.w > MAP_W - 1 || ty + d.h > MAP_H - 2) return false;
     if (flip && !canFlip(type)) return false;
     // 1 tile de folga entre prédios garante que sempre exista caminho.

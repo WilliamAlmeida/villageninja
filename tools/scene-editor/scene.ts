@@ -11,7 +11,7 @@ import { applyIcons, helpDialog, ico } from '../shared/ui';
 import { CELL, SUB, TILE } from '../../src/config';
 import { Camera } from '../../src/core/camera';
 import { project, unproject } from '../../src/core/iso';
-import { BUILDING_LIST, BUILDINGS, type BuildingType } from '../../src/data/buildings';
+import { BUILDING_LIST, BUILDINGS, type BuildingType, defOf, layoutKey } from '../../src/data/buildings';
 import { encodeMask, layout, setLayout, touchLayout, type ArtLayout, type Layout, type TypeLayout } from '../../src/data/layout';
 import { createNinja } from '../../src/game/entities';
 import { Game } from '../../src/game/game';
@@ -111,7 +111,9 @@ let dirty = false;
 
 const L = (): Layout => layout();
 const artL = (): ArtLayout => (L().arts[item.artName] ??= {});
-const typeL = (): TypeLayout => (L().types[item.type] ??= {});
+/** Chave do layout do item: o tipo, ou `<tipo>-<nível>` no nível de terreno maior (a casa nível 3, 3×3). */
+const typeKey = () => (item.kind === 'building' ? layoutKey({ type: item.type as BuildingType, level: item.level }) : item.type);
+const typeL = (): TypeLayout => (L().types[typeKey()] ??= {});
 const clean = () => {
   // tira entradas vazias para o JSON ficar enxuto
   for (const k of Object.keys(L().arts)) if (!Object.keys(L().arts[k]!).length) delete L().arts[k];
@@ -128,7 +130,7 @@ function place() {
   building = null;
   site = null;
   if (item.kind === 'building') {
-    const d = BUILDINGS[item.type as BuildingType];
+    const d = defOf({ type: item.type as BuildingType, level: item.level });
     building = { id: 1, type: item.type as BuildingType, tx: CENTER_TX - Math.floor(d.w / 2), ty: CENTER_TY - Math.floor(d.h / 2), built: true, progress: d.buildTime, desired: 0, workers: [], cd: 0, level: item.type === 'hokage' ? undefined : item.level };
     s.level = item.type === 'hokage' ? item.level - 1 : 1;
     s.buildings.push(building);
@@ -233,7 +235,7 @@ function commitMask() {
 // ------------------------------------------------------------------ desfazer
 const undo: string[] = [];
 function snapshot() {
-  undo.push(JSON.stringify({ name: item.artName, type: item.type, art: L().arts[item.artName] ?? null, typeL: L().types[item.type] ?? null, mask: masks.has(item.artName) ? encodeMask(masks.get(item.artName)!) : null, w: item.kind === 'building' ? BUILDINGS[item.type as BuildingType].w : null, h: item.kind === 'building' ? BUILDINGS[item.type as BuildingType].h : null }));
+  undo.push(JSON.stringify({ name: item.artName, type: item.type, art: L().arts[item.artName] ?? null, key: typeKey(), typeL: L().types[typeKey()] ?? null, mask: masks.has(item.artName) ? encodeMask(masks.get(item.artName)!) : null, w: item.kind === 'building' ? BUILDINGS[item.type as BuildingType].w : null, h: item.kind === 'building' ? BUILDINGS[item.type as BuildingType].h : null }));
   if (undo.length > 40) undo.shift();
 }
 function doUndo() {
@@ -242,8 +244,8 @@ function doUndo() {
   const u = JSON.parse(raw);
   if (u.art) L().arts[u.name] = u.art;
   else delete L().arts[u.name];
-  if (u.typeL) L().types[u.type] = u.typeL;
-  else delete L().types[u.type];
+  if (u.typeL) L().types[u.key ?? u.type] = u.typeL;
+  else delete L().types[u.key ?? u.type];
   if (u.w && u.h) Object.assign(BUILDINGS[u.type as BuildingType], { w: u.w, h: u.h });
   masks.delete(u.name);
   if (u.name === item.artName) buildOverlay();
@@ -321,7 +323,7 @@ const imgToScreen = (u: number, v: number) => {
 // ------------------------------------------------------------------ terreno (tiles)
 function gridInfo() {
   if (building) {
-    const d = BUILDINGS[building.type];
+    const d = defOf(building);
     return { x0: building.tx, y0: building.ty, w: d.w, h: d.h };
   }
   if (item.kind === 'node' && s.nodes[0]) {
@@ -366,7 +368,7 @@ function inExtraRing(cx: number, cy: number) {
 function tileRows(): string[] {
   const gi = gridInfo()!;
   const t = typeL().tiles;
-  const def = building && !BUILDINGS[building.type].walkable ? '#' : '.';
+  const def = building && !defOf(building).walkable ? '#' : '.';
   return Array.from({ length: gi.h * SUB }, (_, y) => Array.from({ length: gi.w * SUB }, (_, x) => t?.[y]?.[x] ?? def).join(''));
 }
 
@@ -442,7 +444,7 @@ function renderProps() {
       const a = artL();
       const pieces = a.pieces ?? [];
       h += `<h3>Peças</h3><p class="hint">O que não for pintado é o "resto". Cada peça é desenhada na profundidade da sua âncora.</p>`;
-      h += `<div class="row"><label><input type="checkbox" id="ground" ${(a.ground ?? !!(building && BUILDINGS[building.type].walkable)) ? 'checked' : ''}> Resto no chão (sob todos)</label></div>`;
+      h += `<div class="row"><label><input type="checkbox" id="ground" ${(a.ground ?? !!(building && defOf(building).walkable)) ? 'checked' : ''}> Resto no chão (sob todos)</label></div>`;
       h += `<div class="row"><button id="restfade">${pending?.kind === 'fade' && pending.piece === 0 ? 'Arraste na cena…' : 'Transparência do resto'}</button>${a.fade ? '<button id="restfadeclr">limpar</button>' : ''}</div>`;
       pieces.forEach((p, i) => {
         const n = i + 1;
@@ -460,9 +462,9 @@ function renderProps() {
     const gi = gridInfo();
     if (!gi) h += `<p class="hint">Sem grade para este item.</p>`;
     else {
-      h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span>${building && BUILDINGS[building.type].shore ? '<span><i style="background:rgba(70,150,255,.8)"></i>água</span>' : ''}</div>`;
+      h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span>${building && defOf(building).shore ? '<span><i style="background:rgba(70,150,255,.8)"></i>água</span>' : ''}</div>`;
       h += `<div class="row"><label>Largura</label><input type="number" id="tw" min="1" max="10" value="${gi.w}"><label>Altura</label><input type="number" id="th" min="1" max="10" value="${gi.h}"></div>`;
-      if (building && BUILDINGS[building.type].shore)
+      if (building && defOf(building).shore)
         h += `<p class="hint">Prédio de margem: para construir, tile só com água pede água no mapa, tile só com muro pede terra (os dois = a beira). Com terreno quadrado o jogo espelha sozinho quando a água está do outro lado.</p>`;
       if (building) h += `<p class="hint">Em volta do terreno há uma margem: clique ou arraste nela para marcar <b>bloqueios avulsos</b> (a arte que passa do terreno, como o muro da arena), sem aumentar o prédio.</p><p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
       if (site || item.kind === 'node') h += `<p class="hint">${item.kind === 'node' ? 'Objetos: muro = não dá para atravessar (vale no estágio desta arte; toco e rocha rachada têm o seu). ' : ''}Shift+clique escolhe o tile onde ${item.kind === 'node' ? 'o objeto' : 'o local'} fica (origem).</p>`;
@@ -696,12 +698,12 @@ props.addEventListener('input', (e) => {
     const w = t.id === 'tw' ? Math.max(1, Number(t.value)) : gi.w;
     const h = t.id === 'th' ? Math.max(1, Number(t.value)) : gi.h;
     const rows = tileRows();
-    const def = building && !BUILDINGS[building.type].walkable ? '#' : '.';
+    const def = building && !defOf(building).walkable ? '#' : '.';
     typeL().tiles = Array.from({ length: h * SUB }, (_, y) => Array.from({ length: w * SUB }, (_, x) => rows[y]?.[x] ?? def).join(''));
     if (building) {
       typeL().w = w;
       typeL().h = h;
-      Object.assign(BUILDINGS[building.type], { w, h });
+      Object.assign(defOf(building), { w, h });
     }
     place();
     changed();
@@ -938,7 +940,7 @@ over.addEventListener('pointerdown', (e) => {
       const rows = tileRows().map((r) => r.split(''));
       const cur = rows[cy]![cx]!;
       // prédio de margem (Porto) tem também a água: livre → muro → portão → água
-      const shore = !!building && !!BUILDINGS[building.type].shore;
+      const shore = !!building && !!defOf(building).shore;
       cellPaint = cur === '.' ? '#' : cur === '#' ? 'g' : cur === 'g' && shore ? '~' : '.';
       rows[cy]![cx] = cellPaint;
       typeL().tiles = rows.map((r) => r.join(''));
@@ -1039,7 +1041,7 @@ function drawOverlay() {
   const b = box();
   // Arte: o losango verdadeiro do terreno (2:1, como o jogo projeta), para comparar com a base desenhada
   if (mode === 'art' && building) {
-    const d = BUILDINGS[building.type];
+    const d = defOf(building);
     const c = [[building.tx, building.ty + d.h], [building.tx + d.w, building.ty + d.h], [building.tx + d.w, building.ty], [building.tx, building.ty]]
       .map(([x, y]) => project(x! * TILE, y! * TILE))
       .map((p) => sceneToScreen(p.x, p.y));

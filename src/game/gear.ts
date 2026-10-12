@@ -1,5 +1,5 @@
 // Equipamento dos ninjas (arma, colete, consumível) e fabricação nas oficinas.
-import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { type BuildingType, defOf } from '../data/buildings';
 import { CARRY, ITEM_LIST, ITEMS, type ItemDef, type ItemSlot } from '../data/items';
 import { noteUse, storeWorn, takeWorn, wornStock } from './wear';
 import { craftMult, queueMax } from './upgrade';
@@ -219,12 +219,12 @@ export function advanceCraft(g: Game, buildingId: number, dt: number): boolean {
     if (def.blade) {
       // lâmina lendária: entra na lista da vila (única, nunca some)
       b.craft = null;
-      grantBlade(g, def.blade, 'A Forja terminou', { x: (b.tx + BUILDINGS[b.type].w / 2) * 32, y: b.ty * 32 });
+      grantBlade(g, def.blade, 'A Forja terminou', { x: (b.tx + defOf(b).w / 2) * 32, y: b.ty * 32 });
       return true;
     }
     put(g, def.id);
     b.craft = null;
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     const x = (b.tx + d.w / 2) * 32;
     const y = b.ty * 32;
     fx(g, 'ring', x, y + 20, { r: 20, color: '#ffd34d', life: 0.5 });

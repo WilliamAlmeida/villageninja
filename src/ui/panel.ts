@@ -2,7 +2,7 @@
 // valores dinâmicos (barras, números) são atualizados in-place via data-t / data-b.
 import type { App } from '../app';
 import { ANIMALS } from '../data/animals';
-import { BUILDINGS } from '../data/buildings';
+import { BUILDINGS, defOf } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
 import { MINE_USES, SITES } from '../data/sites';
 import { GOLD_PRICE, MINE } from '../data/expeditions';
@@ -486,7 +486,7 @@ export class Panel {
       cv.width = w;
       cv.height = h;
     }
-    drawInterior(cv.getContext('2d')!, w, h, BUILDINGS[b.type], occupantsOf(this.app.game, b), time, isNight(this.app.game.state), housingOf(b));
+    drawInterior(cv.getContext('2d')!, w, h, defOf(b), occupantsOf(this.app.game, b), time, isNight(this.app.game.state), housingOf(b));
   }
 
   show(view: View | null) {
@@ -712,7 +712,7 @@ export class Panel {
 
     // morador
     const job = this.app.game.building(u.jobId);
-    const jobDef = job ? BUILDINGS[job.type] : null;
+    const jobDef = job ? defOf(job) : null;
     html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge">Morador(a)</span>${this.lineageBadges(u)}</div></div>`;
     html += `<div class="sub">${jobDef?.job ? JOB_LABEL[jobDef.job] : 'Sem emprego (ajuda nas obras)'} · <span data-t="state"></span></div>`;
     html += `<div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
@@ -1329,7 +1329,7 @@ export class Panel {
 
   private building(bd: Building): Built {
     const g = this.app.game;
-    const d = BUILDINGS[bd.type];
+    const d = defOf(bd);
     const t: Record<string, string> = {};
     const b: Record<string, number> = {};
     if (g.state.sceneInfo)
@@ -1766,7 +1766,7 @@ export class Panel {
 
   /** Corte do interior: quem está lá dentro agora (dormindo, estudando, abrigado…). */
   private interiorSection(bd: Building, t: Record<string, string>, b: Record<string, number>) {
-    const d = BUILDINGS[bd.type];
+    const d = defOf(bd);
     if (d.walkable) return '';
     const inside = occupantsOf(this.app.game, bd);
     if (!inside.length && !d.housing) return '';
@@ -1872,7 +1872,7 @@ export class Panel {
   /** Topo do painel de prédio: a arte do nível, nome, estrelas, status e a descrição. */
   private buildingHead(bd: Building) {
     const g = this.app.game;
-    const d = BUILDINGS[bd.type];
+    const d = defOf(bd);
     const lvl = bd.type === 'hokage' ? g.state.level + 1 : levelOf(bd);
     const url = (lvl > 1 && artUrl(`${bd.type}-${lvl}`)) || artUrl(bd.type);
     const max = bd.type === 'hokage' ? 4 : UPGRADES[bd.type] ? MAX_BUILDING_LEVEL : 0;

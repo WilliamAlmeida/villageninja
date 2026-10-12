@@ -18,7 +18,7 @@ import { MOVE_SEQS, type MoveFx, moveAt, movesTime, SEAL_REHEARSAL } from '../da
 import { NATURES } from '../data/natures';
 import { BREEDS, breedArt } from '../data/breeds';
 import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
-import { BUILDINGS, type BuildingDef } from '../data/buildings';
+import { type BuildingDef, defOf } from '../data/buildings';
 import { RANKS } from '../data/ninja';
 import type { Building, Projectile, ResourceNode, Unit } from '../game/types';
 import { roleOf } from '../game/tactics';
@@ -1557,7 +1557,7 @@ function drawAnimal(ctx: Ctx, u: Unit, t: number) {
 
 // ---------------------------------------------------------------- prédios
 export function drawBuilding(ctx: Ctx, b: Building, t: number, night: number, villageLevel = 0) {
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   const x = b.tx * TILE;
   const y = b.ty * TILE;
   const w = def.w * TILE;

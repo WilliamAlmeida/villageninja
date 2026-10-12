@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SIM_DT } from '../src/config';
+import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { createNinja, createRogue } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
@@ -99,7 +99,7 @@ describe('vigia da torre', () => {
     s.version = 31;
     s.buildings.find((b: Building) => b.id === tower.id).shot = 2;
     const m = migrate(s)!;
-    expect(m.version).toBe(33);
+    expect(m.version).toBe(SAVE_VERSION);
     expect((m.buildings.find((b) => b.id === tower.id) as unknown as { shot?: number }).shot).toBeUndefined();
   });
 });
@@ -114,7 +114,7 @@ describe('torre 2×2 (save v33)', () => {
     // uma casa colada à direita: a torre 2×2 no mesmo canto encostaria nela
     s.buildings.push({ id: 99999, type: 'house', tx: t.tx + 1, ty: t.ty, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
     const m = migrate(s)!;
-    expect(m.version).toBe(33);
+    expect(m.version).toBe(SAVE_VERSION);
     const nt = m.buildings.find((b) => b.id === tower.id)!;
     expect(nt.tx !== was.tx || nt.ty !== was.ty).toBe(true);
     const house = m.buildings.find((b) => b.id === 99999)!;

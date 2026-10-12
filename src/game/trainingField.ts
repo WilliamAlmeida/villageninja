@@ -4,7 +4,7 @@
 // selos, ler) fica num canto livre longe dos bonecos. Sem pontos marcados, o campo inteiro serve (o jeito antigo).
 import { TILE } from '../config';
 import { rand } from '../core/rng';
-import { BUILDINGS } from '../data/buildings';
+import { defOf, layoutKey } from '../data/buildings';
 import { layoutPoint } from '../data/layout';
 import type { StatKey } from '../data/ninja';
 import type { Game } from './game';
@@ -23,7 +23,7 @@ const ROUTE_OUT = 16;
 export function fieldPosts(b: Building): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = [];
   for (let i = 1; i <= TRAIN_POSTS; i++) {
-    const p = layoutPoint(b.type, `post${i}`, b.flip);
+    const p = layoutPoint(layoutKey(b), `post${i}`, b.flip);
     if (p) out.push({ x: b.tx * TILE + p[0], y: b.ty * TILE + p[1] });
   }
   return out;
@@ -61,7 +61,7 @@ export function fieldRoute(b: Building): { x: number; y: number }[] | null {
 
 /** Um lugar livre do campo para meditar/ler/fazer selos: longe dos bonecos (e no campo todo sem eles). */
 export function quietSpot(g: Game, b: Building): { x: number; y: number } {
-  const def = BUILDINGS[b.type];
+  const def = defOf(b);
   const posts = fieldPosts(b);
   let best = { x: (b.tx + def.w / 2) * TILE, y: (b.ty + def.h / 2) * TILE };
   let bestD = -1;

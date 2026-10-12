@@ -2,7 +2,7 @@
 // aproxima a felicidade do alvo aos poucos.
 import { weightedPick } from '../core/rng';
 import { FAME } from '../data/region';
-import { BUILDINGS } from '../data/buildings';
+import { defOf } from '../data/buildings';
 import { FESTIVAL, SEASON_DAYS, SEASON_ORDER, SEASONS, WEATHERS, type Season } from '../data/seasons';
 import type { Nature } from '../data/natures';
 import type { Game } from './game';
@@ -64,7 +64,7 @@ export function decoMood(s: GameState) {
   const spring = seasonOf(s) === 'spring';
   let n = 0;
   for (const b of s.buildings) {
-    const d = BUILDINGS[b.type];
+    const d = defOf(b);
     if (!b.built || !d.deco) continue;
     n += (d.mood ?? 0) + (spring && b.type === 'cherry' ? 1 : 0);
   }

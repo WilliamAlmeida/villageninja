@@ -1,6 +1,6 @@
 import { pick } from '../../core/rng';
 import { birthMult } from '../mood';
-import { BUILDINGS } from '../../data/buildings';
+import { BUILDINGS, defOf } from '../../data/buildings';
 import { childOf, clanOf } from '../clans';
 import { createVillager } from '../entities';
 import type { Game } from '../game';
@@ -33,7 +33,7 @@ export function populationSystem(g: Game, dt: number) {
 function births(g: Game) {
   const s = g.state;
   if (g.population() >= g.popCap() || s.res.food < 40 || s.flags.starving) return;
-  const houses = s.buildings.filter((b) => b.built && BUILDINGS[b.type].housing);
+  const houses = s.buildings.filter((b) => b.built && defOf(b).housing);
   if (!houses.length) return;
   // casas com um casal (2+ moradores) têm filhos; sem casal, chega um migrante
   const people = g.villagers();
@@ -118,7 +118,7 @@ function assignJobs(g: Game) {
 
   for (const b of s.buildings) {
     if (!b.built) continue;
-    const def = BUILDINGS[b.type];
+    const def = defOf(b);
     if (!def.workers) continue;
     while (b.workers.length > b.desired) {
       const u = g.unit(b.workers.pop());
