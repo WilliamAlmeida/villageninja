@@ -22,7 +22,8 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'src' / 'art'
+sys.path.insert(0, str(Path(__file__).parent))
+from artpaths import art_file, edited as art_edited, is_edited  # noqa: E402  (pastas de src/art: scripts/artpaths.py)
 SRC = ROOT / 'docs' / 'arte' / 'layers'
 COLS, ROWS = 4, 3
 # poses além da caminhada (--pose strike|cast): corpo-base próprio (gabaritos strike/cast) e só as peças que mudam com o
@@ -33,11 +34,10 @@ SFX = f'-{POSE}' if POSE else ''
 POSE_PIECES = ['outfit-genin', 'vest-chunin', 'vest-jounin', 'coat-sannin', 'cloak-kage', 'outfit-anbu']
 POSES = ['strike', 'cast', 'kick', 'air', 'hurt', 'sit', 'carry']
 BASE = SRC / f'ninja-base{SFX}.png'  # gerado pelo prepare-art.py (não vai para o jogo)
-BODY = OUT / f'ninja-body{SFX}.png'  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
-WALK_BODY = OUT / 'ninja-body.png'
+BODY = art_file(f'ninja-body{SFX}')  # a base com folga no quadro (cabelo alto, chapéu, espada): é ela que o jogo desenha
+WALK_BODY = art_file('ninja-body')
 PAD, PADX = 24, 18
 WALK_RAW_W = 27  # largura do quadro da caminhada (ninja-base.png / 4): todas as poses usam a mesma célula (63×80)
-EDITS = OUT / 'art-edits.json'  # artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer
 
 # peça → (tipo, peças de baixo no molde, cor neutra da peça no molde de quem vem depois [, segunda cor])
 # As três primeiras foram geradas sobre o corpo puro (antes dos moldes em camadas).
@@ -124,7 +124,7 @@ def compose(names):
     out = Image.open(BODY).convert('RGBA')
     for n in names:
         spec = PIECES[n]
-        a = np.array(Image.open(OUT / f'layer-{n}{SFX}.png').convert('RGBA'))
+        a = np.array(Image.open(art_file(f'layer-{n}{SFX}')).convert('RGBA'))
         out.alpha_composite(Image.fromarray(tint(a, spec[0], spec[2], spec[3] if len(spec) > 3 else None), 'RGBA'))
     return out
 
@@ -263,8 +263,8 @@ def side_cells(path):
 
 
 def edited():
-    import json
-    return set(json.loads(EDITS.read_text())) if EDITS.exists() else set()
+    # artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer
+    return art_edited()
 
 
 def body_sheet():
@@ -358,7 +358,7 @@ def extract(name):
             if np.concatenate([a[0, :, 3], a[:, 0, 3], a[:, -1, 3]]).any():
                 print(f'  {name}: quadro {r + 1}x{c + 1} encosta na borda (aumente PAD/PADX)')
             sheet.alpha_composite(Image.fromarray(a, 'RGBA'), (c * fw, r * fh))
-    sheet.save(OUT / f'layer-{name}{SFX}.png', optimize=True)
+    sheet.save(art_file(f'layer-{name}{SFX}'), optimize=True)
     print(f'layer-{name}{SFX}.png', f'encaixe médio {np.mean(scores):.2f} (pior {min(scores):.2f})')
 
 
@@ -395,7 +395,7 @@ def pose_offsets():
     hands = {}
     tilt = {}
     for pose in POSES:
-        path = OUT / f'ninja-body-{pose}.png'
+        path = art_file(f'ninja-body-{pose}')
         if not path.exists():
             continue
         pc = cells(Image.open(path).convert('RGBA'))
@@ -446,7 +446,7 @@ if __name__ == '__main__':
         for n in PIECES:  # em ordem: as de baixo antes (o molde das de cima usa as camadas já extraídas)
             if (names and n not in names) or (POSE and n not in POSE_PIECES):
                 continue
-            if f'layer-{n}{SFX}.png' in edited() and '--force' not in sys.argv:
+            if is_edited(f'layer-{n}{SFX}') and '--force' not in sys.argv:
                 print(f'layer-{n}{SFX}.png editada à mão no editor: mantida (use --force para refazer)')
                 continue
             extract(n)

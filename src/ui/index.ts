@@ -34,7 +34,7 @@ export function createUI(app: App, root: HTMLElement) {
   // molduras 9-slice (scripts/prepare-frames.py): o CSS usa por variável (border-image)
   document.documentElement.style.setProperty('--frame-dock', `url(${dockBarUrl})`);
   document.documentElement.style.setProperty('--frame-win', `url(${windowFrameUrl})`);
-  // kit de interface (scripts/prepare-kit.py, das peças limpas em src/art/ui/kit)
+  // kit de interface (scripts/prepare-kit.py, das peças limpas em src/art/ui/kit1)
   const kit = { dialog: kitDialog, 'dialog-title': kitDialogTitle, banner: kitBanner, track: kitTrack, orange: kitOrange, red: kitRed, blue: kitBlue };
   for (const [k, url] of Object.entries(kit)) document.documentElement.style.setProperty(`--kit-${k}`, `url(${url})`);
   applyKit();

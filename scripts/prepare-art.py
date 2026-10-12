@@ -1,4 +1,4 @@
-# Prepara a arte gerada (docs/arte/**, fundo transparente) para o jogo, em src/art:
+# Prepara a arte gerada (docs/arte/**, fundo transparente) para o jogo, em src/art (cada uma na sua pasta, artpaths.py):
 # recorta a margem vazia e reduz para a resolução de pixel art (o jogo amplia sem suavizar).
 #   - prédios isométricos (docs/arte/iso): largura ≈ 2× o losango da base; alguns são espelhados
 #     para a porta ficar sempre na parede da frente-esquerda (onde fica a porta no jogo)
@@ -24,12 +24,12 @@ _spec.loader.exec_module(pad_sheets)
 ISO = Path('docs/arte/iso')
 SPRITES = Path('docs/arte/sprites')
 PIXEL = Path('docs/arte/pixel')
-OUT = Path('src/art')
-OUT.mkdir(parents=True, exist_ok=True)
+sys.path.insert(0, str(Path(__file__).parent))
+from artpaths import art_file, edited, is_edited  # noqa: E402  (cada arte na pasta dela: scripts/artpaths.py)
 # artes editadas à mão no editor de sprites (scripts/editor.ts): não refazer a partir da fonte (só com --force)
 # --only a,b: refaz só essas artes (as outras ficam como estão)
 ONLY = next((set(a.split('=', 1)[1].split(',')) for a in sys.argv if a.startswith('--only=')), None)
-EDITED = set() if '--force' in sys.argv else set(json.loads((OUT / 'art-edits.json').read_text())) if (OUT / 'art-edits.json').exists() else set()
+EDITED = set() if '--force' in sys.argv else edited()
 
 # largura final (px) = 2 × largura do losango na cena = 2 × 0,75 × 32 × (w + h) tiles, vezes SCENERY_SCALE
 BUILDINGS = {'hokage': 6, 'house': 4, 'lumber': 4, 'quarry': 4, 'market': 4, 'academy': 6, 'hospital': 5, 'tower': 2.6,
@@ -99,16 +99,16 @@ def crisp(im):
 def save(im, name, palette=False):
     if ONLY is not None and name not in ONLY:
         return False
-    if f'{name}.png' in EDITED:
+    if is_edited(name, EDITED):
         print(f'{name}.png editada à mão: mantida (use --force para refazer)')
         return False
     im = crisp(im)
     if palette:  # 256 cores com transparência: segura o peso do PNG em 2× (a arte reduzida tem milhares de tons)
         im = im.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
     # o corpo-base não vai para o jogo: é só a entrada das camadas (prepare-layers.py)
-    dest = Path('docs/arte/layers') if name in TOOL_ONLY else OUT
-    im.save(dest / f'{name}.png', optimize=True)
-    print(f'{name}.png', im.size, f'{(dest / f"{name}.png").stat().st_size / 1024:.1f} KB')
+    out = Path('docs/arte/layers') / f'{name}.png' if name in TOOL_ONLY else art_file(name)
+    im.save(out, optimize=True)
+    print(out.as_posix(), im.size, f'{out.stat().st_size / 1024:.1f} KB')
     return True
 
 
@@ -225,7 +225,7 @@ for name, tiles in BUILDINGS.items():
 
 for name, (frame_h, kind) in SHEETS.items():
     src = Image.open(SPRITES / f'{name}.png').convert('RGBA')
-    if (ONLY is not None and name not in ONLY) or f'{name}.png' in EDITED:
+    if (ONLY is not None and name not in ONLY) or is_edited(name, EDITED):
         continue  # não vai ser regravada (evita o trabalho de fatiar)
     owner = owner_cells(src)
     grid = [[cell_frame(src, owner, r, c) for c in range(COLS)] for r in range(ROWS)]

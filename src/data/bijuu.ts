@@ -1,6 +1,6 @@
 // Bestas com cauda (Bijuu): a Fera Colossal é uma delas, de 1 a 9 caudas (mais caudas, mais forte, aparece com a vila
 // maior). Vencida, fica selada num jarro até o Kage escolher um ninja para guardá-la (o Jinchuuriki), que em combate
-// veste o manto de chakra da fera (`mode` 'bijuu', game/modes.ts). Arte: src/art/bijuu-<caudas>.png (folha de bicho).
+// veste o manto de chakra da fera (`mode` 'bijuu', game/modes.ts). Arte: src/art/animals/bijuu-<caudas>.png (folha de bicho).
 
 export interface BijuuDef {
   tails: number;

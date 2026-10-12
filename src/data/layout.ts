@@ -91,7 +91,20 @@ let LAYOUT: Layout = RAW as unknown as Layout;
 export let layoutVersion = 0;
 
 export const layout = () => LAYOUT;
-export const artLayout = (name: string): ArtLayout | undefined => LAYOUT.arts[name];
+/**
+ * Variantes que usam o ajuste (escala, posição, peças) da arte-base enquanto não têm o seu: as faces do Monte dos Kages
+ * (`monument-f1..6`, mesmo desenho e tamanho, muda só o número de rostos) e a cerejeira pela estação. Assim, ajustar o
+ * "Monte dos Kages" no Editor de cenário vale para todas as faces.
+ */
+export const artFamily = (name: string): string | undefined =>
+  /^monument-f\d$/.test(name) ? 'monument' : name === 'cherry-green' || name === 'cherry-bare' ? 'cherry' : undefined;
+
+export const artLayout = (name: string): ArtLayout | undefined => {
+  const own = LAYOUT.arts[name];
+  if (own) return own;
+  const base = artFamily(name);
+  return base ? LAYOUT.arts[base] : undefined;
+};
 export const typeLayout = (type: string): TypeLayout | undefined => LAYOUT.types[type];
 /**
  * Ponto especial do tipo (px de mundo a partir do canto), ou undefined. `flip` = prédio espelhado (só de terreno

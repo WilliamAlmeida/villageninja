@@ -10,12 +10,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 from importlib import import_module
 
 L = import_module('prepare-layers')
-ART = Path('src/art')
-body = Image.open(ART / 'ninja-body.png').convert('RGBA')
+sys.path.insert(0, str(Path(__file__).parent))
+from artpaths import art_file  # noqa: E402
+body = Image.open(art_file('ninja-body')).convert('RGBA')
 
 
 def layer(name, color, color2=None):
-    p = ART / f'layer-{name}.png'
+    p = art_file(f'layer-{name}')
     if not p.exists():
         return None
     kind = 'hair' if name.startswith('hair') else 'cloth'

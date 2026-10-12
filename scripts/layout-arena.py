@@ -5,7 +5,7 @@ import json, math
 from collections import deque
 from PIL import Image
 
-im = Image.open('src/art/arena.png').convert('RGBA'); W, H = im.size; px = im.load()
+im = Image.open('src/art/buildings/arena.png').convert('RGBA'); W, H = im.size; px = im.load()
 CX, CY, RX, RY = 0.5 * W, 0.615 * H, 0.395 * W, 0.197 * H
 
 def sand(c): r, g, b, a = c; return a > 200 and abs(r - 229) < 30 and abs(g - 178) < 30 and abs(b - 116) < 30

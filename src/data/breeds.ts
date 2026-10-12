@@ -1,4 +1,4 @@
-// Raças de ninken (cão ninja do Canil). Cada uma tem arte própria (`dog` / `dog-<raça>` em src/art) e um jeito de ajudar.
+// Raças de ninken (cão ninja do Canil). Cada uma tem arte própria (`dog` / `dog-<raça>` em src/art/animals) e um jeito de ajudar.
 
 export type DogBreed = 'shiba' | 'white' | 'pug' | 'bull';
 

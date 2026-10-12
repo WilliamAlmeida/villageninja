@@ -1,5 +1,5 @@
 # Enfeites dos andares da mina (só visual): uma geração do Codex numa grade 4×3 com 12 objetos de caverna em pixel art,
-# fatiada e sem fundo em docs/arte/cave/<nome>.png e montada no atlas src/art/cave-props.png (casas de CELL px, desenho
+# fatiada e sem fundo em docs/arte/cave/<nome>.png e montada no atlas src/art/props/cave-props.png (casas de CELL px, desenho
 # encostado embaixo e centrado; a ordem é PROPS, a mesma de CAVE_PROPS em render/cave.ts).
 #
 # Uso: python scripts/cave-props.py          (gera o que falta e monta o atlas)
@@ -12,6 +12,8 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+from artpaths import art_file  # noqa: E402  (pastas de src/art)
 SRC = os.path.join(ROOT, 'docs', 'arte', 'cave')
 CELL = 96
 PROPS = [
@@ -87,5 +89,5 @@ for i, (name, _) in enumerate(PROPS):
     k = min(CELL / im.width, CELL / im.height)
     im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.BOX)
     atlas.alpha_composite(im, (i * CELL + (CELL - im.width) // 2, CELL - im.height))
-atlas.save(os.path.join(ROOT, 'src', 'art', 'cave-props.png'), optimize=True)
+atlas.save(art_file('cave-props'), optimize=True)
 print('atlas', atlas.size)

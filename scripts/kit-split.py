@@ -1,9 +1,9 @@
 # Separa o "Atlas de Interface Ninja" (mockup gerado pelo GPT em docs/arte/ui/) em peças soltas, uma por arquivo, em
-# src/art/ui/kit/<grupo>-<nome>.png, para limpar o texto no editor de sprites e depois virar 9-slice / ícone no jogo.
+# src/art/ui/kit1/<grupo>-<nome>.png, para limpar o texto no editor de sprites e depois virar 9-slice / ícone no jogo.
 # Cada peça é achada pelo contorno (alfa forte, para os halos não grudarem vizinhos) e reconhecida por um ponto dela na
 # folha (tabela PIECES); as que vêm encostadas na folha têm o retângulo à mão (SPLIT). Recorta do original com 2 px de
-# folga e apaga só o halo quase invisível. Peça que já existe em src/art/ui/kit nunca é sobrescrita (pode ter sido
-# limpa à mão); --force recorta tudo de novo. Gera também src/art/ui/kit/LEIAME.md com o uso de cada peça.
+# folga e apaga só o halo quase invisível. Peça que já existe em src/art/ui/kit1 nunca é sobrescrita (pode ter sido
+# limpa à mão); --force recorta tudo de novo. Gera também src/art/ui/kit1/LEIAME.md com o uso de cada peça.
 # Uso: python scripts/kit-split.py [--force]
 import json
 import os
@@ -15,7 +15,7 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'docs', 'arte', 'ui', 'Atlas de Interface Ninja em Português.png')
-DST = os.path.join(ROOT, 'src', 'art', 'ui', 'kit')
+DST = os.path.join(ROOT, 'src', 'art', 'ui', 'kit1')
 DOC = DST  # o índice fica junto das peças (docs/arte/ui está fora do git)
 FORCE = '--force' in sys.argv
 
@@ -167,8 +167,8 @@ os.makedirs(DST, exist_ok=True)
 os.makedirs(DOC, exist_ok=True)
 written = kept = 0
 lines = ['# Kit de interface (recortado de "Atlas de Interface Ninja em Português.png")', '',
-         'Gerado por `scripts/kit-split.py`. Cada peça está em `src/art/ui/kit/` e abre no editor de sprites (modo Arquivo,',
-         'pasta `ui/kit`). Limpe o texto lá; o que foi salvo no editor não é sobrescrito ao rodar o script de novo.', '',
+         'Gerado por `scripts/kit-split.py`. Cada peça está em `src/art/ui/kit1/` e abre no editor de sprites (modo Arquivo,',
+         'pasta `ui/kit1`). Limpe o texto lá; o que foi salvo no editor não é sobrescrito ao rodar o script de novo.', '',
          '| Peça | Tamanho | Uso / o que limpar |', '|---|---|---|']
 for name, (b, use) in sorted(found.items()):
     x0, y0, x1, y1, lid = b
@@ -191,7 +191,7 @@ for name, (b, use) in sorted(found.items()):
             a[(pl == 0) & (a[:, :, 3] > 0)] = 0  # restos com menos de 200 px
     crop = Image.fromarray(a)
     crop = crop.crop(crop.getbbox())
-    rel = f'ui/kit/{name}.png'
+    rel = f'ui/kit1/{name}.png'
     path = os.path.join(DST, f'{name}.png')
     lines.append(f'| `{name}` | {crop.width}×{crop.height} | {use} |')
     if os.path.exists(path) and not FORCE:  # peça já recortada (talvez limpa à mão, no editor ou fora dele): fica

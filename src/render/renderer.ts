@@ -606,11 +606,18 @@ export class Renderer {
    */
   artBox(b: Building, level: number) {
     const lvl = b.type === 'hokage' ? level + 1 : (b.level ?? 1);
+    // Editor de cenário: desenha exatamente a variante escolhida na lista (face do Monte, tema, estação)
+    if (this.previewArt && art(this.previewArt)) return this.boxFor(b, this.previewArt, lvl);
     const faces = b.type === 'monument' ? `monument-f${Math.max(1, Math.min(6, this.kages))}` : '';
     const base =
       b.type === 'cherry' ? (this.season === 'spring' ? 'cherry' : this.season === 'winter' ? 'cherry-bare' : 'cherry-green') : faces && art(faces) ? faces : b.type;
     const themed = this.theme && art(`${b.type}-${this.theme}`) ? `${b.type}-${this.theme}` : '';
     const artName = themed || (lvl > 1 && art(`${base}-${lvl}`) ? `${base}-${lvl}` : base);
+    return this.boxFor(b, artName, lvl);
+  }
+
+  /** Retângulo de uma arte de prédio na cena (escala/deslocamento do layout, com o da arte-base nas variantes). */
+  private boxFor(b: Building, artName: string, lvl: number) {
     const pic = art(artName);
     if (!pic || !pic.naturalWidth) return null;
     const { front, width } = this.footprint(b.type, b.tx, b.ty);
@@ -738,6 +745,8 @@ export class Renderer {
   private level = 0;
   /** Estação do mapa sendo desenhado (a cerejeira muda de arte: florida, verde, sem folhas). */
   private season = 'spring';
+  /** Editor de cenário: nome da arte a desenhar no lugar da escolhida pelo jogo (variante); null no jogo. */
+  previewArt: string | null = null;
   /** Kages que a vila já teve: o Monte dos Kages mostra um rosto por Kage (até 6, `monument-f<n>`). */
   private kages = 0;
   /** Tema do mapa de missão (pescadores, deserto): casa, mercado e torre trocam de arte (`<tipo>-<tema>`). */
@@ -1083,6 +1092,7 @@ export class Renderer {
    * mapa (grade 3×2) sorteia uma pela semente da partida: os locais da mesma região ficam parecidos, os de outra variam.
    */
   private siteArt(site: Site) {
+    if (this.previewArt && art(this.previewArt)) return this.previewArt;
     if (site.kind === 'chest') return site.done && art('chest-open') ? 'chest-open' : 'chest';
     if (site.kind !== 'ruin' && site.kind !== 'cave') return site.kind;
     const zone = Math.floor(site.tx / 24) + 3 * Math.floor(site.ty / 24);

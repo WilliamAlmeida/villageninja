@@ -1,6 +1,6 @@
 // Enfeites dos andares da mina (só desenho, fora do estado): estalagmites, cristais e cogumelos que brilham, poças,
 // ossos, carrinho, escoras com lanterna, tochas e caixotes, espalhados pela caverna a partir da semente do mapa.
-// Arte: atlas src/art/cave-props.png (scripts/cave-props.py; mesma ordem de CAVE_PROPS).
+// Arte: atlas src/art/props/cave-props.png (scripts/cave-props.py; mesma ordem de CAVE_PROPS).
 import { MAP_W, TILE } from '../config';
 import { project } from '../core/iso';
 import { mulberry32 } from '../core/rng';

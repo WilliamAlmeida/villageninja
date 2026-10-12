@@ -1,6 +1,6 @@
 // Enfeites dos mapas temáticos (só desenho, fora do estado): barcos, redes e peixe secando na Vila dos Pescadores;
 // palmeiras, poço, tendas, cactos e potes na Cidade dos Mercadores. Espalhados pela semente do mapa, longe dos prédios.
-// Arte: atlas src/art/theme-props.png (scripts/theme-art.py; mesma ordem de THEME_PROPS).
+// Arte: atlas src/art/props/theme-props.png (scripts/theme-art.py; mesma ordem de THEME_PROPS).
 import { MAP_W, TILE } from '../config';
 import { mulberry32 } from '../core/rng';
 import { BUILDINGS } from '../data/buildings';

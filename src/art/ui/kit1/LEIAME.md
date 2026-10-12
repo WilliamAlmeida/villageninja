@@ -1,7 +1,7 @@
 # Kit de interface (recortado de "Atlas de Interface Ninja em Português.png")
 
-Gerado por `scripts/kit-split.py`. Cada peça está em `src/art/ui/kit/` e abre no editor de sprites (modo Arquivo,
-pasta `ui/kit`). Limpe o texto lá; o que foi salvo no editor não é sobrescrito ao rodar o script de novo.
+Gerado por `scripts/kit-split.py`. Cada peça está em `src/art/ui/kit1/` e abre no editor de sprites (modo Arquivo,
+pasta `ui/kit1`). Limpe o texto lá; o que foi salvo no editor não é sobrescrito ao rodar o script de novo.
 
 | Peça | Tamanho | Uso / o que limpar |
 |---|---|---|

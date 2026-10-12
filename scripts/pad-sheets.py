@@ -10,7 +10,8 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / 'src' / 'art'
+sys.path.insert(0, str(Path(__file__).parent))
+from artpaths import art_file  # noqa: E402  (pastas de src/art)
 LAYOUT = ROOT / 'src' / 'data' / 'layout.json'
 COLS, ROWS = 4, 3
 # folga em fração do quadro: lados, topo (cabeça, orelhas, asas) e base (pés que passam do chão)
@@ -41,7 +42,7 @@ def main(names):
         if 'body' in a:
             print(f'{n}: já tem folga (body {a["body"]}), pulada')
             continue
-        p = ART / f'{n}.png'
+        p = art_file(n)
         im = Image.open(p).convert('RGBA')
         if im.width % COLS or im.height % ROWS:
             print(f'{n}: tamanho {im.size} não divide na grade 4x3, pulada')

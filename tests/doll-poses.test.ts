@@ -16,8 +16,8 @@ describe('poses do ninja em camadas', () => {
       }
     });
     test(`${pose}: corpo e peças da pose existem`, () => {
-      expect(existsSync(`src/art/ninja-body-${pose}.png`)).toBe(true);
-      for (const p of poses.pieces) expect(existsSync(`src/art/layer-${p}-${pose}.png`)).toBe(true);
+      expect(existsSync(`src/art/ninja/body/ninja-body-${pose}.png`)).toBe(true);
+      for (const p of poses.pieces) expect(existsSync(`src/art/ninja/layers/layer-${p}-${pose}.png`)).toBe(true);
     });
   }
 });

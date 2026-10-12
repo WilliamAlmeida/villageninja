@@ -28,18 +28,37 @@ import { Renderer } from '../../src/render/renderer';
 // ------------------------------------------------------------------ itens
 type Item = { kind: 'building' | 'site' | 'node'; type: string; artName: string; label: string; level: number };
 const ITEMS: Item[] = [];
-for (const d of BUILDING_LIST) {
-  const maxLv = d.type === 'hokage' ? 4 : 3;
-  for (let lv = 1; lv <= maxLv; lv++) {
-    const artName = lv === 1 ? d.type : `${d.type}-${lv}`;
-    if (lv > 1 && !art(artName)) continue;
-    ITEMS.push({ kind: 'building', type: d.type, artName, label: lv === 1 ? d.name : `${d.name} · nível ${lv}`, level: lv });
+/**
+ * Monta a lista. Roda no `start`, depois do `preloadArt`: no topo do módulo a tabela de artes do bundle ainda pode não
+ * estar pronta, e o `art()` dava nulo (os níveis 2/3, os locais e as variantes sumiam da lista).
+ */
+function fillItems() {
+  ITEMS.length = 0;
+  for (const d of BUILDING_LIST) {
+    const maxLv = d.type === 'hokage' ? 4 : 3;
+    for (let lv = 1; lv <= maxLv; lv++) {
+      const artName = lv === 1 ? d.type : `${d.type}-${lv}`;
+      if (lv > 1 && !art(artName)) continue;
+      ITEMS.push({ kind: 'building', type: d.type, artName, label: lv === 1 ? d.name : `${d.name} · nível ${lv}`, level: lv });
+    }
   }
+  // prédios dos mapas temáticos (Vila dos Pescadores, Cidade dos Mercadores): arte própria, ajuste próprio
+  const THEME_LABEL: Record<string, string> = { fishing: 'Vila dos Pescadores', desert: 'Cidade dos Mercadores' };
+  for (const d of BUILDING_LIST)
+    for (const th of Object.keys(THEME_LABEL))
+      if (art(`${d.type}-${th}`)) ITEMS.push({ kind: 'building', type: d.type, artName: `${d.type}-${th}`, label: `${d.name} · ${THEME_LABEL[th]}`, level: 1 });
+  for (const [type, artName, label] of [
+    ['ruin', 'ruin', 'Ruínas'],
+    ['ruin', 'ruin-alt', 'Ruínas · versão 2'],
+    ['cave', 'cave', 'Entrada de mina'],
+    ['cave', 'cave-alt', 'Entrada de mina · versão 2'],
+    ['chest', 'chest', 'Baú'],
+    ['chest', 'chest-open', 'Baú aberto'],
+  ] as const)
+    if (art(artName)) ITEMS.push({ kind: 'site', type, artName, label, level: 1 });
+  for (const [artName, label] of [['tree0', 'Árvore folhosa'], ['tree1', 'Pinheiro'], ['stump0', 'Toco (folhosa)'], ['stump1', 'Toco (pinheiro)'], ['rock', 'Rocha'], ['rock-cracked', 'Rocha rachada'], ['ore', 'Veio de ferro'], ['herb', 'Erva']] as const)
+    ITEMS.push({ kind: 'node', type: artName, artName, label, level: 1 });
 }
-for (const [type, artName, label] of [['ruin', 'ruin', 'Ruínas'], ['cave', 'cave', 'Entrada de mina'], ['chest', 'chest', 'Baú'], ['chest', 'chest-open', 'Baú aberto']] as const)
-  ITEMS.push({ kind: 'site', type, artName, label, level: 1 });
-for (const [artName, label] of [['tree0', 'Árvore folhosa'], ['tree1', 'Pinheiro'], ['stump0', 'Toco (folhosa)'], ['stump1', 'Toco (pinheiro)'], ['rock', 'Rocha'], ['rock-cracked', 'Rocha rachada'], ['ore', 'Veio de ferro'], ['herb', 'Erva']] as const)
-  ITEMS.push({ kind: 'node', type: artName, artName, label, level: 1 });
 
 const PIECE_COLORS = ['#ff5a5a', '#4da6ff', '#7ddc6b', '#ffd34d', '#e05ad1', '#5ad1c8', '#ff8a2b', '#b39cff', '#ffffff'];
 
@@ -63,7 +82,7 @@ function dummySystem(g: Game, dt: number) {
 }
 const g = new Game(s, [statusSystem, dummySystem]);
 
-let item: Item = ITEMS.find((i) => i.artName === 'arena') ?? ITEMS[0]!;
+let item: Item = { kind: 'building', type: 'arena', artName: 'arena', label: 'Arena do Exame', level: 1 }; // trocado no start
 type Mode = 'pieces' | 'tiles' | 'art' | 'points' | 'dummies';
 let mode: Mode = 'pieces' as Mode;
 let building: Building | null = null;
@@ -100,6 +119,8 @@ const clean = () => {
 };
 
 function place() {
+  // a prévia desenha a arte do item (variante), não a que o jogo escolheria pelo estado
+  renderer.previewArt = item.kind === 'node' ? null : item.artName;
   s.buildings = [];
   s.sites = [];
   s.nodes = [];
@@ -1268,6 +1289,8 @@ async function start() {
     /* fica o do bundle */
   }
   await preloadArt();
+  fillItems();
+  item = ITEMS.find((i) => i.artName === 'arena') ?? ITEMS[0]!;
   select(item);
   let last = performance.now();
   let clock = 0;

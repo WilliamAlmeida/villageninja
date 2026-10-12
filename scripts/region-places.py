@@ -1,7 +1,7 @@
 # Lugares do mapa da Região no estilo Ikariam: cada vilarejo, a vila do jogador, o posto avançado e os covis ganham
-# uma miniatura desenhada (construções sobre um pedacinho de chão) que fica em cima do mapa src/art/region.jpg.
+# uma miniatura desenhada (construções sobre um pedacinho de chão) que fica em cima do mapa src/art/region/region.jpg.
 # Uma geração só do Codex numa grade 4×2 (referência de estilo = o próprio mapa), fatiada e sem fundo em
-# docs/arte/region/<nome>.png; depois monta o atlas src/art/region-places.png (casas de CELL px, desenho encostado
+# docs/arte/region/<nome>.png; depois monta o atlas src/art/region/region-places.png (casas de CELL px, desenho encostado
 # embaixo e centrado; a ordem é PLACES, a mesma de render em ui/panel.ts → REGION_ART).
 #
 # Uso: python scripts/region-places.py          (gera o que falta, em lotes de 8, e monta o atlas)
@@ -13,6 +13,8 @@ import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+from artpaths import art_file  # noqa: E402  (pastas de src/art)
 SRC = os.path.join(ROOT, 'docs', 'arte', 'region')
 CELL = 160
 PLACES = [
@@ -72,7 +74,7 @@ while '--pack' not in sys.argv and missing:
     os.makedirs(SRC, exist_ok=True)
     sheet = os.path.join(SRC, f'_grade-{batch[0][0]}.png')
     cells = ' '.join(f'Row {i // COLS + 1}, column {i % COLS + 1}: {d}.' for i, (_, d) in enumerate(batch))
-    refs = ['src/art/region.jpg'] + ([os.path.relpath(os.path.join(SRC, '_grade.png'), ROOT)] if os.path.exists(os.path.join(SRC, '_grade.png')) else [])
+    refs = [os.path.relpath(art_file('region', '.jpg'), ROOT)] + ([os.path.relpath(os.path.join(SRC, '_grade.png'), ROOT)] if os.path.exists(os.path.join(SRC, '_grade.png')) else [])
     desc = (
         f'A SHEET of {len(batch)} separate miniature map pieces (settlements or small travelling parties) for a strategy game world map, like the town icons '
         f'on the Ikariam island map, arranged in a strict grid of {COLS} columns and {ROWS} rows, every cell the same size, '
@@ -105,5 +107,5 @@ for i, (name, _) in enumerate(PLACES):
     k = min(CELL / im.width, CELL / im.height)
     im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
     atlas.alpha_composite(im, (i * CELL + (CELL - im.width) // 2, CELL - im.height))
-atlas.save(os.path.join(ROOT, 'src', 'art', 'region-places.png'), optimize=True)
+atlas.save(art_file('region-places'), optimize=True)
 print('atlas', atlas.size)

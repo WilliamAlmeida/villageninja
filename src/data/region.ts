@@ -1,5 +1,5 @@
 // Mapa da região (janela Mundo → Região): vilarejos vizinhos no continente, ilhas e lugares sagrados pelo mar.
-// Posições em % da imagem de fundo (src/art/region.jpg). Ações viram expedições (game/region.ts).
+// Posições em % da imagem de fundo (src/art/region/region.jpg). Ações viram expedições (game/region.ts).
 import type { Cost } from '../game/types';
 
 /** `hideout`: o covil da Ordem do Eclipse (só aparece quando descoberto). */

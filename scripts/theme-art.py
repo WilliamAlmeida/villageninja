@@ -2,7 +2,7 @@
 # Cidade dos Mercadores (deserto, tendas, muralha) e o platô de penhasco da prova do contrato (escada de pedra). Duas gerações do Codex:
 #  1. prédios no tema (casa, mercado, torre), referência = a casa da vila → docs/arte/iso/<tipo>-<tema>.png, preparados
 #     pelo prepare-art.py com a largura do prédio comum (o jogo troca a arte no mapa do tema: Renderer.artBox);
-#  2. enfeites (barcos, redes, palmeiras, poço…) → docs/arte/theme/<nome>.png e o atlas src/art/theme-props.png
+#  2. enfeites (barcos, redes, palmeiras, poço…) → docs/arte/theme/<nome>.png e o atlas src/art/props/theme-props.png
 #     (casas de CELL px, desenho encostado embaixo; ordem = PROPS = THEME_PROPS em render/themeProps.ts).
 # Uso: python scripts/theme-art.py           (gera o que falta e monta o atlas)
 #      python scripts/theme-art.py --pack    (só remonta o atlas)
@@ -13,6 +13,8 @@ import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+from artpaths import art_file  # noqa: E402  (pastas de src/art)
 ISO = os.path.join(ROOT, 'docs', 'arte', 'iso')
 SRC = os.path.join(ROOT, 'docs', 'arte', 'theme')
 CELL = 128
@@ -107,5 +109,5 @@ for i, (name, _) in enumerate(PROPS):
     k = min(CELL / im.width, CELL / im.height)
     im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
     atlas.alpha_composite(im, (i * CELL + (CELL - im.width) // 2, CELL - im.height))
-atlas.save(os.path.join(ROOT, 'src', 'art', 'theme-props.png'), optimize=True)
+atlas.save(art_file('theme-props'), optimize=True)
 print('atlas', atlas.size)

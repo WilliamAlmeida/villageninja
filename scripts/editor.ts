@@ -1,10 +1,10 @@
 // Ferramentas de desenvolvimento: http://localhost:3011 (início com os três editores); editor de sprites em /spr.
 // Monta o ninja em camadas como o jogo (src/render/doll.ts), mostra a animação e deixa editar/mover pixels das camadas
-// e de qualquer PNG de src/art (também os de interface em src/art/ui e src/art/ui/art: atlas de ícones e selos,
-// ilustrações); "Salvar" grava o arquivo em src/art (o build do jogo se refaz sozinho).
+// e de qualquer PNG de src/art e das pastas dela (ninja/, buildings/, animals/, ui/…; ver scripts/artpaths.py);
+// "Salvar" grava o arquivo no mesmo lugar (o build do jogo se refaz sozinho).
 // Só escuta em 127.0.0.1 e fica fora do túnel da Cloudflare: ninguém de fora grava arquivo.
 // Antes de sobrescrever, guarda uma cópia em docs/arte/backup-editor/. Arquivos salvos aqui ficam listados em
-// src/art/art-edits.json (com a subpasta: "ui/icons.png") e o prepare-art.py / prepare-layers.py / prepare-ui.py não
+// src/art/art-edits.json (pelo caminho: "buildings/academy.png", "ui/icons.png") e o prepare-art.py / prepare-layers.py / prepare-ui.py não
 // os refazem (a não ser com --force).
 //   bun scripts/editor.ts   |   pm2 start ecosystem.local.config.cjs --only villageninja-editor
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -19,15 +19,17 @@ const ART = join(ROOT, 'src', 'art');
 const BACKUP = join(ROOT, 'docs', 'arte', 'backup-editor');
 const EDITS = join(ART, 'art-edits.json');
 const LAYOUT = join(ROOT, 'src', 'data', 'layout.json');
-/** Arquivo editável: PNG de src/art, src/art/ui e das pastas dela (art, kit, kit2, frame); o nome leva a subpasta. */
-const NAME = /^(?:ui\/(?:(?:art|kit2?|frame)\/)?)?[a-z0-9][a-z0-9-]*\.png$/;
-const pngs = (sub: string) =>
-  existsSync(join(ART, sub))
-    ? readdirSync(join(ART, sub))
-        .map((f) => (sub ? `${sub}/${f}` : f))
-        .filter((f) => NAME.test(f))
-        .sort()
-    : [];
+/**
+ * Arquivo editável: qualquer PNG de src/art e das pastas dela (ninja/layers, buildings, ui/kit2…), pelo caminho relativo
+ * ("buildings/academy.png"); só letras minúsculas, números e hífen em cada parte (nada de "..").
+ */
+const NAME = /^(?:[a-z0-9][a-z0-9-]*\/)*[a-z0-9][a-z0-9-]*\.png$/;
+/** Todos os PNGs de src/art, com a subpasta, em ordem. */
+const pngs = (sub = ''): string[] =>
+  readdirSync(join(ART, sub), { withFileTypes: true })
+    .flatMap((d) => (d.isDirectory() ? pngs(sub ? `${sub}/${d.name}` : d.name) : [sub ? `${sub}/${d.name}` : d.name]))
+    .filter((f) => NAME.test(f))
+    .sort();
 /** Caminho do arquivo pedido em /art/<nome> (com subpasta). */
 const artFile = (req: Request) => decodeURIComponent(new URL(req.url).pathname.slice('/art/'.length));
 const port = Number(process.env.EDITOR_PORT ?? 3011);
@@ -67,7 +69,7 @@ Bun.serve({
     },
     '/api/art': () =>
       Response.json(
-        { files: [...pngs(''), ...pngs('ui'), ...pngs('ui/art'), ...pngs('ui/kit'), ...pngs('ui/kit2'), ...pngs('ui/frame')], edited: edits() },
+        { files: pngs(), edited: edits() },
         { headers: noStore },
       ),
     '/art/*': {

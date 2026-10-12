@@ -1,7 +1,7 @@
 # Espadas soltas (para a animação de golpe: a lâmina sai das costas e gira em volta da mão do ninja).
 # Gera as 13 lâminas lendárias numa grade só pelo Codex (1 geração), cada uma VERTICAL com a lâmina para cima e o cabo
 # embaixo, nas cores-chave das camadas (magenta = cabo/bainha, amarelo = segunda cor, ciano = metal) para o jogo
-# recolorir com `tintPixels` como faz com a camada nas costas. Fatia a grade e grava src/art/sword-<id>.png (64 px de
+# recolorir com `tintPixels` como faz com a camada nas costas. Fatia a grade e grava src/art/weapons/sword-<id>.png (64 px de
 # altura, nítido). O ponto do cabo (onde a mão segura) é ajustado no Editor de sprites e fica em src/data/layout.json.
 #
 # Uso: python scripts/weapon-grid.py [--force]
@@ -12,6 +12,8 @@ import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+from artpaths import art_file  # noqa: E402  (pastas de src/art)
 OUT = os.path.join(ROOT, 'docs', 'arte', 'weapons')
 SHEET = os.path.join(OUT, 'swords-grid.png')
 MAG, YEL, CYA = 'pure magenta (#ff00ff)', 'pure yellow (#ffee00)', 'pure cyan (#00e5ff)'
@@ -76,5 +78,5 @@ for name, _ in SWORDS:
         for xx in range(small.width):
             r_, g_, b_, a_ = px[xx, yy]
             px[xx, yy] = (r_, g_, b_, 255 if a_ > 110 else 0)
-    small.save(os.path.join(ROOT, 'src', 'art', f'sword-{name}.png'))
+    small.save(art_file(f'sword-{name}'))
     print('ok', name, small.size)

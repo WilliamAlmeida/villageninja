@@ -1,4 +1,4 @@
-# Peças do kit de interface (src/art/ui/kit, já limpas no editor de sprites) → arte pronta para 9-slice (CSS
+# Peças do kit de interface (src/art/ui/kit1, já limpas no editor de sprites) → arte pronta para 9-slice (CSS
 # border-image) em src/art/ui/frame/. Imprime as fatias (px) que o styles.css usa.
 #   dialog        avisos/confirmações (#alertbox): pergaminho com moldura de madeira; a faixa do título sai do meio da
 #                 borda de cima (a borda fica lisa para esticar) e vira dialog-title, que estica à parte (3-slice)
@@ -10,7 +10,7 @@ import os
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KIT = os.path.join(ROOT, 'src', 'art', 'ui', 'kit')
+KIT = os.path.join(ROOT, 'src', 'art', 'ui', 'kit1')
 DST = os.path.join(ROOT, 'src', 'art', 'ui', 'frame')
 
 

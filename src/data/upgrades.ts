@@ -1,5 +1,5 @@
 // Upgrades de prédios: até o nível 3. Cada nível custa recursos e um tempo de obra (feita pelos moradores,
-// com o prédio funcionando). O visual muda por nível (arte <tipo>-2 / <tipo>-3 em src/art).
+// com o prédio funcionando). O visual muda por nível (arte <tipo>-2 / <tipo>-3 em src/art/buildings).
 import type { BuildingType } from './buildings';
 import type { Cost } from '../game/types';
 

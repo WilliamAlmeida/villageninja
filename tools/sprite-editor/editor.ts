@@ -1,6 +1,6 @@
 // Editor de sprites da Vila Ninja: monta o ninja em camadas igual ao jogo (src/render/doll.ts), anima e deixa editar
 // pixel a pixel (lápis, borracha, conta-gotas) e mover uma camada num quadro ou na vista inteira. Também abre qualquer
-// PNG de src/art, inclusive os de interface (src/art/ui: atlas de ícones e selos, ilustrações). Salvar grava em src/art
+// PNG de src/art, em qualquer pasta (ninja/, buildings/, ui/…; ver scripts/artpaths.py). Salvar grava no mesmo arquivo
 // pelo servidor local (scripts/editor.ts).
 import { DOLL_FRAME_PAD, DOLL_GRID, DOLL_HAIR, SWORDS, type DollPart, dollParts, tintPixels } from '../../src/render/doll';
 import { type Atlas, BADGE_RANKS, ICONS } from '../../src/ui/pxicons';
@@ -15,7 +15,19 @@ type Rect = { x: number; y: number; w: number; h: number };
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const layers = new Map<string, Layer>();
 let edited = new Set<string>();
+/** PNGs de src/art pelo caminho ("buildings/academy.png", "ui/kit2/button.png"), vindos do servidor. */
 let files: string[] = [];
+/**
+ * Nome da arte de um caminho: o nome do arquivo (é a chave do jogo e do layout.json, igual em qualquer pasta); os de
+ * interface ficam com o caminho ("ui/icons", "ui/kit2/button"), como sempre foram.
+ */
+const artNameOf = (path: string) => {
+  const p = path.replace(/\.png$/, '');
+  return p.startsWith('ui/') ? p : p.slice(p.lastIndexOf('/') + 1);
+};
+/** Caminho (relativo a src/art, com .png) de uma arte pelo nome. */
+let pathByName = new Map<string, string>();
+const pathOf = (name: string) => pathByName.get(name) ?? `${name}.png`;
 
 // ------------------------------------------------------------------ estado
 const RANK_OPTS: [string, string][] = [
@@ -251,7 +263,7 @@ async function loadLayer(name: string): Promise<Layer | null> {
   const hit = layers.get(name);
   if (hit) return hit;
   const img = new Image();
-  img.src = `/art/${name}.png?t=${Date.now()}`;
+  img.src = `/art/${pathOf(name)}?t=${Date.now()}`;
   try {
     await img.decode();
   } catch {
@@ -270,7 +282,8 @@ async function loadLayer(name: string): Promise<Layer | null> {
 async function refreshList() {
   const r = await fetch('/api/art').then((x) => x.json());
   files = r.files;
-  edited = new Set<string>(r.edited.map((f: string) => f.replace(/\.png$/, '')));
+  pathByName = new Map(files.map((f) => [artNameOf(f), f]));
+  edited = new Set<string>(r.edited.map(artNameOf));
 }
 
 // ------------------------------------------------------------------ montagem
@@ -953,7 +966,7 @@ async function save() {
   for (const l of dirty) {
     const blob = await new Promise<Blob | null>((ok) => l.canvas.toBlob(ok, 'image/png'));
     if (!blob) continue;
-    const r = await fetch(`/art/${l.name}.png`, { method: 'PUT', body: blob });
+    const r = await fetch(`/art/${pathOf(l.name)}`, { method: 'PUT', body: blob });
     if (!r.ok) return setStatus(`Erro ao salvar ${l.name}: ${await r.text()}`);
     l.dirty = false;
   }
@@ -1040,8 +1053,8 @@ function renderLayerList() {
 const openDirs = new Set<string>(JSON.parse(localStorage.getItem('spr-dirs') ?? '[]'));
 
 /**
- * Lista de arquivos em árvore (src/art na raiz; ui/ e ui/art/ como pastas que abrem e fecham). Com filtro, a busca
- * vale para todas as pastas e mostra os achados numa lista só, com o caminho.
+ * Lista de arquivos em árvore pelas pastas de src/art (ninja/, buildings/, ui/…, que abrem e fecham). Com filtro, a
+ * busca vale para todas as pastas e mostra os achados numa lista só, com o caminho.
  */
 /** Filtro por tipo na lista de arquivos: tudo, folhas (grade 4×3), imagens únicas ou só as editadas à mão. */
 let fileKind: 'all' | 'sheet' | 'single' | 'edited' = 'all';
@@ -1050,16 +1063,16 @@ function renderFiles() {
   const q = $<HTMLInputElement>('filter').value.trim().toLowerCase();
   const ul = $('files');
   ul.innerHTML = '';
-  const names = files.map((f) => f.replace(/\.png$/, '')).filter(kindOk);
+  const paths = files.map((f) => f.replace(/\.png$/, '')).filter((p) => kindOk(artNameOf(p)));
   if (q || fileKind !== 'all') {
     // com busca ou filtro, uma lista só, com o caminho
-    for (const n of names) if (n.includes(q)) ul.appendChild(fileItem(n, n, 0));
+    for (const p of paths) if (p.includes(q)) ul.appendChild(fileItem(artNameOf(p), p, 0));
     return;
   }
   // pastas antes dos arquivos, em cada nível
   const walk = (dir: string, depth: number) => {
     const pre = dir ? `${dir}/` : '';
-    const inside = names.filter((n) => n.startsWith(pre)).map((n) => n.slice(pre.length));
+    const inside = paths.filter((n) => n.startsWith(pre)).map((n) => n.slice(pre.length));
     const dirs = [...new Set(inside.filter((n) => n.includes('/')).map((n) => n.split('/')[0]!))].sort();
     for (const d of dirs) {
       const path = pre + d;
@@ -1080,7 +1093,7 @@ function renderFiles() {
       ul.appendChild(li);
       if (open) walk(path, depth + 1);
     }
-    for (const n of inside) if (!n.includes('/')) ul.appendChild(fileItem(pre + n, n, depth));
+    for (const n of inside) if (!n.includes('/')) ul.appendChild(fileItem(artNameOf(pre + n), n, depth));
   };
   walk('', 0);
 }
@@ -1556,7 +1569,10 @@ try {
 } catch {
   setStatus('Não carregou src/data/layout.json (pontos desligados)');
 }
-for (const f of files) if (f.startsWith('layer-') || f === 'ninja-body.png') await loadLayer(f.replace(/\.png$/, ''));
+for (const f of files) {
+  const n = artNameOf(f);
+  if (n.startsWith('layer-') || n === 'ninja-body') await loadLayer(n);
+}
 zoom = fitZoom();
 await afterDollChange();
 setTool('pencil');

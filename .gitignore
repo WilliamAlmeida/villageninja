@@ -7,3 +7,4 @@ dist
 docs/arte/*
 !docs/arte/gabarito-*.png
 .perf/
+__pycache__/

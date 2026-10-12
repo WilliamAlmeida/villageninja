@@ -23,7 +23,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   Prédios com peças usam a âncora de cada peça; prédios inteiros, o centro com a regra das faces da frente.
   A câmera trabalha na cena projetada; fora do render use `camera.focus/jump/screenToWorld/worldToScreen` (mundo).
   Cliques no mapa comparam em coordenadas de tela (`ui/index.ts`).
-- Arte em pixel art: PNGs em `src/art` (registro em `render/art.ts`), preparados com `scripts/prepare-art.py`
+- Arte em pixel art: PNGs em `src/art`, **cada um na pasta do seu tipo** (`ninja/body`, `ninja/layers`, `ninja/busts`,
+  `characters`, `animals`, `weapons`, `buildings`, `buildings/deco`, `scenery`, `props`, `region`, `ui/…`; regra única pelo
+  nome em `scripts/artpaths.py`, que todo script que grava arte usa via `art_file(nome)`; o NOME da arte é a chave em todo
+  lugar: `render/art.ts`, `layout.json`, editores) (registro em `render/art.ts`), preparados com `scripts/prepare-art.py`
   (originais em `docs/arte`). Prédios e cenário (árvores, rochas, baú, ruína, caverna) são guardados em 2×
   (`SCENERY_SCALE`, paleta de 256 cores): o jogo desenha pelo tamanho no mundo e só ganha nitidez com zoom; abaixo do
   tamanho guardado `smoothIfShrunk` (art.ts) reduz com suavização. Personagens e camadas do ninja seguem em 1×. **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
@@ -162,8 +165,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   arte do Codex em `docs/arte/ui/frame/` → `src/art/ui/frame/`, usadas por `border-image` com as variáveis `--frame-dock` /
   `--frame-win` postas em ui/index.ts: a barra de baixo é madeira com pergaminho enrolado nas pontas e os ícones saltam
   para fora dela, sem caixa; as janelas têm cantoneiras douradas), selos de rank (**kit de interface** em andamento: `scripts/kit-split.py` separa o mockup do GPT
-  `docs/arte/ui/Atlas de Interface Ninja em Português.png` em 89 peças em `src/art/ui/kit/` com o uso de cada uma no
-  `LEIAME.md` dali; o autor limpa o texto no editor de sprites, que lista `ui/kit` e `ui/frame`, e depois elas entram
+  `docs/arte/ui/Atlas de Interface Ninja em Português.png` em 89 peças em `src/art/ui/kit1/` com o uso de cada uma no
+  `LEIAME.md` dali; o autor limpa o texto no editor de sprites, que lista `ui/kit1` e `ui/frame`, e depois elas entram
   no jogo como 9-slice/ícone; `scripts/prepare-kit.py` monta das peças limpas a arte em `src/art/ui/frame/` — já em uso:
   pergaminho dos avisos `#alertbox` com a faixa do título à parte, faixa vermelha do alerta de inimigos, trilho e
   preenchimentos das barras `.bar`/`.nc-bar`). **Minificador de CSS do Bun estraga `border-image`**: no atalho o `var()`
@@ -254,7 +257,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   rua à noite patrulhando, revelam espiões como o espião da vila e acodem o Kage com Shunshin (`anbuTick`). Missão secreta
   na Região: ação `covert` (`startCovert`, expedição com `teamId -1`): metade do saque sem infâmia se não forem descobertos.
 - **Editor de cenário** (http://localhost:3011/cenario, `tools/scene-editor/`; dados em `src/data/layout.json`, lidos por
-  `data/layout.ts`): ajuste fino de cada construção (e nível), local (ruína, mina, baú) e objeto (árvore, rocha). **Peças**:
+  `data/layout.ts`): ajuste fino de cada construção (e nível, e a arte dos mapas temáticos), local (ruína, mina, baú, com
+  as versões 2) e objeto (árvore, rocha). A prévia desenha exatamente a arte do item (`Renderer.previewArt`); a lista é
+  montada depois do `preloadArt` (`fillItems`). Variantes sem ajuste próprio usam o da arte-base (`artFamily` em
+  data/layout.ts: as 6 faces `monument-fN` usam o do "Monte dos Kages", a cerejeira verde/sem folhas o da cerejeira). **Peças**:
   máscara pintada com pincel ou lata de tinta (troca a área contínua da máscara clicada pela peça ativa) ou POLÍGONO por peça (pontos arrastáveis em 0–1 da imagem, `LayoutPiece.poly`, peça com polígono = exatamente o polígono, `applyPolys`; clique na aresta cria ponto, botão direito apaga, "Adivinhar forma" = contorno convexo, `fillPoly`/`hullOf` em render/pieces.ts; atalhos B/G/P/E) separa a arte em pedaços (`render/pieces.ts`); cada peça é desenhada na profundidade da sua
   âncora (onde toca o chão), o "resto" vai no chão (`ground`) ou em pé; transparência por peça (área própria ou o
   contorno). **Terreno**: tamanho em tiles (sobrepõe `w`/`h` do prédio) e células de MEIO tile (16 px) muro `#` /
@@ -334,7 +340,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   noutro lugar depois de `SITE_RESPAWN_DAYS` (de preferência na névoa). A mina aguenta `MINE_USES` expedições
   (`spendMine` ao terminar ou perder uma; `Site.uses`). Drawer da mina em cartões (andares, usos, fundo, força por andar).
   Ruína e mina têm duas artes (`ruin`/`cave`, editadas pelo autor, e `ruin-alt`/`cave-alt` do Codex): cada área do mapa
-  (grade 3×2) sorteia uma pela semente (`Renderer.siteArt`); o Editor de cenário ajusta cada uma pelo nome.
+  (grade 3×2) sorteia uma pela semente (`Renderer.siteArt`); o Editor de cenário lista e ajusta cada uma ("versão 2").
   Baús sem chão na arte (`scripts/strip-ground.py` → `<nome>-nograss.png`, usado pelo prepare-art; `SAME_SCALE`) e com
   sombra desenhada pelo jogo, para encaixar em qualquer piso. Baú aberto fica `CHEST_LINGER` (10 s) no chão com a arte `chest-open` e some numa nuvem de poeira (`doneFor`), e abrir dispara o efeito `treasure` (luz dourada,
   moedas, confete). Barra das cenas (`ui/scene.ts`): título com uma marca por andar, etiquetas (inimigos, equipe, saque),
