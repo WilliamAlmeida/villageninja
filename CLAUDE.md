@@ -158,8 +158,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (`growRoom`) e, se fecharem o espaço durante a obra, ela espera (`Building.waitRoom`). Save v34 cresceu as casas nível 3.
 - **Torre de Vigia 2×2** (save v33: a 1×1 cresceu no lugar ou foi para o lugar livre mais perto, `growBuildings` em
   save.ts). Arte em camadas: `<arte>` = base e `<arte>-top` = telhado/pilastras/parapeito da frente, no mesmo retângulo; o
-  renderer desenha base → vigia → topo (`Drawable.top`, `drawTop`). Até a arte nova, a 1×1 de antes fica 20% maior no meio
-  do terreno (`ART_SCALE` e `dy` provisórios).
+  renderer desenha base → vigia → topo (`Drawable.top`, `drawTop`). Os 3 níveis usam a MESMA arte (`tower` + `tower-top`,
+  pedido do autor; só os bônus mudam com o nível); as temáticas (`tower-fishing`/`-desert`) ainda são a 1×1 de antes
+  20% maior (`ART_SCALE` provisório).
 - **Achatamento** (`ArtLayout.squash`, modo Arte do Editor de cenário, 0,75–1, botão 0,866): só a altura na tela, a imagem
   não muda; o Codex desenha o chão a ~30° e 0,866 leva ao 2:1. **Paleta do cenário**: `/paleta` nas ferramentas marca as
   artes preferidas (`docs/design/arte-iso/paleta-favoritos.json`).

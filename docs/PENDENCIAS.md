@@ -44,7 +44,8 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [x] Mapa da vila 112×112 (era 72×48; save v36 centraliza a vila no mapa novo; missões seguem 72×48) e chão em blocos
 - [ ] Autor conferir o mapa novo no save dele (costura do terreno nas bordas antigas, invasões vindo de mais longe)
 - [ ] Marcar as preferidas em /paleta → `python scripts/palette-from-favorites.py` → aprovar a paleta → reaplicar no piloto
-- [ ] Torre níveis 2 e 3 em camadas (base + topo) no mesmo padrão; torres dos mapas temáticos (pescadores, deserto)
+- [x] Torre níveis 2 e 3: usam a mesma torre do nível 1 (base + topo com o vigia; pedido do autor, os bônus seguem por nível)
+- [ ] Torres dos mapas temáticos (pescadores, deserto) em camadas
 - [x] Residência do Kage nos 4 níveis (3×3, 3×3, 4×4, 5×5; scripts/building-art.py kage)
 - [ ] Refazer o resto das construções e decorações no padrão (gabarito v2, grade do boneco, paleta), em lotes com aprovação (`scripts/building-art.py`)
 - [ ] Tirar o sistema de peça "por cima do vigia" (`LayoutPiece.over`) quando nenhuma torre usar mais (as em camadas não usam)
