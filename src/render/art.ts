@@ -306,7 +306,8 @@ const images = new Map<string, HTMLImageElement>();
 export const ART_SCALE: Record<string, number> = {
   hospital: 0.85, 'hospital-2': 1.05, 'hospital-3': 1.22,
   quarry: 0.8, 'quarry-2': 1.08, 'quarry-3': 1.26,
-  'tower-3': 1.06,
+  // torre: terreno 2×2 desde a v33; a arte 1×1 de antes fica 20% maior e no meio do terreno até chegar a nova
+  tower: 0.6, 'tower-2': 0.6, 'tower-3': 0.636, 'tower-fishing': 0.6, 'tower-desert': 0.6,
   'hokage-4': 1.12,
   missions: 1.25,
   'forge-2': 1.08, 'forge-3': 1.16, 'pharmacy-2': 1.08, 'pharmacy-3': 1.16, 'sealshop-2': 1.08, 'sealshop-3': 1.16,

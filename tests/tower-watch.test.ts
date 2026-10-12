@@ -93,13 +93,38 @@ describe('vigia da torre', () => {
     expect(watchBlock(g, n)).toContain('equipe');
   });
 
-  test('migração v31 → v32 tira o guarda desenhado de antes', () => {
+  test('migração v31 → v33 tira o guarda desenhado de antes', () => {
     const { g, tower } = setup(906);
     const s = JSON.parse(JSON.stringify(g.state));
     s.version = 31;
     s.buildings.find((b: Building) => b.id === tower.id).shot = 2;
     const m = migrate(s)!;
-    expect(m.version).toBe(32);
+    expect(m.version).toBe(33);
     expect((m.buildings.find((b) => b.id === tower.id) as unknown as { shot?: number }).shot).toBeUndefined();
+  });
+});
+
+describe('torre 2×2 (save v33)', () => {
+  test('a torre 1×1 cresce no lugar se couber; se encostar noutro prédio, vai para o lugar livre mais perto', () => {
+    const { g, tower } = setup(907);
+    const s = JSON.parse(JSON.stringify(g.state));
+    s.version = 32;
+    const t = s.buildings.find((b: Building) => b.id === tower.id);
+    const was = { tx: t.tx, ty: t.ty }; // a migração muda o objeto no lugar
+    // uma casa colada à direita: a torre 2×2 no mesmo canto encostaria nela
+    s.buildings.push({ id: 99999, type: 'house', tx: t.tx + 1, ty: t.ty, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const m = migrate(s)!;
+    expect(m.version).toBe(33);
+    const nt = m.buildings.find((b) => b.id === tower.id)!;
+    expect(nt.tx !== was.tx || nt.ty !== was.ty).toBe(true);
+    const house = m.buildings.find((b) => b.id === 99999)!;
+    const overlap = nt.tx < house.tx + 2 && nt.tx + 2 > house.tx && nt.ty < house.ty + 2 && nt.ty + 2 > house.ty;
+    expect(overlap).toBe(false);
+
+    const s2 = JSON.parse(JSON.stringify(g.state));
+    s2.version = 32;
+    const m2 = migrate(s2)!;
+    const t2 = m2.buildings.find((b) => b.id === tower.id)!;
+    expect([t2.tx, t2.ty]).toEqual([tower.tx, tower.ty]);
   });
 });

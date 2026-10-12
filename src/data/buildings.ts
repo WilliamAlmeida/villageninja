@@ -123,7 +123,7 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'tower', name: 'Torre de Vigia', icon: '{tower}', desc: 'Arremessa kunais em inimigos próximos.',
-    w: 1, h: 1, cost: { wood: 25, stone: 25 }, buildTime: 12, buildable: true,
+    w: 2, h: 2, cost: { wood: 25, stone: 25 }, buildTime: 12, buildable: true,
     roof: '#8e3b2a', wall: '#6b4a2b',
   },
   {

@@ -133,6 +133,13 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   não tem upgrade: a arte segue o nível da vila (`hokage-2..4`). A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
   Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
+- **Torre de Vigia 2×2** (save v33: a 1×1 cresceu no lugar ou foi para o lugar livre mais perto, `growBuildings` em
+  save.ts). Arte em camadas: `<arte>` = base e `<arte>-top` = telhado/pilastras/parapeito da frente, no mesmo retângulo; o
+  renderer desenha base → vigia → topo (`Drawable.top`, `drawTop`). Até a arte nova, a 1×1 de antes fica 20% maior no meio
+  do terreno (`ART_SCALE` e `dy` provisórios).
+- **Achatamento** (`ArtLayout.squash`, modo Arte do Editor de cenário, 0,75–1, botão 0,866): só a altura na tela, a imagem
+  não muda; o Codex desenha o chão a ~30° e 0,866 leva ao 2:1. **Paleta do cenário**: `/paleta` nas ferramentas marca as
+  artes preferidas (`docs/design/arte-iso/paleta-favoritos.json`).
 - **Vigia da torre** (`game/towerWatch.ts`, seção "Vigia" no drawer da Torre; `Building.guardId` ↔ `Unit.onTower`, save
   v32): um ninja da vila (fora de equipe, não estudando, não Kage) sobe e arremessa as kunais no lugar da torre com o dano
   e o ritmo dele (Força/Velocidade) e o XP é dele (`watchTick` no sistema dos ninjas, antes da IA comum). Fica fora das
@@ -578,7 +585,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v32.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v33.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

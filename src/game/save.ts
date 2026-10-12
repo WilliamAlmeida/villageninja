@@ -240,7 +240,39 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
         delete b.aim;
       }
   },
+  // v33: a Torre de Vigia passou de 1×1 para 2×2 (cabe o vigia lá dentro): cresce no lugar ou vai para o lugar livre
+  // mais perto (como a arena na v24); árvore/rocha que ficou embaixo sai
+  32: (s) => {
+    for (const st of [s, s.scene].filter(Boolean)) growBuildings(st, 'tower', BUILDINGS.tower.w, BUILDINGS.tower.h);
+  },
 };
+
+/** Prédios do `type` que cresceram para w×h: ficam no lugar se couber, senão no lugar livre mais perto (até 8 tiles). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function growBuildings(s: any, type: BuildingType, W: number, H: number) {
+  for (const a of s.buildings ?? []) {
+    if (a.type !== type) continue;
+    const free = (tx: number, ty: number) => {
+      if (tx < 1 || ty < 1 || tx + W > MAP_W - 1 || ty + H > MAP_H - 1) return false;
+      for (let y = ty; y < ty + H; y++) for (let x = tx; x < tx + W; x++) if (s.tiles[idx(x, y)] === T.WATER || s.tiles[idx(x, y)] === T.ROCK) return false;
+      return !s.buildings.some((o: { id: number; type: BuildingType; tx: number; ty: number }) => {
+        if (o === a) return false;
+        const d = BUILDINGS[o.type];
+        return tx < o.tx + d.w && tx + W > o.tx && ty < o.ty + d.h && ty + H > o.ty;
+      });
+    };
+    if (!free(a.tx, a.ty))
+      search: for (let r = 1; r <= 8; r++)
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !free(a.tx + dx, a.ty + dy)) continue;
+            a.tx += dx;
+            a.ty += dy;
+            break search;
+          }
+    s.nodes = (s.nodes ?? []).filter((n: { tx: number; ty: number }) => n.tx < a.tx || n.tx >= a.tx + W || n.ty < a.ty || n.ty >= a.ty + H);
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function migrate(s: any): GameState | null {

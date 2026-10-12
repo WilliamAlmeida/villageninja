@@ -68,7 +68,10 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
   piece?: number;
   /** Vigia no alto da torre: onde ficam os pés dele na cena (a plataforma), em vez do ponto lógico (a porta). */
-  lift?: { x: number; y: number; towerId: number; b: Building } };
+  lift?: { x: number; y: number; towerId: number; b: Building };
+  /** Camada de cima do prédio (arte `<arte>-top`, ex. telhado e pilastras da torre): desenhada por cima da base e de
+   * quem está lá dentro (o vigia). */
+  top?: boolean };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -297,12 +300,16 @@ export class Renderer {
           const pc = project(c.x, c.y);
           list.push({ x: pc.x, y: pc.y, b, piece: 0 });
         }
+        if (art(`${box!.artName}-top`)) list.push({ ...project(c.x, c.y), b, top: true });
         continue;
       }
       if (def.walkable) continue;
       const c = buildingCenter(b);
       const p = project(c.x, c.y);
-      if (seen(p)) list.push({ x: p.x, y: p.y, b });
+      if (seen(p)) {
+        list.push({ x: p.x, y: p.y, b });
+        if (box && art(`${box.artName}-top`)) list.push({ x: p.x, y: p.y, b, top: true });
+      }
     }
     // na névoa não aparece nada em pé: nem recursos, nem bichos e inimigos, nem locais ainda não achados
     for (const n of s.nodes) {
@@ -373,7 +380,7 @@ export class Renderer {
     // o sprite do ninja é desenhado 9 px abaixo do ponto dele, a rocha ~6 px, o baú ~5 px; comparar os pontos lógicos
     // fazia quem estava logo à frente de um baú ficar atrás dele. `depth` do Editor de cenário ajusta à mão.
     for (const d of list) d.k = this.baseLine(d);
-    const blocks = list.filter((d) => d.b && d.piece == null);
+    const blocks = list.filter((d) => d.b && d.piece == null && !d.top);
     for (const d of list) {
       if (d.b) continue;
       const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
@@ -403,15 +410,21 @@ export class Renderer {
       }
       if (d.k! <= y) d.k = y + 0.02 + d.y * 1e-5;
     }
+    // camada de cima (`<arte>-top`): logo depois da base do mesmo prédio
+    for (const d of list) {
+      if (!d.top) continue;
+      const base = list.filter((o) => o.b === d.b && !o.top);
+      if (base.length) d.k = Math.max(...base.map((o) => o.k!)) + 0.001;
+    }
     // vigia da torre: logo depois da arte da torre (ou das peças de baixo) e antes das peças marcadas "por cima do
-    // vigia" (telhado, parapeito da frente), que o cobrem
+    // vigia" (telhado, parapeito da frente) e da camada de cima, que o cobrem
     for (const d of list) {
       if (!d.lift) continue;
       const mine = list.filter((o) => o.b?.id === d.lift!.towerId);
       if (!mine.length) continue;
       const box = this.artBox(mine[0]!.b!, s.level);
       const L = box && artLayout(box.artName);
-      const isOver = (o: Drawable) => o.piece != null && o.piece > 0 && !!L?.pieces?.[o.piece - 1]?.over;
+      const isOver = (o: Drawable) => !!o.top || (o.piece != null && o.piece > 0 && !!L?.pieces?.[o.piece - 1]?.over);
       const under = mine.filter((o) => !isOver(o));
       d.k = Math.max(...(under.length ? under : mine).map((o) => o.k!)) + 0.002;
       mine.filter(isOver).forEach((o, i) => (o.k = d.k! + 0.001 * (i + 1)));
@@ -430,7 +443,7 @@ export class Renderer {
     for (const d of list) {
       if (d.b || d.n || (d.site && d.piece != null)) {
         // quem tapa uma unidade fica semitransparente (some e volta suavemente)
-        const key = d.b ? `b${d.b.id}:${d.piece ?? ''}` : d.n ? `n${d.n.id}` : `s${d.site!.id}:${d.piece}`;
+        const key = d.b ? `b${d.b.id}:${d.top ? 'top' : (d.piece ?? '')}` : d.n ? `n${d.n.id}` : `s${d.site!.id}:${d.piece}`;
         const target = occluded.has(d) ? 0.38 : 1;
         const cur = this.fade.get(key) ?? 1;
         const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
@@ -438,7 +451,8 @@ export class Renderer {
         else this.fade.set(key, a);
         ctx.globalAlpha = a;
       }
-      if (d.b && d.piece != null) this.drawPiece(d.b, d.piece, s.level);
+      if (d.b && d.top) this.drawTop(d.b, s.level);
+      else if (d.b && d.piece != null) this.drawPiece(d.b, d.piece, s.level);
       else if (d.b) this.building(d.b, time, night, s.level);
       else if (d.site && d.piece != null) this.drawSitePiece(d.site, d.piece, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
@@ -655,6 +669,18 @@ export class Renderer {
     const x = front.x + (flip ? -1 : 1) * (L?.dx ?? 0);
     const baseY = front.y + 4 + (L?.dy ?? 0);
     return { artName, pic, lvl, front, width, h, w, x, baseY, left: x - w / 2, top: baseY - h, flip };
+  }
+
+  /** Camada de cima do prédio (`<arte>-top`), no mesmo retângulo da base (as duas imagens têm o mesmo tamanho). */
+  private drawTop(b: Building, level: number) {
+    const box = this.artBox(b, level);
+    const top = box && art(`${box.artName}-top`);
+    if (!box || !top || !top.naturalWidth) return;
+    const ctx = this.ctx;
+    ctx.save();
+    if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * (b.progress / Math.max(1, BUILDINGS[b.type].buildTime));
+    this.drawBox(top, box);
+    ctx.restore();
   }
 
   /** Desenha a arte inteira no retângulo da caixa (largura e altura próprias: o achatamento muda só a altura). */
