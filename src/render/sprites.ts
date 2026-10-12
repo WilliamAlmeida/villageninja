@@ -541,7 +541,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // espião invisível: só um vulto tremulando
   if (u.cloak) ctx.globalAlpha = u.faction === 'village' ? 0.45 : 0.14 + Math.sin(t * 6 + u.id) * 0.05; // ANBU da vila: meio transparente
   // nas folhas de ação a ferramenta erguida ocupa o alto do quadro: desenha maior para o corpo ficar do mesmo tamanho
-  const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1) * (u.bijuu ? bijuuScale(u.bijuu).size : 1);
+  const scale = TIER_SCALE[u.tier ?? 0]! * (u.breed ? BREEDS[u.breed].scale : 1) * (u.bijuu ? bijuuScale(u.bijuu).size : 1) * (u.drawScale ?? 1);
   // golpe: avança um passo curto na direção do alvo e volta (sem quadro de ataque na folha)
   const lunge = !action && !posed && u.anim > 0 && !u.moving ? Math.sin(Math.min(1, u.anim / 0.25) * Math.PI) * 4 : 0;
   const ux = u.x + dx * lunge;

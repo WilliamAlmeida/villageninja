@@ -142,6 +142,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   (marca `guard` da arte no Editor de cenário, `Renderer.guardSpot`), depois das peças de baixo e antes das peças com
   "Por cima do vigia" (`LayoutPiece.over`: o parapeito da frente de cada torre). Sem vigia a torre atira sozinha, sem
   ninguém desenhado (a folha `tower-guard` saiu).
+  No desenho (`Renderer.watchPose`) ele fica a 70%, anda a cada ~5 s entre os pontos da plataforma (`guard`, `guard2`,
+  `guard3` no Editor de cenário; sem eles, dois passos atrás de cada lado) e olha para os lados; arremessando, vira para o
+  alvo. Não conta como "alguém atrás" da própria torre e esmaece junto com ela (`towerFade`).
   `remove-bg.py --vaos` limpa vãos brancos fechados (torres, porto, ruína). O `remove-bg.py` só considera fundo o quase
   branco SEM cor (parede creme e grama clara encostadas no fundo ficam) e tira a franja clara do contorno.
   `python scripts/rebg.py [nome]` refaz o fundo das artes de docs/arte/iso a partir da crua do Codex (achada no
@@ -357,6 +360,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   **Gabarito de chão** (`scripts/iso_template.py`, usado pelo `deco-grid.py`): o Codex recebe como 1ª referência uma
   folha com o losango 2:1 EXATO do terreno de cada peça (tamanho em tiles de data/buildings.ts) na casa dela, e o recorte
   usa a largura do losango; sem ele a base saía no ângulo/tamanho errado. Prédio novo deve usar o mesmo gabarito.
+  **Estudo da arte isométrica** em `docs/design-arte-iso.md` (`scripts/iso-audit.py` mede ângulo, encaixe no terreno e
+  tamanho do pixel de cada arte contra a projeção do jogo): regras em discussão com o autor antes de refazer.
   Baús sem chão na arte (`scripts/strip-ground.py` → `<nome>-nograss.png`, usado pelo prepare-art; `SAME_SCALE`) e com
   sombra desenhada pelo jogo, para encaixar em qualquer piso. Baú aberto fica `CHEST_LINGER` (10 s) no chão com a arte `chest-open` e some numa nuvem de poeira (`doneFor`), e abrir dispara o efeito `treasure` (luz dourada,
   moedas, confete). Barra das cenas (`ui/scene.ts`): título com uma marca por andar, etiquetas (inimigos, equipe, saque),

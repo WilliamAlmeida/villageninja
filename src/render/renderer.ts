@@ -68,7 +68,7 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
   piece?: number;
   /** Vigia no alto da torre: onde ficam os pés dele na cena (a plataforma), em vez do ponto lógico (a porta). */
-  lift?: { x: number; y: number; towerId: number } };
+  lift?: { x: number; y: number; towerId: number; b: Building } };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -355,7 +355,7 @@ export class Renderer {
       const tw = u.state === 'towerWatch' && u.onTower != null ? g.building(u.onTower) : undefined;
       const spot = tw && this.guardSpot(tw, s.level);
       if (spot) {
-        if (seen(spot)) list.push({ x: spot.x, y: spot.y, u, lift: { ...spot, towerId: tw!.id } });
+        if (seen(spot)) list.push({ x: spot.x, y: spot.y, u, lift: { ...spot, towerId: tw!.id, b: tw! } });
         continue;
       }
       const p = project(u.x, u.y);
@@ -455,8 +455,9 @@ export class Renderer {
       }
       ctx.globalAlpha = 1;
       if (d.u) {
-        // vigia: na plataforma da torre (os pés na linha da plataforma; o sprite fica 9 px abaixo do ponto)
-        const u = d.lift ? { ...this.projected(d.u), x: d.lift.x, y: d.lift.y - 9 } : this.projected(d.u);
+        // vigia: anda entre os pontos da plataforma (só desenho), a 70%, e esmaece junto com a torre
+        const u = d.lift ? this.watchPose(d.u, d.lift, time) : this.projected(d.u);
+        if (d.lift) ctx.globalAlpha = this.towerFade(d.lift.towerId);
         const selected = (sel?.kind === 'unit' && sel.id === u.id) || group.has(u.id);
         const tc = teamColor.get(u.kind === 'clone' ? (u.ownerId ?? -1) : u.id);
         if (tc && (!far || focus.has(u.id))) {
@@ -568,7 +569,8 @@ export class Renderer {
     const out = new Set<Drawable>();
     const bodies: { x: number; y: number; i: number }[] = [];
     list.forEach((d, i) => {
-      if (d.u && !d.u.dead) bodies.push({ x: d.x, y: d.y - 12, i });
+      // o vigia lá em cima não "está atrás" da própria torre (senão o parapeito por cima dele ficava transparente)
+      if (d.u && !d.u.dead && !d.lift) bodies.push({ x: d.x, y: d.y - 12, i });
     });
     if (!bodies.length) return out;
     // peça pintada: a área de transparência do Editor de cenário, se houver; senão os pixels da própria peça (o
@@ -837,6 +839,51 @@ export class Renderer {
     if (!box) return null;
     const mk = artLayout(box.artName)?.marks?.guard;
     return mk ? { x: box.x + mk[0], y: box.baseY + mk[1] } : { x: box.x, y: box.baseY - box.h * (GUARD_PLATFORM[box.lvl] ?? 0.58) };
+  }
+
+  /** Pontos da plataforma da torre (pés, na cena): a marca `guard` e as `guard2`/`guard3` da arte; sem elas, dois
+   * passos para trás de cada lado da principal. */
+  private guardSpots(b: Building, level: number): { x: number; y: number }[] {
+    const main = this.guardSpot(b, level);
+    const box = this.artBox(b, level);
+    if (!main || !box) return [];
+    const mk = artLayout(box.artName)?.marks;
+    const extra = (['guard2', 'guard3'] as const).map((k) => mk?.[k]).filter((m): m is [number, number] => !!m);
+    if (extra.length) return [main, ...extra.map((m) => ({ x: box.x + m[0], y: box.baseY + m[1] }))];
+    const s = box.w * 0.11;
+    return [main, { x: main.x - s, y: main.y - s * 0.5 }, { x: main.x + s, y: main.y - s * 0.5 }];
+  }
+
+  /**
+   * O vigia lá em cima (só desenho): a cada ~5 s anda até outro ponto da plataforma e fica olhando para um lado
+   * (frente, esquerda, direita); arremessando, vira para o alvo. A 70% do tamanho, para caber na plataforma.
+   */
+  private watchPose(u: Unit, lift: { x: number; y: number; b: Building }, time: number): Unit {
+    const base = this.projected(u);
+    const pts = this.guardSpots(lift.b, this.level);
+    const SEG = 5;
+    const t = time + u.id * 1.37;
+    const seg = Math.floor(t / SEG);
+    const pick = (k: number) => (pts.length ? pts[((Math.imul(k + u.id, 2654435761) >>> 0) % pts.length)]! : lift);
+    const from = pick(seg - 1);
+    const to = pick(seg);
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    const walk = Math.min(1.5, dist / 16);
+    const k = walk > 0 ? Math.min(1, (t - seg * SEG) / walk) : 1;
+    const x = from.x + (to.x - from.x) * k;
+    const y = from.y + (to.y - from.y) * k;
+    const throwing = u.anim > 0 && u.animKind === 'throw';
+    const moving = !throwing && k < 1 && dist > 0.5;
+    const LOOK = [Math.PI / 2, 0, Math.PI, Math.PI / 2];
+    const facing = throwing ? base.facing : moving ? Math.atan2(to.y - from.y, to.x - from.x) : LOOK[(seg + u.id) % LOOK.length]!;
+    return { ...base, x, y: y - 9, moving, facing, drawScale: 0.7 }; // os pés ficam 9 px abaixo do ponto
+  }
+
+  /** Transparência atual da torre (a menor das peças dela): o vigia esmaece junto quando alguém passa atrás. */
+  private towerFade(id: number) {
+    let a = 1;
+    for (const [k, v] of this.fade) if (k.startsWith(`b${id}:`)) a = Math.min(a, v);
+    return a;
   }
 
   /** Shunshin: vulto do ninja onde ele estava, apagando rápido. */

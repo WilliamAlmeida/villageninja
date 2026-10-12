@@ -380,7 +380,12 @@ function pointDefs(): PointDef[] {
       { name: 'center', label: 'Centro do chão de luta' }, { name: 'edge', label: 'Borda do chão de luta (raio)' }, { name: 'left', label: 'Lutador 1' }, { name: 'right', label: 'Lutador 2' },
       ...Array.from({ length: 8 }, (_, i) => ({ name: `seat${i + 1}`, label: `Lugar ${i + 1} na arquibancada (pés)` })),
     );
-  if (building.type === 'tower') out.push({ name: 'guard', label: 'Guarda (no alto, nesta arte)', scene: true });
+  if (building.type === 'tower')
+    out.push(
+      { name: 'guard', label: 'Vigia: ponto principal da plataforma (pés, nesta arte)', scene: true },
+      { name: 'guard2', label: 'Vigia: outro ponto onde ele anda', scene: true },
+      { name: 'guard3', label: 'Vigia: mais um ponto onde ele anda', scene: true },
+    );
   // Campo de Treino: bonecos/alvos (game/trainingField.ts): Taijutsu/Força golpeiam ao lado deles, a corrida passa por fora
   if (building.type === 'training') out.push(...Array.from({ length: 5 }, (_, i) => ({ name: `post${i + 1}`, label: `Boneco/alvo ${i + 1} (base, onde golpeiam)` })));
   if (building.type === 'house') out.push({ name: 'chimney', label: 'Chaminé (nesta arte)', scene: true });

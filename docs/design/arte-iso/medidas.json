@@ -1,0 +1,1802 @@
+[
+ {
+  "name": "academy-2",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   676
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.48,
+  "slope_right": 0.519,
+  "front_dx": 0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 2.42,
+  "pixel_img": 9.68
+ },
+ {
+  "name": "academy-3",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   736
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.499,
+  "slope_right": 0.531,
+  "front_dx": -3.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.8,
+  "pixel_img": 7.22
+ },
+ {
+  "name": "academy",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   515
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.554,
+  "slope_right": 0.547,
+  "front_dx": -1.6,
+  "front_dy": 3.5,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 4.96,
+  "pixel_img": 19.86
+ },
+ {
+  "name": "arena",
+  "tiles": [
+   6,
+   6
+  ],
+  "img": [
+   1152,
+   959
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 288.0,
+  "diamond_w": 288.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.427,
+  "slope_right": 0.275,
+  "front_dx": -24.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 3.75,
+  "pixel_img": 15.01
+ },
+ {
+  "name": "banner",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   154,
+   286
+  ],
+  "art_scale": 0.55,
+  "editor_scale": 1,
+  "drawn_w": 26.4,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.55,
+  "slope_left": 0.284,
+  "slope_right": 1.491,
+  "front_dx": -3.3,
+  "front_dy": -3.0,
+  "left_dx": 11.1,
+  "right_dx": -10.9,
+  "pixel_scene": 1.64,
+  "pixel_img": 9.59
+ },
+ {
+  "name": "bench",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   192,
+   179
+  ],
+  "art_scale": 0.85,
+  "editor_scale": 1,
+  "drawn_w": 40.8,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.85,
+  "slope_left": 0.406,
+  "slope_right": 8.724,
+  "front_dx": 14.3,
+  "front_dy": -0.7,
+  "left_dx": 5.8,
+  "right_dx": -6.3,
+  "pixel_scene": 2.69,
+  "pixel_img": 12.64
+ },
+ {
+  "name": "cherry-bare",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   288,
+   298
+  ],
+  "art_scale": 1.3,
+  "editor_scale": 1,
+  "drawn_w": 62.4,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.3,
+  "slope_left": 1.284,
+  "slope_right": 1.071,
+  "front_dx": 2.7,
+  "front_dy": 4.0,
+  "left_dx": -7.1,
+  "right_dx": 7.1,
+  "pixel_scene": 1.08,
+  "pixel_img": 5.0
+ },
+ {
+  "name": "cherry-green",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   288,
+   306
+  ],
+  "art_scale": 1.3,
+  "editor_scale": 1,
+  "drawn_w": 62.4,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.3,
+  "slope_left": 1.08,
+  "slope_right": 1.021,
+  "front_dx": 3.6,
+  "front_dy": 4.0,
+  "left_dx": -7.1,
+  "right_dx": 7.1,
+  "pixel_scene": 2.76,
+  "pixel_img": 12.73
+ },
+ {
+  "name": "cherry",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   288,
+   311
+  ],
+  "art_scale": 1.3,
+  "editor_scale": 1,
+  "drawn_w": 62.4,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.3,
+  "slope_left": 1.676,
+  "slope_right": 0.508,
+  "front_dx": -4.9,
+  "front_dy": 0.0,
+  "left_dx": -7.1,
+  "right_dx": 7.1,
+  "pixel_scene": 2.11,
+  "pixel_img": 9.72
+ },
+ {
+  "name": "flowers",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   192,
+   176
+  ],
+  "art_scale": 0.8,
+  "editor_scale": 1,
+  "drawn_w": 38.4,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.8,
+  "slope_left": 0.565,
+  "slope_right": 0.601,
+  "front_dx": -0.5,
+  "front_dy": 4.0,
+  "left_dx": 4.9,
+  "right_dx": -4.9,
+  "pixel_scene": 1.3,
+  "pixel_img": 6.48
+ },
+ {
+  "name": "fountain",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   248
+  ],
+  "art_scale": 0.95,
+  "editor_scale": 1,
+  "drawn_w": 91.2,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 0.95,
+  "slope_left": 0.56,
+  "slope_right": 0.561,
+  "front_dx": 0.4,
+  "front_dy": 4.0,
+  "left_dx": 2.5,
+  "right_dx": -2.5,
+  "pixel_scene": 1.59,
+  "pixel_img": 6.69
+ },
+ {
+  "name": "lantern",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   134,
+   231
+  ],
+  "art_scale": 0.45,
+  "editor_scale": 1,
+  "drawn_w": 21.6,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.45,
+  "slope_left": 0.544,
+  "slope_right": 0.532,
+  "front_dx": -0.6,
+  "front_dy": -4.0,
+  "left_dx": 13.3,
+  "right_dx": -13.3,
+  "pixel_scene": 1.05,
+  "pixel_img": 6.49
+ },
+ {
+  "name": "pagoda",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   518
+  ],
+  "art_scale": 0.9,
+  "editor_scale": 1,
+  "drawn_w": 86.4,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 0.9,
+  "slope_left": 0.846,
+  "slope_right": 0.589,
+  "front_dx": -3.3,
+  "front_dy": 4.0,
+  "left_dx": 4.9,
+  "right_dx": -4.9,
+  "pixel_scene": 2.41,
+  "pixel_img": 10.69
+ },
+ {
+  "name": "pond",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   258
+  ],
+  "art_scale": 1.0,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.562,
+  "slope_right": 0.558,
+  "front_dx": -1.1,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.68,
+  "pixel_img": 6.73
+ },
+ {
+  "name": "shrine",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   192,
+   168
+  ],
+  "art_scale": 0.85,
+  "editor_scale": 1,
+  "drawn_w": 40.8,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.85,
+  "slope_left": 0.492,
+  "slope_right": 0.313,
+  "front_dx": -3.1,
+  "front_dy": -2.0,
+  "left_dx": 3.7,
+  "right_dx": -3.7,
+  "pixel_scene": 1.17,
+  "pixel_img": 5.52
+ },
+ {
+  "name": "statue",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   154,
+   233
+  ],
+  "art_scale": 0.6,
+  "editor_scale": 1,
+  "drawn_w": 28.8,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.6,
+  "slope_left": 0.541,
+  "slope_right": 0.468,
+  "front_dx": -2.0,
+  "front_dy": -1.0,
+  "left_dx": 9.7,
+  "right_dx": -9.7,
+  "pixel_scene": 1.22,
+  "pixel_img": 6.5
+ },
+ {
+  "name": "farm-2",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   368
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.627,
+  "slope_right": 0.624,
+  "front_dx": -0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.73,
+  "pixel_img": 2.92
+ },
+ {
+  "name": "farm-3",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   367
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.625,
+  "slope_right": 0.622,
+  "front_dx": -0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.71,
+  "pixel_img": 2.82
+ },
+ {
+  "name": "farm",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   368
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.627,
+  "slope_right": 0.625,
+  "front_dx": -0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.88,
+  "pixel_img": 3.52
+ },
+ {
+  "name": "forge-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   347
+  ],
+  "art_scale": 1.08,
+  "editor_scale": 1,
+  "drawn_w": 103.7,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.08,
+  "slope_left": 0.51,
+  "slope_right": 0.509,
+  "front_dx": -1.8,
+  "front_dy": 4.0,
+  "left_dx": -3.7,
+  "right_dx": 3.7,
+  "pixel_scene": 1.27,
+  "pixel_img": 4.71
+ },
+ {
+  "name": "forge-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   374
+  ],
+  "art_scale": 1.16,
+  "editor_scale": 1,
+  "drawn_w": 111.4,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.16,
+  "slope_left": 0.503,
+  "slope_right": 0.523,
+  "front_dx": -0.1,
+  "front_dy": 4.0,
+  "left_dx": -7.5,
+  "right_dx": 7.5,
+  "pixel_scene": 1.08,
+  "pixel_img": 3.74
+ },
+ {
+  "name": "forge",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   397
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.61,
+  "slope_right": 0.574,
+  "front_dx": -0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.66,
+  "pixel_img": 6.64
+ },
+ {
+  "name": "herbgarden",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   226
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.569,
+  "slope_right": 0.568,
+  "front_dx": -0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.64,
+  "pixel_img": 2.55
+ },
+ {
+  "name": "hokage-2",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   609
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.438,
+  "slope_right": 0.264,
+  "front_dx": -14.1,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 4.57,
+  "pixel_img": 18.29
+ },
+ {
+  "name": "hokage-3",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   704
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.628,
+  "slope_right": 0.321,
+  "front_dx": -14.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 3.43,
+  "pixel_img": 13.7
+ },
+ {
+  "name": "hokage-4",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   624
+  ],
+  "art_scale": 1.12,
+  "editor_scale": 1,
+  "drawn_w": 161.3,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.12,
+  "slope_left": 0.91,
+  "slope_right": 0.231,
+  "front_dx": -25.6,
+  "front_dy": 4.0,
+  "left_dx": -8.5,
+  "right_dx": 8.5,
+  "pixel_scene": 2.31,
+  "pixel_img": 8.27
+ },
+ {
+  "name": "hokage",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   529
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.441,
+  "slope_right": 0.245,
+  "front_dx": -13.1,
+  "front_dy": 4.0,
+  "left_dx": 0.6,
+  "right_dx": -0.1,
+  "pixel_scene": 6.58,
+  "pixel_img": 26.33
+ },
+ {
+  "name": "hospital-2",
+  "tiles": [
+   3,
+   2
+  ],
+  "img": [
+   480,
+   343
+  ],
+  "art_scale": 1.05,
+  "editor_scale": 1,
+  "drawn_w": 126.0,
+  "diamond_w": 120.0,
+  "width_vs_diamond": 1.05,
+  "slope_left": 0.415,
+  "slope_right": 0.063,
+  "front_dx": -13.0,
+  "front_dy": 4.0,
+  "left_dx": 9.1,
+  "right_dx": 14.9,
+  "pixel_scene": 2.69,
+  "pixel_img": 10.23
+ },
+ {
+  "name": "hospital-3",
+  "tiles": [
+   3,
+   2
+  ],
+  "img": [
+   480,
+   421
+  ],
+  "art_scale": 1.22,
+  "editor_scale": 1,
+  "drawn_w": 146.4,
+  "diamond_w": 120.0,
+  "width_vs_diamond": 1.22,
+  "slope_left": 0.453,
+  "slope_right": 0.507,
+  "front_dx": 0.8,
+  "front_dy": 4.0,
+  "left_dx": -1.0,
+  "right_dx": 25.0,
+  "pixel_scene": 1.44,
+  "pixel_img": 4.71
+ },
+ {
+  "name": "hospital",
+  "tiles": [
+   3,
+   2
+  ],
+  "img": [
+   480,
+   405
+  ],
+  "art_scale": 0.85,
+  "editor_scale": 1,
+  "drawn_w": 102.0,
+  "diamond_w": 120.0,
+  "width_vs_diamond": 0.85,
+  "slope_left": 0.509,
+  "slope_right": 0.486,
+  "front_dx": -3.5,
+  "front_dy": 4.0,
+  "left_dx": 21.1,
+  "right_dx": 2.9,
+  "pixel_scene": 2.37,
+  "pixel_img": 11.17
+ },
+ {
+  "name": "house-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   380
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.869,
+  "slope_right": 0.794,
+  "front_dx": -0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.9,
+  "pixel_img": 7.59
+ },
+ {
+  "name": "house-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   371
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.367,
+  "slope_right": 0.438,
+  "front_dx": -7.9,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.75,
+  "pixel_img": 6.99
+ },
+ {
+  "name": "house-desert",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   365
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.654,
+  "slope_right": 0.186,
+  "front_dx": -9.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 2.21,
+  "pixel_img": 8.84
+ },
+ {
+  "name": "house-fishing",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   453
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.407,
+  "slope_right": 0.693,
+  "front_dx": 11.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.44,
+  "pixel_img": 5.78
+ },
+ {
+  "name": "house",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   336
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.608,
+  "slope_right": 0.59,
+  "front_dx": -2.9,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 3.5,
+  "pixel_img": 14.0
+ },
+ {
+  "name": "intel",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   307,
+   554
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 2.353,
+  "slope_right": 1.696,
+  "front_dx": -2.8,
+  "front_dy": 4.0,
+  "left_dx": 0.2,
+  "right_dx": -0.2,
+  "pixel_scene": 2.26,
+  "pixel_img": 7.24
+ },
+ {
+  "name": "ironmine",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   345
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.568,
+  "slope_right": 0.586,
+  "front_dx": 0.1,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.47,
+  "pixel_img": 5.87
+ },
+ {
+  "name": "kennel",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   330
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.532,
+  "slope_right": 0.585,
+  "front_dx": 6.9,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.33,
+  "pixel_img": 5.3
+ },
+ {
+  "name": "library",
+  "tiles": [
+   3,
+   2
+  ],
+  "img": [
+   480,
+   421
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 120.0,
+  "diamond_w": 120.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.509,
+  "slope_right": 0.556,
+  "front_dx": 8.4,
+  "front_dy": 4.0,
+  "left_dx": 12.1,
+  "right_dx": 11.9,
+  "pixel_scene": 1.57,
+  "pixel_img": 6.3
+ },
+ {
+  "name": "lumber-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   321
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.58,
+  "slope_right": 0.563,
+  "front_dx": -0.9,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.92,
+  "pixel_img": 7.67
+ },
+ {
+  "name": "lumber-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   329
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.494,
+  "slope_right": 0.582,
+  "front_dx": -0.9,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.27,
+  "pixel_img": 5.09
+ },
+ {
+  "name": "lumber",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   336
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.582,
+  "slope_right": 0.571,
+  "front_dx": 0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 2.81,
+  "pixel_img": 11.25
+ },
+ {
+  "name": "market-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   315
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.506,
+  "slope_right": 0.508,
+  "front_dx": -4.1,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.61,
+  "pixel_img": 6.46
+ },
+ {
+  "name": "market-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   402
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.5,
+  "slope_right": 0.505,
+  "front_dx": -0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.47,
+  "pixel_img": 5.89
+ },
+ {
+  "name": "market-desert",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   363
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.36,
+  "slope_right": 0.129,
+  "front_dx": 0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.31,
+  "pixel_img": 5.24
+ },
+ {
+  "name": "market-fishing",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   434
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.409,
+  "slope_right": 0.281,
+  "front_dx": 6.1,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.8,
+  "pixel_img": 7.22
+ },
+ {
+  "name": "market",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   344
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.488,
+  "slope_right": 0.496,
+  "front_dx": -0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.4,
+  "right_dx": -0.1,
+  "pixel_scene": 2.41,
+  "pixel_img": 9.66
+ },
+ {
+  "name": "memorial",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   154,
+   179
+  ],
+  "art_scale": 0.62,
+  "editor_scale": 1,
+  "drawn_w": 29.8,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 0.62,
+  "slope_left": 0.429,
+  "slope_right": 0.414,
+  "front_dx": -1.1,
+  "front_dy": -4.0,
+  "left_dx": 9.2,
+  "right_dx": -9.2,
+  "pixel_scene": 0.92,
+  "pixel_img": 4.77
+ },
+ {
+  "name": "missions",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   330
+  ],
+  "art_scale": 1.25,
+  "editor_scale": 1,
+  "drawn_w": 120.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.25,
+  "slope_left": 0.534,
+  "slope_right": 0.569,
+  "front_dx": 9.2,
+  "front_dy": 4.0,
+  "left_dx": -11.8,
+  "right_dx": 11.8,
+  "pixel_scene": 1.58,
+  "pixel_img": 5.04
+ },
+ {
+  "name": "monument-f1",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   506
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.424,
+  "slope_right": 0.555,
+  "front_dx": -5.4,
+  "front_dy": -5.0,
+  "left_dx": 9.4,
+  "right_dx": 8.9,
+  "pixel_scene": 2.39,
+  "pixel_img": 9.55
+ },
+ {
+  "name": "monument-f2",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   506
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.425,
+  "slope_right": 0.551,
+  "front_dx": -5.1,
+  "front_dy": -5.0,
+  "left_dx": 9.1,
+  "right_dx": 8.9,
+  "pixel_scene": 2.09,
+  "pixel_img": 8.38
+ },
+ {
+  "name": "monument-f3",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   506
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.425,
+  "slope_right": 0.554,
+  "front_dx": -6.1,
+  "front_dy": -5.0,
+  "left_dx": 9.1,
+  "right_dx": 8.9,
+  "pixel_scene": 1.99,
+  "pixel_img": 7.97
+ },
+ {
+  "name": "monument-f4",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   506
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.424,
+  "slope_right": 0.554,
+  "front_dx": -5.1,
+  "front_dy": -5.0,
+  "left_dx": 9.1,
+  "right_dx": 8.9,
+  "pixel_scene": 1.92,
+  "pixel_img": 7.69
+ },
+ {
+  "name": "monument-f5",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   506
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.425,
+  "slope_right": 0.553,
+  "front_dx": -5.6,
+  "front_dy": -5.0,
+  "left_dx": 9.1,
+  "right_dx": 8.9,
+  "pixel_scene": 1.91,
+  "pixel_img": 7.63
+ },
+ {
+  "name": "monument-f6",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   508
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.424,
+  "slope_right": 0.554,
+  "front_dx": -5.1,
+  "front_dy": -5.0,
+  "left_dx": 9.1,
+  "right_dx": 8.9,
+  "pixel_scene": 1.84,
+  "pixel_img": 7.35
+ },
+ {
+  "name": "monument",
+  "tiles": [
+   4,
+   2
+  ],
+  "img": [
+   576,
+   506
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.424,
+  "slope_right": 0.555,
+  "front_dx": -5.4,
+  "front_dy": -5.0,
+  "left_dx": 9.4,
+  "right_dx": 8.9,
+  "pixel_scene": 2.39,
+  "pixel_img": 9.55
+ },
+ {
+  "name": "pharmacy-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   355
+  ],
+  "art_scale": 1.08,
+  "editor_scale": 1,
+  "drawn_w": 103.7,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.08,
+  "slope_left": 0.517,
+  "slope_right": 0.517,
+  "front_dx": -3.4,
+  "front_dy": 4.0,
+  "left_dx": -3.7,
+  "right_dx": 3.7,
+  "pixel_scene": 0.94,
+  "pixel_img": 3.49
+ },
+ {
+  "name": "pharmacy-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   361
+  ],
+  "art_scale": 1.16,
+  "editor_scale": 1,
+  "drawn_w": 111.4,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.16,
+  "slope_left": 0.556,
+  "slope_right": 0.427,
+  "front_dx": -7.1,
+  "front_dy": 4.0,
+  "left_dx": -7.5,
+  "right_dx": 7.5,
+  "pixel_scene": 0.72,
+  "pixel_img": 2.47
+ },
+ {
+  "name": "pharmacy",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   366
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.545,
+  "slope_right": 0.551,
+  "front_dx": -0.1,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.79,
+  "pixel_img": 7.16
+ },
+ {
+  "name": "port",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   480,
+   422
+  ],
+  "art_scale": 1,
+  "editor_scale": 0.9,
+  "drawn_w": 129.6,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 0.9,
+  "slope_left": 0.474,
+  "slope_right": 0.334,
+  "front_dx": -17.2,
+  "front_dy": 1.0,
+  "left_dx": 4.3,
+  "right_dx": -10.6,
+  "pixel_scene": 2.42,
+  "pixel_img": 8.98
+ },
+ {
+  "name": "puppetshop",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   342
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.577,
+  "slope_right": 0.464,
+  "front_dx": -4.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.96,
+  "pixel_img": 7.82
+ },
+ {
+  "name": "quarry-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   333
+  ],
+  "art_scale": 1.08,
+  "editor_scale": 1,
+  "drawn_w": 103.7,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.08,
+  "slope_left": 0.337,
+  "slope_right": 0.43,
+  "front_dx": -1.5,
+  "front_dy": 4.0,
+  "left_dx": -3.7,
+  "right_dx": 3.7,
+  "pixel_scene": 1.78,
+  "pixel_img": 6.61
+ },
+ {
+  "name": "quarry-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   290
+  ],
+  "art_scale": 1.26,
+  "editor_scale": 1,
+  "drawn_w": 121.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.26,
+  "slope_left": 0.249,
+  "slope_right": 0.481,
+  "front_dx": 3.3,
+  "front_dy": 4.0,
+  "left_dx": -12.3,
+  "right_dx": 12.3,
+  "pixel_scene": 1.81,
+  "pixel_img": 5.75
+ },
+ {
+  "name": "quarry",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   367
+  ],
+  "art_scale": 0.8,
+  "editor_scale": 1,
+  "drawn_w": 76.8,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 0.8,
+  "slope_left": 0.382,
+  "slope_right": 0.204,
+  "front_dx": 4.7,
+  "front_dy": 4.0,
+  "left_dx": 9.7,
+  "right_dx": -9.7,
+  "pixel_scene": 2.11,
+  "pixel_img": 10.56
+ },
+ {
+  "name": "sealshop-2",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   339
+  ],
+  "art_scale": 1.08,
+  "editor_scale": 1,
+  "drawn_w": 103.7,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.08,
+  "slope_left": 0.419,
+  "slope_right": 0.509,
+  "front_dx": 2.6,
+  "front_dy": 4.0,
+  "left_dx": -3.7,
+  "right_dx": 3.7,
+  "pixel_scene": 1.77,
+  "pixel_img": 6.57
+ },
+ {
+  "name": "sealshop-3",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   366
+  ],
+  "art_scale": 1.16,
+  "editor_scale": 1,
+  "drawn_w": 111.4,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.16,
+  "slope_left": 0.37,
+  "slope_right": 0.543,
+  "front_dx": 3.6,
+  "front_dy": 4.0,
+  "left_dx": -7.5,
+  "right_dx": 7.5,
+  "pixel_scene": 1.3,
+  "pixel_img": 4.47
+ },
+ {
+  "name": "sealshop",
+  "tiles": [
+   2,
+   2
+  ],
+  "img": [
+   384,
+   390
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 96.0,
+  "diamond_w": 96.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.551,
+  "slope_right": 0.584,
+  "front_dx": -0.6,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 2.38,
+  "pixel_img": 9.51
+ },
+ {
+  "name": "tower-2",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   250,
+   419
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 48.0,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.596,
+  "slope_right": 0.555,
+  "front_dx": 0.3,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.81,
+  "pixel_img": 4.24
+ },
+ {
+  "name": "tower-3",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   250,
+   390
+  ],
+  "art_scale": 1.06,
+  "editor_scale": 1,
+  "drawn_w": 50.9,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.06,
+  "slope_left": 0.448,
+  "slope_right": 0.527,
+  "front_dx": 0.1,
+  "front_dy": 4.0,
+  "left_dx": -1.3,
+  "right_dx": 1.3,
+  "pixel_scene": 0.71,
+  "pixel_img": 3.48
+ },
+ {
+  "name": "tower-desert",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   250,
+   381
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 48.0,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.402,
+  "slope_right": 0.28,
+  "front_dx": -0.7,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.62,
+  "pixel_img": 8.45
+ },
+ {
+  "name": "tower-fishing",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   250,
+   513
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 48.0,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.272,
+  "slope_right": 1.03,
+  "front_dx": 3.2,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.97,
+  "pixel_img": 5.04
+ },
+ {
+  "name": "tower",
+  "tiles": [
+   1,
+   1
+  ],
+  "img": [
+   250,
+   430
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 48.0,
+  "diamond_w": 48.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.996,
+  "slope_right": 1.248,
+  "front_dx": -0.3,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 0.8,
+  "pixel_img": 4.18
+ },
+ {
+  "name": "training-2",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   364
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.612,
+  "slope_right": 0.611,
+  "front_dx": -0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.71,
+  "pixel_img": 6.84
+ },
+ {
+  "name": "training-3",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   363
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.612,
+  "slope_right": 0.57,
+  "front_dx": -0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 1.37,
+  "pixel_img": 5.48
+ },
+ {
+  "name": "training",
+  "tiles": [
+   3,
+   3
+  ],
+  "img": [
+   576,
+   364
+  ],
+  "art_scale": 1,
+  "editor_scale": 1,
+  "drawn_w": 144.0,
+  "diamond_w": 144.0,
+  "width_vs_diamond": 1.0,
+  "slope_left": 0.613,
+  "slope_right": 0.612,
+  "front_dx": -0.4,
+  "front_dy": 4.0,
+  "left_dx": 0.1,
+  "right_dx": -0.1,
+  "pixel_scene": 2.01,
+  "pixel_img": 8.03
+ }
+]

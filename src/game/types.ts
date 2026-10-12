@@ -265,6 +265,8 @@ export interface Unit {
   trainPost?: number;
   /** Vigia de torre: id da Torre de Vigia que ele guarda (game/towerWatch.ts). */
   onTower?: number;
+  /** Só desenho (cópia projetada no renderer): multiplica o tamanho do sprite (vigia da torre a 70%). */
+  drawScale?: number;
   trainLeg?: number;
   /** Ninjas da vila que acertaram este inimigo (dividem o XP do abate). */
   hitBy?: number[];
