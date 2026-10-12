@@ -152,7 +152,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   e o nível anterior já novo como referência; recorte, tamanho pela base (= losango) e grade do boneco →
   `docs/arte/predios/final/`; `--instalar` copia com backup (`docs/arte/_backup/<data>/<lote>/`), põe escala/posição
   no layout.json e tira peças antigas, ART_SCALE provisório e a marca de editada à mão. Lotes em `BATCHES` (feitos: kage;
-  lote1 = academia, hospital, biblioteca com os 3 níveis, mercado). O nível 3 ocupa mais terreno em mercado, forja,
+  lote1 = academia, hospital, biblioteca com os 3 níveis, mercado; lote2 = forja, farmácia e selos (redesenhadas:
+  botica de ervas com cortina roxa; oficina de papel de telhado cinza), lenhador, pedreira; `redesign` no lote = sem a
+  arte de hoje como referência). O nível 3 ocupa mais terreno em mercado, forja,
   farmácia, selos, lenhador, pedreira (3×3), academia (4×4), hospital e biblioteca (4×3) (`sizes`; save v38: cresce no
   lugar, muda para o espaço livre mais perto ou volta ao nível 2 com a obra pronta esperando espaço).
 - **Terreno por nível** (`BuildingDef.sizes`, `defOf(b)` e `layoutKey(b)` em data/buildings.ts): a casa nível 3 ocupa 3×3

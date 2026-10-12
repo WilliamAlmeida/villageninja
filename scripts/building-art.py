@@ -50,6 +50,17 @@ LIBRARY = ('the Jutsu Library: dark wooden frames, DARK BLUE ceramic tiled roof 
 MARKET = ('the village market shop: cream walls, a flat ORANGE roof, cloth awnings over wooden stalls with crates of fruit, '
           'vegetables and goods, paper lanterns, stone paving in front')
 
+FORGE = ('the village forge: grey stone walls with dark timber, a DARK RED tiled roof with a stone chimney, a glowing '
+         'furnace mouth, an anvil, a water trough')
+PHARMACY = ('a traditional ninja APOTHECARY (herbal medicine shop): dark wooden building with a curved roof of BROWN cypress '
+            'bark shingles, an open shopfront with a counter and shelves of colored medicine jars and gourds, bundles of '
+            'drying herbs hanging from the eaves, a big stone mortar and pestle, a PURPLE noren curtain at the door with a '
+            'white round pill symbol, small planters of medicinal herbs')
+SEALSHOP = ('a workshop of seal paper and paper bombs: white plaster walls with dark wood, a DARK SLATE-GREY tiled roof, '
+            'white paper sheets drying on bamboo racks, paper talismans with red ink seals at the door, an ink stone')
+LUMBER = 'the lumberjack camp: a log cabin with a BROWN wooden shingle roof, an axe stuck in a chopping block, stacked logs'
+QUARRY = 'the stone quarry workshop: a hut of rough grey stone blocks with a stone slab roof, cut stone blocks, tools'
+
 # lote → peças: (nome da arte, (tiles w, tiles h, altura total em H), descrição). Na ordem dos níveis: do nível 2 em
 # diante cada uma usa a anterior DO MESMO PRÉDIO (já nova) como referência de "o mesmo prédio, menor". A identidade é a
 # arte de hoje do prédio (todos os níveis que existirem).
@@ -85,6 +96,49 @@ BATCHES = {
             ('market-3', (3, 3, 3.8),
              'LEVEL 3 on a BIGGER plot: a two-story merchant house with a balcony and banners and a covered row of stalls in '
              'front with many crates, barrels and lanterns; clearly bigger than level 2, same style'),
+        ],
+    },
+    'lote2': {
+        # farmácia e selos: desenho novo (o autor não gostou da farmácia; a de selos se confundia com academia e casa)
+        'redesign': ('pharmacy', 'sealshop'),
+        'items': [
+            ('forge', (2, 2, 2.6), f'LEVEL 1: {FORGE}. A small one-story smithy with one furnace and an anvil'),
+            ('forge-2', (2, 2, 3.0),
+             'LEVEL 2: THE SAME forge grown and clearly bigger: two furnaces, a taller chimney, a covered work area with a '
+             'grindstone, a rack of finished swords and a water barrel'),
+            ('forge-3', (3, 3, 3.7),
+             'LEVEL 3 on a BIGGER plot: a large stone-and-timber forge hall with three glowing furnaces, two chimneys, a '
+             'water wheel turning a big hammer, weapon racks and stacked iron ingots; clearly bigger than level 2'),
+            ('pharmacy', (2, 2, 2.5), f'LEVEL 1: {PHARMACY}. A small one-story herb shop with one counter'),
+            ('pharmacy-2', (2, 2, 2.9),
+             'LEVEL 2: THE SAME apothecary grown: a second floor storage loft, a bamboo drying rack full of herbs on the side, '
+             'more jars and gourds, potted medicinal plants'),
+            ('pharmacy-3', (3, 3, 3.7),
+             'LEVEL 3 on a BIGGER plot: a two-story apothecary with a small glass greenhouse full of herbs, a copper '
+             'distillation still with steam, a terrace of herb planters and drying racks; clearly bigger than level 2'),
+            ('sealshop', (2, 2, 2.6), f'LEVEL 1: {SEALSHOP}. A small one-story workshop with one paper rack outside'),
+            ('sealshop-2', (2, 2, 3.0),
+             'LEVEL 2: THE SAME workshop grown: a second floor, more bamboo racks of drying paper, a work table with ink and '
+             'brushes, red-ink talismans hanging at the door'),
+            ('sealshop-3', (3, 3, 3.8),
+             'LEVEL 3 on a BIGGER plot: a two-story paper workshop with a side shed holding big vats of paper pulp, long '
+             'drying racks of white sheets, crates of paper bombs with red seals; clearly bigger than level 2. The roof keeps '
+             'EXACTLY the dark slate-GREY of the previous level (charcoal grey, NOT blue)'),
+            ('lumber', (2, 2, 2.4), f'LEVEL 1: {LUMBER}. A small log cabin with a chopping block and a few logs'),
+            ('lumber-2', (2, 2, 2.7),
+             'LEVEL 2: THE SAME lumber camp clearly BIGGER and TALLER than level 1 on the same plot: a two-story cabin with a '
+             'storage loft and a hoist beam, a covered open-sided sawing shed attached on one side with a big two-man saw, '
+             'tall neat stacks of planks'),
+            ('lumber-3', (3, 3, 3.4),
+             'LEVEL 3 on a BIGGER plot: a sawmill with a water wheel driving the saw, a log ramp, big stacks of planks and '
+             'logs; clearly bigger than level 2'),
+            ('quarry', (2, 2, 2.2), f'LEVEL 1: {QUARRY}. A small stone hut with a pile of cut blocks and a pickaxe'),
+            ('quarry-2', (2, 2, 2.6),
+             'LEVEL 2: THE SAME quarry clearly BIGGER and TALLER than level 1 on the same plot: the hut gets a second floor '
+             'of stone with a wooden balcony, a tall wooden crane lifting a block, a covered stone-cutting bench and a wheelbarrow'),
+            ('quarry-3', (3, 3, 3.2),
+             'LEVEL 3 on a BIGGER plot: a stone workshop with a big wooden crane, a mine cart on rails, stacks of cut blocks '
+             'and gravel piles; clearly bigger than level 2'),
         ],
     },
     'kage': {
@@ -162,21 +216,29 @@ def generate(batch, cfg, i, item):
     size, _ = template(tpl, w, h, hh)
     if src.exists():
         return src
-    refs = [tpl, identity_sheet(batch, name), ROOT / STYLE]
     before = cfg['items'][i - 1][0] if i else None
     prev = OUT / batch / f'_{before}.png' if before and base_of(before) == base_of(name) else None
-    text = (
-        f'ONE isometric game building for a cozy ninja village builder, alone in the image. Ground footprint {w}x{h} tiles, '
-        f'total height {hh:.1f} ninjas (top of the roof). {desc}. '
-        'Image 2 shows the CURRENT versions of this building at its levels, left to right: keep its identity (shape, colors, '
-        'emblem) but follow the new size of image 1. Image 3 is the art style of the game (detailed 16-bit pixel art with '
-        'SMALL pixels, clean dark outline, light from the top-left): same finish and palette. '
-        + (f'Image 4 is the PREVIOUS level of this same building, already in the new style: draw the same building grown, '
-           f'with the same materials, colors and details, clearly bigger and richer. ' if prev else '')
-        + 'Pure white background, no ground tiles, no grass, no shadow outside the building, no text. ' + PROMPT_V2
-    )
+    # imagens de referência na ordem em que o texto as cita (a numeração muda com o que entra)
+    refs = [tpl]
+    parts = []
+    if base_of(name) not in cfg.get('redesign', ()):
+        refs.append(identity_sheet(batch, name))
+        parts.append(f'Image {len(refs)} shows the CURRENT versions of this building at its levels, left to right: keep its '
+                     'identity (shape, colors, emblem) but follow the new size of image 1. ')
+    else:
+        parts.append('This is a NEW design for this building (do not copy older versions): follow only the description. ')
+    refs.append(ROOT / STYLE)
+    parts.append(f'Image {len(refs)} is the art style of the game (detailed 16-bit pixel art with SMALL pixels, clean dark '
+                 'outline, light from the top-left): same finish and palette. ')
     if prev:
         refs.append(prev)
+        parts.append(f'Image {len(refs)} is the PREVIOUS level of this same building, already in the new style: draw the same '
+                     'building grown, with the same materials, colors and details, clearly bigger and richer. ')
+    text = (
+        f'ONE isometric game building for a cozy ninja village builder, alone in the image. Ground footprint {w}x{h} tiles, '
+        f'total height {hh:.1f} ninjas (top of the roof). {desc}. ' + ''.join(parts)
+        + 'Pure white background, no ground tiles, no grass, no shadow outside the building, no text. ' + PROMPT_V2
+    )
     rel = ','.join(os.path.relpath(r, ROOT) for r in refs)
     subprocess.run(['node', 'scripts/codex-image.mjs', str(src), text, '--ref', rel, '--size', f'{size[0]}x{size[1]}', '--vaos'], cwd=ROOT, check=True)
     return src
