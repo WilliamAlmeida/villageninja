@@ -40,8 +40,10 @@ export interface Ghost {
   tx: number;
   ty: number;
   valid: boolean;
-  /** Prédio de margem espelhado (a água do outro lado). */
+  /** Espelhado (botão Girar; o de margem escolhe sozinho). */
   flip?: boolean;
+  /** Nível do prédio sendo movido: o fantasma mostra a arte e o terreno desse nível (construir novo = 1). */
+  level?: number;
   /** Onde o jogador tocou (o prédio de margem gruda na beira mais perto e pode ficar noutro tile). */
   at?: { tx: number; ty: number };
 }
@@ -1891,7 +1893,7 @@ export class Renderer {
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, d.w * TILE, d.h * TILE);
     // porta
-    const door = doorTile({ type: gh.type, tx: gh.tx, ty: gh.ty, flip: gh.flip } as Building);
+    const door = doorTile({ type: gh.type, tx: gh.tx, ty: gh.ty, flip: gh.flip, level: gh.level } as Building);
     ctx.fillStyle = gh.valid ? 'rgba(255,255,255,0.6)' : 'rgba(255,90,90,0.6)';
     ctx.fillRect(door.tx * TILE + 8, door.ty * TILE + 2, TILE - 16, 6);
   }
@@ -1899,7 +1901,7 @@ export class Renderer {
   /** Prévia translúcida do prédio em pé sobre a base. */
   private ghostSprite(gh: Ghost) {
     // como o prédio pronto vai ficar: escala e deslocamento do Editor de cenário e o lado espelhado
-    const box = this.artBox({ type: gh.type, tx: gh.tx, ty: gh.ty, flip: gh.flip } as Building, this.level);
+    const box = this.artBox({ type: gh.type, tx: gh.tx, ty: gh.ty, flip: gh.flip, level: gh.level } as Building, this.level);
     if (!box) return;
     const ctx = this.ctx;
     ctx.globalAlpha = 0.6;

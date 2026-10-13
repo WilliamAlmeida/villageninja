@@ -337,7 +337,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const d = defOf(b);
     this.moveId = id;
     this.app.buildType = b.type;
-    this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false, flip: !!b.flip };
+    this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false, flip: !!b.flip, level: b.level };
     this.showPlacebar(`{refresh} Mover ${d.name} — toque no novo lugar`, '{check} Mover aqui');
   }
 
@@ -357,7 +357,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   tapWorld(wx: number, wy: number) {
     const type = this.app.buildType;
     if (!type) return;
-    const d = defOf({ type, flip: this.app.ghost?.flip });
+    const d = defOf({ type, flip: this.app.ghost?.flip, level: this.app.ghost?.level });
     this.setGhost(toTile(wx) - Math.floor(d.w / 2), toTile(wy) - Math.floor(d.h / 2));
   }
 
@@ -369,13 +369,14 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     if (BUILDINGS[type].shore) {
       const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined);
       if (spot) {
-        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
+        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
         return;
       }
     }
     // mantém o lado escolhido no Girar enquanto o fantasma anda
     const flip = !!gh?.flip && gh.type === type;
-    this.app.ghost = { type, tx, ty, flip, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
+    // movendo: o nível do prédio (arte e terreno dele) vai junto com o fantasma
+    this.app.ghost = { type, tx, ty, flip, level: gh?.type === type ? gh.level : undefined, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
   }
 
   /** Espelha o prédio sendo posicionado/movido (o canto fica no lugar; o terreno retangular troca largura e altura). */
