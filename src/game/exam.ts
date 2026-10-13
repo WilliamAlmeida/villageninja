@@ -73,7 +73,7 @@ export function arenaSpots(a: Building) {
   const ring = arenaRing(a);
   // lugares ajustáveis no Editor de cenário: "left", "right" (os dois do duelo) e "seat1"…"seat8" (pés de cada lugar na arquibancada)
   const pt = (n: string, def: { x: number; y: number }) => {
-    const p = layoutPoint('arena', n);
+    const p = layoutPoint('arena', n, a.flip); // arena espelhada: os pontos trocam x por y
     return p ? { x: x0 + p[0], y: y0 + p[1] } : def;
   };
   return {

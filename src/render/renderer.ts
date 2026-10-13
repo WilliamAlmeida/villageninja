@@ -696,7 +696,7 @@ export class Renderer {
         }
         return;
       } else if (d.b) {
-        const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty, d.b.level);
+        const { front, width } = this.footprint(d.b.type, d.b.tx, d.b.ty, d.b.level, d.b.flip);
         const pic = art(d.b.type);
         const h = pic ? (width / pic.naturalWidth) * pic.naturalHeight : width * 0.8;
         r = { x0: front.x - width / 2, x1: front.x + width / 2, y0: front.y - h, y1: front.y };
@@ -893,7 +893,7 @@ export class Renderer {
   private boxFor(b: Building, artName: string, lvl: number) {
     const pic = art(artName);
     if (!pic || !pic.naturalWidth) return null;
-    const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level);
+    const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level, b.flip);
     const L = artLayout(artName);
     const h0 = ((width * (ART_SCALE[artName] ?? 1) * (L?.scale ?? 1)) / pic.naturalWidth) * pic.naturalHeight;
     const w = (h0 / pic.naturalHeight) * pic.naturalWidth;
@@ -985,8 +985,8 @@ export class Renderer {
   }
 
   /** Ponta da frente do losango da base (onde o sprite do prédio apoia) e largura do losango, na cena. */
-  private footprint(type: BuildingType, tx: number, ty: number, level = 1) {
-    const d = defOf({ type, level });
+  private footprint(type: BuildingType, tx: number, ty: number, level = 1, flip = false) {
+    const d = defOf({ type, level, flip });
     const front = project((tx + d.w) * TILE, (ty + d.h) * TILE);
     return { front, width: (d.w + d.h) * TILE * ISO_K };
   }
@@ -1058,7 +1058,7 @@ export class Renderer {
   private building(b: Building, time: number, night: number, level: number) {
     const ctx = this.ctx;
     const d = defOf(b);
-    const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level);
+    const { front, width } = this.footprint(b.type, b.tx, b.ty, b.level, b.flip);
     // arte do nível do prédio (upgrade), se existir; senão a do nível 1.
     // A Residência do Hokage não tem upgrade próprio: cresce junto com o nível da vila (Aldeia = 1 … Grande Vila Oculta = 4).
     const lvl = b.level ?? (b.type === 'hokage' ? level + 1 : 1);
@@ -1089,7 +1089,7 @@ export class Renderer {
     // marcas do Editor de cenário (px a partir do meio da base, tamanho 1×) ou as posições de sempre
     const mk = artLayout(artName)?.marks;
     if (!this.maskPass && b.type === 'house' && b.built && SEASON_VIEW.season === 'winter' && !lightWeatherFx() && Math.random() < this.frameDt * 1.6)
-      this.particles.chimney(mk?.chimney ? box.x + mk.chimney[0] : front.x + width * 0.16, mk?.chimney ? box.baseY + mk.chimney[1] : front.y + 4 - h * 0.86);
+      this.particles.chimney(mk?.chimney ? box.x + (box.flip ? -1 : 1) * mk.chimney[0] : front.x + (box.flip ? -1 : 1) * width * 0.16, mk?.chimney ? box.baseY + mk.chimney[1] : front.y + 4 - h * 0.86);
     // obra de upgrade: barra amarela na base
     if (b.built && b.upgrade != null) {
       const k2 = Math.min(1, b.upgrade / upgradeTime(b));
@@ -1114,7 +1114,8 @@ export class Renderer {
     const box = this.artBox(b, level);
     if (!box) return null;
     const mk = artLayout(box.artName)?.marks?.guard;
-    return mk ? { x: box.x + mk[0], y: box.baseY + mk[1] } : { x: box.x, y: box.baseY - box.h * (GUARD_PLATFORM[box.lvl] ?? 0.58) };
+    // marcas em px a partir do meio da base; espelhado, o x troca de lado com a arte
+    return mk ? { x: box.x + (box.flip ? -1 : 1) * mk[0], y: box.baseY + mk[1] } : { x: box.x, y: box.baseY - box.h * (GUARD_PLATFORM[box.lvl] ?? 0.58) };
   }
 
   /** Pontos da plataforma da torre (pés, na cena): a marca `guard` e as `guard2`/`guard3` da arte; sem elas, dois
@@ -1125,7 +1126,7 @@ export class Renderer {
     if (!main || !box) return [];
     const mk = artLayout(box.artName)?.marks;
     const extra = (['guard2', 'guard3'] as const).map((k) => mk?.[k]).filter((m): m is [number, number] => !!m);
-    if (extra.length) return [main, ...extra.map((m) => ({ x: box.x + m[0], y: box.baseY + m[1] }))];
+    if (extra.length) return [main, ...extra.map((m) => ({ x: box.x + (box.flip ? -1 : 1) * m[0], y: box.baseY + m[1] }))];
     const s = box.w * 0.11;
     return [main, { x: main.x - s, y: main.y - s * 0.5 }, { x: main.x + s, y: main.y - s * 0.5 }];
   }

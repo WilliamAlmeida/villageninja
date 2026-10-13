@@ -107,11 +107,12 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     this.place = el(
       'div',
       { id: 'placebar', hidden: '' },
-      rich(`<span class="hint" data-t="name"></span><button class="btn icon" data-act="cancel" title="Cancelar">{x}</button><button class="btn primary" data-act="ok">{check} Construir</button>`),
+      rich(`<span class="hint" data-t="name"></span><button class="btn icon" data-act="cancel" title="Cancelar">{x}</button><button class="btn" data-act="rotate" ${tipAttr('Girar', 'Espelha o prédio: a frente passa para o outro lado (no desktop, tecla R).')}>{refresh} Girar</button><button class="btn primary" data-act="ok">{check} Construir</button>`),
     );
     this.place.addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
       if (a === 'cancel') this.cancel();
+      if (a === 'rotate') this.rotate();
       if (a === 'ok') this.confirm();
     });
     this.place.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -356,7 +357,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   tapWorld(wx: number, wy: number) {
     const type = this.app.buildType;
     if (!type) return;
-    const d = BUILDINGS[type];
+    const d = defOf({ type, flip: this.app.ghost?.flip });
     this.setGhost(toTile(wx) - Math.floor(d.w / 2), toTile(wy) - Math.floor(d.h / 2));
   }
 
@@ -372,7 +373,17 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
         return;
       }
     }
-    this.app.ghost = { type, tx, ty, valid: this.validAt(tx, ty), at: { tx, ty } };
+    // mantém o lado escolhido no Girar enquanto o fantasma anda
+    const flip = !!gh?.flip && gh.type === type;
+    this.app.ghost = { type, tx, ty, flip, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
+  }
+
+  /** Espelha o prédio sendo posicionado/movido (o canto fica no lugar; o terreno retangular troca largura e altura). */
+  rotate() {
+    const gh = this.app.ghost;
+    if (!gh) return;
+    gh.flip = !gh.flip;
+    gh.valid = this.validAt(gh.tx, gh.ty, gh.flip);
   }
 
   refreshGhost() {

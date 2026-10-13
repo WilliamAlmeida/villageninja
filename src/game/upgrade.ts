@@ -84,7 +84,7 @@ export function upgradeStatus(g: Game, b: Building): { cost: Cost | null; reason
  */
 export function growRoom(g: Game, b: Building, next: number): string | null {
   const now = defOf(b);
-  const grown = defOf({ type: b.type, level: next });
+  const grown = defOf({ type: b.type, level: next, flip: b.flip });
   if (grown.w === now.w && grown.h === now.h) return null;
   // direto na grade de ocupação (sem refazer a colisão): o terreno novo e 1 tile de folga só com este prédio ou vazio,
   // sem água/rocha nem recurso de pé, dentro do mapa e do território (as mesmas regras de `World.canPlace`)
@@ -140,7 +140,7 @@ export function syncHokage(g: Game) {
 
 /** Sobe o prédio para o nível `next`; com terreno maior, tira árvore/rocha e rua de baixo e refaz a colisão. */
 function growTo(g: Game, b: Building, next: number) {
-  const grew = defOf({ type: b.type, level: next }).w !== defOf(b).w;
+  const grew = defOf({ type: b.type, level: next, flip: b.flip }).w !== defOf(b).w;
   b.level = next;
   if (!grew) return;
   const d = defOf(b);

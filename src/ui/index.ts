@@ -166,6 +166,11 @@ export function createUI(app: App, root: HTMLElement) {
       }
       return;
     }
+    // posicionando/movendo um prédio: R gira (espelha)
+    if (k === 'r' && app.buildType && !app.roadMode) {
+      build.rotate();
+      return;
+    }
     const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', f: 'crafts', s: 'select' };
     if (map[k]) dockAction(map[k]);
     if (k === ' ') {

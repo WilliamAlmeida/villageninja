@@ -7,7 +7,8 @@ import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import type { Building } from '../src/game/types';
 import { growRoom, startUpgrade, syncHokage, upgradeTime, workUpgrade } from '../src/game/upgrade';
-import { CENTER_TX, CENTER_TY } from '../src/game/world';
+import { CENTER_TX, CENTER_TY, doorTile } from '../src/game/world';
+import { placeBuilding } from '../src/game/commands';
 
 /** Casa nível 2 pronta num lugar com espaço de sobra em volta (para crescer para 3×3). */
 const setup = (seed: number) => {
@@ -136,4 +137,32 @@ test('save v37 → v38: nível 3 de mercado/academia/hospital… cresce sem sobr
     const e = defOf(mk);
     expect(mk.tx < o.tx + d.w && mk.tx + e.w > o.tx && mk.ty < o.ty + d.h && mk.ty + e.h > o.ty).toBe(false);
   }
+});
+
+describe('girar (espelhar) qualquer prédio', () => {
+  test('terreno retangular troca largura e altura; a colisão segue o lado escolhido', () => {
+    const { g } = setup(1501);
+    g.state.level = 3;
+    Object.assign(g.state.res, { wood: 9999, stone: 9999, ryo: 9999 });
+    expect([defOf({ type: 'hospital' }).w, defOf({ type: 'hospital' }).h]).toEqual([3, 2]);
+    expect([defOf({ type: 'hospital', flip: true }).w, defOf({ type: 'hospital', flip: true }).h]).toEqual([2, 3]);
+    let spot: { tx: number; ty: number } | null = null;
+    for (let r = 6; r < 30 && !spot; r++)
+      for (let a = 0; a < 32 && !spot; a++) {
+        const tx = CENTER_TX + Math.round(Math.cos(a) * r);
+        const ty = CENTER_TY + Math.round(Math.sin(a) * r);
+        if (g.world.canPlace('hospital', tx, ty, true) && g.world.canPlace('hospital', tx, ty, false)) spot = { tx, ty };
+      }
+    expect(placeBuilding(g, 'hospital', spot!.tx, spot!.ty, true).ok).toBe(true);
+    const h = g.state.buildings.find((b) => b.type === 'hospital')!;
+    expect(h.flip).toBe(true);
+    expect(g.world.buildingIdAt(h.tx + 1, h.ty + 2)).toBe(h.id); // 2 de largura, 3 de altura
+    expect(g.world.buildingIdAt(h.tx + 2, h.ty)).not.toBe(h.id);
+  });
+
+  test('sem porta marcada, a porta espelhada fica na face da frente-direita', () => {
+    const b = { type: 'market', tx: 10, ty: 10 } as Building;
+    expect(doorTile(b)).toEqual({ tx: 11, ty: 12 });
+    expect(doorTile({ ...b, flip: true } as Building)).toEqual({ tx: 12, ty: 11 });
+  });
 });

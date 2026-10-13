@@ -66,7 +66,7 @@ export interface BuildingDef {
   minLevel?: number;
   /**
    * Prédio de margem (Porto): parte em cima da água. As células "~" do terreno (Editor de cenário) precisam ser água e
-   * as de muro, terra; com terreno quadrado pode ser espelhado (`Building.flip`) para a água ficar do outro lado.
+   * as de muro, terra; espelhado (`Building.flip`, vale para todo prédio) a água fica do outro lado.
    */
   shore?: boolean;
   /** Decoração (seção própria na construção): deixa a vila mais feliz (`mood` pontos; game/mood.ts). */
@@ -278,14 +278,17 @@ const sized = new Map<string, BuildingDef>();
  * importa e há um prédio de verdade (o canto `tx`/`ty` fica; ele cresce para a direita e para baixo). Prédio novo nasce
  * no nível 1 (`BUILDINGS[type]` serve).
  */
-export function defOf(b: { type: BuildingType; level?: number }): BuildingDef {
+export function defOf(b: { type: BuildingType; level?: number; flip?: boolean }): BuildingDef {
   const d = BUILDINGS[b.type];
   const s = d.sizes?.[b.level ?? 1];
-  if (!s) return d;
-  const key = `${b.type}:${b.level}`;
+  const [w, h] = s ?? [d.w, d.h];
+  // espelhado (`Building.flip`): troca x por y, então o terreno retangular troca largura e altura
+  const swap = !!b.flip && w !== h;
+  if (!s && !swap) return d;
+  const key = `${b.type}:${b.level}:${swap ? 'f' : ''}`;
   let out = sized.get(key);
   if (!out) {
-    out = { ...d, w: s[0], h: s[1] };
+    out = { ...d, w: swap ? h : w, h: swap ? w : h };
     sized.set(key, out);
   }
   return out;

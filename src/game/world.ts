@@ -32,7 +32,8 @@ export function doorTile(b: Building) {
   const p = layoutPoint(layoutKey(b), 'door', b.flip); // ajustado no Editor de cenário
   if (p) return { tx: b.tx + Math.floor(p[0] / TILE), ty: b.ty + Math.floor(p[1] / TILE) };
   const d = defOf(b);
-  return { tx: b.tx + Math.floor(d.w / 2), ty: b.ty + d.h };
+  // sem porta marcada: no meio da face da frente-esquerda; espelhado (x ↔ y), no meio da frente-direita
+  return b.flip ? { tx: b.tx + d.w, ty: b.ty + Math.floor(d.h / 2) } : { tx: b.tx + Math.floor(d.w / 2), ty: b.ty + d.h };
 }
 /** Ponto (px) logo em frente à porta. */
 export function doorPos(b: Building) {
@@ -280,7 +281,7 @@ export class World implements MapSize {
 
   /** O prédio cabe em (tx, ty)? `level`: o terreno do nível (`defOf`; a casa nível 3 é 3×3). */
   canPlace(type: BuildingType, tx: number, ty: number, flip = false, level = 1): boolean {
-    const d = defOf({ type, level });
+    const d = defOf({ type, level, flip });
     if (tx < 1 || ty < 1 || tx + d.w > this.mapW - 1 || ty + d.h > this.mapH - 2) return false;
     if (flip && !canFlip(type)) return false;
     // 1 tile de folga entre prédios garante que sempre exista caminho.
@@ -325,10 +326,12 @@ export class World implements MapSize {
   }
 }
 
-/** Só prédio de margem com terreno quadrado pode ser espelhado (trocar x por y não muda o tamanho). */
+/**
+ * Todo prédio pode ser espelhado (botão Girar / tecla R ao posicionar ou mover): troca x por y no terreno, na porta,
+ * nos pontos e bloqueios do layout e espelha a arte (o terreno retangular troca largura e altura, `defOf`).
+ */
 export function canFlip(type: BuildingType): boolean {
-  const d = BUILDINGS[type];
-  return !!d.shore && d.w === d.h;
+  return !!BUILDINGS[type];
 }
 
 function makeNoise(rng: () => number, cell: number, W: number, H: number) {

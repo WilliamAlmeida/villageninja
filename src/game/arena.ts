@@ -14,10 +14,10 @@ export const ARENA_RING = { radius: 0.5, margin: 12, /** além do raio: fora da 
 export function arenaRing(b: Building) {
   const w = BUILDINGS.arena.w * TILE;
   // centro e borda do chão de luta: pontos "center" e "edge" do Editor de cenário (senão o meio do terreno)
-  const c = layoutPoint('arena', 'center');
+  const c = layoutPoint('arena', 'center', b.flip);
   const cx = b.tx * TILE + (c ? c[0] : w / 2 - ARENA_RING.lift);
   const cy = b.ty * TILE + (c ? c[1] : w / 2 - ARENA_RING.lift);
-  const e = layoutPoint('arena', 'edge');
+  const e = layoutPoint('arena', 'edge', b.flip);
   const r = e ? Math.hypot(b.tx * TILE + e[0] - cx, b.ty * TILE + e[1] - cy) : w * ARENA_RING.radius;
   return { cx, cy, r };
 }

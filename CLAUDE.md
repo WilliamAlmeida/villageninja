@@ -323,8 +323,10 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
   **Prédio de margem** (`BuildingDef.shore`: o Porto): célula `~` (água) no terreno = píer/barco em cima da água; para
   construir, tile só com `~` precisa ser água, só com `#` terra (os dois = a beira) e a porta em terra (`World.shoreFits`).
-  Terreno quadrado pode ser espelhado (`Building.flip`, `canFlip`): troca x por y no terreno, nos bloqueios e pontos
-  (`tileOf`/`extraOf`/`layoutPoint` com `flip`) e espelha a arte em volta da ponta da frente (`artBox`). Ao posicionar,
+  **Todo prédio pode ser espelhado** (`Building.flip`, `canFlip`; botão "Girar" e tecla R ao posicionar ou mover): troca x
+  por y no terreno, nos bloqueios e pontos (`tileOf`/`extraOf`/`layoutPoint` com `flip`, também os da arena), espelha a
+  arte em volta da ponta da frente (`artBox`) e as marcas (`guard`, `chimney`); terreno retangular troca largura e
+  altura (`defOf({…, flip})`); sem porta marcada, a porta vai para a face da frente-direita (`doorTile`). Ao posicionar,
   o fantasma gruda na beira mais perto já com o lado certo (`shoreSpot`). Chão: terra batida só sob o muro e sombra na água
   sob o `~` (`shoreGround`). A prévia usa o `artBox` (escala/deslocamento do editor), igual ao prédio pronto.
   **Colisão em meio tile** (`SUB`/`CELL`/`FINE_W` em config.ts): `World.fine` é a colisão de verdade (`walkablePx`,

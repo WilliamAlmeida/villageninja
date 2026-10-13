@@ -35,8 +35,8 @@ export function canBuild(g: Game, type: BuildingType): Result {
 }
 
 /** Fora do território → mensagem específica (as outras regras dão "Local inválido"). */
-export function placeError(g: Game, type: BuildingType, tx: number, ty: number, level = 1) {
-  const d = defOf({ type, level });
+export function placeError(g: Game, type: BuildingType, tx: number, ty: number, level = 1, flip = false) {
+  const d = defOf({ type, level, flip });
   if (!inTerritory(g.state, tx, ty, d.w, d.h + 1)) return 'Fora do território da vila. Evolua a vila para expandir.';
   return d.shore ? 'Precisa ficar na beira da água: o píer em cima da água e a casa em terra.' : 'Local inválido.';
 }
@@ -46,7 +46,7 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
   const def = BUILDINGS[type];
   const c = canBuild(g, type);
   if (!c.ok) return c;
-  if (!g.world.canPlace(type, tx, ty, flip)) return fail(placeError(g, type, tx, ty));
+  if (!g.world.canPlace(type, tx, ty, flip)) return fail(placeError(g, type, tx, ty, 1, flip));
   g.pay(def.cost);
   // árvores no terreno viram madeira
   let wood = 0;
@@ -110,7 +110,7 @@ export function canMove(g: Game, id: number, tx: number, ty: number, flip = fals
   const i = s.buildings.indexOf(b);
   s.buildings.splice(i, 1);
   g.world.rebuild();
-  let r: Result = g.world.canPlace(b.type, tx, ty, flip, b.level ?? 1) ? ok : fail(placeError(g, b.type, tx, ty, b.level ?? 1));
+  let r: Result = g.world.canPlace(b.type, tx, ty, flip, b.level ?? 1) ? ok : fail(placeError(g, b.type, tx, ty, b.level ?? 1, flip));
   if (r.ok && b.type === 'hokage') {
     Object.assign(b, { tx, ty });
     s.buildings.splice(i, 0, b);
