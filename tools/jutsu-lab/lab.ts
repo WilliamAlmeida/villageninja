@@ -1,7 +1,9 @@
 // Laboratório de jutsus (ferramenta de desenvolvimento, http://localhost:3011/lab): um campo limpo com um ninja e um
 // boneco de treino. Cada botão solta um jutsu, golpe, técnica, arte de Ordem/Som/Sannin ou lâmina no boneco, usando o
 // código real do jogo (combate, projéteis, efeitos e o renderer). "Duelo" deixa a IA lutar para ver o estilo de luta.
+// O painel "Ajuste" (à direita, fxPanel.ts) muda sprite, partículas e números do jutsu escolhido ao vivo e grava.
 import { applyIcons, helpDialog, ico } from '../shared/ui';
+import { initFxPanel, selectJutsu } from './fxPanel';
 import { DAY_LENGTH, SIM_DT, TILE } from '../../src/config';
 import { Camera } from '../../src/core/camera';
 import { BLADES, bladeItem, type BladeId } from '../../src/data/blades';
@@ -103,6 +105,18 @@ function setupCaster() {
 }
 setupCaster();
 
+/** Lugar do ninja e do alvo (boneco/aliado). Arrastar no campo muda; a Distância mantém a direção entre os dois. */
+const spot = { x: cx - 50, y: cy };
+const target = { x: cx + 50, y: cy };
+
+/** Põe o alvo a `d` do ninja, na direção atual entre os dois. */
+function setDist(d: number) {
+  dist = d;
+  const a = Math.atan2(target.y - spot.y, target.x - spot.x);
+  target.x = spot.x + Math.cos(a) * d;
+  target.y = spot.y + Math.sin(a) * d;
+}
+
 /** Volta todos para o lugar (o boneco e o aliado no mesmo ponto; só um aparece por vez). */
 function place() {
   for (const u of [caster, dummy, ally, enemy]) {
@@ -114,18 +128,19 @@ function place() {
     u.moving = false;
     u.hasGoal = false;
   }
-  caster.x = cx - dist / 2;
-  caster.y = cy;
-  caster.facing = 0;
+  const face = Math.atan2(target.y - spot.y, target.x - spot.x);
+  caster.x = spot.x;
+  caster.y = spot.y;
+  caster.facing = face;
   for (const u of [dummy, ally]) {
-    u.x = cx + dist / 2;
-    u.y = cy;
-    u.facing = Math.PI;
+    u.x = target.x;
+    u.y = target.y;
+    u.facing = face + Math.PI;
   }
   if (enemy) {
-    enemy.x = cx - dist / 2;
-    enemy.y = cy;
-    enemy.facing = 0;
+    enemy.x = spot.x;
+    enemy.y = spot.y;
+    enemy.facing = face;
   }
 }
 
@@ -162,12 +177,14 @@ function useEnemy(make: () => Unit) {
 }
 
 // ------------------------------------------------------------------ ações
-type Act = { label: string; color?: string; tip?: string; run: () => void };
+/** `jutsu`: o painel "Ajuste" passa a mexer nele. */
+type Act = { label: string; color?: string; tip?: string; jutsu?: string; run: () => void };
 
 const jutsuActs: Act[] = JUTSU_LIST.map((j) => ({
   label: j.name.replace(/^(Katon|Suiton|Fuuton|Doton|Raiton|Hyōton|Mokuton|Yōton|Ranton|Shakuton|Kinjutsu|Magen): /, ''),
   color: j.color,
   tip: `${j.name} — ${j.desc}`,
+  jutsu: j.id,
   run: () => {
     cast('ninja');
     place();
@@ -227,7 +244,7 @@ function throwPose() {
 
 function strike(blade: BladeId | null, t: number, d = dist) {
   cast('ninja');
-  dist = d;
+  setDist(d);
   place();
   const n = caster.ninja!;
   n.jutsu = [null, null];
@@ -383,7 +400,7 @@ const duelActs: Act[] = [
     tip: 'O ninja (com os 2 últimos jutsus escolhidos) luta contra um oponente com 2 jutsus sorteados.',
     run: () => {
       cast('ninja');
-      dist = 160;
+      setDist(160);
       place();
       const n = caster.ninja!;
       n.jutsu = [picked[0] ?? null, picked[1] ?? null];
@@ -412,6 +429,10 @@ const GROUPS: [string, Act[], string?][] = [
 ];
 
 const lists = document.getElementById('lists')!;
+/** Último botão apertado: "Soltar" e "Repetir" do painel apertam de novo. */
+let lastBtn: HTMLButtonElement | null = null;
+/** Repetir: solta de novo sozinho quando o campo fica parado. */
+let repeat = false;
 const now = document.getElementById('now')!;
 for (const [title, acts, hint] of GROUPS) {
   const box = document.createElement('div');
@@ -425,6 +446,8 @@ for (const [title, acts, hint] of GROUPS) {
     if (a.tip) b.dataset.tip = a.tip;
     b.onclick = () => {
       idle = 0;
+      if (lastBtn !== b) selectJutsu(a.jutsu ?? null);
+      lastBtn = b;
       a.run();
       now.textContent = a.label;
       lists.querySelectorAll('button.on').forEach((x) => x.classList.remove('on'));
@@ -446,7 +469,7 @@ function seg(id: string, on: (v: string) => void) {
 }
 seg('pace', (v) => (s.pace = v as 'fast' | 'tactical'));
 seg('dist', (v) => {
-  dist = Number(v);
+  setDist(Number(v));
   place();
 });
 seg('speed', (v) => (speed = Number(v)));
@@ -469,6 +492,10 @@ document.getElementById('reset')!.onclick = () => {
     if (u.ninja) u.ninja.cd = [0, 0];
   }
   cast('ninja');
+  spot.x = cx - dist / 2;
+  spot.y = cy;
+  target.x = cx + dist / 2;
+  target.y = cy;
   place();
   now.textContent = 'Toque numa técnica';
   lists.querySelectorAll('button.on').forEach((x) => x.classList.remove('on'));
@@ -498,21 +525,56 @@ function resize() {
   renderer.resize(r.width, r.height);
   camera.resize(r.width, r.height);
 }
-window.addEventListener('resize', resize);
+new ResizeObserver(resize).observe(canvas.parentElement!);
 resize();
 camera.zoom = 2.4;
 camera.jump(cx, cy);
-// toque e mouse: arrastar move a câmera, pinça (dois dedos) dá zoom
+// toque e mouse: arrastar o ninja ou o alvo muda o lugar deles; no chão, move a câmera; pinça (dois dedos) dá zoom
 const touches = new Map<number, { x: number; y: number }>();
+/** Quem está sendo arrastado: o ponto do ninja (`spot`) ou o do alvo (`target`). */
+let drag: { pt: { x: number; y: number }; dx: number; dy: number } | null = null;
+/** Unidade sob o ponto da tela (mira um pouco acima dos pés, onde fica o corpo). */
+function unitAt(sx: number, sy: number) {
+  let best: Unit | null = null;
+  let bd = 16 * Math.max(1, camera.zoom);
+  for (const u of [caster, dummy, ally, enemy]) {
+    if (!u || u.hidden || u.dead) continue;
+    const p = camera.worldToScreen(u.x, u.y);
+    const d = Math.hypot(p.x - sx, p.y - 10 * camera.zoom - sy);
+    if (d < bd) {
+      bd = d;
+      best = u;
+    }
+  }
+  return best;
+}
 canvas.style.touchAction = 'none';
 canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
   touches.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+  drag = null;
+  if (touches.size !== 1) return;
+  const u = unitAt(e.offsetX, e.offsetY);
+  if (!u) return;
+  const w = camera.screenToWorld(e.offsetX, e.offsetY);
+  const pt = u === dummy || u === ally ? target : spot;
+  drag = { pt, dx: u.x - w.x, dy: u.y - w.y };
 });
 canvas.addEventListener('pointermove', (e) => {
+  const hover = !drag && touches.size === 0 && unitAt(e.offsetX, e.offsetY);
+  canvas.style.cursor = drag ? 'grabbing' : hover ? 'grab' : '';
   const p = touches.get(e.pointerId);
   if (!p) return;
-  if (touches.size === 1) camera.pan(e.offsetX - p.x, e.offsetY - p.y);
+  if (drag && touches.size === 1) {
+    const w = camera.screenToWorld(e.offsetX, e.offsetY);
+    drag.pt.x = w.x + drag.dx;
+    drag.pt.y = w.y + drag.dy;
+    dist = Math.round(Math.hypot(target.x - spot.x, target.y - spot.y));
+    document.querySelectorAll('#dist button').forEach((x) => x.classList.toggle('on', Number((x as HTMLElement).dataset.v) === dist));
+    // larga o que estava fazendo e vai para o lugar novo na hora
+    mode = { kind: 'idle', t: 0 };
+    place();
+  } else if (touches.size === 1) camera.pan(e.offsetX - p.x, e.offsetY - p.y);
   else if (touches.size === 2) {
     const [a, b] = [...touches.values()];
     const other = a === p ? b! : a!;
@@ -522,7 +584,11 @@ canvas.addEventListener('pointermove', (e) => {
   }
   touches.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
 });
-for (const ev of ['pointerup', 'pointercancel'] as const) canvas.addEventListener(ev, (e) => touches.delete(e.pointerId));
+for (const ev of ['pointerup', 'pointercancel'] as const)
+  canvas.addEventListener(ev, (e) => {
+    touches.delete(e.pointerId);
+    drag = null;
+  });
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   camera.zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.offsetX, e.offsetY);
@@ -546,6 +612,7 @@ function frame(t: number) {
     g.step(SIM_DT);
     acc -= SIM_DT;
   }
+  if (repeat && lastBtn && idle > 0.8) lastBtn.click();
   renderer.render(g, camera, null, clock);
   requestAnimationFrame(frame);
 }
@@ -578,11 +645,33 @@ window.addEventListener('keydown', (e) => {
     labFilter.focus();
   }
 });
+// painel "Ajuste": aberto no desktop largo; a escolha fica guardada neste navegador
+const cols = document.getElementById('cols')!;
+const fxToggle = document.getElementById('fxToggle')!;
+function showFx(on: boolean) {
+  cols.classList.toggle('nofx', !on);
+  fxToggle.classList.toggle('on', on);
+  try {
+    localStorage.setItem('lab-fx', on ? '1' : '0');
+  } catch {}
+}
+let fxSaved: string | null = null;
+try {
+  fxSaved = localStorage.getItem('lab-fx');
+} catch {}
+showFx(fxSaved ? fxSaved === '1' : window.innerWidth >= 1100);
+fxToggle.onclick = () => showFx(cols.classList.contains('nofx'));
+initFxPanel(document.getElementById('fx')!, {
+  fire: () => lastBtn?.click(),
+  setRepeat: (on) => (repeat = on),
+});
 applyIcons();
 setPaused(false);
 helpDialog('Laboratório: atalhos', [
-  ['Simulação', [['Espaço', 'Pausar / continuar'], ['.', 'Avança 0,25 s (pausado)'], ['R', 'Reiniciar posições'], ['Roda', 'Zoom']]],
+  ['Simulação', [['Espaço', 'Pausar / continuar'], ['.', 'Avança 0,25 s (pausado)'], ['R', 'Reiniciar (volta o ninja e o boneco ao lugar)'], ['Roda', 'Zoom']]],
+  ['Campo', [['Arrastar ninja/boneco', 'Muda a posição (a Distância mantém a direção)'], ['Arrastar o chão', 'Move a câmera']]],
   ['Lista', [['/', 'Buscar jutsu, golpe ou técnica'], ['Clique', 'Solta a técnica no boneco'], ['?', 'Esta ajuda']]],
+  ['Ajuste (painel à direita)', [['Ctrl+S', 'Grava src/data/jutsu-fx.json (só no localhost:3011)'], ['Clique na folha', 'Põe a âncora da sprite'], ['Shift+clique', 'Ponto do mergulho (dragão)'], ['Repetir', 'Solta de novo sozinho para ver o ajuste']]],
   ['Console', [['lab.pause()', 'Pausa'], ['lab.step(s)', 'Avança s segundos'], ["lab.act('Chidori')", 'Aperta o botão pelo nome']]],
 ]);
 Object.assign(window, {

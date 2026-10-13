@@ -5,6 +5,7 @@ import type { StatKey, Stats } from './ninja';
 import type { Vfx } from './vfx';
 import type { JutsuMove } from './moves';
 import type { ModeKind } from './bijuu';
+import { FX, PROJ_KEYS, type ProjFx } from './jutsuFx';
 
 export type JutsuType = 'ninjutsu' | 'taijutsu' | 'genjutsu' | 'iryo';
 export type JutsuEffect =
@@ -47,8 +48,10 @@ export interface JutsuDef {
   stun?: number;
   projSpeed?: number;
   projKind?: ProjectileKind;
-  /** Tamanho do projétil (sem: 9 com área, 6 sem). */
+  /** Tamanho do projétil (sem: 9 com área, 6 sem; no leque, 5). */
   projSize?: number;
+  /** Leque ('multi'): abertura total em radianos (sem: 0,6). */
+  spread?: number;
   color: string;
   /** Atributos mínimos para aprender. */
   req: Partial<Record<StatKey, number>>;
@@ -89,22 +92,22 @@ const LIST: JutsuDef[] = [
   {
     id: 'housenka', name: 'Katon: Housenka no Jutsu', shout: 'Housenka!', desc: 'Leque de pequenas chamas.',
     nature: 'katon', type: 'ninjutsu', rank: 1, chakra: 16, cooldown: 5, range: 140, power: 9, effect: 'multi',
-    count: 5, projSpeed: 260, projKind: 'orb', color: '#ff9a3b', req: { ninjutsu: 2, selos: 2 }, cost: { ryo: 50 }, learnTime: 18,
+    count: 5, projSpeed: 260, projKind: 'housenka', color: '#ff9a3b', req: { ninjutsu: 2, selos: 2 }, cost: { ryo: 50 }, learnTime: 18,
   },
   {
     id: 'goukakyuu', name: 'Katon: Goukakyuu no Jutsu', shout: 'Goukakyuu no Jutsu!', desc: 'Bola de fogo gigante que explode em área.',
     nature: 'katon', type: 'ninjutsu', rank: 2, chakra: 22, cooldown: 6, range: 150, power: 28, effect: 'projectile',
-    radius: 36, projSpeed: 230, projKind: 'orb', color: '#ff6a2b', req: { ninjutsu: 3 }, cost: { ryo: 80 }, learnTime: 25,
+    radius: 36, projSpeed: 230, projKind: 'goukakyuu', color: '#ff6a2b', req: { ninjutsu: 3 }, cost: { ryo: 80 }, learnTime: 25,
   },
   {
     id: 'mizurappa', name: 'Suiton: Mizurappa', shout: 'Mizurappa!', desc: 'Jato de água concentrado.',
     nature: 'suiton', type: 'ninjutsu', rank: 1, chakra: 12, cooldown: 4, range: 135, power: 20, effect: 'projectile',
-    projSpeed: 280, projKind: 'jet', color: '#4da6ff', req: { ninjutsu: 2 }, cost: { ryo: 45 }, learnTime: 16,
+    projSpeed: 280, projKind: 'mizurappa', color: '#4da6ff', req: { ninjutsu: 2 }, cost: { ryo: 45 }, learnTime: 16,
   },
   {
     id: 'suiryuudan', name: 'Suiton: Suiryuudan no Jutsu', shout: 'Suiryuudan no Jutsu!', desc: 'Dragão de água devastador em área.',
     nature: 'suiton', type: 'ninjutsu', rank: 3, chakra: 38, cooldown: 10, range: 175, power: 40, effect: 'projectile',
-    radius: 48, projSpeed: 200, projKind: 'dragon', color: '#3d8bff', req: { ninjutsu: 5, selos: 5 }, cost: { ryo: 180 }, learnTime: 40,
+    radius: 48, projSpeed: 200, projKind: 'suiryuudan', color: '#3d8bff', req: { ninjutsu: 5, selos: 5 }, cost: { ryo: 180 }, learnTime: 40,
   },
   {
     id: 'daitoppa', name: 'Fuuton: Daitoppa', shout: 'Daitoppa!', desc: 'Rajada de vento que fere e empurra.',
@@ -414,6 +417,18 @@ const LIST: JutsuDef[] = [
 ];
 
 export const JUTSUS: Record<string, JutsuDef> = Object.fromEntries(LIST.map((j) => [j.id, j]));
+
+/** Números do projétil e estilo como estão aqui, antes do ajuste do Laboratório (o painel mostra e volta a eles). */
+export const JUTSU_BASE: Record<string, ProjFx & { vfx?: Vfx }> = Object.fromEntries(
+  LIST.map((j) => [j.id, { ...Object.fromEntries(PROJ_KEYS.map((k) => [k, j[k]])), vfx: j.vfx }]),
+);
+// ajuste do Laboratório (data/jutsu-fx.json): velocidade, tamanho, raio, quantidade, alcance, leque e estilo
+for (const [id, f] of Object.entries(FX.jutsus)) {
+  const j = JUTSUS[id];
+  if (!j) continue;
+  for (const k of PROJ_KEYS) if (f.proj?.[k] != null) j[k] = f.proj[k];
+  if (f.vfx) j.vfx = f.vfx;
+}
 export const JUTSU_LIST: readonly JutsuDef[] = LIST;
 
 export const JUTSU_TYPE_LABEL: Record<JutsuType, string> = {

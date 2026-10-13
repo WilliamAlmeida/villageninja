@@ -14,12 +14,15 @@ import page from '../tools/sprite-editor/index.html';
 import lab from '../tools/jutsu-lab/index.html';
 import cenario from '../tools/scene-editor/index.html';
 import paleta from '../tools/palette/index.html';
+import { formatFx, type FxData } from '../src/data/jutsuFx';
 
 const ROOT = join(import.meta.dir, '..');
 const ART = join(ROOT, 'src', 'art');
 const BACKUP = join(ROOT, 'docs', 'arte', 'backup-editor');
 const EDITS = join(ART, 'art-edits.json');
 const LAYOUT = join(ROOT, 'src', 'data', 'layout.json');
+/** Visual dos jutsus (sprites, partículas, números do projétil), gravado pelo painel "Ajuste" do Laboratório. */
+const JUTSU_FX = join(ROOT, 'src', 'data', 'jutsu-fx.json');
 /** Artes de cenário marcadas como preferidas na /paleta (a paleta única sai delas). */
 const FAVORITES = join(ROOT, 'docs', 'design', 'arte-iso', 'paleta-favoritos.json');
 /**
@@ -85,6 +88,24 @@ Bun.serve({
         if (existsSync(LAYOUT)) copyFileSync(LAYOUT, join(BACKUP, `layout-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
         writeFileSync(LAYOUT, JSON.stringify(data, null, 1) + '\n');
         console.log('salvo src/data/layout.json (cópia em docs/arte/backup-editor)');
+        return Response.json({ ok: true });
+      },
+    },
+    '/api/fx': {
+      GET: () => new Response(Bun.file(JUTSU_FX), { headers: { ...noStore, 'Content-Type': 'application/json' } }),
+      PUT: async (req) => {
+        let data: FxData;
+        try {
+          data = JSON.parse(await req.text());
+        } catch {
+          return new Response('JSON inválido', { status: 400 });
+        }
+        if (!data || typeof data.styles !== 'object' || typeof data.jutsus !== 'object' || typeof data.status !== 'object')
+          return new Response('Formato inválido', { status: 400 });
+        mkdirSync(BACKUP, { recursive: true });
+        copyFileSync(JUTSU_FX, join(BACKUP, `jutsu-fx-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
+        writeFileSync(JUTSU_FX, formatFx(data));
+        console.log('salvo src/data/jutsu-fx.json (cópia em docs/arte/backup-editor)');
         return Response.json({ ok: true });
       },
     },

@@ -277,6 +277,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // obra pronta esperando espaço
   // v39: limpar área (ResourceNode.clear/cleared, campos opcionais: nada a converter)
   38: () => {},
+  // v43: curva opcional do Suiryuudan modular; projéteis antigos terminam o voo anterior.
+  42: () => {},
+  // v42: projétil e efeito sabem de que jutsu vieram (Projectile.fx / Effect.fx, opcionais: nada a converter)
+  41: () => {},
   // v41: árvores pegando fogo na luta (ResourceNode.burn, opcional: nada a converter)
   40: () => {},
   // v40: aterrar e cavar (state.earthworks)

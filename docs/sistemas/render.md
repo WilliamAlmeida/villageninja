@@ -35,5 +35,51 @@
   ou pousando do Shunshin (`landT`) o sprite "esmaga e estica" por um instante. Tudo só desenho, em `drawUnitArt`.
   **Laboratório de jutsus** (http://localhost:3011/lab, `tools/jutsu-lab/`; também no build de produção, em
   https://ninja.wmst.com.br/lab, pelo `scripts/live.ts`: só ele, os editores que gravam arquivos ficam só no 3011): campo limpo com ninja e boneco de treino; cada
-  botão solta um jutsu/golpe/técnica/arte/lâmina com o código real; "Duelo IA × IA" mostra o estilo de luta. No console,
+  botão solta um jutsu/golpe/técnica/arte/lâmina com o código real; "Duelo IA × IA" mostra o estilo de luta. Arrastar o ninja ou o
+  boneco no campo muda a posição deles (`spot`/`target`; a Distância mantém a direção entre os dois, Reiniciar volta ao
+  padrão); arrastar o chão move a câmera. No console,
   `lab.pause()`, `lab.step(s)`, `lab.act('Chidori')`.
+
+## Projéteis Katon animados
+
+`sprites.ts`, `drawProjectile`: tipos `housenka` e `goukakyuu`, escolhidos por `JutsuDef.projKind`.
+PNGs em `art/effects`, carregados pelo registro de `art.ts`. Oito quadros em grade 4x2 a 16 fps,
+núcleo em 75% da largura e 50% da altura da célula. O desenho gira pela velocidade já projetada;
+células desenhadas a 32 e 52 px, respectivamente, sem suavização. Fase pelo id evita cinco
+chamas sincronizadas no Housenka. Desenho procedural enquanto a imagem carrega; rastros e impactos
+usam o `vfx` existente. Fontes, prompts e preparo em `docs/arte/jutsus/README.md`.
+
+## Rastros das sprites e Suiton
+
+Os tipos `housenka`, `goukakyuu`, `mizurappa` e `suiryuudan` têm cauda na própria arte.
+`Particles.trail` emite somente resíduos pequenos: brasas a 32% de opacidade ou gotas a 26%,
+sem mistura aditiva, desenhados na camada `trail` ANTES dos projéteis. Os impactos continuam na
+camada `effect`. Isso evita o rastro branco opaco por cima da bola de fogo.
+
+`render/jutsuSprites.ts` desenha as quatro folhas e a Prisão d'Água. Mizurappa é um jato
+alongado (célula a 48 px); Suiryuudan usa uma sequência única de surgimento, arco e mergulho (detalhe abaixo).
+A prisão usa `effect-suirou`, centrada no corpo, célula a 57,6 px (+20%) e alpha adicional de 0,68,
+ativada por `stunVfx: water` (a técnica de Mizuchi). Os loops têm oito quadros a 16 fps; o dragão acompanha o progresso da trajetória.
+O render mantém alternativas procedurais enquanto as imagens carregam. A mecânica de dano,
+alcance, chakra e duração segue as definições existentes.
+
+## Suiryuudan: bote em arco
+
+Simulação (`game/dragonFlight.ts`, `Projectile.dragon`, save v43): a fonte nasce um tile atrás do lançador e a cabeça
+segue uma curva cúbica no chão cujos dois pontos de controle ficam ENTRE a fonte e o alvo (a 1/3 e 2/3 do caminho,
+desviados `bend` px para o lado). A cabeça sempre chega de frente, sem passar do alvo e voltar (a versão anterior
+punha o 2º controle além do alvo e fazia um gancho no fim). O arco visível é a altura: sobe `lift` px e mergulha no
+alvo; só acerta descendo. Forma em `jutsu-fx.json` → `jutsus.suiryuudan.flight` (padrão `lift` 42, `bend` 0),
+ajustável no painel "Ajuste". Desenho (`jutsuSprites.ts`, `drawDragonChain`): fonte fixa no chão, corpo em juntas
+pela curva e cabeça na tangente. Projétil antigo sem `dragon` cai no desenho de folha única (`projectileMotion.ts`:
+escala igual nos dois eixos entre `minSize` e `maxSize`, desliza até o alvo em vez de esticar).
+
+## Painel "Ajuste" do Laboratório
+
+`tools/jutsu-lab/fxPanel.ts`, dados em `src/data/jutsu-fx.json` (tipos e leitura em `data/jutsuFx.ts`), gravados pelo
+3011 (`/api/fx`, cópia em `docs/arte/backup-editor`). Abas: Sprite (folha do jutsu ou Prisão d'Água, tamanho, âncora
+por clique na prévia, quadros, mistura, giro/espelho, peças e trajetória do dragão), Partículas (rastro e explosão por
+estilo; "Só este jutsu" cria exceção) e Projétil (velocidade, tamanho, raio, quantidade, leque, alcance; entram no
+`JutsuDef` ao carregar, o original fica em `JUTSU_BASE`). Projéteis e explosões levam o jutsu de origem
+(`Projectile.fx`/`Effect.fx`, save v42). Emissores: `n` por segundo no rastro (tamanho > 6 dobra) ou quantidade na
+explosão (+`nR` por px de raio, até `max`); "$" nas cores = a cor do jutsu; estilo sem rastro cai no da natureza/tipo.

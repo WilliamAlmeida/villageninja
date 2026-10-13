@@ -1,15 +1,22 @@
 // Partículas só de visual (não entram no estado do jogo): rastro dos projéteis por natureza e explosões
 // quando um efeito novo aparece. Tudo em coordenadas de cena (já projetadas). O tempo vem do relógio do
 // render, então pausar o jogo congela as partículas também.
+// Rastro e explosão dos golpes vêm de data/jutsu-fx.json (emissores por estilo, com exceção por jutsu), ajustáveis
+// no painel "Ajuste" do Laboratório.
 import type { Nature } from '../data/natures';
+import { burstFx, FX, trailFx, type Emitter, type Shape } from '../data/jutsuFx';
 import { NATURE_VFX, type Vfx } from '../data/vfx';
 import type { Effect, Projectile } from '../game/types';
 
-type Kind = 'flame' | 'drop' | 'mist' | 'spark' | 'dust' | 'chip' | 'streak' | 'mote' | 'smoke' | 'flash' | 'leaf'
-  /** gelo (losango), brasa (cai brilhando), nota musical, agulha (traço fino na direção do voo) */
-  | 'shard' | 'ember' | 'note' | 'needle';
+/** gelo (losango), brasa (cai brilhando), nota musical, agulha (traço fino na direção do voo) */
+type Kind = Shape;
 
 interface P {
+  /** Rastro discreto das sprites: desenhado antes dos projéteis, sem somar luz. */
+  layer?: 'trail';
+  opacity?: number;
+  /** Soma luz; sem: pelo formato. */
+  glow?: boolean;
   kind: Kind;
   x: number;
   y: number;
@@ -38,12 +45,9 @@ const SAND = ['#f0d9a0', '#d9b77a', '#c39257'];
 const GOLD = ['#fff3b0', '#ffd34d', '#f0b429', '#c98a1a'];
 const CONFETTI = ['#ff5a5a', '#ffd34d', '#4da6ff', '#7ddc6b', '#e05ad1', '#ffffff'];
 
-const ICE = ['#ffffff', '#e0f7ff', '#9fe8ff'];
 const LAVA = ['#ffe08a', '#ff8a2b', '#ff3a1a', '#b32a0a'];
-const HEAT = ['#fff3b0', '#ffcf6a', '#ffb347'];
 const WOOD = ['#8a5a2e', '#a8743d', '#8fcf6a', '#5f9a3a'];
 const STORM = ['#ffffff', '#e6d9ff', '#c8a6ff', '#9a6bff'];
-const DARK = ['#3a1858', '#5a2a8a', '#8a4ad0'];
 const BLOOD = ['#ff5a6a', '#c0182b', '#7a0a18'];
 const METAL = ['#ffffff', '#dfe6ec', '#9aa4ad'];
 const BONE = ['#ffffff', '#efe6d0', '#d8ccb0'];
@@ -92,68 +96,65 @@ export class Particles {
     this.list.push({ vx: 0, vy: 0, z: 0, vz: 0, t: 0, life: 0.5, size: 2, color: '#fff', ...p });
   }
 
-  /** Rastro dos estilos que não são as 5 naturezas básicas (e água/fogo/raio corrigidos). true = tratou. */
-  private trailStyle(st: Vfx, p: Projectile, x: number, y: number, j: () => number): boolean {
-    switch (st) {
-      case 'fire':
-        if (p.kind === 'kunai') {
-          this.add({ kind: 'spark', x, y, vx: rnd(-20, 20), vy: rnd(-20, 5), life: 0.12, size: 2.5, color: pick(FIRE) }); // pavio do papel-bomba
-          return true;
-        }
-        this.add({ kind: 'flame', x: x + j(), y: y + j(), vx: rnd(-8, 8), vy: rnd(-30, -12), life: rnd(0.3, 0.55), size: rnd(2, 3.5) * (p.size / 5), color: pick(FIRE) });
-        return true;
-      case 'water':
-        this.add({ kind: 'drop', x: x + j(), y: y + j(), vx: rnd(-14, 14), vy: rnd(-6, 6), z: 6, vz: rnd(10, 30), life: rnd(0.4, 0.7), size: rnd(1.2, 2.2), color: pick(WATER) });
-        if (Math.random() < 0.4) this.add({ kind: 'mist', x, y, life: 0.5, size: p.size * 1.2, color: '#9fd8ff' });
-        return true;
-      case 'lightning':
-        this.add({ kind: 'spark', x: x + j(), y: y + j(), vx: rnd(-60, 60), vy: rnd(-60, 60), life: rnd(0.08, 0.18), size: rnd(3, 6), color: pick(BOLT) });
-        return true;
-      case 'storm':
-        this.add({ kind: 'spark', x: x + j(), y: y + j(), vx: rnd(-70, 70), vy: rnd(-70, 70), life: rnd(0.08, 0.18), size: rnd(3, 7), color: pick(STORM) });
-        return true;
-      case 'ice':
-        this.add({ kind: 'shard', x: x + j(), y: y + j(), vx: -p.vx * 0.05 + rnd(-10, 10), vy: -p.vy * 0.05 + rnd(-10, 10), life: rnd(0.25, 0.45), size: rnd(1.2, 2), color: pick(ICE) });
-        return true;
-      case 'lava':
-        this.add({ kind: 'ember', x: x + j(), y: y + j(), vx: rnd(-20, 20), vy: rnd(-10, 10), z: 2, vz: rnd(20, 50), life: rnd(0.4, 0.8), size: rnd(1.5, 2.8), color: pick(LAVA) });
-        if (Math.random() < 0.5) this.add({ kind: 'smoke', x, y, vy: -10, life: 0.6, size: p.size * 0.9, color: '#5a4038' });
-        return true;
-      case 'needle':
-        this.add({ kind: 'mote', x, y, life: 0.15, size: 1, color: '#ffffff' });
-        return true;
-      case 'gold':
-        this.add({ kind: 'mote', x: x + j(), y: y + j(), vy: -6, life: 0.35, size: 1.6, color: pick(GOLD) });
-        return true;
-      case 'dark':
-        this.add({ kind: 'smoke', x: x + j(), y: y + j(), vy: -8, life: 0.5, size: p.size, color: pick(DARK) });
-        return true;
-    }
-    return false;
-  }
-
   /** Rastro de um projétil (posição já na cena, voando na altura do peito). */
   trail(p: Projectile, x: number, y: number, dt: number) {
-    const n = Math.random() < dt * 60 ? 1 : 0;
-    const nat = p.nature as Nature | null;
-    if (p.kind === 'kunai' && p.vfx !== 'fire') return;
-    const st = p.vfx ?? (nat ? NATURE_VFX[nat] : null);
-    for (let i = 0; i < n + (p.size > 6 ? 1 : 0); i++) {
-      const j = () => rnd(-p.size, p.size) * 0.6;
-      if (st && this.trailStyle(st, p, x, y, j)) continue;
-      if (nat === 'katon' || p.kind === 'orb') {
-        this.add({ kind: 'flame', x: x + j(), y: y + j(), vx: rnd(-8, 8), vy: rnd(-30, -12), life: rnd(0.3, 0.55), size: rnd(2, 3.5) * (p.size / 5), color: pick(FIRE) });
-      } else if (nat === 'suiton' || p.kind === 'dragon') {
-        this.add({ kind: 'drop', x: x + j(), y: y + j(), vx: rnd(-14, 14), vy: rnd(-6, 6), z: 6, vz: rnd(10, 30), life: rnd(0.4, 0.7), size: rnd(1.2, 2.2), color: pick(WATER) });
-        if (Math.random() < 0.4) this.add({ kind: 'mist', x, y, life: 0.5, size: p.size * 1.2, color: '#9fd8ff' });
-      } else if (nat === 'fuuton' || p.kind === 'blade') {
-        this.add({ kind: 'streak', x: x + j(), y: y + j(), vx: -p.vx * 0.1, vy: -p.vy * 0.1, life: 0.25, size: rnd(4, 8), color: pick(WIND) });
-      } else if (nat === 'raiton' || p.kind === 'spark') {
-        this.add({ kind: 'spark', x: x + j(), y: y + j(), vx: rnd(-60, 60), vy: rnd(-60, 60), life: rnd(0.08, 0.18), size: rnd(3, 6), color: pick(BOLT) });
-      } else if (nat === 'doton' || p.kind === 'rock') {
-        this.add({ kind: 'dust', x: x + j(), y: y + j() + 6, vx: rnd(-6, 6), vy: rnd(-6, 2), life: rnd(0.4, 0.7), size: rnd(2.5, 4.5), color: pick(EARTH) });
-      } else {
-        this.add({ kind: 'mote', x: x + j(), y: y + j(), vy: -10, life: 0.4, size: 1.6, color: p.color });
+    if (p.kind === 'kunai') {
+      // kunai não deixa rastro; o papel-bomba solta faíscas do pavio
+      if (p.vfx === 'fire' && Math.random() < dt * 60)
+        this.add({ kind: 'spark', x, y, vx: rnd(-20, 20), vy: rnd(-20, 5), life: 0.12, size: 2.5, color: pick(FIRE) });
+      return;
+    }
+    const list = trailFx(p.fx ?? p.kind, trailStyle(p));
+    if (!list?.length) return;
+    const sp = Math.hypot(p.vx, p.vy) || 1;
+    const dx = p.vx / sp;
+    const dy = p.vy / sp;
+    for (const em of list) {
+      // projétil grande (tamanho > 6) solta o dobro, menos o resíduo discreto das sprites
+      const rate = em.n * (p.size > 6 && !em.under ? 2 : 1);
+      const count = Math.floor(rate * dt + Math.random());
+      for (let i = 0; i < count; i++) {
+        if (em.chance != null && Math.random() > em.chance) continue;
+        const j = () => rnd(-1, 1) * (em.spread ?? 0) * p.size;
+        const a = rnd(0, TAU);
+        const v = rnd(em.speed[0], em.speed[1]);
+        const f = em.follow ?? 0;
+        const back = em.back ?? 0;
+        this.add({
+          kind: em.shape, x: x - dx * back + j(), y: y - dy * back + j() + (em.dy ?? 0),
+          vx: Math.cos(a) * v + p.vx * f, vy: Math.sin(a) * v + p.vy * f + (em.rise ? rnd(em.rise[0], em.rise[1]) : 0),
+          z: em.z ?? 0, vz: em.jump ? rnd(em.jump[0], em.jump[1]) : 0,
+          life: rnd(em.life[0], em.life[1]), size: rnd(em.size[0], em.size[1]) * (em.scale ? p.size / 5 : 1),
+          color: colorOf(em, p.color), opacity: em.opacity, glow: em.glow, layer: em.under ? 'trail' : undefined,
+        });
+      }
+    }
+  }
+
+  /** Explosão de um efeito `burst` pelos emissores (do jutsu, se tiver exceção, senão do estilo). */
+  private burst(list: Emitter[], e: Effect, r: number) {
+    for (const em of list) {
+      const count = Math.round(Math.min(em.max ?? Infinity, em.n + (em.nR ?? 0) * r));
+      for (let i = 0; i < count; i++) {
+        if (em.chance != null && Math.random() > em.chance) continue;
+        let x = e.x;
+        let y = e.y + (em.dy ?? 0);
+        if (em.ring != null) {
+          const a = (i / count) * TAU;
+          x += Math.cos(a) * r * em.ring;
+          y += Math.sin(a) * r * em.ring * 0.5;
+        } else if (em.spread) {
+          x += rnd(-1, 1) * em.spread * r;
+          y += rnd(-1, 1) * em.spread * r * 0.5;
+        }
+        const a = rnd(0, TAU);
+        const v = rnd(em.speed[0], em.speed[1]) * (r / 20);
+        this.add({
+          kind: em.shape, x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 + (em.rise ? rnd(em.rise[0], em.rise[1]) : 0),
+          z: em.z ?? 0, vz: em.jump ? rnd(em.jump[0], em.jump[1]) : 0,
+          life: rnd(em.life[0], em.life[1]), size: rnd(em.size[0], em.size[1]) * (em.scale ? r : 1),
+          color: colorOf(em, e.color), opacity: em.opacity, glow: em.glow, layer: em.under ? 'trail' : undefined,
+        });
       }
     }
   }
@@ -163,8 +164,6 @@ export class Particles {
     if (this.seen.has(src)) return;
     this.seen.add(src);
     const r = e.r ?? 16;
-    const vs = styleOf(e);
-    const nat: Nature | null = vs === 'fire' ? 'katon' : vs === 'water' ? 'suiton' : vs === 'lightning' ? 'raiton' : vs === 'earth' ? 'doton' : vs === 'wind' ? 'fuuton' : null;
     switch (e.kind) {
       case 'treasure': {
         // baú aberto: clarão, moedas que pulam e quicam, confete subindo e caindo, estrelinhas
@@ -269,25 +268,9 @@ export class Particles {
         }
         break;
       case 'burst': {
-        const st = styleOf(e);
-        if (st && st !== 'fire' && st !== 'water' && st !== 'lightning' && st !== 'earth' && st !== 'wind') {
-          this.burstStyle(st, e, r);
-          break;
-        }
-        this.add({ kind: 'flash', x: e.x, y: e.y, life: 0.12, size: r * 0.75, color: e.color });
-        const n = Math.min(48, 16 + r);
-        for (let i = 0; i < n; i++) {
-          const a = rnd(0, TAU);
-          const sp = rnd(30, 90) * (r / 20);
-          const base = { x: e.x, y: e.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5 };
-          if (nat === 'katon') this.add({ ...base, kind: 'flame', vy: base.vy - 20, life: rnd(0.35, 0.7), size: rnd(2.5, 5), color: pick(FIRE) });
-          else if (nat === 'suiton') this.add({ ...base, kind: 'drop', z: 4, vz: rnd(40, 90), life: rnd(0.5, 0.9), size: rnd(1.5, 2.5), color: pick(WATER) });
-          else if (nat === 'raiton') this.add({ ...base, kind: 'spark', vx: base.vx * 1.6, vy: base.vy * 1.6, life: rnd(0.1, 0.25), size: rnd(4, 8), color: pick(BOLT) });
-          else if (nat === 'doton') this.add({ ...base, kind: 'chip', z: 2, vz: rnd(50, 110), life: rnd(0.6, 1), size: rnd(2, 3.5), color: pick(EARTH) });
-          else if (nat === 'fuuton') this.add({ ...base, kind: 'streak', life: 0.3, size: rnd(5, 10), color: pick(WIND) });
-          else this.add({ ...base, kind: 'mote', life: rnd(0.3, 0.6), size: rnd(1.5, 2.5), color: e.color });
-        }
-        for (let i = 0; i < 5; i++) this.add({ kind: 'smoke', x: e.x + rnd(-r, r) * 0.4, y: e.y + rnd(-r, r) * 0.2, vy: rnd(-14, -6), life: rnd(0.6, 1), size: r * rnd(0.35, 0.55), color: nat === 'suiton' ? '#cfe9ff' : '#8a8078' });
+        const st = styleOf(e) ?? 'none';
+        const list = burstFx(e.fx, st) ?? FX.styles.none?.burst;
+        if (list) this.burst(list, e, r);
         break;
       }
       case 'ring':
@@ -313,76 +296,6 @@ export class Particles {
       case 'chips':
         for (let i = 0; i < 4; i++) this.add({ kind: 'chip', x: e.x, y: e.y, vx: rnd(-30, 30), vy: rnd(-15, 15), z: 4, vz: rnd(30, 60), life: rnd(0.4, 0.7), size: rnd(1.5, 2.5), color: e.color });
         break;
-    }
-  }
-
-  /** Explosão dos estilos especiais (gelo, lava, calor, madeira, tempestade, sangue, agulha, sombra…). */
-  private burstStyle(st: Vfx, e: Effect, r: number) {
-    const n = Math.min(44, 14 + r);
-    const ring = (sp: number) => {
-      const a = rnd(0, TAU);
-      const v = rnd(0.4, 1) * sp * (r / 20);
-      return { x: e.x, y: e.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 };
-    };
-    const flash = (c: string) => this.add({ kind: 'flash', x: e.x, y: e.y, life: 0.14, size: r * 0.8, color: c });
-    switch (st) {
-      case 'ice':
-        flash('#e0f7ff');
-        for (let i = 0; i < n; i++) this.add({ ...ring(90), kind: 'shard', z: 3, vz: rnd(30, 80), life: rnd(0.5, 0.9), size: rnd(1.6, 3), color: pick(ICE) });
-        for (let i = 0; i < 4; i++) this.add({ kind: 'mist', x: e.x + rnd(-r, r) * 0.4, y: e.y, vy: -6, life: 0.8, size: r * 0.5, color: '#e0f7ff' });
-        break;
-      case 'lava':
-        flash('#ff8a2b');
-        for (let i = 0; i < n; i++) this.add({ ...ring(80), kind: 'ember', z: 3, vz: rnd(60, 130), life: rnd(0.7, 1.2), size: rnd(2, 3.5), color: pick(LAVA) });
-        for (let i = 0; i < n / 2; i++) this.add({ ...ring(50), kind: 'flame', life: rnd(0.4, 0.7), size: rnd(3, 6), color: pick(LAVA) });
-        for (let i = 0; i < 6; i++) this.add({ kind: 'smoke', x: e.x + rnd(-r, r) * 0.4, y: e.y, vy: rnd(-18, -8), life: rnd(0.8, 1.2), size: r * rnd(0.35, 0.55), color: '#4a3530' });
-        break;
-      case 'heat':
-        // Shakuton: esferas incandescentes que estouram em volta do alvo
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * TAU;
-          this.add({ kind: 'flash', x: e.x + Math.cos(a) * r * 0.55, y: e.y + Math.sin(a) * r * 0.28, life: rnd(0.3, 0.5), size: r * 0.4, color: '#ffcf6a' });
-        }
-        for (let i = 0; i < n; i++) this.add({ ...ring(60), kind: 'mote', vy: rnd(-40, -15), life: rnd(0.5, 0.9), size: rnd(2, 3.5), color: pick(HEAT) });
-        break;
-      case 'wood':
-        for (let i = 0; i < n; i++) this.add({ ...ring(70), kind: Math.random() < 0.4 ? 'leaf' : 'chip', z: 2, vz: rnd(40, 90), life: rnd(0.6, 1), size: rnd(2, 3.5), color: pick(WOOD) });
-        break;
-      case 'storm':
-        flash('#c8a6ff');
-        for (let i = 0; i < n; i++) this.add({ ...ring(140), kind: 'spark', life: rnd(0.1, 0.25), size: rnd(4, 8), color: pick(STORM) });
-        break;
-      case 'blood':
-        for (let i = 0; i < n; i++) this.add({ ...ring(70), kind: 'drop', z: 4, vz: rnd(40, 90), life: rnd(0.5, 0.9), size: rnd(1.5, 2.5), color: pick(BLOOD) });
-        break;
-      case 'needle':
-        for (let i = 0; i < n / 2; i++) this.add({ ...ring(120), kind: 'needle', life: rnd(0.15, 0.3), size: rnd(4, 7), color: pick(METAL) });
-        break;
-      case 'metal':
-        for (let i = 0; i < 8; i++) this.add({ ...ring(110), kind: 'spark', life: rnd(0.08, 0.16), size: rnd(2, 4), color: pick(METAL) });
-        break;
-      case 'gold':
-        flash('#ffd34d');
-        for (let i = 0; i < n; i++) this.add({ ...ring(90), kind: 'spark', life: rnd(0.1, 0.22), size: rnd(3, 6), color: pick(GOLD) });
-        break;
-      case 'dark':
-      case 'genjutsu':
-        for (let i = 0; i < n; i++) this.add({ ...ring(40), kind: 'smoke', vy: rnd(-16, -6), life: rnd(0.6, 1), size: rnd(3, 6), color: pick(st === 'dark' ? DARK : GENJ) });
-        break;
-      case 'leaf':
-        for (let i = 0; i < n; i++) this.add({ ...ring(60), kind: 'leaf', life: rnd(0.8, 1.3), size: rnd(2.4, 3.6), color: pick(LEAVES) });
-        break;
-      case 'bone':
-        for (let i = 0; i < n / 2; i++) this.add({ ...ring(80), kind: 'chip', z: 2, vz: rnd(40, 90), life: rnd(0.5, 0.9), size: rnd(2, 3.5), color: pick(BONE) });
-        break;
-      case 'web':
-        for (let i = 0; i < n / 2; i++) this.add({ ...ring(100), kind: 'streak', life: 0.4, size: rnd(5, 10), color: '#ffffff' });
-        break;
-      case 'sound':
-        for (let i = 0; i < 8; i++) this.add({ ...ring(50), kind: 'note', vy: rnd(-30, -10), life: rnd(0.7, 1.1), size: rnd(3, 4), color: pick(SOUNDP) });
-        break;
-      default:
-        for (let i = 0; i < n; i++) this.add({ ...ring(80), kind: 'spark', life: rnd(0.08, 0.18), size: rnd(3, 6), color: '#ffffff' });
     }
   }
 
@@ -418,13 +331,14 @@ export class Particles {
     this.list = out;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, layer: 'trail' | 'effect' = 'effect') {
     for (const p of this.list) {
+      if ((p.layer ?? 'effect') !== layer) continue;
       const k = p.t / p.life;
       const y = p.y - p.z;
-      const glow = p.kind === 'flame' || p.kind === 'spark' || p.kind === 'flash' || p.kind === 'mote' || p.kind === 'ember' || p.kind === 'shard';
+      const glow = layer !== 'trail' && (p.glow ?? (p.kind === 'flame' || p.kind === 'spark' || p.kind === 'flash' || p.kind === 'mote' || p.kind === 'ember' || p.kind === 'shard'));
       ctx.globalCompositeOperation = glow ? 'lighter' : 'source-over';
-      ctx.globalAlpha = 1 - k * k;
+      ctx.globalAlpha = (p.opacity ?? 1) * (1 - k * k);
       ctx.fillStyle = p.color;
       ctx.strokeStyle = p.color;
       switch (p.kind) {
@@ -530,6 +444,23 @@ export class Particles {
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
+}
+
+/** Cor do emissor: sorteada da lista; "$" = a do jutsu/efeito. */
+function colorOf(em: Emitter, own: string) {
+  const c = pick(em.colors.length ? em.colors : ['$']);
+  return c === '$' ? own : c;
+}
+
+/** Tipo de projétil sem estilo nem natureza: o desenho dele já sugere um (bola de fogo, dragão d'água…). */
+const KIND_STYLE: Partial<Record<Projectile['kind'], Vfx>> = { orb: 'fire', dragon: 'water', blade: 'wind', spark: 'lightning', rock: 'earth' };
+
+/** Estilo do rastro: o do projétil, senão o da natureza, senão o do tipo; o primeiro que tem rastro. */
+function trailStyle(p: Projectile): string {
+  const nat = p.nature as Nature | null;
+  for (const st of [p.vfx, nat ? NATURE_VFX[nat] : undefined, KIND_STYLE[p.kind]])
+    if (st && FX.styles[st]?.trail.length) return st;
+  return 'none';
 }
 
 /** Natureza pela cor do efeito (os sistemas usam a cor da natureza ao criar explosões). */

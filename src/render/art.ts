@@ -277,8 +277,19 @@ import dogPug from '../art/animals/dog-pug.png';
 import dogBull from '../art/animals/dog-bull.png';
 import toad from '../art/animals/toad.png';
 import slug from '../art/animals/slug.png';
+import projectileHousenka from '../art/effects/projectile-housenka.png';
+import projectileGoukakyuu from '../art/effects/projectile-goukakyuu.png';
+import projectileMizurappa from '../art/effects/projectile-mizurappa.png';
+import projectileSuiryuudanV2 from '../art/effects/projectile-suiryuudan-v2.png';
+import dragonHead from '../art/effects/effect-suiryuudan-head.png';
+import dragonBody from '../art/effects/effect-suiryuudan-body.png';
+import dragonOrigin from '../art/effects/effect-suiryuudan-origin.png';
+import effectSuirou from '../art/effects/effect-suirou.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
+  'projectile-housenka': projectileHousenka, 'projectile-goukakyuu': projectileGoukakyuu,
+  'projectile-mizurappa': projectileMizurappa, 'projectile-suiryuudan-v2': projectileSuiryuudanV2, 'effect-suirou': effectSuirou,
+  'effect-suiryuudan-head': dragonHead, 'effect-suiryuudan-body': dragonBody, 'effect-suiryuudan-origin': dragonOrigin,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-top': towerTop, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3,
@@ -341,6 +352,9 @@ export function preloadArt(onProgress: (k: number) => void = () => {}): Promise<
     }
   });
 }
+
+/** Folhas de efeito registradas (projectile-*, effect-*): o painel "Ajuste" do Laboratório escolhe entre elas. */
+export const EFFECT_SHEETS = Object.keys(URLS).filter((k) => /^(projectile|effect)-/.test(k));
 
 export function art(name: string): HTMLImageElement | null {
   if (typeof Image === 'undefined' || !(name in URLS)) return null;

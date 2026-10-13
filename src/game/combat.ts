@@ -1,5 +1,7 @@
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { scarArea } from './battleScars';
+import { createDragonFlight, dragonPoint } from './dragonFlight';
+import { FX } from '../data/jutsuFx';
 import { raiseWall, wallCovers } from './walls';
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
@@ -307,17 +309,17 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     case 'projectile':
       spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
         damage: power, radius: def.radius ?? 0, nature: def.nature, color: def.color,
-        size: def.projSize ?? (def.radius ? 9 : 6), speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx,
+        size: def.projSize ?? (def.radius ? 9 : 6), speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx, fx: def.id,
       });
       break;
     case 'multi': {
       const count = def.count ?? 3;
       const base = Math.atan2(t.y - u.y, t.x - u.x);
       for (let i = 0; i < count; i++) {
-        const a = base + (count > 1 ? (i / (count - 1) - 0.5) * 0.6 : 0);
+        const a = base + (count > 1 ? (i / (count - 1) - 0.5) * (def.spread ?? 0.6) : 0);
         spawnProjectile(g, u, u.faction, u.x, u.y - 4, u.x + Math.cos(a) * def.range, u.y + Math.sin(a) * def.range, {
-          damage: power, radius: 0, nature: def.nature, color: def.color, size: 5,
-          speed: def.projSpeed ?? 260, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx,
+          damage: power, radius: 0, nature: def.nature, color: def.color, size: def.projSize ?? 5,
+          speed: def.projSpeed ?? 260, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx, fx: def.id,
         });
       }
       break;
@@ -332,7 +334,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
         if (weatherAt(g.state, seasonOf(g.state), c.x, c.y) === 'clear') p *= 0.6;
       }
       if (vfx === 'wind' && !def.self) fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.55, r: def.radius ?? 50 });
-      fx(g, 'burst', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.55, vfx });
+      fx(g, 'burst', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.55, vfx, fx: def.id });
       fx(g, 'ring', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
       areaDamage(g, u, u.faction, c.x, c.y, def.radius ?? 50, p, def.nature, 45, def.stun ?? 0);
       break;
@@ -375,7 +377,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     }
     case 'bind':
       // raízes prendem o alvo e causam dano
-      fx(g, 'burst', t.x, t.y, { r: 22, color: def.color, life: 0.5, vfx: vfx ?? 'wood' });
+      fx(g, 'burst', t.x, t.y, { r: 22, color: def.color, life: 0.5, vfx: vfx ?? 'wood', fx: def.id });
       applyDamage(g, u, t, power, null, { stun: def.duration ?? 2, stunVfx: vfx ?? 'wood' });
       break;
     case 'shield':
@@ -384,7 +386,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       // terra (Doryuuheki): a muralha brota do chão e fica parada ali, entre ele e o inimigo
       if (vfx === 'earth') raiseWall(g, u, def.duration ?? 6, def.color);
       else {
-        fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx });
+        fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx, fx: def.id });
         fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });
       }
       break;
@@ -499,6 +501,8 @@ interface ProjOpts {
   stun: number;
   range: number;
   vfx?: Vfx;
+  /** Jutsu que soltou (sprite e partículas próprias). */
+  fx?: string;
 }
 
 export function spawnProjectile(g: Game, owner: Unit | null, faction: Faction, x: number, y: number, tx: number, ty: number, o: ProjOpts) {
@@ -508,6 +512,16 @@ export function spawnProjectile(g: Game, owner: Unit | null, faction: Faction, x
     ownerId: owner?.id ?? null, damage: o.damage, radius: o.radius, nature: o.nature, color: o.color,
     size: o.size, stun: o.stun, life: (o.range * 1.4) / o.speed, kind: o.kind, side: owner?.arenaSide || undefined, vfx: o.vfx,
   };
+  if (o.fx) p.fx = o.fx;
+  // bote em arco (Suiryuudan): a forma vem do jutsu-fx.json (`flight`, ajustável no Laboratório)
+  const flight = FX.jutsus[o.fx ?? o.kind]?.flight;
+  if (owner && flight) {
+    p.dragon = createDragonFlight(owner.x, owner.y, tx, ty, owner.facing, o.speed, flight);
+    const start = dragonPoint(p.dragon, 0);
+    p.x = start.x; p.y = start.y;
+    p.vx = start.vx / p.dragon.duration; p.vy = start.vy / p.dragon.duration;
+    p.life = p.dragon.duration + 0.1;
+  }
   g.state.projectiles.push(p);
   return p;
 }
@@ -762,7 +776,7 @@ export function dashTick(g: Game, u: Unit, dt: number) {
     u.dash = undefined;
     u.moving = false;
     dashTrail(g, u, d);
-    fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx });
+    fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx, fx: d.id });
     fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
     const def = d.id ? JUTSUS[d.id] : undefined;
     if (def?.dashRadius) {

@@ -1,6 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
+import { drawJutsuProjectile, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -974,6 +975,7 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       break;
     }
     case 'water': {
+      if (drawWaterPrison(ctx, u.x, u.y, t, u.id)) break;
       // Prisão d'Água: bolha que ondula em volta do corpo
       const r = 15 + Math.sin(t * 4) * 0.8;
       const g = ctx.createRadialGradient(u.x - 4, u.y - 12, 2, u.x, u.y - 6, r);
@@ -1930,6 +1932,7 @@ function paintTower(ctx: Ctx, def: BuildingDef, x: number, y: number, w: number,
 // ---------------------------------------------------------------- projéteis
 export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
   const a = Math.atan2(p.vy, p.vx);
+  if (drawJutsuProjectile(ctx, p, t)) return;
   const sp = Math.hypot(p.vx, p.vy);
   const dx = p.vx / sp;
   const dy = p.vy / sp;
@@ -2022,6 +2025,7 @@ export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
       glowOrb(ctx, p.x, p.y, p.size, p.color);
       return;
     }
+    case 'mizurappa':
     case 'jet': {
       // jato d'água: gota alongada com miolo claro e respingos atrás
       ctx.save();
@@ -2093,6 +2097,7 @@ export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
       glowOrb(ctx, p.x, p.y, 3, '#ffd34d');
       return;
     }
+    case 'suiryuudan':
     case 'dragon':
       for (let i = 8; i >= 1; i--) {
         const off = Math.sin(t * 12 - i * 0.8) * 5;

@@ -3,6 +3,7 @@ import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
+import { dragonPoint } from '../game/dragonFlight';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
 import { DEFENSES } from '../game/systems/towers';
@@ -605,7 +606,9 @@ export class Renderer {
       const v = project(p.vx, p.vy);
       const t = project(p.tx, p.ty);
       // projéteis voam na altura do peito
-      const pp = { ...p, x: a.x, y: a.y - 8, vx: v.x, vy: v.y, tx: t.x, ty: t.y - 8 };
+      const dragon = p.dragon ? dragonPoint(p.dragon, p.dragon.elapsed / p.dragon.duration) : null;
+      const pp = { ...p, x: a.x, y: a.y - (dragon?.z ?? 8), vx: v.x,
+        vy: v.y - (dragon && p.dragon ? dragon.vz / p.dragon.duration : 0), tx: t.x, ty: t.y - (dragon ? 0 : 8) };
       this.particles.trail(pp, pp.x, pp.y, dt);
       flying.push(pp);
     }

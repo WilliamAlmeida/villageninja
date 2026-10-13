@@ -34,7 +34,7 @@ export type FlickerStyle = 'leaf' | 'mist' | 'water' | 'sand' | 'smoke' | 'flash
 export type CombatPace = 'fast' | 'tactical';
 export type NinjaOrder = 'auto' | 'train' | 'patrol' | 'scout';
 /** `jet` jato d'água, `shard` gelo, `needle` agulha, `arrow` flecha (desenho em render/sprites.ts). */
-export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai' | 'jet' | 'shard' | 'needle' | 'arrow' | 'spinner';
+export type ProjectileKind = 'orb' | 'dragon' | 'blade' | 'rock' | 'spark' | 'kunai' | 'jet' | 'shard' | 'needle' | 'arrow' | 'spinner' | 'housenka' | 'goukakyuu' | 'mizurappa' | 'suiryuudan';
 
 export interface Look {
   skin: string;
@@ -475,6 +475,15 @@ export interface ResourceNode {
   variant: number;
 }
 
+/** Trajetória serializável do dragão: origem, controles da curva e tempo do voo. */
+export interface DragonFlight {
+  sx: number; sy: number;
+  c1x: number; c1y: number;
+  c2x: number; c2y: number;
+  tx: number; ty: number;
+  elapsed: number; duration: number; lift: number;
+}
+
 export interface Projectile {
   id: number;
   x: number;
@@ -500,6 +509,10 @@ export interface Projectile {
   mark?: number;
   /** Estilo visual do rastro e do impacto (data/vfx.ts). */
   vfx?: Vfx;
+  /** Jutsu que soltou: sprite e partículas próprias dele (data/jutsu-fx.json). */
+  fx?: string;
+  /** Suiryuudan modular: simulação e desenho compartilham esta curva. */
+  dragon?: DragonFlight;
 }
 
 /** `harvest`: canteiro recém-colhido (terra à mostra que volta a brotar com o tempo; desenhado no chão). */
@@ -541,6 +554,8 @@ export interface Effect {
   facing?: number;
   /** Estilo das partículas (data/vfx.ts); sem: adivinhado pela cor. */
   vfx?: Vfx;
+  /** Jutsu de onde veio: a exceção de partículas dele (data/jutsu-fx.json). */
+  fx?: string;
 }
 
 /** Nuvem de chuva cruzando o mapa (px de mundo). */

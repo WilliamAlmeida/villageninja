@@ -1,5 +1,42 @@
 /* Só o que é do laboratório; o tema e os componentes estão em ../shared/tools.css */
-.cols { display: grid; grid-template-columns: 300px minmax(0, 1fr); height: calc(100% - var(--top-h)); }
+.cols { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; height: calc(100% - var(--top-h)); }
+.cols.nofx { grid-template-columns: 300px minmax(0, 1fr); }
+.cols.nofx #fx { display: none; }
+#fxToggle.on { background: var(--accent); color: var(--accent-ink); }
+
+/* painel "Ajuste" (fxPanel.ts) */
+#fx { gap: 8px; }
+#fx .fxhead { display: flex; align-items: center; gap: 6px; }
+#fx .fxhead .title { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-hi); font-size: 14px; }
+#fx .now { font-weight: 800; color: var(--text); }
+#fx .status { max-width: none; min-height: 1.2em; }
+#fx .seg.tabs { display: flex; }
+#fx .seg.tabs button { flex: 1; }
+#fx .fxbody { display: flex; flex-direction: column; gap: 6px; }
+#fx h3 { margin: 10px 0 0; }
+#fx h4 { margin: 6px 0 0; }
+#fx .row .lbl { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+#fx .sl { display: grid; grid-template-columns: 92px minmax(0, 1fr) 58px auto; gap: 6px; align-items: center; }
+#fx .sl label { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#fx .sl input[type='number'] { width: 58px; padding: 2px 4px; font-size: 12px; }
+#fx .sl button.same { opacity: 0.35; }
+#fx .pair { border-left: 2px solid var(--line); padding-left: 6px; }
+#fx .pair .pl { color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+#fx .pair .sl { grid-template-columns: 34px minmax(0, 1fr) 58px; }
+#fx .pair .sl label { color: var(--dim); font-size: 11px; }
+#fx canvas.sheet { width: 100%; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 6px; cursor: crosshair; background: #2c2016; }
+#fx .em { border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+#fx .em.open { border-color: var(--line-hi); }
+#fx .emh { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 8px; cursor: pointer; }
+#fx .emh small { color: var(--dim); margin-left: auto; }
+#fx .emh button.icon { width: 24px; height: 24px; }
+#fx .sw { display: inline-flex; gap: 2px; }
+#fx .sw i { width: 10px; height: 10px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.4); }
+#fx .emb { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; border-top: 1px solid var(--line); }
+#fx .cols-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+#fx .col { display: inline-flex; align-items: center; gap: 1px; }
+#fx .col .own { font-size: 11px; padding: 2px 6px; border-radius: 5px; background: conic-gradient(from 90deg, #a33, #a83, #3a8, #38a, #83a, #a33); color: #fff; }
+#fx .col button.x { padding: 0 4px; min-width: 0; }
 .top .group { display: inline-flex; align-items: center; gap: 5px; }
 .top .group .lbl { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
 #side { gap: 4px; }
@@ -23,7 +60,8 @@ main canvas { display: block; width: 100%; height: 100%; }
   .top::-webkit-scrollbar { display: none; }
   .top > * { flex: 0 0 auto; }
   .top .grow { display: none; }
-  .cols { grid-template-columns: 230px minmax(0, 1fr); }
+  .cols { grid-template-columns: 230px minmax(0, 1fr) 300px; }
+  .cols.nofx { grid-template-columns: 230px minmax(0, 1fr); }
   #hud { top: 6px; gap: 4px; padding: 3px 4px 3px 8px; max-width: calc(100% - 12px); }
   #hud .now-lbl { display: none; }
   #hud #now { overflow: hidden; text-overflow: ellipsis; max-width: 9rem; }
@@ -34,9 +72,11 @@ main canvas { display: block; width: 100%; height: 100%; }
 }
 /* em pé (celular na vertical): o campo em cima e a lista embaixo */
 @media (max-width: 700px) and (orientation: portrait) {
-  .cols { grid-template-columns: 1fr; grid-template-rows: 46vh minmax(0, 1fr); }
+  .cols, .cols.nofx { grid-template-columns: 1fr; grid-template-rows: 46vh minmax(0, 1fr); }
   main { grid-row: 1; }
   #side { grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+  #fx { grid-row: 2; border-left: 0; border-top: 1px solid var(--line); }
+  .cols:not(.nofx) #side { display: none; }
 }
 @media (max-width: 700px) {
   .top .brand, .top .sep { display: none; }

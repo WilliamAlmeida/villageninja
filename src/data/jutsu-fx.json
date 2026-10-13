@@ -1,0 +1,249 @@
+{
+ "styles": {
+  "fire": {
+   "trail": [
+     {"shape":"flame","colors":["#fff3b0","#ffd24d","#ff8a2b","#ff5a1f"],"n":60,"life":[0.3,0.55],"size":[2,3.5],"scale":true,"speed":[0,8],"rise":[-30,-12],"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["$"],"n":1,"life":[0.12,0.12],"size":[0.75,0.75],"scale":true,"speed":[0,0]},
+     {"shape":"flame","colors":["#fff3b0","#ffd24d","#ff8a2b","#ff5a1f"],"n":16,"life":[0.35,0.7],"size":[2.5,5],"speed":[30,90],"rise":[-20,-20],"nR":1,"max":48},
+     {"shape":"smoke","colors":["#8a8078"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
+   ]
+  },
+  "water": {
+   "trail": [
+     {"shape":"drop","colors":["#e6f6ff","#9fd8ff","#4da6ff"],"n":60,"life":[0.4,0.7],"size":[1.2,2.2],"speed":[0,14],"jump":[10,30],"z":6,"spread":0.6},
+     {"shape":"mist","colors":["#9fd8ff"],"n":24,"life":[0.5,0.5],"size":[6,6],"scale":true,"speed":[0,0]}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["$"],"n":1,"life":[0.12,0.12],"size":[0.75,0.75],"scale":true,"speed":[0,0]},
+     {"shape":"drop","colors":["#e6f6ff","#9fd8ff","#4da6ff"],"n":16,"life":[0.5,0.9],"size":[1.5,2.5],"speed":[30,90],"jump":[40,90],"z":4,"nR":1,"max":48},
+     {"shape":"smoke","colors":["#cfe9ff"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
+   ]
+  },
+  "lightning": {
+   "trail": [
+     {"shape":"spark","colors":["#ffffff","#fff6a8","#ffe14d"],"n":60,"life":[0.08,0.18],"size":[3,6],"speed":[0,60],"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["$"],"n":1,"life":[0.12,0.12],"size":[0.75,0.75],"scale":true,"speed":[0,0]},
+     {"shape":"spark","colors":["#ffffff","#fff6a8","#ffe14d"],"n":16,"life":[0.1,0.25],"size":[4,8],"speed":[48,144],"nR":1,"max":48},
+     {"shape":"smoke","colors":["#8a8078"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
+   ]
+  },
+  "earth": {
+   "trail": [
+     {"shape":"dust","colors":["#d9b77a","#c39257","#8a6238"],"n":60,"life":[0.4,0.7],"size":[2.5,4.5],"speed":[0,6],"rise":[-2,-2],"dy":6,"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["$"],"n":1,"life":[0.12,0.12],"size":[0.75,0.75],"scale":true,"speed":[0,0]},
+     {"shape":"chip","colors":["#d9b77a","#c39257","#8a6238"],"n":16,"life":[0.6,1],"size":[2,3.5],"speed":[30,90],"jump":[50,110],"z":2,"nR":1,"max":48},
+     {"shape":"smoke","colors":["#8a8078"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
+   ]
+  },
+  "wind": {
+   "trail": [
+     {"shape":"streak","colors":["#e8fff0","#b6f2cc","#7fe0a0"],"n":60,"life":[0.25,0.25],"size":[4,8],"speed":[0,0],"follow":-0.1,"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["$"],"n":1,"life":[0.12,0.12],"size":[0.75,0.75],"scale":true,"speed":[0,0]},
+     {"shape":"streak","colors":["#e8fff0","#b6f2cc","#7fe0a0"],"n":16,"life":[0.3,0.3],"size":[5,10],"speed":[30,90],"nR":1,"max":48},
+     {"shape":"smoke","colors":["#8a8078"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
+   ]
+  },
+  "ice": {
+   "trail": [
+     {"shape":"shard","colors":["#ffffff","#e0f7ff","#9fe8ff"],"n":60,"life":[0.25,0.45],"size":[1.2,2],"speed":[0,10],"follow":-0.05,"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["#e0f7ff"],"n":1,"life":[0.14,0.14],"size":[0.8,0.8],"scale":true,"speed":[0,0]},
+     {"shape":"shard","colors":["#ffffff","#e0f7ff","#9fe8ff"],"n":14,"nR":1,"max":44,"life":[0.5,0.9],"size":[1.6,3],"speed":[36,90],"jump":[30,80],"z":3},
+     {"shape":"mist","colors":["#e0f7ff"],"n":4,"life":[0.8,0.8],"size":[0.5,0.5],"scale":true,"speed":[0,0],"rise":[-6,-6],"spread":0.4}
+   ]
+  },
+  "lava": {
+   "trail": [
+     {"shape":"ember","colors":["#ffe08a","#ff8a2b","#ff3a1a","#b32a0a"],"n":60,"life":[0.4,0.8],"size":[1.5,2.8],"speed":[0,20],"jump":[20,50],"z":2,"spread":0.6},
+     {"shape":"smoke","colors":["#5a4038"],"n":30,"life":[0.6,0.6],"size":[4.5,4.5],"scale":true,"speed":[0,0],"rise":[-10,-10]}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["#ff8a2b"],"n":1,"life":[0.14,0.14],"size":[0.8,0.8],"scale":true,"speed":[0,0]},
+     {"shape":"ember","colors":["#ffe08a","#ff8a2b","#ff3a1a","#b32a0a"],"n":14,"nR":1,"max":44,"life":[0.7,1.2],"size":[2,3.5],"speed":[32,80],"jump":[60,130],"z":3},
+     {"shape":"flame","colors":["#ffe08a","#ff8a2b","#ff3a1a","#b32a0a"],"n":7,"nR":0.5,"max":22,"life":[0.4,0.7],"size":[3,6],"speed":[20,50]},
+     {"shape":"smoke","colors":["#4a3530"],"n":6,"life":[0.8,1.2],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-18,-8],"spread":0.4}
+   ]
+  },
+  "heat": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"flash","colors":["#ffcf6a"],"n":6,"life":[0.3,0.5],"size":[0.4,0.4],"scale":true,"speed":[0,0],"ring":0.55},
+     {"shape":"mote","colors":["#fff3b0","#ffcf6a","#ffb347"],"n":14,"nR":1,"max":44,"life":[0.5,0.9],"size":[2,3.5],"speed":[24,60],"rise":[-40,-15]}
+   ]
+  },
+  "wood": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"chip","colors":["#8a5a2e","#a8743d","#8fcf6a","#5f9a3a"],"n":8,"nR":0.6,"max":26,"life":[0.6,1],"size":[2,3.5],"speed":[28,70],"jump":[40,90],"z":2},
+     {"shape":"leaf","colors":["#8a5a2e","#a8743d","#8fcf6a","#5f9a3a"],"n":6,"nR":0.4,"max":18,"life":[0.6,1],"size":[2,3.5],"speed":[28,70],"jump":[40,90],"z":2}
+   ]
+  },
+  "storm": {
+   "trail": [
+     {"shape":"spark","colors":["#ffffff","#e6d9ff","#c8a6ff","#9a6bff"],"n":60,"life":[0.08,0.18],"size":[3,7],"speed":[0,70],"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["#c8a6ff"],"n":1,"life":[0.14,0.14],"size":[0.8,0.8],"scale":true,"speed":[0,0]},
+     {"shape":"spark","colors":["#ffffff","#e6d9ff","#c8a6ff","#9a6bff"],"n":14,"nR":1,"max":44,"life":[0.1,0.25],"size":[4,8],"speed":[56,140]}
+   ]
+  },
+  "dark": {
+   "trail": [
+     {"shape":"smoke","colors":["#3a1858","#5a2a8a","#8a4ad0"],"n":60,"life":[0.5,0.5],"size":[5,5],"scale":true,"speed":[0,0],"rise":[-8,-8],"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"smoke","colors":["#3a1858","#5a2a8a","#8a4ad0"],"n":14,"nR":1,"max":44,"life":[0.6,1],"size":[3,6],"speed":[16,40],"rise":[-16,-6]}
+   ]
+  },
+  "blood": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"drop","colors":["#ff5a6a","#c0182b","#7a0a18"],"n":14,"nR":1,"max":44,"life":[0.5,0.9],"size":[1.5,2.5],"speed":[28,70],"jump":[40,90],"z":4}
+   ]
+  },
+  "needle": {
+   "trail": [
+     {"shape":"mote","colors":["#ffffff"],"n":60,"life":[0.15,0.15],"size":[1,1],"speed":[0,0]}
+   ],
+   "burst": [
+     {"shape":"needle","colors":["#ffffff","#dfe6ec","#9aa4ad"],"n":7,"nR":0.5,"max":22,"life":[0.15,0.3],"size":[4,7],"speed":[48,120]}
+   ]
+  },
+  "leaf": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"leaf","colors":["#d8f27a","#a8e05f","#7cc444","#f0d860"],"n":14,"nR":1,"max":44,"life":[0.8,1.3],"size":[2.4,3.6],"speed":[24,60]}
+   ]
+  },
+  "genjutsu": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"smoke","colors":["#e6d0ff","#b36bff","#8a4ad0"],"n":14,"nR":1,"max":44,"life":[0.6,1],"size":[3,6],"speed":[16,40],"rise":[-16,-6]}
+   ]
+  },
+  "impact": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"spark","colors":["#ffffff"],"n":14,"nR":1,"max":44,"life":[0.08,0.18],"size":[3,6],"speed":[32,80]}
+   ]
+  },
+  "metal": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"spark","colors":["#ffffff","#dfe6ec","#9aa4ad"],"n":8,"life":[0.08,0.16],"size":[2,4],"speed":[44,110]}
+   ]
+  },
+  "gold": {
+   "trail": [
+     {"shape":"mote","colors":["#fff3b0","#ffd34d","#f0b429","#c98a1a"],"n":60,"life":[0.35,0.35],"size":[1.6,1.6],"speed":[0,0],"rise":[-6,-6],"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["#ffd34d"],"n":1,"life":[0.14,0.14],"size":[0.8,0.8],"scale":true,"speed":[0,0]},
+     {"shape":"spark","colors":["#fff3b0","#ffd34d","#f0b429","#c98a1a"],"n":14,"nR":1,"max":44,"life":[0.1,0.22],"size":[3,6],"speed":[36,90]}
+   ]
+  },
+  "sound": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"note","colors":["#ffe9a0","#ffd34d","#ffffff"],"n":8,"life":[0.7,1.1],"size":[3,4],"speed":[20,50],"rise":[-30,-10]}
+   ]
+  },
+  "bone": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"chip","colors":["#ffffff","#efe6d0","#d8ccb0"],"n":7,"nR":0.5,"max":22,"life":[0.5,0.9],"size":[2,3.5],"speed":[32,80],"jump":[40,90],"z":2}
+   ]
+  },
+  "web": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"streak","colors":["#ffffff"],"n":7,"nR":0.5,"max":22,"life":[0.4,0.4],"size":[5,10],"speed":[40,100]}
+   ]
+  },
+  "sand": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"spark","colors":["#ffffff"],"n":14,"nR":1,"max":44,"life":[0.08,0.18],"size":[3,6],"speed":[32,80]}
+   ]
+  },
+  "shadow": {
+   "trail": [
+
+   ],
+   "burst": [
+     {"shape":"spark","colors":["#ffffff"],"n":14,"nR":1,"max":44,"life":[0.08,0.18],"size":[3,6],"speed":[32,80]}
+   ]
+  },
+  "none": {
+   "trail": [
+     {"shape":"mote","colors":["$"],"n":60,"life":[0.4,0.4],"size":[1.6,1.6],"speed":[0,0],"rise":[-10,-10],"spread":0.6}
+   ],
+   "burst": [
+     {"shape":"flash","colors":["$"],"n":1,"life":[0.12,0.12],"size":[0.75,0.75],"scale":true,"speed":[0,0]},
+     {"shape":"mote","colors":["$"],"n":16,"life":[0.3,0.6],"size":[1.5,2.5],"speed":[30,90],"nR":1,"max":48},
+     {"shape":"smoke","colors":["#8a8078"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
+   ]
+  }
+ },
+ "jutsus": {
+  "housenka": {
+   "sprite": {"sheet":"projectile-housenka","cols":4,"rows":2,"frames":8,"fps":16,"size":32,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":false},
+   "trail": [
+     {"shape":"ember","colors":["#ff982e"],"n":18,"life":[0.18,0.3],"size":[0.8,1.5],"speed":[0,3],"follow":-0.04,"back":15,"spread":0.3,"opacity":0.32,"under":true,"glow":false,"rise":[-5,-5]}
+   ]
+  },
+  "goukakyuu": {
+   "sprite": {"sheet":"projectile-goukakyuu","cols":4,"rows":2,"frames":8,"fps":16,"size":52,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":false},
+   "trail": [
+     {"shape":"ember","colors":["#ff982e"],"n":18,"life":[0.18,0.3],"size":[0.8,1.5],"speed":[0,3],"follow":-0.04,"back":25,"spread":0.3,"opacity":0.32,"under":true,"glow":false,"rise":[-5,-5]}
+   ]
+  },
+  "mizurappa": {
+   "sprite": {"sheet":"projectile-mizurappa","cols":4,"rows":2,"frames":8,"fps":16,"size":48,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":false},
+   "trail": [
+     {"shape":"drop","colors":["#9fd8ff"],"n":22,"life":[0.18,0.3],"size":[0.8,1.5],"speed":[0,3],"follow":-0.04,"back":26,"spread":0.3,"opacity":0.26,"under":true,"glow":false}
+   ]
+  },
+  "suiryuudan": {
+   "sprite": {"sheet":"effect-suiryuudan-head","cols":4,"rows":2,"frames":8,"fps":16,"size":40,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":true,"motion":"dragon","parts":{"bodySheet":"effect-suiryuudan-body","originSheet":"effect-suiryuudan-origin","bodyWidth":13,"originSize":32,"spacing":7}},
+   "flight": {"lift":42,"bend":0},
+   "trail": [
+     {"shape":"drop","colors":["#9fd8ff"],"n":22,"life":[0.18,0.3],"size":[0.8,1.5],"speed":[0,3],"follow":-0.04,"back":40,"spread":0.3,"opacity":0.26,"under":true,"glow":false}
+   ]
+  }
+ },
+ "status": {
+  "water": {"sheet":"effect-suirou","cols":4,"rows":2,"frames":8,"fps":16,"size":57.6,"anchorX":0.5,"anchorY":0.5,"dy":-9,"opacity":0.68,"blend":"normal","rotate":false,"flip":false}
+ }
+}
