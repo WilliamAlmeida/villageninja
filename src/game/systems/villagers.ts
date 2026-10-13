@@ -5,14 +5,14 @@ import { fx, fxText } from '../fx';
 import { farmYield, marketYield, needsBuilders, workUpgrade } from '../upgrade';
 import { harvestMult, workMult } from '../mood';
 import { levelOf } from '../upgrade';
-import { REGROW } from '../../data/regrow';
+import { CLEAR, clearNode, regrowTime } from '../clearing';
 import { marketSale } from '../specialize';
 import { advanceCraft } from '../gear';
 import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
 import { followPath, setDestination } from '../movement';
 import { isNight } from '../time';
-import type { Building, ResKey, Unit } from '../types';
+import type { Building, ResKey, ResourceNode, Unit } from '../types';
 import { doorPos, tileCenter, toTile } from '../world';
 
 const FLEE_RADIUS = 170;
@@ -186,7 +186,7 @@ function work(g: Game, u: Unit, dt: number) {
         // esgotou: vira toco / rocha rachada e cresce de volta com o tempo (não some do mapa)
         if (n.amount <= 0) {
           n.amount = 0;
-          n.regrow = REGROW[n.type] ?? 0;
+          n.regrow = regrowTime(g.state, n.type);
           // a rocha some numa nuvem de poeira (ficam as pedrinhas); o veio perde os cristais
           if (n.type === 'rock' || n.type === 'ore') fx(g, 'smoke', tileCenter(n.tx), tileCenter(n.ty), { r: 22, life: 0.9, color: '#b8b4ac' });
           if (!n.regrow) g.removeNode(n.id);
@@ -255,6 +255,33 @@ function work(g: Game, u: Unit, dt: number) {
       }
       break;
     }
+    case 'toClear': {
+      const n = g.node(u.taskId);
+      if (!n || !n.clear || n.cleared) u.state = 'idle';
+      else if (followPath(g, u, dt)) {
+        u.state = 'clearing';
+        u.timer = CLEAR.work;
+        u.facing = Math.atan2(tileCenter(n.ty) - u.y, tileCenter(n.tx) - u.x);
+      }
+      break;
+    }
+    case 'clearing': {
+      // arrancando o toco/rocha marcado (limpar área): mesmo gesto da coleta
+      const n = g.node(u.taskId);
+      if (!n || !n.clear || n.cleared) {
+        u.state = 'idle';
+        break;
+      }
+      u.moving = false;
+      u.anim = 0.2;
+      if (Math.random() < dt * 2.5) fx(g, 'chips', tileCenter(n.tx), tileCenter(n.ty), { color: n.type === 'tree' ? '#a0784a' : '#bfbfbf', life: 0.4 });
+      if (u.timer <= 0) {
+        clearNode(g, n);
+        u.state = 'idle';
+        u.timer = 0.3;
+      }
+      break;
+    }
     case 'toSite': {
       const b = g.building(u.taskId);
       if (!b || !needsBuilders(b)) u.state = 'idle';
@@ -310,6 +337,15 @@ function decide(g: Game, u: Unit) {
     u.taskId = site.id;
     if (setDestination(g, u, spot.x, spot.y)) {
       u.state = 'toSite';
+      return;
+    }
+  }
+  // sem obra: limpar o que o jogador marcou (o mais perto que ninguém está limpando)
+  const n = nearestClear(g, u);
+  if (n) {
+    u.taskId = n.id;
+    if (setDestination(g, u, tileCenter(n.tx), tileCenter(n.ty) + 12)) {
+      u.state = 'toClear';
       return;
     }
   }
@@ -375,6 +411,22 @@ function findNode(g: Game, b: Building, type: 'tree' | 'rock' | 'ore') {
     .sort((a, b) => a.d - b.d)
     .slice(0, 4);
   return near.length ? pick(near).n : null;
+}
+
+function nearestClear(g: Game, u: Unit) {
+  const taken = new Set<number>();
+  for (const o of g.state.units) if (o !== u && o.kind === 'villager' && (o.state === 'toClear' || o.state === 'clearing') && o.taskId != null) taken.add(o.taskId);
+  let best: ResourceNode | undefined;
+  let bd = Infinity;
+  for (const n of g.state.nodes) {
+    if (!n.clear || n.cleared || taken.has(n.id)) continue;
+    const d = Math.hypot(tileCenter(n.tx) - u.x, tileCenter(n.ty) - u.y);
+    if (d < bd) {
+      bd = d;
+      best = n;
+    }
+  }
+  return best;
 }
 
 function nearestSite(g: Game, u: Unit) {

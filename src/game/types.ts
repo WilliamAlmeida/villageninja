@@ -452,6 +452,10 @@ export interface ResourceNode {
   type: 'tree' | 'rock' | 'herb' | 'ore';
   /** Esgotado: segundos até voltar inteiro (árvore vira toco, rocha fica rachada). */
   regrow?: number;
+  /** Marcado para limpar (modo "Limpar área"): um morador sem obra vem arrancar (game/clearing.ts). */
+  clear?: boolean;
+  /** Arrancado: some do mapa (sem desenho nem colisão) até a rebrota longa. */
+  cleared?: boolean;
   missionId?: number;
   tx: number;
   ty: number;

@@ -43,6 +43,7 @@ export function doorPos(b: Building) {
 }
 /** Arte do recurso no estágio atual: árvore (tree0/tree1) vira toco quase no fim; rocha racha depois da metade. */
 export function nodeArt(n: ResourceNode): string {
+  if (n.cleared) return 'cleared'; // arrancado: nada desenhado, sem colisão (sem layout)
   const left = n.max ? n.amount / n.max : 1;
   // cada árvore tem o toco dela (folhosa / pinheiro)
   if (n.type === 'tree') return left < 0.25 ? `stump${n.variant % 2}` : `tree${n.variant % 2}`;

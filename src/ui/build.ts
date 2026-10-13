@@ -11,6 +11,7 @@ import { rich } from './icons';
 import { artUrl } from '../render/art';
 import { isShown, setShown } from './anim';
 import { pave, ROAD, unpave } from '../game/roads';
+import { CLEAR, markClear, toClear } from '../game/clearing';
 import { TILE } from '../config';
 import { DECO_MOOD_MAX } from '../game/mood';
 
@@ -42,6 +43,14 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
             rich(`<span class="i">{road}</span><span class="n">Rua calçada</span><span class="c">${costLabel(ROAD.cost)} / tile</span><span class="lock"></span>`),
           ),
         );
+        // limpar área: marca árvores, tocos e pedras para os moradores sem obra arrancarem (game/clearing.ts)
+        this.bar.appendChild(
+          el(
+            'button',
+            { class: 'bcard road', 'data-clear': '1', 'data-tip-title': 'Limpar área', 'data-tip': `Arraste no mapa sobre árvores, tocos, rochas e veios. Os moradores sem obra vão lá e arrancam: o que ainda estava de pé rende o que sobrava. O lugar fica limpo e só brota de novo depois de ${CLEAR.regrowMult}× o tempo normal.` },
+            rich(`<span class="i">{axe}</span><span class="n">Limpar área</span><span class="c">grátis</span><span class="lock"></span>`),
+          ),
+        );
         continue;
       }
       this.bar.appendChild(
@@ -57,6 +66,10 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
       if (this.dragged) return; // foi um arraste, não um clique no card
       if ((e.target as HTMLElement).closest('[data-road]')) {
         this.startRoad();
+        return;
+      }
+      if ((e.target as HTMLElement).closest('[data-clear]')) {
+        this.startRoad('clear');
         return;
       }
       const c = (e.target as HTMLElement).closest<HTMLElement>('[data-type]');
@@ -88,7 +101,8 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
     this.roadBar.addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
       if (a === 'erase') {
-        this.app.roadMode = this.app.roadMode === 'erase' ? 'pave' : 'erase';
+        const m = this.app.roadMode;
+        this.app.roadMode = m === 'erase' ? 'pave' : m === 'pave' ? 'erase' : m === 'clear' ? 'unclear' : 'clear';
         this.roadHint();
       }
       if (a === 'done') this.exit();
@@ -101,19 +115,29 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
   private lastRoad: { tx: number; ty: number } | null = null;
   private roadMsg = '';
 
-  /** Entra no modo de pintar ruas. */
-  private startRoad() {
+  /** Entra no modo de pintar ruas (ou de marcar a área a limpar). */
+  private startRoad(mode: 'pave' | 'clear' = 'pave') {
     setShown(this.bar, false);
-    this.app.roadMode = 'pave';
+    this.app.roadMode = mode;
     this.lastRoad = null;
     this.roadBar.hidden = false;
     this.roadHint();
   }
 
   private roadHint() {
-    const erase = this.app.roadMode === 'erase';
-    this.roadBar.querySelector('[data-act="erase"]')!.classList.toggle('on', erase);
-    const msg = erase ? '{road} Arraste no mapa para tirar a rua' : `{road} Arraste no mapa para calçar · ${costLabel(ROAD.cost)} por tile`;
+    const m = this.app.roadMode;
+    const clearing = m === 'clear' || m === 'unclear';
+    const erase = m === 'erase' || m === 'unclear';
+    const btn = this.roadBar.querySelector('[data-act="erase"]')!;
+    btn.classList.toggle('on', erase);
+    btn.innerHTML = rich(clearing ? '{eraser} Desmarcar' : '{eraser} Tirar');
+    const msg = clearing
+      ? m === 'unclear'
+        ? '{axe} Arraste no mapa para desmarcar'
+        : `{axe} Arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.home.state).length} marcados`
+      : erase
+        ? '{road} Arraste no mapa para tirar a rua'
+        : `{road} Arraste no mapa para calçar · ${costLabel(ROAD.cost)} por tile`;
     this.roadBar.querySelector('[data-t="road"]')!.innerHTML = rich(this.roadMsg ? `${msg} · <b>${this.roadMsg}</b>` : msg);
   }
 
@@ -128,7 +152,8 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
     for (let i = 0; i <= n; i++) {
       const x = Math.round(from.tx + ((tx - from.tx) * i) / n);
       const y = Math.round(from.ty + ((ty - from.ty) * i) / n);
-      if (this.app.roadMode === 'erase') unpave(g, x, y);
+      if (this.app.roadMode === 'clear' || this.app.roadMode === 'unclear') markClear(g, x, y, this.app.roadMode === 'clear');
+      else if (this.app.roadMode === 'erase') unpave(g, x, y);
       else {
         const r = pave(g, x, y);
         if (!r.ok && r.error !== 'Já é rua.') why = r.error;
@@ -136,7 +161,7 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
     }
     this.lastRoad = done || tap ? null : { tx, ty };
     const msg = why ?? '';
-    if (msg !== this.roadMsg) {
+    if (msg !== this.roadMsg || this.app.roadMode === 'clear' || this.app.roadMode === 'unclear') {
       this.roadMsg = msg;
       this.roadHint();
     }

@@ -348,7 +348,7 @@ export class Renderer {
     }
     // na névoa não aparece nada em pé: nem recursos, nem bichos e inimigos, nem locais ainda não achados
     for (const n of s.nodes) {
-      if (!isExplored(s, n.tx, n.ty)) continue;
+      if (n.cleared || !isExplored(s, n.tx, n.ty)) continue; // arrancado (limpar área): não há o que desenhar
       const p = project(n.tx * TILE + TILE / 2, n.ty * TILE + TILE / 2);
       if (seen(p)) list.push({ x: p.x, y: p.y, n });
     }
@@ -507,6 +507,18 @@ export class Renderer {
           drawBlock(d);
         }
         ctx.globalAlpha = 1;
+        // marcado para limpar (limpar área): anel tracejado laranja no pé, girando devagar
+        if (d.n?.clear) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,170,60,0.95)';
+          ctx.lineWidth = 1.6;
+          ctx.setLineDash([4, 3]);
+          ctx.lineDashOffset = -time * 8;
+          ctx.beginPath();
+          ctx.ellipse(d.x, d.y + 4, 14, 6.5, 0, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+        }
         continue;
       }
       if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);

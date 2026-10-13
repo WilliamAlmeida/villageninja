@@ -465,7 +465,12 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   em vez de trocar) e abas "Sem cão" / "Com cão" (`kennelTab`, até 20 ninjas, os de nível mais alto; botões na linha do rank/nível); cães sem
   dono numa lista rolável para escolher qual vai no "Dar" (`dogPick`); o topo mostra só vagas e o custo de adotar. Dono escondido (em casa) ou em expedição: de dia o cão patrulha a vila farejando (`dogPatrol`), à noite dorme no Canil (`goKennel`, em hostiles.ts); volta a seguir o dono quando ele sai. **Sannin não fica com ninken** (já tem a invocação): `dogBlock`/`giveDog` recusam, quem vira Sannin solta o cão e `releaseSanninDogs` (automação) conserta saves antigos.
 - **Recursos crescem de volta** (`data/regrow.ts`, `systems/nature.ts`): árvore/rocha/veio esgotado vira toco/rocha rachada
-  (`ResourceNode.regrow`) em vez de sumir. Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
+  (`ResourceNode.regrow`) em vez de sumir. A rebrota fica mais lenta com o nível da vila (`regrowTime`, `CLEAR.levelMult`
+  1/2/3/4× em game/clearing.ts). **Limpar área** (cartão na seção Decoração da barra de construção, mesmo modo de pintar
+  da rua, `App.roadMode` 'clear'/'unclear'): arrastar marca árvores, tocos, rochas e veios (`ResourceNode.clear`, anel
+  tracejado laranja); morador sem obra vai lá (`toClear`/`clearing` em systems/villagers.ts) e arranca: rende o que
+  sobrava, o recurso fica `cleared` (sem desenho nem colisão, `nodeArt` 'cleared') e só volta depois de
+  `CLEAR.regrowMult` (4×) a rebrota normal; com prédio ou rua em cima, sai do mapa de vez (`regrowCleared`). Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
   coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
   consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor
@@ -625,7 +630,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v38.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v39.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

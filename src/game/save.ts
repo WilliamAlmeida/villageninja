@@ -275,6 +275,8 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // v38: o nível 3 de mercado, academia, hospital, biblioteca, forja, farmácia, selos, lenhador e pedreira ficou maior
   // (padrão novo da arte): cresce no lugar, muda para o espaço livre mais perto ou, sem nenhum, volta ao nível 2 com a
   // obra pronta esperando espaço
+  // v39: limpar área (ResourceNode.clear/cleared, campos opcionais: nada a converter)
+  38: () => {},
   37: (s) => {
     const types: BuildingType[] = ['market', 'academy', 'hospital', 'library', 'forge', 'pharmacy', 'sealshop', 'lumber', 'quarry'];
     for (const st of [s, s.scene].filter(Boolean))
