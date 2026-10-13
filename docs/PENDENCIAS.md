@@ -54,6 +54,26 @@ Origem: ideias dos mockups (`docs/arte/mockups`, análise de 2026-10-11) e a lis
 - [ ] Refazer o resto das construções e decorações no padrão (gabarito v2, grade do boneco, paleta), em lotes com aprovação (`scripts/building-art.py`)
 - [ ] Tirar o sistema de peça "por cima do vigia" (`LayoutPiece.over`) quando nenhuma torre usar mais (as em camadas não usam)
 
+## 5. Sprites dos jutsus (levantamento de 2026-10-13)
+
+Inventário dos 56 jutsus, artes existentes e prioridades: [jutsus-sprites.md](jutsus-sprites.md).
+As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação visual e commit.
+
+- [x] Rasengan e Ōdama Rasengan — esfera compartilhada na mão, formação por escala, impacto animado e cratera temporária no chão (12/18 s). Ōdama usa as mesmas três imagens em 2×. Aprovado visualmente pelo autor em 2026-10-13 (73c11ca); prévia em `docs/arte/jutsus/rasengan/preview-impacto.html`.
+- [ ] Rasenshuriken — esfera, lâminas giratórias, voo e explosão.
+- [ ] Chidori — chakra elétrico na mão, investida e impacto.
+- [ ] Doryuuheki — surgimento, permanência e desmoronamento da muralha.
+- [ ] Kirin — formação no céu, dragão elétrico e queda; avaliar peças separadas.
+- [ ] Amaterasu e Susano'o — chamas negras e armadura de chakra em camadas.
+- [ ] Jukai Kōtan e Sabaku Kyū — crescimento de raízes e aprisionamento por areia.
+- [ ] Raikyuu e Chidori Nagashi — esfera elétrica e descarga ao redor do corpo.
+- [ ] Yōkai — substituir a arte reaproveitada do Housenka por lava própria.
+- [ ] Daitoppa, Shinkuu Ha e Sekizō — rajadas, lâminas e colunas de ar.
+- [ ] Kaiten, Sōshiken, Gatsūga e Nikudan Sensha — efeitos característicos sobre as poses atuais.
+- [ ] Sensatsu, Reiza e Kajōsatsu — agulhas de gelo, feixes e esferas de calor.
+- [ ] Kage Bunshin, Edo Tensei e Shousen — aparição, invocação e cura.
+- [ ] Avaliar efeitos compartilhados de impacto, poeira, cortes e chakra para os golpes físicos restantes.
+
 ## Fora da lista (só quando o autor pedir)
 - "Preparar defesa" com prazo (adiado pelo autor).
 - Testar `CODEX_MODEL=gpt-6-luna` nas imagens.
