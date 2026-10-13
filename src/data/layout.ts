@@ -104,7 +104,7 @@ export const layout = () => LAYOUT;
  * "Monte dos Kages" no Editor de cenário vale para todas as faces.
  */
 export const artFamily = (name: string): string | undefined =>
-  /^monument-f\d$/.test(name) ? 'monument' : name === 'cherry-green' || name === 'cherry-bare' ? 'cherry' : undefined;
+  name.startsWith('monument-f') && /^monument-f\d$/.test(name) ? 'monument' : name === 'cherry-green' || name === 'cherry-bare' ? 'cherry' : undefined;
 
 export const artLayout = (name: string): ArtLayout | undefined => {
   const own = LAYOUT.arts[name];

@@ -8,7 +8,8 @@
   lugar: `render/art.ts`, `layout.json`, editores) (registro em `render/art.ts`), preparados com `scripts/prepare-art.py`
   (originais em `docs/arte`). Prédios e cenário (árvores, rochas, baú, ruína, caverna) são guardados em 2×
   (`SCENERY_SCALE`, paleta de 256 cores): o jogo desenha pelo tamanho no mundo e só ganha nitidez com zoom; abaixo do
-  tamanho guardado `smoothIfShrunk` (art.ts) reduz com suavização. Personagens e camadas do ninja seguem em 1×. **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
+  tamanho guardado `drawShrunk` (art.ts) reduz pela cópia reduzida pronta (½, ¼, ⅛) com suavização simples (ver
+  render.md, Desempenho). Personagens e camadas do ninja seguem em 1×. **Gerar pelo Codex CLI** (`scripts/codex-image.mjs`, incluso no plano ChatGPT do autor;
   usa `-m gpt-5.5` e tira o fundo localmente com `scripts/remove-bg.py`). A Runware (`scripts/runware.mjs`,
   `scripts/sprite.mjs`, paga por imagem) é só alternativa quando o Codex não estiver disponível. O jogo é sempre pixel art
   (a opção de arte antiga saiu); o desenho procedural de `sprites.ts` só aparece enquanto a imagem carrega e nos testes.

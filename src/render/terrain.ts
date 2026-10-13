@@ -6,6 +6,7 @@ import { TILE } from '../config';
 import type { Camera } from '../core/camera';
 import { mulberry32 } from '../core/rng';
 import type { GameState } from '../game/types';
+import { isExplored } from '../game/explore';
 import { idx, inBounds, T } from '../game/world';
 
 /** Lado do bloco, em tiles. */
@@ -303,26 +304,43 @@ export function waterDepth(state: GameState): Uint8Array {
   return d;
 }
 
-/** (chão) Ondinhas animadas na água à vista: arcos brancos que surgem e somem, mais nas águas fundas. */
+/** Faixas de transparência das ondinhas: cada faixa vira um traço só (um `stroke` por faixa, não por tile). */
+const WAVE_BANDS = 6;
+const WAVE_MAX = 0.35;
+const waveBands: number[][] = Array.from({ length: WAVE_BANDS }, () => []);
+
+/**
+ * (chão) Ondinhas animadas na água à vista: arcos brancos que surgem e somem, mais nas águas fundas. Com o mapa inteiro
+ * à vista são ~2 mil arcos: juntados por faixa de transparência (antes, um `stroke` por tile pesava mais que o resto do
+ * chão na GPU). Na névoa não desenha (ela cobre).
+ */
 export function drawWaterAnim(ctx: CanvasRenderingContext2D, state: GameState, depth: Uint8Array, time: number, v: { x0: number; y0: number; x1: number; y1: number }) {
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1.2;
+  for (const b of waveBands) b.length = 0;
   for (let y = v.y0; y <= v.y1; y++)
     for (let x = v.x0; x <= v.x1; x++) {
       const dep = depth[idx(state, x, y)]!;
-      if (!dep) continue;
+      if (!dep || !isExplored(state, x, y)) continue;
       const h = ((x * 73856093) ^ (y * 19349663)) >>> 0;
       const ph = (time * 0.45 + (h % 1000) / 1000) % 1;
       const a = Math.sin(ph * Math.PI) * (dep > 1 ? 0.35 : 0.2);
       if (a < 0.03) continue;
-      const wx = x * TILE + 6 + (h % 17) + ph * 6;
-      const wy = y * TILE + 8 + ((h >> 5) % 16);
-      ctx.globalAlpha = a;
-      ctx.beginPath();
+      const band = waveBands[Math.min(WAVE_BANDS - 1, Math.floor((a / WAVE_MAX) * WAVE_BANDS))]!;
+      band.push(x * TILE + 6 + (h % 17) + ph * 6, y * TILE + 8 + ((h >> 5) % 16));
+    }
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.2;
+  waveBands.forEach((b, i) => {
+    if (!b.length) return;
+    ctx.globalAlpha = ((i + 0.5) / WAVE_BANDS) * WAVE_MAX;
+    ctx.beginPath();
+    for (let k = 0; k < b.length; k += 2) {
+      const wx = b[k]!;
+      const wy = b[k + 1]!;
       ctx.moveTo(wx, wy);
       ctx.quadraticCurveTo(wx + 5, wy - 3, wx + 10, wy);
-      ctx.stroke();
     }
+    ctx.stroke();
+  });
   ctx.globalAlpha = 1;
 }
 

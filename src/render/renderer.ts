@@ -29,7 +29,7 @@ import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { isRoad } from '../game/roads';
 import { buildingCenter, doorPos, doorTile, hasWater, nodeArt, T } from '../game/world';
-import { art, artFoot, ART_SCALE, smoothIfShrunk } from './art';
+import { art, artFoot, ART_SCALE, drawWhole } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
@@ -67,6 +67,12 @@ const FOG_PAD = 3;
 
 const TAU = Math.PI * 2;
 /** Como mostrar quem passa atrás de um prédio (as mesmas chaves de ui/settings.ts `OcclusionCfg`). */
+/** Prédio na correção de profundidade (tiles): canto com folga, ponta da frente e linha de base. */
+type DepthBlock = { x0: number; y0: number; fx: number; fy: number; y: number };
+
+/** Teto de silhuetas com o zoom afastado. */
+const FAR_SILHOUETTES = 12;
+
 export type Occlusion = { silhouette: boolean; fade: boolean; cutout: boolean; dither: boolean };
 /** Corpo de um personagem para saber quem o tapa (ponto do peito na cena, índice na lista ordenada). */
 type Body = { x: number; y: number; i: number; u: Unit };
@@ -124,12 +130,25 @@ export class Renderer {
   private list: Drawable[] = [];
   /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
   private fade = new Map<string, number>();
+  /** O mesmo esmaecer, dos recursos (pelo id). */
+  private nodeFade = new Map<number, number>();
   /**
    * Como mostrar quem passa atrás de um prédio/árvore (Configurações → "Atrás de prédios", posto pelo main): silhueta
    * do personagem por cima, esmaecer o prédio inteiro (o de sempre), furo em volta do personagem e pontilhado no lugar
    * da transparência (no esmaecer e no furo). Combinam entre si.
    */
   occl: Occlusion = { silhouette: false, fade: true, cutout: false, dither: false };
+  /** Medição (console: `renderer.prof = {}`): ms somados por etapa do quadro; null = desligada. */
+  prof: Record<string, number> | null = null;
+  /** Prédios por coluna de tile, refeito a cada quadro (correção de profundidade). */
+  private depthCols: DepthBlock[][] = [];
+  private profT = 0;
+  private mark(label: string) {
+    if (!this.prof) return;
+    const t = performance.now();
+    this.prof[label] = (this.prof[label] ?? 0) + t - this.profT;
+    this.profT = t;
+  }
   /** Camadas fora da tela para o furo, o pontilhado e a silhueta (crescem conforme a necessidade). */
   private layerA: HTMLCanvasElement | null = null;
   private layerB: HTMLCanvasElement | null = null;
@@ -203,12 +222,16 @@ export class Renderer {
     this.depth = cache.terrain.depth;
     this.seasonal = cache.seasonal;
     const ctx = this.ctx;
+    this.profT = performance.now();
     const z = cam.zoom * this.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#16210f';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.setTransform(z, 0, 0, z, -cam.left * z, -cam.top * z);
     ctx.imageSmoothingEnabled = true;
+    // suavização simples no começo de cada quadro: a qualidade "high" que sobrava do quadro anterior fazia a GPU refazer
+    // o mipmap de cada bloco do chão (canvas) a cada quadro
+    ctx.imageSmoothingQuality = 'low';
 
     const dt = Math.min(0.1, Math.max(0, time - this.lastTime));
     this.lastTime = time;
@@ -250,7 +273,9 @@ export class Renderer {
     // ================= passada 1: chão =================
     ctx.save();
     groundTransform(ctx);
+    this.mark('início');
     this.terrain!.draw(ctx, cam, time);
+    this.mark('terreno');
     this.seasonal.drawIce(ctx, s, this.depth);
     this.seasonal.drawWet(ctx);
     this.seasonal.drawGround(ctx, s);
@@ -322,7 +347,9 @@ export class Renderer {
     this.drawObjectives(g, time);
     ctx.restore();
 
+    this.mark('chão');
     this.drawRoads(g);
+    this.mark('ruas');
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
     // (Editor de cenário), só o "resto" vai no chão e as peças entram em pé
     for (const b of shown) {
@@ -337,6 +364,7 @@ export class Renderer {
     drawCaveFlat(ctx, s, (tx, ty) => isExplored(s, tx, ty));
 
     // ================= passada 2: em pé, do fundo para a frente =================
+    this.mark('decalques');
     const m = 110;
     const x0 = cam.left - m;
     const y0 = cam.top - m;
@@ -441,21 +469,34 @@ export class Renderer {
     // profundidade = a linha onde o desenho toca o chão (os pés do boneco, a base da rocha/baú), não o ponto lógico:
     // o sprite do ninja é desenhado 9 px abaixo do ponto dele, a rocha ~6 px, o baú ~5 px; comparar os pontos lógicos
     // fazia quem estava logo à frente de um baú ficar atrás dele. `depth` do Editor de cenário ajusta à mão.
+    this.mark('lista');
     for (const d of list) d.k = this.baseLine(d);
-    const blocks = list.filter((d) => d.b && d.piece == null && !d.top);
+    this.mark('prof: base');
+    // cada prédio entra nas colunas de tile que alcança (com a folga de 3); cada um em pé só olha os da sua coluna
+    // (antes: todos × todos, ~11 ms por quadro com o mapa inteiro à vista)
+    const cols = this.depthCols;
+    for (const c of cols) if (c) c.length = 0;
+    for (const o of list) {
+      if (!o.b || o.piece != null || o.top) continue;
+      const b = o.b;
+      const def = defOf(b);
+      const r: DepthBlock = { x0: b.tx - 3, y0: b.ty - 3, fx: b.tx + def.w, fy: b.ty + def.h, y: o.y };
+      for (let cx = Math.max(0, Math.floor(r.x0)); cx <= Math.ceil(r.fx + 3); cx++) (cols[cx] ??= []).push(r);
+    }
     for (const d of list) {
       if (d.b) continue;
       const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
       const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
-      for (const o of blocks) {
-        const b = o.b!;
-        const def = defOf(b);
-        if (wx < b.tx - 3 || wy < b.ty - 3 || wx > b.tx + def.w + 3 || wy > b.ty + def.h + 3) continue;
-        const front = wx >= b.tx + def.w || wy >= b.ty + def.h;
+      const col = cols[Math.max(0, Math.floor(wx))];
+      if (!col) continue;
+      for (const o of col) {
+        if (wx < o.x0 || wy < o.y0 || wx > o.fx + 3 || wy > o.fy + 3) continue;
+        const front = wx >= o.fx || wy >= o.fy;
         if (front && d.k! <= o.y) d.k = o.y + 0.01;
         else if (!front && d.k! >= o.y) d.k = o.y - 0.01;
       }
     }
+    this.mark('prof: prédios');
     // sentado na arquibancada (Exame): desenhado logo depois da peça mais ao fundo do prédio (a arquibancada), por
     // cima dela e sem deixá-la transparente; as outras peças (muros dos lados e da frente) seguem na frente
     const perchY = new Map<number, number>();
@@ -491,7 +532,9 @@ export class Renderer {
       d.k = Math.max(...(under.length ? under : mine).map((o) => o.k!)) + 0.002;
       mine.filter(isOver).forEach((o, i) => (o.k = d.k! + 0.001 * (i + 1)));
     }
+    this.mark('prof: extras');
     list.sort((a, b) => a.k! - b.k!);
+    this.mark('profundidade');
 
     this.drawCamps(g, time);
     // quem está golpeando um recurso agora (o quadro do impacto do morador) faz ele tremer
@@ -501,7 +544,9 @@ export class Renderer {
         const k = workImpact(u, time);
         if (k > (this.hitNodes.get(u.taskId) ?? 0)) this.hitNodes.set(u.taskId, k);
       }
+    this.mark('acampamentos');
     const occluded = this.occluders(list);
+    this.mark('quem tapa');
     const drawBlock = (d: Drawable) => {
       if (d.b && d.top) this.drawTop(d.b, s.level);
       else if (d.b && d.piece != null) this.drawPiece(d.b, d.piece, s.level);
@@ -510,22 +555,26 @@ export class Renderer {
       else if (d.n) {
         // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
         const c = this.ctx;
-        c.save();
-        c.translate(d.x - (d.n.tx * TILE + TILE / 2), d.y - (d.n.ty * TILE + TILE / 2));
+        const dx = d.x - (d.n.tx * TILE + TILE / 2);
+        const dy = d.y - (d.n.ty * TILE + TILE / 2);
+        c.translate(dx, dy);
         this.node(d.n, time);
-        c.restore();
+        c.translate(-dx, -dy);
       }
     };
     for (const d of list) {
       if (d.b || d.n || (d.site && d.piece != null)) {
         // quem tapa uma unidade fica semitransparente (some e volta suavemente), com furo e/ou pontilhado se ligados
-        const key = d.b ? `b${d.b.id}:${d.top ? 'top' : (d.piece ?? '')}` : d.n ? `n${d.n.id}` : `s${d.site!.id}:${d.piece}`;
+        // recursos (são milhares) pelo id num mapa à parte: sem montar uma chave de texto por árvore a cada quadro
+        const fades: Map<string | number, number> = d.n ? this.nodeFade : this.fade;
+        const key = d.n ? d.n.id : d.b ? `b${d.b.id}:${d.top ? 'top' : (d.piece ?? '')}` : `s${d.site!.id}:${d.piece}`;
         const hits = occluded.get(d);
         const target = hits && this.occl.fade ? 0.38 : 1;
-        const cur = this.fade.get(key) ?? 1;
-        const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
-        if (Math.abs(a - 1) < 0.01) this.fade.delete(key);
-        else this.fade.set(key, a);
+        const cur = fades.get(key) ?? 1;
+        const a = cur === target ? cur : cur + (target - cur) * Math.min(1, dt * 10 || 1);
+        if (Math.abs(a - 1) < 0.01) {
+          if (cur !== 1) fades.delete(key);
+        } else fades.set(key, a);
         const holes = this.occl.cutout && hits ? hits : null;
         const r = (holes || (this.occl.dither && a < 0.99)) && this.blockRect(d, s.level);
         if (r) this.occludedBlock(r, () => drawBlock(d), a, holes);
@@ -594,7 +643,9 @@ export class Renderer {
         if (selected && !group.has(u.id)) this.label(ctx, u.name, u.x, u.y - 34, cam.zoom);
       }
     }
-    if (this.occl.silhouette) this.silhouettes(list, occluded, drawBlock, teamColor, focus, time);
+    this.mark('em pé');
+    if (this.occl.silhouette) this.silhouettes(list, occluded, drawBlock, teamColor, focus, time, far);
+    this.mark('silhuetas');
     if (ghost) this.ghostSprite(ghost);
 
     this.drawHover(g, ov.hoverUnitId, sel?.kind === 'unit' ? sel.id : null, cam, time);
@@ -632,6 +683,7 @@ export class Renderer {
     ctx.globalAlpha = 1;
     this.particles.draw(ctx);
     this.seasonal.drawRain(ctx, s);
+    this.mark('efeitos');
 
     // ================= espaço de tela =================
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -665,6 +717,7 @@ export class Renderer {
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, cam.viewW, cam.viewH);
     }
+    this.mark('tela');
   }
 
   /**
@@ -852,12 +905,17 @@ export class Renderer {
    * pixels de quem o tapa, por cima de tudo. Só para quem importa ver (ninjas da vila, inimigos, bicho lutando e o
    * selecionado/grupo): com 150 moradores a vila não vira um mar de contornos.
    */
-  private silhouettes(list: Drawable[], occluded: Map<Drawable, Body[]>, drawBlock: (d: Drawable) => void, teamColor: Map<number, string>, focus: Set<number>, time: number) {
+  private silhouettes(list: Drawable[], occluded: Map<Drawable, Body[]>, drawBlock: (d: Drawable) => void, teamColor: Map<number, string>, focus: Set<number>, time: number, far: boolean) {
     const covers = new Map<Unit, Drawable[]>();
     for (const [d, hits] of occluded) for (const b of hits) (covers.get(b.u) ?? covers.set(b.u, []).get(b.u)!).push(d);
+    let left = far ? FAR_SILHOUETTES : Infinity;
     for (const [u, blocks] of covers) {
       const enemy = u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null);
+      // mapa inteiro à vista: os ninjas são miúdos e quase todos estão atrás de alguma árvore; só quem está em foco e os
+      // inimigos ganham silhueta (cada uma são duas camadas fora da tela), e no máximo FAR_SILHOUETTES
+      if (far && !(focus.has(u.id) || enemy)) continue;
       if (!(focus.has(u.id) || (u.faction === 'village' && u.ninja) || enemy) || (u.cloak && u.faction !== 'village')) continue;
+      if (left-- <= 0) break;
       const pu = this.projected(u);
       const big = u.animal ? 70 : 28;
       const r = { x0: pu.x - big, x1: pu.x + big, y0: pu.y - (u.animal ? 130 : 56), y1: pu.y + 18 };
@@ -937,15 +995,13 @@ export class Renderer {
   /** Desenha a arte inteira no retângulo da caixa (largura e altura próprias: o achatamento muda só a altura). */
   private drawBox(img: HTMLImageElement | HTMLCanvasElement, box: { left: number; top: number; w: number; h: number; x: number; flip: boolean }) {
     const ctx = this.ctx;
-    const nw = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
     ctx.save();
-    smoothIfShrunk(ctx, box.w, nw);
     if (box.flip) {
       ctx.translate(box.x, 0);
       ctx.scale(-1, 1);
       ctx.translate(-box.x, 0);
     }
-    ctx.drawImage(img, box.left, box.top, box.w, box.h);
+    drawWhole(ctx, img, box.left, box.top, box.w, box.h);
     ctx.restore();
   }
 
@@ -992,12 +1048,11 @@ export class Renderer {
     const d = defOf(b);
     ctx.save();
     if (!b.built) ctx.globalAlpha *= 0.35 + 0.45 * Math.min(1, b.progress / Math.max(1, d.buildTime));
-    smoothIfShrunk(ctx, box.w, box.pic.naturalWidth);
     if (box.flip) {
       ctx.translate(box.left + box.w, box.top);
       ctx.scale(-1, 1);
-      ctx.drawImage(cv, 0, 0, box.w, box.h);
-    } else ctx.drawImage(cv, box.left, box.top, box.w, box.h);
+      drawWhole(ctx, cv, 0, 0, box.w, box.h);
+    } else drawWhole(ctx, cv, box.left, box.top, box.w, box.h);
     ctx.restore();
     if (i === 0 || i === set!.canvases.length - 1) this.buildBars(b, box.front);
   }
@@ -1033,7 +1088,9 @@ export class Renderer {
     if (n.type === 'tree') {
       const stump = isStump(n);
       const was = this.treeWas.get(n.id);
-      this.treeWas.set(n.id, { tree: !stump, t: time });
+      // reaproveita o registro (sem um objeto novo por árvore a cada quadro)
+      if (was && was.tree === !stump) was.t = time;
+      else this.treeWas.set(n.id, { tree: !stump, t: time });
       // acabou de virar toco (visto como árvore há pouco): começa a queda
       if (stump && was?.tree && time - was.t < 0.5) this.treeFall.set(n.id, time);
       if (!stump) this.treeFall.delete(n.id);
@@ -1511,8 +1568,7 @@ export class Renderer {
         ctx.stroke();
       }
     }
-    smoothIfShrunk(ctx, box.w, box.pic.naturalWidth);
-    ctx.drawImage(cv, box.left, box.top, box.w, box.h);
+    drawWhole(ctx, cv, box.left, box.top, box.w, box.h);
     ctx.imageSmoothingEnabled = true;
   }
 
@@ -1561,13 +1617,11 @@ export class Renderer {
       ctx.beginPath();
       ctx.ellipse(fx, fy - fr * 0.45, fr * 1.0, fr * 0.42, 0, 0, Math.PI * 2);
       ctx.fill();
-      smoothIfShrunk(ctx, pw, pic.naturalWidth);
-      ctx.drawImage(pic, left, top, pw, ph);
+      drawWhole(ctx, pic, left, top, pw, ph);
       ctx.restore();
       ctx.imageSmoothingEnabled = true;
     } else if (pic) {
-      smoothIfShrunk(ctx, pw, pic.naturalWidth);
-      ctx.drawImage(pic, left, top, pw, ph);
+      drawWhole(ctx, pic, left, top, pw, ph);
       ctx.imageSmoothingEnabled = true;
     } else {
       ctx.fillStyle = site.kind === 'chest' ? '#8a5a2b' : '#777';

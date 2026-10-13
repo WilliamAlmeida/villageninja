@@ -42,12 +42,14 @@ export function doorPos(b: Building) {
   const t = doorTile(b);
   return { x: tileCenter(t.tx), y: t.ty * TILE + 10 };
 }
+const TREES = ['tree0', 'tree1'];
+const STUMPS = ['stump0', 'stump1'];
 /** Arte do recurso no estágio atual: árvore (tree0/tree1) vira toco quase no fim; rocha racha depois da metade. */
 export function nodeArt(n: ResourceNode): string {
   if (n.cleared) return 'cleared'; // arrancado: nada desenhado, sem colisão (sem layout)
   const left = n.max ? n.amount / n.max : 1;
   // cada árvore tem o toco dela (folhosa / pinheiro)
-  if (n.type === 'tree') return left < 0.25 ? `stump${n.variant % 2}` : `tree${n.variant % 2}`;
+  if (n.type === 'tree') return (left < 0.25 ? STUMPS : TREES)[n.variant % 2]!;
   // rocha: racha depois da metade; esgotada some numa nuvem e deixa só pedrinhas no chão (dá para andar) até voltar
   if (n.type === 'rock') return n.amount <= 0 ? 'rock-pebbles' : left < 0.5 ? 'rock-cracked' : 'rock';
   // veio: esgotado fica a rocha sem os cristais

@@ -6,7 +6,7 @@ import { project } from '../core/iso';
 import { mulberry32 } from '../core/rng';
 import type { GameState } from '../game/types';
 import { idx, inBounds, T } from '../game/world';
-import { art, smoothIfShrunk } from './art';
+import { art, drawShrunk } from './art';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -91,7 +91,6 @@ export function drawCaveDeco(ctx: Ctx, d: CaveDeco, x: number, y: number) {
   const k = def.h / cell; // a casa inteira vale a altura do enfeite (o desenho encosta embaixo)
   const w = cell * k;
   ctx.save();
-  smoothIfShrunk(ctx, w, cell);
   ctx.translate(x, y);
   if (d.flip) ctx.scale(-1, 1);
   if (!def.flat) {
@@ -100,7 +99,7 @@ export function drawCaveDeco(ctx: Ctx, d: CaveDeco, x: number, y: number) {
     ctx.ellipse(0, -1, w * 0.3, w * 0.1, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.drawImage(atlas, d.prop * cell, 0, cell, cell, -w / 2, def.flat ? -w * 0.7 : -w, w, w);
+  drawShrunk(ctx, atlas, d.prop * cell, 0, cell, cell, -w / 2, def.flat ? -w * 0.7 : -w, w, w);
   ctx.restore();
 }
 

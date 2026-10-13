@@ -14,7 +14,27 @@
   Esmaecer (o prédio inteiro a 38%, o padrão), Furo (círculo em volta de quem está atrás) e Pontilhado (a transparência
   vira um xadrez de Bayer 4×4 no tamanho do pixel da arte, alinhado ao mundo); combinam. Furo e pontilhado desenham o
   prédio numa camada fora da tela só do tamanho dele (`toLayer`/`occludedBlock`); a silhueta redesenha quem tapa numa
-  segunda camada como máscara (`maskPass` evita a fumaça repetida).
+  segunda camada como máscara (`maskPass` evita a fumaça repetida). Com o zoom afastado (`far`, < 0,85) a silhueta fica
+  só para o selecionado/grupo e os inimigos, no máximo `FAR_SILHOUETTES` (12): os ninjas são miúdos e quase todos estão
+  atrás de alguma árvore.
+- **Desempenho com o mapa inteiro à vista** (medido 2026-10-13 no save do autor: 2.316 recursos, 169 unidades, PC 1920×863,
+  Alta + Silhueta: zoom 0,45 ia a ~24 qps mesmo pausado; agora 57-60 qps de dia e de noite, CPU do desenho 31 → 13 ms):
+  - **Suavização**: reduzir arte com `imageSmoothingQuality = 'high'` faz a GPU refazer o mipmap a cada desenho (~2 mil por
+    quadro). `drawShrunk`/`drawWhole` (art.ts) desenham pela cópia reduzida pronta (½, ¼, ⅛, feitas uma vez por arte,
+    `mipFor` escolhe a que fica entre ½ e 1) com suavização `'low'`; ampliando, sem suavização. Nada de `'high'` no
+    canvas principal: o `render` começa cada quadro com `'low'` (a "high" que sobrava fazia o chão em blocos, que é canvas,
+    refazer o mipmap de cada bloco todo quadro, o maior custo de todos).
+  - **Ondinhas da água** (`drawWaterAnim`): juntadas em 6 faixas de transparência, um `stroke` por faixa (antes um por tile
+    de água, ~2 mil); na névoa não desenha.
+  - **Profundidade**: os prédios entram num balde por coluna de tile (`depthCols`) e cada coisa em pé só compara com os da
+    sua coluna (antes todos × todos: 11 ms por quadro).
+  - **Caminho das árvores**: `drawArt` guarda a geometria por imagem (`geoOf`: folha, quadro, layout) e só usa save/restore
+    espelhando; `drawNode` só salva com achatamento; esmaecer dos recursos pelo id (`nodeFade`), sem chave de texto.
+  - **Pausado** (main.ts): sem toque/tecla e com câmera, seleção e contagens paradas, o quadro não é redesenhado (seria
+    idêntico: o relógio das animações para junto); a cada 0,5 s redesenha por garantia.
+  - **Medir**: no console, `bench()` devolve `render` (ms de CPU) e `steps` (ms por etapa: terreno, ruas, lista, prof:*,
+    quem tapa, em pé, silhuetas, efeitos, tela). CPU baixa com FPS baixo = GPU: teste forçando
+    `imageSmoothingQuality`/desligando partes (ex.: `renderer.node = () => {}`) e meça com `requestAnimationFrame`.
   A câmera trabalha na cena projetada; fora do render use `camera.focus/jump/screenToWorld/worldToScreen` (mundo).
   Cliques no mapa comparam em coordenadas de tela (`ui/index.ts`).
 - Efeitos visuais extras ficam em `render/particles.ts` (só visual, fora do estado): rastro de projétil e explosão por natureza.

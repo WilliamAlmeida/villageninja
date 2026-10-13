@@ -7,7 +7,7 @@ import { defOf } from '../data/buildings';
 import type { GameState } from '../game/types';
 import { centerOf, idx, inBounds, T } from '../game/world';
 import { isStairs, PLATEAU_R } from '../game/scene';
-import { art, smoothIfShrunk } from './art';
+import { art, drawShrunk } from './art';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -116,7 +116,6 @@ export function drawThemeDeco(ctx: Ctx, d: ThemeDeco, x: number, y: number) {
   const k = def.h / cell;
   const w = cell * k;
   ctx.save();
-  smoothIfShrunk(ctx, w, cell);
   ctx.translate(x, y);
   if (d.flip) ctx.scale(-1, 1);
   if (!def.water) {
@@ -125,6 +124,6 @@ export function drawThemeDeco(ctx: Ctx, d: ThemeDeco, x: number, y: number) {
     ctx.ellipse(0, -1, w * 0.28, w * 0.09, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.drawImage(atlas, d.prop * cell, 0, cell, cell, -w / 2, -w + (def.water ? w * 0.15 : 0), w, w);
+  drawShrunk(ctx, atlas, d.prop * cell, 0, cell, cell, -w / 2, -w + (def.water ? w * 0.15 : 0), w, w);
   ctx.restore();
 }

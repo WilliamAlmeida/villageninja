@@ -3,7 +3,7 @@
 // navegador, nos testes).
 import { DOLL_FRAME_PAD, DOLL_GRID, type DollPart, type DollPose, hex, hsv, tintPixels } from './doll';
 import dollPoses from '../data/doll-poses.json';
-import { artLayout } from '../data/layout';
+import { artLayout, layoutVersion, type ArtLayout } from '../data/layout';
 import hokage from '../art/buildings/hokage.png';
 import house from '../art/buildings/house.png';
 import lumber from '../art/buildings/lumber.png';
@@ -371,19 +371,70 @@ export function art(name: string): HTMLImageElement | null {
 type Pic = HTMLImageElement | HTMLCanvasElement;
 const size = (img: Pic) => (img instanceof HTMLImageElement ? { w: img.naturalWidth, h: img.naturalHeight } : { w: img.width, h: img.height });
 
-export const artFrames = (img: Pic) => (SHEETS.has(img.dataset.name ?? '') ? SHEET : { frames: 1, rows: 1, idle: 0 });
+const SINGLE = { frames: 1, rows: 1, idle: 0 };
+export const artFrames = (img: Pic) => (SHEETS.has(img.dataset.name ?? '') ? SHEET : SINGLE);
 /** Folhas com folga em cima do quadro (cabelo alto, chapéu): a altura pedida vale para o corpo, o quadro é maior. */
 const FRAME_PAD: Record<string, number> = { 'ninja-body': DOLL_FRAME_PAD };
 
+/** Cópias reduzidas de cada arte (½, ¼, ⅛ do tamanho), feitas uma vez: o "mipmap" próprio. */
+const MIP_LEVELS = 3;
+const mips = new WeakMap<Pic, { iw: number; ih: number; levels: HTMLCanvasElement[] }>();
 /**
- * Suavização só quando a arte sai MENOR que o tamanho guardado na tela (zoom baixo; prédios e cenário são guardados em
- * 2×): reduzir sem suavizar pula pixels e cintila. Ampliando, segue sem suavização (pixel art nítida).
+ * Cópia `level` (1 = metade) da arte, feita na primeira vez com suavização boa a partir da anterior. As artes e os
+ * canvas guardados (boneco, estação, peças) não mudam depois de prontos; se o tamanho mudar, refaz.
  */
-export function smoothIfShrunk(ctx: CanvasRenderingContext2D, drawnW: number, srcW: number) {
+function mipLevel(img: Pic, level: number): HTMLCanvasElement | null {
+  const { w, h } = size(img);
+  if (!w || !h) return null;
+  let e = mips.get(img);
+  if (!e || e.iw !== w || e.ih !== h) {
+    e = { iw: w, ih: h, levels: [] };
+    mips.set(img, e);
+  }
+  for (let l = e.levels.length + 1; l <= level; l++) {
+    const prev = l === 1 ? img : e.levels[l - 2]!;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w / 2 ** l));
+    c.height = Math.max(1, Math.round(h / 2 ** l));
+    const x = c.getContext('2d')!;
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(prev, 0, 0, c.width, c.height);
+    e.levels.push(c);
+  }
+  return e.levels[level - 1] ?? null;
+}
+
+/** Nível de cópia reduzida para uma escala na tela (px de tela por px da arte): a cópia que fica entre ½ e 1. */
+export function mipFor(scale: number): number {
+  if (!(scale > 0) || scale >= 0.5) return 0;
+  return Math.min(MIP_LEVELS, Math.floor(Math.log2(1 / scale)));
+}
+
+/**
+ * Desenha o recorte (sx, sy, sw, sh) da arte no retângulo (dx, dy, dw, dh). Ampliando: sem suavização (pixel art
+ * nítida). Reduzindo (zoom baixo; prédios e cenário são guardados em 2×): a cópia reduzida mais próxima, com suavização
+ * simples. Antes era suavização "high" na arte inteira, que a GPU refaz a cada desenho: com o mapa todo à vista eram
+ * ~2 mil desenhos assim por quadro e o FPS caía para ~24 mesmo pausado. Deixa a suavização ligada/desligada como ficou.
+ */
+export function drawShrunk(ctx: CanvasRenderingContext2D, img: Pic, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number) {
   const t = ctx.getTransform();
-  const shrink = Math.abs(drawnW * Math.hypot(t.a, t.b)) < srcW * 0.98;
+  const scale = Math.abs(dw * Math.hypot(t.a, t.b)) / sw;
+  const shrink = scale < 0.98;
   ctx.imageSmoothingEnabled = shrink;
-  if (shrink) ctx.imageSmoothingQuality = 'high';
+  if (shrink) ctx.imageSmoothingQuality = 'low';
+  const level = shrink ? mipFor(scale) : 0;
+  const m = level ? mipLevel(img, level) : null;
+  if (m) {
+    const k = m.width / size(img).w;
+    ctx.drawImage(m, sx * k, sy * k, sw * k, sh * k, dx, dy, dw, dh);
+  } else ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+/** `drawShrunk` da arte inteira. */
+export function drawWhole(ctx: CanvasRenderingContext2D, img: Pic, dx: number, dy: number, dw: number, dh: number) {
+  const { w, h } = size(img);
+  drawShrunk(ctx, img, 0, 0, w, h, dx, dy, dw, dh);
 }
 
 /**
@@ -391,29 +442,61 @@ export function smoothIfShrunk(ctx: CanvasRenderingContext2D, drawnW: number, sr
  * quadro inteiro) e o ponto de origem no quadro (`feet` do quadro, senão `foot`: os pés; sem, o meio da base).
  */
 function frameFit(img: Pic, height: number, frame = 0, row = 0) {
-  const sheet = artFrames(img);
+  const g = geoOf(img);
+  const [fx, fy] = g.lay?.feet?.[row * g.sheet.frames + frame] ?? g.lay?.foot ?? [g.fw / 2, g.fh];
+  return { sheet: g.sheet, fw: g.fw, fh: g.fh, k: height / g.body, fx, fy };
+}
+
+/** O que não muda de um desenho para outro na mesma imagem (folha, quadro, layout, altura do corpo). */
+interface Geo {
+  v: number;
+  iw: number;
+  ih: number;
+  sheet: typeof SHEET;
+  fw: number;
+  fh: number;
+  body: number;
+  lay: ArtLayout | undefined;
+}
+/**
+ * Guardado por imagem (refeito quando o layout é editado ou a imagem muda de tamanho): com o mapa inteiro à vista são
+ * ~2 mil desenhos por quadro, e ler `dataset` + layout em cada um pesava mais que o próprio `drawImage`.
+ */
+const geos = new WeakMap<Pic, Geo>();
+function geoOf(img: Pic): Geo {
   const { w: iw, h: ih } = size(img);
+  const hit = geos.get(img);
+  if (hit && hit.v === layoutVersion && hit.iw === iw && hit.ih === ih) return hit;
+  const name = img.dataset.name ?? '';
+  const sheet = SHEETS.has(name) ? SHEET : SINGLE;
   const fw = iw / sheet.frames;
   const fh = ih / sheet.rows;
-  const name = img.dataset.name ?? '';
   const lay = artLayout(name);
-  const body = lay?.body ?? fh / (FRAME_PAD[name] ?? 1);
-  const [fx, fy] = lay?.feet?.[row * sheet.frames + frame] ?? lay?.foot ?? [fw / 2, fh];
-  return { sheet, fw, fh, k: height / body, fx, fy };
+  const g = { v: layoutVersion, iw, ih, sheet, fw, fh, body: lay?.body ?? fh / (FRAME_PAD[name] ?? 1), lay };
+  if (iw) geos.set(img, g); // imagem ainda carregando (0×0): não guarda
+  return g;
 }
 
 /**
  * Desenha a imagem (ou o quadro `frame` da linha `row` de uma folha) com a origem (os pés) em (x, baseY), na altura
- * pedida. `flip` espelha na horizontal (em volta da origem). Ampliando, sem suavização; reduzindo, com (`smoothIfShrunk`).
+ * pedida. `flip` espelha na horizontal (em volta da origem). Ampliando, sem suavização; reduzindo, pela cópia reduzida (`drawShrunk`).
  */
 export function drawArt(ctx: CanvasRenderingContext2D, img: Pic, x: number, baseY: number, height: number, flip = false, frame = 0, row = 0) {
   const { fw, fh, k, fx, fy } = frameFit(img, height, frame, row);
-  ctx.save();
-  smoothIfShrunk(ctx, fw * k, fw);
-  ctx.translate(x, 0);
-  if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(img, fw * frame, fh * row, fw, fh, -fx * k, baseY - fy * k, fw * k, fh * k);
-  ctx.restore();
+  if (flip) {
+    ctx.save();
+    ctx.translate(x, 0);
+    ctx.scale(-1, 1);
+    drawShrunk(ctx, img, fw * frame, fh * row, fw, fh, -fx * k, baseY - fy * k, fw * k, fh * k);
+    ctx.restore();
+    return;
+  }
+  // sem espelhar: sem save/restore (caro em ~2 mil desenhos por quadro); só a suavização volta como estava
+  const on = ctx.imageSmoothingEnabled;
+  const q = ctx.imageSmoothingQuality;
+  drawShrunk(ctx, img, fw * frame, fh * row, fw, fh, x - fx * k, baseY - fy * k, fw * k, fh * k);
+  ctx.imageSmoothingEnabled = on;
+  ctx.imageSmoothingQuality = q;
 }
 
 /** Retângulo em que `drawArt` desenha um quadro (as mesmas contas, sem espelhar), para prender coisas a pontos da arte. */

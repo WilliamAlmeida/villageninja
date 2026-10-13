@@ -131,6 +131,21 @@ let clock = 0;
 let winEl: HTMLElement | null = null;
 let drawWait = 0;
 /**
+ * Pausado, o quadro só muda se a tela mudar (o relógio das animações para junto): sem toque/tecla e com a câmera e a
+ * seleção paradas, não redesenha (o mapa inteiro à vista custava o mesmo pausado e rodando). A cada 0,5 s redesenha
+ * mesmo assim, por garantia.
+ */
+let drawDirty = true;
+let idleWait = 0;
+let lastView = '';
+for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'keyup', 'resize'])
+  window.addEventListener(ev, () => (drawDirty = true), { capture: true, passive: true });
+const viewKey = () => {
+  const g = app.game;
+  const sel = g.selected;
+  return `${camera.left}|${camera.top}|${camera.zoom}|${camera.viewW}|${camera.viewH}|${sel?.kind}:${sel && 'id' in sel ? sel.id : ''}|${app.viewScene}|${g.state.effects.length}|${g.state.projectiles.length}|${g.state.units.length}|${g.state.buildings.length}`;
+};
+/**
  * Câmera segue o ninja (ou bicho, inimigo) selecionado, suave; arrastar o mapa solta. Se ele se perder (caiu, saiu do
  * mapa numa expedição), a câmera volta suave para a Residência. Desligável no menu ("Câmera segue o ninja").
  */
@@ -177,10 +192,16 @@ function applyQuality() {
   resize();
 }
 applyQuality();
-bus.on('quality', applyQuality);
+bus.on('quality', () => {
+  applyQuality();
+  drawDirty = true;
+});
 // personagem atrás de prédio: silhueta / esmaecer / furo / pontilhado (Configurações)
 renderer.occl = occlusion();
-bus.on('occlusion', () => (renderer.occl = occlusion()));
+bus.on('occlusion', () => {
+  renderer.occl = occlusion();
+  drawDirty = true;
+});
 let lastDraw = 0;
 
 const fps = new FpsMeter();
@@ -243,7 +264,18 @@ function frame(now: number) {
   // Poupa a GPU/CPU para a janela (num save grande, mapa a 60 quadros + janela por cima travava as abas).
   winEl ??= document.getElementById('win');
   drawWait -= dt;
-  if (!winEl || winEl.hidden || drawWait <= 0) {
+  idleWait -= dt;
+  let draw = !winEl || winEl.hidden || drawWait <= 0;
+  if (draw && app.game.state.speed === 0 && home.state.speed === 0) {
+    const k = viewKey();
+    if (!drawDirty && k === lastView && idleWait > 0) draw = false;
+    else {
+      lastView = k;
+      drawDirty = false;
+      idleWait = 0.5;
+    }
+  }
+  if (draw) {
     drawWait = 1 / 12;
     renderer.render(app.game, camera, app.ghost, clock, app);
   }
@@ -285,9 +317,14 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw-v1.js').
     for (let i = 0; i < n; i++) f();
     return +((performance.now() - t) / n).toFixed(2);
   };
+  const prof: Record<string, number> = {};
+  renderer.prof = prof;
   const render = time(() => renderer.render(app.game, camera, app.ghost, clock, app));
+  renderer.prof = null;
+  // ms por etapa do desenho (média dos n quadros)
+  const steps = Object.fromEntries(Object.entries(prof).map(([k, v]) => [k, +(v / n).toFixed(2)]));
   const ui1 = time(() => ui.update(1 / 60, clock));
   const copy = new (home.constructor as new (s: unknown, sys: unknown) => typeof home)(JSON.parse(JSON.stringify(home.state)), SYSTEMS);
   const sim = time(() => copy.step(SIM_DT));
-  return { render, sim, ui: ui1, frameAt3x: +(render + sim * 3 + ui1).toFixed(2), units: home.state.units.length, nodes: home.state.nodes.length };
+  return { render, steps, sim, ui: ui1, frameAt3x: +(render + sim * 3 + ui1).toFixed(2), units: home.state.units.length, nodes: home.state.nodes.length, zoom: camera.zoom };
 };
