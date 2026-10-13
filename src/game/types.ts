@@ -482,6 +482,8 @@ export interface DragonFlight {
   c2x: number; c2y: number;
   tx: number; ty: number;
   elapsed: number; duration: number; lift: number;
+  /** Altura em que o corpo sai da fonte (sem: DRAGON_SOURCE_HEIGHT). */
+  z0?: number;
 }
 
 export interface Projectile {

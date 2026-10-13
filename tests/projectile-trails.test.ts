@@ -1,11 +1,15 @@
 import { expect, spyOn, test } from 'bun:test';
+import { FX } from '../src/data/jutsuFx';
 import { Particles } from '../src/render/particles';
 import type { Projectile } from '../src/game/types';
 
 test('rastros das sprites ficam na camada de trás, translúcidos e sem mistura aditiva', () => {
   const random = spyOn(Math, 'random').mockReturnValue(0.5);
   try {
-    for (const kind of ['housenka', 'goukakyuu', 'mizurappa', 'suiryuudan'] as const) {
+    // jutsus com sprite cujo rastro (data/jutsu-fx.json) é o resíduo discreto, ligado; o painel "Ajuste" pode desligar
+    const kinds = (['housenka', 'goukakyuu', 'mizurappa', 'suiryuudan'] as const).filter((k) => FX.jutsus[k]?.trail?.some((e) => e.under && !e.off));
+    expect(kinds.length).toBeGreaterThan(0);
+    for (const kind of kinds) {
       const particles = new Particles();
       const strokes: { x: number; opacity: number; blend: string }[] = [];
       let x = 0;

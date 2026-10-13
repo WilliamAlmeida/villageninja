@@ -42,22 +42,20 @@ personagem 4x3 não se aplica. Núcleo em (48,32), loop a 16 fps. Originais e pr
 
 ## Suiton animado
 
-Folhas RGBA 256x128 em `src/art/effects`: `projectile-mizurappa.png`,
-`projectile-suiryuudan.png` e `effect-suirou.png`. Grade 4x2, quadros de 64x64.
+Folhas RGBA 256x128 em `src/art/effects`: `projectile-mizurappa.png` e `effect-suirou.png`. Grade 4x2, quadros de 64x64.
 Projéteis ancorados na cabeça em (48,32); esfera em (32,32).
 Gerados por ImageGen integrado; originais, prompts e prévia em `docs/arte/jutsus/suiton`.
 O dragão passou por ajuste de folga e a prisão por ajuste de transparência no ImageGen.
 Preparo técnico: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-suiton.ps1`.
 Confere quadros vazios e folga; preserva alpha e reduz por nearest-neighbor.
 
-## Suiryuudan v2: sequência de ataque
+## Hirudora: tigre de ar
 
-`src/art/effects/projectile-suiryuudan-v2.png`: RGBA 384x192, oito quadros de 96x96;
-não é loop de voo. Surgimento, elevação do pescoço, arco, ataque, mergulho e respingo final.
-Gerado com ImageGen integrado usando a referência enviada pelo autor. Fonte e prompts em
-`docs/arte/jutsus/suiton/projectile-suiryuudan-v2-source.png` e `suiryuudan-v2-prompts.json`.
-Preparo: `scripts/prepare-suiryuudan.ps1`. Separa os corpos por componentes conectados e atribui
-cada corpo inteiro à célula com mais pixels, preservando focinhos que ultrapassem a grade da fonte.
-Retira ruído solto, usa uma escala comum nas oito poses e alinha a base (origem em 25% nos
-quadros 1-5, destino em 75% nos quadros 6-8; linha de base em 82%). Não centralizar cada pose pelo corpo.
-A Prisão d'Água conserva sua folha e passou de 48 para 57,6 px no código (+20%).
+`src/art/effects/projectile-hirudora.png`: RGBA 384x256, grade 2x4 (células de 192x64, comprimidas 3:1), oito quadros em
+loop na ordem de leitura: o tigre de ar inteiro voando para a direita, corpo ondulando, cauda tremulando, boca rugindo.
+Gerado pelo Codex (`codex exec -m gpt-5.5`) com a referência do autor; prompt, referência e fonte em
+`docs/arte/jutsus/hirudora/`. A fonte vem em **fundo verde** (#00FF00), não branco: o tigre é branco-azulado e a
+remoção de fundo branco comeria os brilhos. Preparo: `python scripts/prepare-hirudora.py` (tira o verde e a franja,
+mesma escala em todos os quadros, focinho alinhado em x 0,984 / y 0,5 = a âncora, confere folga e quadro vazio). No
+jogo (`jutsu-fx.json` → `hirudora`): largura 110, 10 qps, gira com o voo, espelha à esquerda e "nasce da mão"
+(`emerge`: o corpo aparece saindo do punho).

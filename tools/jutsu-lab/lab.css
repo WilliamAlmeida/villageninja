@@ -1,11 +1,15 @@
 /* Só o que é do laboratório; o tema e os componentes estão em ../shared/tools.css */
-.cols { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; height: calc(100% - var(--top-h)); }
+.cols { display: grid; grid-template-columns: 300px minmax(0, 1fr) var(--fx-w, 380px); height: calc(100% - var(--top-h)); }
 .cols.nofx { grid-template-columns: 300px minmax(0, 1fr); }
 .cols.nofx #fx { display: none; }
 #fxToggle.on { background: var(--accent); color: var(--accent-ink); }
 
-/* painel "Ajuste" (fxPanel.ts) */
-#fx { gap: 8px; }
+/* painel "Ajuste" (fxPanel.ts). A barra de rolagem tem lugar fixo (scrollbar-gutter) e o inspetor tem proporção
+   fixa: nada no painel muda de tamanho sozinho (antes a prévia mudava a própria altura a cada quadro e o painel
+   tremia ligando e desligando a barra de rolagem). */
+#fx { position: relative; gap: 8px; scrollbar-gutter: stable; }
+#fx .grip { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; }
+#fx .grip:hover { background: rgba(255, 150, 46, 0.35); }
 #fx .fxhead { display: flex; align-items: center; gap: 6px; }
 #fx .fxhead .title { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-hi); font-size: 14px; }
 #fx .now { font-weight: 800; color: var(--text); }
@@ -13,26 +17,50 @@
 #fx .seg.tabs { display: flex; }
 #fx .seg.tabs button { flex: 1; }
 #fx .fxbody { display: flex; flex-direction: column; gap: 6px; }
-#fx h3 { margin: 10px 0 0; }
-#fx h4 { margin: 6px 0 0; }
 #fx .row .lbl { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-#fx .sl { display: grid; grid-template-columns: 92px minmax(0, 1fr) 58px auto; gap: 6px; align-items: center; }
+/* seções que abrem e fecham */
+#fx .sec { border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+#fx .sech { display: flex; align-items: center; gap: 6px; padding: 6px 9px; cursor: pointer; user-select: none; }
+#fx .sech b { color: var(--accent-hi); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+#fx .sech:hover { background: rgba(255, 255, 255, 0.04); }
+#fx .car { color: var(--dim); width: 10px; font-size: 11px; }
+#fx .badge { margin-left: auto; font-size: 11px; color: var(--muted); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; }
+#fx .secb { display: flex; flex-direction: column; gap: 5px; padding: 4px 9px 9px; border-top: 1px solid var(--line); }
+/* número: rótulo, barra, ‹ campo › */
+#fx .sl { display: grid; grid-template-columns: 104px minmax(40px, 1fr) 20px 64px 20px auto; gap: 3px; align-items: center; }
 #fx .sl label { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#fx .sl input[type='number'] { width: 58px; padding: 2px 4px; font-size: 12px; }
+#fx .sl input[type='number'] { width: 64px; padding: 2px 4px; font-size: 12px; text-align: right; }
+#fx .sl button.nud { padding: 0; width: 20px; height: 22px; font-size: 15px; line-height: 1; color: var(--muted); }
+#fx .sl button.nud:hover { color: var(--text); }
 #fx .sl button.same { opacity: 0.35; }
 #fx .pair { border-left: 2px solid var(--line); padding-left: 6px; }
 #fx .pair .pl { color: var(--muted); font-size: 12px; margin-bottom: 2px; }
-#fx .pair .sl { grid-template-columns: 34px minmax(0, 1fr) 58px; }
+#fx .pair .sl { grid-template-columns: 34px minmax(40px, 1fr) 20px 64px 20px; }
 #fx .pair .sl label { color: var(--dim); font-size: 11px; }
-#fx canvas.sheet { width: 100%; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 6px; cursor: crosshair; background: #2c2016; }
-#fx .em { border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+/* inspetor de pontos */
+#fx .insp { display: flex; flex-direction: column; gap: 4px; }
+#fx .insp canvas { display: block; width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--line); border-radius: 6px; cursor: crosshair; touch-action: none; outline: none; }
+#fx .insp canvas:focus-visible { border-color: var(--accent-hi); }
+#fx .ibar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+#fx .ibar button { padding: 2px 7px; font-size: 12px; }
+#fx .ibar .fl { min-width: 38px; text-align: center; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#fx .readout { display: flex; flex-wrap: wrap; gap: 4px; }
+#fx .readout .mk { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; font-variant-numeric: tabular-nums; color: var(--muted); }
+#fx .readout .mk i { width: 8px; height: 8px; border-radius: 50%; background: var(--mc); }
+#fx .readout .mk.on { border-color: var(--mc); color: var(--text); }
+/* emissores */
+#fx .em { border: 1px solid var(--line); border-radius: 8px; background: rgba(0, 0, 0, 0.18); }
 #fx .em.open { border-color: var(--line-hi); }
+#fx .em.off .emh > :not(.tog):not(button) { opacity: 0.4; text-decoration: line-through; }
+#fx label.tog.mini { padding: 3px 4px; border: 0; background: none; }
 #fx .emh { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 8px; cursor: pointer; }
 #fx .emh small { color: var(--dim); margin-left: auto; }
 #fx .emh button.icon { width: 24px; height: 24px; }
 #fx .sw { display: inline-flex; gap: 2px; }
 #fx .sw i { width: 10px; height: 10px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.4); }
-#fx .emb { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; border-top: 1px solid var(--line); }
+#fx .emb { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 8px; border-top: 1px solid var(--line); }
+#fx .grp2 { display: flex; flex-direction: column; gap: 4px; }
+#fx .grp2 h5 { margin: 4px 0 0; font-size: 10.5px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px dashed var(--line); padding-bottom: 2px; }
 #fx .cols-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 #fx .col { display: inline-flex; align-items: center; gap: 1px; }
 #fx .col .own { font-size: 11px; padding: 2px 6px; border-radius: 5px; background: conic-gradient(from 90deg, #a33, #a83, #3a8, #38a, #83a, #a33); color: #fff; }
@@ -60,7 +88,7 @@ main canvas { display: block; width: 100%; height: 100%; }
   .top::-webkit-scrollbar { display: none; }
   .top > * { flex: 0 0 auto; }
   .top .grow { display: none; }
-  .cols { grid-template-columns: 230px minmax(0, 1fr) 300px; }
+  .cols { grid-template-columns: 230px minmax(0, 1fr) var(--fx-w, 320px); }
   .cols.nofx { grid-template-columns: 230px minmax(0, 1fr); }
   #hud { top: 6px; gap: 4px; padding: 3px 4px 3px 8px; max-width: calc(100% - 12px); }
   #hud .now-lbl { display: none; }

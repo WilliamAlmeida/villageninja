@@ -280,7 +280,7 @@ import slug from '../art/animals/slug.png';
 import projectileHousenka from '../art/effects/projectile-housenka.png';
 import projectileGoukakyuu from '../art/effects/projectile-goukakyuu.png';
 import projectileMizurappa from '../art/effects/projectile-mizurappa.png';
-import projectileSuiryuudanV2 from '../art/effects/projectile-suiryuudan-v2.png';
+import projectileHirudora from '../art/effects/projectile-hirudora.png';
 import dragonHead from '../art/effects/effect-suiryuudan-head.png';
 import dragonBody from '../art/effects/effect-suiryuudan-body.png';
 import dragonOrigin from '../art/effects/effect-suiryuudan-origin.png';
@@ -288,7 +288,7 @@ import effectSuirou from '../art/effects/effect-suirou.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'projectile-housenka': projectileHousenka, 'projectile-goukakyuu': projectileGoukakyuu,
-  'projectile-mizurappa': projectileMizurappa, 'projectile-suiryuudan-v2': projectileSuiryuudanV2, 'effect-suirou': effectSuirou,
+  'projectile-mizurappa': projectileMizurappa, 'projectile-hirudora': projectileHirudora, 'effect-suirou': effectSuirou,
   'effect-suiryuudan-head': dragonHead, 'effect-suiryuudan-body': dragonBody, 'effect-suiryuudan-origin': dragonOrigin,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre

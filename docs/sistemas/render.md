@@ -69,17 +69,30 @@ Simulação (`game/dragonFlight.ts`, `Projectile.dragon`, save v43): a fonte nas
 segue uma curva cúbica no chão cujos dois pontos de controle ficam ENTRE a fonte e o alvo (a 1/3 e 2/3 do caminho,
 desviados `bend` px para o lado). A cabeça sempre chega de frente, sem passar do alvo e voltar (a versão anterior
 punha o 2º controle além do alvo e fazia um gancho no fim). O arco visível é a altura: sobe `lift` px e mergulha no
-alvo; só acerta descendo. Forma em `jutsu-fx.json` → `jutsus.suiryuudan.flight` (padrão `lift` 42, `bend` 0),
-ajustável no painel "Ajuste". Desenho (`jutsuSprites.ts`, `drawDragonChain`): fonte fixa no chão, corpo em juntas
-pela curva e cabeça na tangente. Projétil antigo sem `dragon` cai no desenho de folha única (`projectileMotion.ts`:
+alvo; só acerta descendo. Forma em `jutsu-fx.json` → `jutsus.suiryuudan.flight` (`lift` 42, `bend` 0; `out`/`in` =
+onde ficam os controles, pequeno = sai/mergulha quase na vertical; `sourceZ` = altura em que o corpo sai da fonte,
+`DragonFlight.z0`, save v44), ajustável no painel "Ajuste". Desenho (`jutsuSprites.ts`, `drawDragonChain`): fonte fixa
+no chão (base em `parts.originX/Y`), corpo em juntas pela curva (faixa `parts.bandTop/bandHeight` da folha do corpo) e
+cabeça na tangente com a âncora na ponta; o corpo termina exatamente no pescoço (`parts.neckX/Y`, ponto da célula da
+cabeça), não mais num corte fixo de meia cabeça. Projétil antigo sem `dragon` cai no desenho de folha única (`projectileMotion.ts`:
 escala igual nos dois eixos entre `minSize` e `maxSize`, desliza até o alvo em vez de esticar).
+
+## Hirudora e "nasce da mão"
+
+O Hirudora solta um tigre de ar comprimido: o projétil (mesma mecânica de antes: voa reto, acerta com a cabeça e
+explode com raio 56) ganhou a folha `projectile-hirudora` (detalhe em `arte.md`), com âncora no focinho. Corpo comprido
+em sprite usa `SpriteFx.emerge` ("Nasce da mão" no painel): `drawSpriteFx` corta (clip) o que ainda está atrás do ponto
+de lançamento, reconstruído pelo tempo de voo (`traveled` em jutsuSprites.ts), então o tigre sai do punho em vez de
+aparecer inteiro em cima do lançador. O rastro do jutsu é só um resíduo de vento atrás da cauda (exceção no JSON).
 
 ## Painel "Ajuste" do Laboratório
 
 `tools/jutsu-lab/fxPanel.ts`, dados em `src/data/jutsu-fx.json` (tipos e leitura em `data/jutsuFx.ts`), gravados pelo
-3011 (`/api/fx`, cópia em `docs/arte/backup-editor`). Abas: Sprite (folha do jutsu ou Prisão d'Água, tamanho, âncora
-por clique na prévia, quadros, mistura, giro/espelho, peças e trajetória do dragão), Partículas (rastro e explosão por
-estilo; "Só este jutsu" cria exceção) e Projétil (velocidade, tamanho, raio, quantidade, leque, alcance; entram no
+3011 (`/api/fx`, cópia em `docs/arte/backup-editor`). Largura arrastável pela borda esquerda; seções que abrem e fecham;
+todo número com barra, campo e ‹ › de passo fino (Shift ×10). Abas: Sprite (folha; "Pontos (zoom)" é um inspetor de
+quadro com zoom pela roda, onde se arrastam âncora, pescoço, base da fonte e faixa do corpo, setas = 1 px da arte e
+Shift+setas 0,25 px; tamanho e aparência; peças e trajetória do dragão), Partículas (com jutsu escolhido, cada parte
+mostra o que está EM USO, estilo ou "Só deste jutsu", e edita isso; avisa quais outros jutsus o estilo muda) e Projétil (velocidade, tamanho, raio, quantidade, leque, alcance; entram no
 `JutsuDef` ao carregar, o original fica em `JUTSU_BASE`). Projéteis e explosões levam o jutsu de origem
 (`Projectile.fx`/`Effect.fx`, save v42). Emissores: `n` por segundo no rastro (tamanho > 6 dobra) ou quantidade na
 explosão (+`nR` por px de raio, até `max`); "$" nas cores = a cor do jutsu; estilo sem rastro cai no da natureza/tipo.

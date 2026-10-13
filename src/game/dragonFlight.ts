@@ -9,9 +9,10 @@ export const DEFAULT_FLIGHT: FlightFx = { lift: 42, bend: 0 };
 
 /**
  * Bote do dragão: a fonte nasce um tile atrás do ninja e a cabeça vai até o alvo numa curva cúbica no chão cujos dois
- * pontos de controle ficam ENTRE a fonte e o alvo (a um terço e a dois terços do caminho, desviados `bend` px para o
- * lado). Assim a cabeça sempre chega de frente, sem passar do alvo e voltar; o arco que se vê é a altura (`lift`),
- * subindo e mergulhando no alvo (`dragonPoint`).
+ * pontos de controle ficam ENTRE a fonte e o alvo (a `out` do começo e a `in` do fim, 1/3 sem dizer; desviados `bend`
+ * px para o lado). Controle perto da fonte = a cabeça sai quase na vertical antes de avançar. Assim a cabeça sempre
+ * chega de frente, sem passar do alvo e voltar; o arco que se vê é a altura (`lift`), subindo e mergulhando no alvo
+ * (`dragonPoint`).
  */
 export function createDragonFlight(x: number, y: number, tx: number, ty: number, facing: number, speed: number, shape: FlightFx = DEFAULT_FLIGHT): DragonFlight {
   const angle = tx === x && ty === y ? facing : Math.atan2(ty - y, tx - x);
@@ -24,14 +25,16 @@ export function createDragonFlight(x: number, y: number, tx: number, ty: number,
   let nx = -uy, ny = ux;
   // desvio lateral (se houver) para o fundo do mapa, onde a projeção não esconde a cabeça
   if (nx + ny > 0) { nx = -nx; ny = -ny; }
-  const third = distance / 3;
+  const out = distance * Math.max(0, Math.min(1, shape.out ?? 1 / 3));
+  const inn = distance * Math.max(0, Math.min(1, shape.in ?? 1 / 3));
   const bend = shape.bend;
   const flight: DragonFlight = {
     sx, sy,
-    c1x: sx + ux * third + nx * bend, c1y: sy + uy * third + ny * bend,
-    c2x: tx - ux * third + nx * bend, c2y: ty - uy * third + ny * bend,
+    c1x: sx + ux * out + nx * bend, c1y: sy + uy * out + ny * bend,
+    c2x: tx - ux * inn + nx * bend, c2y: ty - uy * inn + ny * bend,
     tx, ty, elapsed: 0, duration: 1, lift: shape.lift,
   };
+  if (shape.sourceZ != null) flight.z0 = shape.sourceZ;
   let length = 0, prev = dragonPoint(flight, 0);
   for (let i = 1; i <= 24; i++) {
     const next = dragonPoint(flight, i / 24);
@@ -50,7 +53,7 @@ export function dragonPoint(f: DragonFlight, progress: number) {
     y: u * u * u * f.sy + 3 * u * u * t * f.c1y + 3 * u * t * t * f.c2y + t * t * t * f.ty,
     vx: 3 * u * u * (f.c1x - f.sx) + 6 * u * t * (f.c2x - f.c1x) + 3 * t * t * (f.tx - f.c2x),
     vy: 3 * u * u * (f.c1y - f.sy) + 6 * u * t * (f.c2y - f.c1y) + 3 * t * t * (f.ty - f.c2y),
-    z: DRAGON_SOURCE_HEIGHT * u + Math.sin(Math.PI * t) * f.lift,
-    vz: -DRAGON_SOURCE_HEIGHT + Math.cos(Math.PI * t) * Math.PI * f.lift,
+    z: (f.z0 ?? DRAGON_SOURCE_HEIGHT) * u + Math.sin(Math.PI * t) * f.lift,
+    vz: -(f.z0 ?? DRAGON_SOURCE_HEIGHT) + Math.cos(Math.PI * t) * Math.PI * f.lift,
   };
 }

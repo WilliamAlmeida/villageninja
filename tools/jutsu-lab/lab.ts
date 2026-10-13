@@ -4,6 +4,7 @@
 // O painel "Ajuste" (à direita, fxPanel.ts) muda sprite, partículas e números do jutsu escolhido ao vivo e grava.
 import { applyIcons, helpDialog, ico } from '../shared/ui';
 import { initFxPanel, selectJutsu } from './fxPanel';
+import { FX } from '../../src/data/jutsuFx';
 import { DAY_LENGTH, SIM_DT, TILE } from '../../src/config';
 import { Camera } from '../../src/core/camera';
 import { BLADES, bladeItem, type BladeId } from '../../src/data/blades';
@@ -678,6 +679,8 @@ Object.assign(window, {
   lab: {
     g,
     camera,
+    /** Visual dos jutsus em memória (o que o painel "Ajuste" mexe; data/jutsu-fx.json). */
+    fx: FX,
     pause: (p = true) => (paused = p),
     step(sec: number) {
       for (let t = 0; t < sec; t += SIM_DT) g.step(SIM_DT);

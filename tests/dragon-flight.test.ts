@@ -92,3 +92,13 @@ test('save v42 migra e a curva opcional permanece JSON serializável', () => {
   const restored = JSON.parse(JSON.stringify(f));
   expect(dragonPoint(restored, restored.elapsed / restored.duration)).toEqual(dragonPoint(f, f.elapsed / f.duration));
 });
+
+test('saída da fonte perto (out pequeno): a cabeça sobe quase na vertical antes de avançar; altura da fonte ajustável', () => {
+  const steep = createDragonFlight(0, 0, 150, 0, 0, 200, { lift: 42, bend: 0, out: 0.05, sourceZ: 30 });
+  const flat = createDragonFlight(0, 0, 150, 0, 0, 200, { lift: 42, bend: 0, out: 0.6 });
+  const s0 = dragonPoint(steep, 0), f0 = dragonPoint(flat, 0);
+  expect(s0.z).toBeCloseTo(30);
+  expect(f0.z).toBeCloseTo(18);
+  // inclinação da saída: subida sobre avanço no chão
+  expect(s0.vz / Math.hypot(s0.vx, s0.vy)).toBeGreaterThan(3 * (f0.vz / Math.hypot(f0.vx, f0.vy)));
+});

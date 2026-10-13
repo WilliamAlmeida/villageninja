@@ -110,6 +110,7 @@ export class Particles {
     const dx = p.vx / sp;
     const dy = p.vy / sp;
     for (const em of list) {
+      if (em.off) continue;
       // projétil grande (tamanho > 6) solta o dobro, menos o resíduo discreto das sprites
       const rate = em.n * (p.size > 6 && !em.under ? 2 : 1);
       const count = Math.floor(rate * dt + Math.random());
@@ -134,6 +135,7 @@ export class Particles {
   /** Explosão de um efeito `burst` pelos emissores (do jutsu, se tiver exceção, senão do estilo). */
   private burst(list: Emitter[], e: Effect, r: number) {
     for (const em of list) {
+      if (em.off) continue;
       const count = Math.round(Math.min(em.max ?? Infinity, em.n + (em.nR ?? 0) * r));
       for (let i = 0; i < count; i++) {
         if (em.chance != null && Math.random() > em.chance) continue;

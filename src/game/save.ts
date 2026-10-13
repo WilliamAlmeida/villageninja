@@ -277,6 +277,8 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // obra pronta esperando espaço
   // v39: limpar área (ResourceNode.clear/cleared, campos opcionais: nada a converter)
   38: () => {},
+  // v44: altura de saída da fonte no bote do dragão (DragonFlight.z0, opcional: nada a converter)
+  43: () => {},
   // v43: curva opcional do Suiryuudan modular; projéteis antigos terminam o voo anterior.
   42: () => {},
   // v42: projétil e efeito sabem de que jutsu vieram (Projectile.fx / Effect.fx, opcionais: nada a converter)

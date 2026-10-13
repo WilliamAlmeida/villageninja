@@ -3,7 +3,7 @@
 import { art } from './art';
 import type { Projectile } from '../game/types';
 import { JUTSUS } from '../data/jutsus';
-import { FX, spriteFx, type SpriteFx } from '../data/jutsuFx';
+import { FX, PARTS_DEFAULT, spriteFx, type SpriteFx } from '../data/jutsuFx';
 import { suiryuudanPose } from './projectileMotion';
 import { dragonPoint } from '../game/dragonFlight';
 import { project } from '../core/iso';
@@ -29,14 +29,22 @@ function drawDragonChain(ctx: CanvasRenderingContext2D, p: Projectile, s: Sprite
   const tip = screen(progress), before = screen(Math.max(0, progress - 0.01));
   const angle = Math.atan2(tip.y - before.y, tip.x - before.x);
   const headSize = s.size * growth;
-  // O corpo termina na ligação atrás da mandíbula, não dentro da boca aberta.
-  let trim = headSize * 0.5;
+  // O corpo termina no pescoço (ponto `neck` da célula da cabeça), não dentro da boca aberta: corta a curva até a
+  // distância do pescoço à ponta e encaixa a última junta exatamente no pescoço (com o mesmo giro/espelho da cabeça).
+  const headImg = cells(head, s);
+  const hw = headSize, hh = (headSize * headImg.ch) / headImg.cw;
+  const lx = ((parts.neckX ?? PARTS_DEFAULT.neckX) - s.anchorX) * hw;
+  let ly = ((parts.neckY ?? PARTS_DEFAULT.neckY) - s.anchorY) * hh;
+  if (s.flip && Math.cos(angle) < 0) ly = -ly;
+  const neck = { x: tip.x + Math.cos(angle) * lx - Math.sin(angle) * ly, y: tip.y + Math.sin(angle) * lx + Math.cos(angle) * ly };
+  let trim = Math.max(0, -lx);
   while (points.length > 1 && trim > 0) {
     const last = points[points.length - 1]!, prev = points[points.length - 2]!;
     const length = Math.hypot(last.x - prev.x, last.y - prev.y);
     if (length <= trim) { points.pop(); trim -= length; }
     else { last.x += (prev.x - last.x) * trim / length; last.y += (prev.y - last.y) * trim / length; trim = 0; }
   }
+  if (points.length > 1) points[points.length - 1] = neck;
   const { cols: bcols, cw: bcw, ch: bch, frames: bframes } = cells(body, s);
   const frame = Math.floor(t * s.fps) % bframes;
   ctx.save();
@@ -54,14 +62,15 @@ function drawDragonChain(ctx: CanvasRenderingContext2D, p: Projectile, s: Sprite
     const width = parts.bodyWidth * growth;
     // A textura percorre o comprimento do corpo: cada junta pega só seu trecho da faixa,
     // evitando comprimir uma célula inteira em cada junta e formar "contas" separadas.
-    const textureScale = Math.max(0.01, width / (bch * 0.375));
+    const bandTop = parts.bandTop ?? PARTS_DEFAULT.bandTop, bandH = parts.bandHeight ?? PARTS_DEFAULT.bandHeight;
+    const textureScale = Math.max(0.01, width / (bch * bandH));
     let sourceX = (((distanceAlong - 1.5) / textureScale - t * 36) % bcw + bcw) % bcw;
     let remaining = length + 3, painted = 0;
     while (remaining > 0.001) {
       const sourceWidth = Math.min(bcw - sourceX, remaining / textureScale);
       const drawWidth = sourceWidth * textureScale;
-      ctx.drawImage(body, frame % bcols * bcw + sourceX, Math.floor(frame / bcols) * bch + bch * 0.3125,
-        sourceWidth, bch * 0.375, -(length + 3) / 2 + painted, -width / 2, drawWidth, width);
+      ctx.drawImage(body, frame % bcols * bcw + sourceX, Math.floor(frame / bcols) * bch + bch * bandTop,
+        sourceWidth, bch * bandH, -(length + 3) / 2 + painted, -width / 2, drawWidth, width);
       remaining -= drawWidth; painted += drawWidth; sourceX = 0;
     }
     distanceAlong += length;
@@ -69,7 +78,8 @@ function drawDragonChain(ctx: CanvasRenderingContext2D, p: Projectile, s: Sprite
   }
   ctx.restore();
   const source = project(f.sx, f.sy);
-  drawSpriteFx(ctx, { ...s, sheet: parts.originSheet, size: parts.originSize, anchorX: 0.5, anchorY: 0.78,
+  drawSpriteFx(ctx, { ...s, sheet: parts.originSheet, size: parts.originSize,
+    anchorX: parts.originX ?? PARTS_DEFAULT.originX, anchorY: parts.originY ?? PARTS_DEFAULT.originY,
     rotate: false, flip: false, dy: 0 }, source.x, source.y + s.dy, 0, t, p.id);
   if (growth > 0) drawSpriteFx(ctx, { ...s, size: headSize, dy: 0 }, tip.x, tip.y, angle, t, p.id);
   return true;
@@ -82,7 +92,7 @@ function cells(img: HTMLImageElement, s: SpriteFx) {
 }
 
 /** Quadro em loop no ponto (x, y), girando com `angle` se a folha pede; preserva o estado do canvas. */
-export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: number, y: number, angle: number, t: number, phase: number): boolean {
+export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: number, y: number, angle: number, t: number, phase: number, behind?: number): boolean {
   const img = art(s.sheet);
   if (!img) return false;
   const { cols, cw, ch, frames } = cells(img, s);
@@ -95,12 +105,26 @@ export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: numb
     ctx.rotate(angle);
     if (s.flip && left) ctx.scale(1, -1); // indo para a esquerda: a arte não fica de cabeça para baixo
   } else if (s.flip && left) ctx.scale(-1, 1);
+  if (behind != null && s.rotate) {
+    // nasce da mão: o que ainda está atrás do ponto de lançamento não aparece (o corpo sai do punho)
+    ctx.beginPath();
+    ctx.rect(-behind, -h * 4, w * 8 + behind, h * 8);
+    ctx.clip();
+  }
   ctx.globalAlpha *= s.opacity;
   if (s.blend === 'add') ctx.globalCompositeOperation = 'lighter';
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, (frame % cols) * cw, Math.floor(frame / cols) * ch, cw, ch, -w * s.anchorX, -h * s.anchorY, w, h);
   ctx.restore();
   return true;
+}
+
+/** Quanto o projétil já andou desde o lançamento (px de cena; o Renderer passa a velocidade já projetada). */
+function traveled(p: Projectile, id: string) {
+  const def = JUTSUS[id];
+  if (!def) return Infinity;
+  const life0 = (def.range * 1.4) / (def.projSpeed ?? 250);
+  return Math.hypot(p.vx, p.vy) * Math.max(0, life0 - p.life);
 }
 
 /** Dragão (Suiryuudan): a sequência vai da fonte ao alvo pelo progresso do voo, em pé e sem esticar. */
@@ -132,7 +156,7 @@ export function drawJutsuProjectile(ctx: CanvasRenderingContext2D, p: Projectile
   if (!s) return false;
   if (p.dragon && s.parts && s.motion === 'dragon') return drawDragonChain(ctx, p, s, t);
   if (s.motion === 'dragon') return drawDragon(ctx, p, s, id);
-  return drawSpriteFx(ctx, s, p.x, p.y, Math.atan2(p.vy, p.vx), t, p.id);
+  return drawSpriteFx(ctx, s, p.x, p.y, Math.atan2(p.vy, p.vx), t, p.id, s.emerge ? traveled(p, id) : undefined);
 }
 
 /** Esfera de água sobre o corpo; alpha adicional deixa o ninja legível dentro. */

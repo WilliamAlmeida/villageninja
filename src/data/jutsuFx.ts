@@ -50,6 +50,8 @@ export interface Emitter {
   under?: boolean;
   /** Chance de nascer em cada sorteio (0–1); sem: sempre. */
   chance?: number;
+  /** Desligado no painel: fica guardado com os valores, mas não solta nada. */
+  off?: boolean;
 }
 
 export interface StyleFx {
@@ -77,6 +79,9 @@ export interface SpriteFx {
   rotate: boolean;
   /** Indo para a esquerda, espelha na vertical (a arte não fica de cabeça para baixo). */
   flip: boolean;
+  /** Nasce da mão: a parte da arte que ainda está atrás do ponto de lançamento não aparece (corpo longo que sai do
+   *  punho, como o tigre do Hirudora). Precisa de `rotate`. */
+  emerge?: boolean;
   /**
    * `dragon`: sequência única do lançador até o alvo (Suiryuudan): cada quadro é um trecho do bote, a âncora (anchorX,
    * anchorY) é a fonte no chão e `targetX` é onde o mergulho cai na largura da célula. Escala igual nos dois eixos,
@@ -89,8 +94,28 @@ export interface SpriteFx {
   /** Dragão: quanto ele inclina em pé (cisalhamento, tangente máxima) antes de girar; 0 = só gira. */
   shear?: number;
   /** Dragão modular: cabeça na folha principal, corpo encaixado à curva e fonte fixa. */
-  parts?: { bodySheet: string; originSheet: string; bodyWidth: number; originSize: number; spacing: number };
+  parts?: DragonParts;
 }
+
+/**
+ * Peças do dragão. Pontos em fração da célula (0–1): `neck` é onde o corpo encaixa na cabeça (a âncora da cabeça é a
+ * ponta, que segue a trajetória); `origin` é a base da fonte no chão; `band` é a faixa da folha do corpo que vira o
+ * corpo (topo e altura).
+ */
+export interface DragonParts {
+  bodySheet: string;
+  originSheet: string;
+  bodyWidth: number;
+  originSize: number;
+  spacing: number;
+  neckX?: number;
+  neckY?: number;
+  originX?: number;
+  originY?: number;
+  bandTop?: number;
+  bandHeight?: number;
+}
+export const PARTS_DEFAULT = { neckX: 0.25, neckY: 0.5, originX: 0.5, originY: 0.78, bandTop: 0.3125, bandHeight: 0.375 };
 
 /** Números do projétil que o laboratório pode mudar (entram no JutsuDef). */
 export interface ProjFx {
@@ -121,6 +146,12 @@ export interface JutsuFx {
 export interface FlightFx {
   lift: number;
   bend: number;
+  /** Onde ficam os controles da curva no chão (fração do caminho): pequeno = sobe quase reto da fonte / desce quase
+   *  reto no alvo. Sem: 1/3. */
+  out?: number;
+  in?: number;
+  /** Altura (px) em que o corpo sai da fonte. Sem: 18. */
+  sourceZ?: number;
 }
 
 export interface FxData {

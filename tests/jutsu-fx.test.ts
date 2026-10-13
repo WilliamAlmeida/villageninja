@@ -7,6 +7,8 @@ import { JUTSU_BASE, JUTSUS } from '../src/data/jutsus';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
+import type { Effect, Projectile } from '../src/game/types';
+import { Particles } from '../src/render/particles';
 
 const ROOT = join(import.meta.dir, '..');
 const ART_TS = readFileSync(join(ROOT, 'src', 'render', 'art.ts'), 'utf8');
@@ -52,6 +54,27 @@ describe('visual dos jutsus (jutsu-fx.json)', () => {
       if (j.vfx) expect(FX.styles[j.vfx], `${k}: estilo ${j.vfx}`).toBeDefined();
     }
     for (const [k, s] of Object.entries(FX.status)) checkSprite(s, `status.${k}`);
+  });
+
+  test('emissor desligado (off) não solta nada, nem no rastro nem na explosão', () => {
+    const on: Emitter = { shape: 'spark', colors: ['$'], n: 600, life: [1, 1], size: [1, 1], speed: [0, 0] };
+    const style = FX.styles.none!;
+    const saved = { trail: style.trail, burst: style.burst };
+    const count = (off: boolean) => {
+      style.trail = [{ ...on, off }];
+      style.burst = [{ ...on, n: 20, off }];
+      const pa = new Particles();
+      pa.trail({ kind: 'jet', vx: 100, vy: 0, size: 4, color: '#123456', nature: null } as unknown as Projectile, 0, 0, 0.1);
+      const e = { kind: 'burst', x: 0, y: 0, r: 10, color: '#123456', t: 0, life: 1 } as Effect;
+      pa.effect(e, e);
+      return (pa as unknown as { list: unknown[] }).list.length;
+    };
+    try {
+      expect(count(false)).toBeGreaterThan(0);
+      expect(count(true)).toBe(0);
+    } finally {
+      Object.assign(style, saved);
+    }
   });
 
   test('o arquivo gravado volta igual (o laboratório grava pelo formatFx)', () => {
