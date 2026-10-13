@@ -32,3 +32,32 @@
 - **Achatamento** (`ArtLayout.squash`, modo Arte do Editor de cenário, 0,75–1, botão 0,866): só a altura na tela, a imagem
   não muda; o Codex desenha o chão a ~30° e 0,866 leva ao 2:1. **Paleta do cenário**: `/paleta` nas ferramentas marca as
   artes preferidas (`docs/design/arte-iso/paleta-favoritos.json`).
+
+## Projéteis Katon animados
+
+`src/art/effects/projectile-housenka.png` e `projectile-goukakyuu.png` são registrados em
+`render/art.ts`. Folhas RGBA 4x2 (8 quadros de 64x64), próprias para efeitos; o padrão de
+personagem 4x3 não se aplica. Núcleo em (48,32), loop a 16 fps. Originais e prompts em
+`docs/arte/jutsus/`; preparo por `scripts/prepare-katon.ps1`. Gerados pela ferramenta integrada ImageGen.
+
+## Suiton animado
+
+Folhas RGBA 256x128 em `src/art/effects`: `projectile-mizurappa.png`,
+`projectile-suiryuudan.png` e `effect-suirou.png`. Grade 4x2, quadros de 64x64.
+Projéteis ancorados na cabeça em (48,32); esfera em (32,32).
+Gerados por ImageGen integrado; originais, prompts e prévia em `docs/arte/jutsus/suiton`.
+O dragão passou por ajuste de folga e a prisão por ajuste de transparência no ImageGen.
+Preparo técnico: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-suiton.ps1`.
+Confere quadros vazios e folga; preserva alpha e reduz por nearest-neighbor.
+
+## Suiryuudan v2: sequência de ataque
+
+`src/art/effects/projectile-suiryuudan-v2.png`: RGBA 384x192, oito quadros de 96x96;
+não é loop de voo. Surgimento, elevação do pescoço, arco, ataque, mergulho e respingo final.
+Gerado com ImageGen integrado usando a referência enviada pelo autor. Fonte e prompts em
+`docs/arte/jutsus/suiton/projectile-suiryuudan-v2-source.png` e `suiryuudan-v2-prompts.json`.
+Preparo: `scripts/prepare-suiryuudan.ps1`. Separa os corpos por componentes conectados e atribui
+cada corpo inteiro à célula com mais pixels, preservando focinhos que ultrapassem a grade da fonte.
+Retira ruído solto, usa uma escala comum nas oito poses e alinha a base (origem em 25% nos
+quadros 1-5, destino em 75% nos quadros 6-8; linha de base em 82%). Não centralizar cada pose pelo corpo.
+A Prisão d'Água conserva sua folha e passou de 48 para 57,6 px no código (+20%).

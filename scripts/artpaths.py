@@ -38,6 +38,8 @@ def art_folder(name: str) -> str:
         return 'ninja/busts'
     if name.startswith('sword-'):
         return 'weapons'
+    if name.startswith(('projectile-', 'effect-')):
+        return 'effects'
     if name in CHARACTERS or name.startswith('org-') or name.startswith('sound-'):
         return 'characters'
     if name in ANIMALS or name.startswith('dog') or name.startswith('bijuu-'):
