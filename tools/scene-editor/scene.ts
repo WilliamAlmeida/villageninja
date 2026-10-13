@@ -462,8 +462,10 @@ function renderProps() {
     const gi = gridInfo();
     if (!gi) h += `<p class="hint">Sem grade para este item.</p>`;
     else {
-      h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span>${building && defOf(building).shore ? '<span><i style="background:rgba(70,150,255,.8)"></i>água</span>' : ''}</div>`;
+      h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span>${building ? '<span><i style="background:rgba(70,150,255,.8)"></i>água</span>' : ''}</div>`;
       h += `<div class="row"><label>Largura</label><input type="number" id="tw" min="1" max="10" value="${gi.w}"><label>Altura</label><input type="number" id="th" min="1" max="10" value="${gi.h}"></div>`;
+      if (building && !defOf(building).shore)
+        h += `<p class="hint">Água: a célula bloqueia como o muro e o chão embaixo dela é desenhado como água (lago de carpas, fonte, espelho d'água). Não pede água no mapa para construir.</p>`;
       if (building && defOf(building).shore)
         h += `<p class="hint">Prédio de margem: para construir, tile só com água pede água no mapa, tile só com muro pede terra (os dois = a beira). Com terreno quadrado o jogo espelha sozinho quando a água está do outro lado.</p>`;
       if (building) h += `<p class="hint">Em volta do terreno há uma margem: clique ou arraste nela para marcar <b>bloqueios avulsos</b> (a arte que passa do terreno, como o muro da arena), sem aumentar o prédio.</p><p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
@@ -939,9 +941,9 @@ over.addEventListener('pointerdown', (e) => {
       // clique troca a célula; arrastando, pinta as outras com o mesmo valor
       const rows = tileRows().map((r) => r.split(''));
       const cur = rows[cy]![cx]!;
-      // prédio de margem (Porto) tem também a água: livre → muro → portão → água
-      const shore = !!building && !!defOf(building).shore;
-      cellPaint = cur === '.' ? '#' : cur === '#' ? 'g' : cur === 'g' && shore ? '~' : '.';
+      // prédios têm também a água (Porto: pede água no mapa; os outros: só bloqueia e desenha água no chão):
+      // livre → muro → portão → água
+      cellPaint = cur === '.' ? '#' : cur === '#' ? 'g' : cur === 'g' && building ? '~' : '.';
       rows[cy]![cx] = cellPaint;
       typeL().tiles = rows.map((r) => r.join(''));
       drag = { kind: 'cells', x, y };

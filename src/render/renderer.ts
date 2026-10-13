@@ -16,7 +16,7 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { plainTokens } from '../core/tokens';
-import { artLayout, tileOf } from '../data/layout';
+import { artLayout, tileOf, typeLayout } from '../data/layout';
 import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
@@ -269,7 +269,7 @@ export class Renderer {
     for (const b of shown) {
       const d = defOf(b);
       if (d.walkable) continue;
-      if (d.shore && tileOf(layoutKey(b), 0, 0) !== undefined) {
+      if (tileOf(layoutKey(b), 0, 0) !== undefined && (d.shore || this.hasWater(b))) {
         this.shoreGround(b);
         continue;
       }
@@ -939,7 +939,16 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** (chão) Prédio de margem: terra batida sob as células de muro e a sombra do píer na água sob as de água. */
+  /** O terreno do prédio (Editor de cenário) tem células de água? (lago de carpas, fonte) */
+  private hasWater(b: Building) {
+    const L = typeLayout(layoutKey(b));
+    return !!L?.tiles?.some((r) => r.includes('~'));
+  }
+
+  /**
+   * (chão) Terreno com água: terra batida sob as células de muro; sob as de água, a sombra do píer na água do mapa
+   * (Porto) ou a própria água desenhada (os outros prédios: lago de carpas, fonte), que não pedem água no mapa.
+   */
   private shoreGround(b: Building) {
     const ctx = this.ctx;
     const d = defOf(b);
@@ -954,7 +963,7 @@ export class Renderer {
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
     ctx.fill();
     cells('~');
-    ctx.fillStyle = 'rgba(8,24,44,0.3)';
+    ctx.fillStyle = defOf(b).shore ? 'rgba(8,24,44,0.3)' : '#3a80c0';
     ctx.fill();
     ctx.restore();
   }

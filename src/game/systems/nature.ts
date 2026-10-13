@@ -1,3 +1,4 @@
+import { burnTick } from '../battleScars';
 import { regrowCleared } from '../clearing';
 import type { Game } from '../game';
 
@@ -7,6 +8,7 @@ let acc = 0;
 export function natureSystem(g: Game, dt: number) {
   acc += dt;
   if (acc < 1) return;
+  burnTick(g, acc); // árvores pegando fogo (jutsu de fogo na luta)
   const gone: number[] = [];
   for (const n of g.state.nodes) {
     if (n.regrow == null) continue;

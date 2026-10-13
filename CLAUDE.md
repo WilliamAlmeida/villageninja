@@ -321,6 +321,8 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`) e **bloqueios
   avulsos** numa margem de 3 tiles em volta do prédio (`TypeLayout.extra`, células relativas ao canto, podem ser
   negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
+  Célula `~` (água) em qualquer prédio (ciclo livre → muro → portão → água no Editor de cenário): bloqueia como o muro e
+  o chão embaixo é desenhado como água (lago de carpas, fonte), sem pedir água no mapa.
   **Prédio de margem** (`BuildingDef.shore`: o Porto): célula `~` (água) no terreno = píer/barco em cima da água; para
   construir, tile só com `~` precisa ser água, só com `#` terra (os dois = a beira) e a porta em terra (`World.shoreFits`).
   **Todo prédio pode ser espelhado** (`Building.flip`, `canFlip`; botão "Girar" e tecla R ao posicionar ou mover): troca x
@@ -478,7 +480,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   cavar é grátis (sem árvore/pedra/prédio no tile). Morador sem obra faz o trabalho de um tile vizinho em terra
   (`toEarth`/`earthwork`; prioridade: obras > terreno > limpar área), então o lago fecha pela margem. Pronto: troca o
   tile, refaz a areia em volta (`reshore`), a colisão e `Game.terrainRev`, que faz o renderer refazer o chão em blocos
-  e a água da neve/gelo (`Seasonal.refreshWater`). Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
+  e a água da neve/gelo (`Seasonal.refreshWater`).
+  **A luta marca o cenário** (`game/battleScars.ts`, chamado por `areaDamage` fora do duelo do Exame): golpe em área corta
+  árvores (perdem madeira, esgotadas viram toco; golpe enorme arranca, rebrota ×2) e racha/quebra rochas e veios, sem render
+  recurso; Katon põe a árvore para queimar (`ResourceNode.burn`, `burnTick` no sistema da natureza: chamas e fumaça,
+  pode pegar nas vizinhas, sobra o toco queimado com rebrota ×2); Suiton e chuva apagam (save v41). Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
   coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
   consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor
@@ -638,7 +644,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v40.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v41.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

@@ -1,4 +1,5 @@
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
+import { scarArea } from './battleScars';
 import { raiseWall, wallCovers } from './walls';
 import { chance, rand } from '../core/rng';
 import { ANIMALS } from '../data/animals';
@@ -512,6 +513,8 @@ export function spawnProjectile(g: Game, owner: Unit | null, faction: Faction, x
 }
 
 export function areaDamage(g: Game, src: Unit | null, faction: Faction, x: number, y: number, r: number, dmg: number, nature: Nature | null, knock = 0, stun = 0, side = src?.arenaSide) {
+  // o golpe também pega as árvores e rochas em volta (corta, queima, quebra); fora do duelo do Exame
+  if (side == null) scarArea(g, x, y, r, dmg, nature);
   for (const o of g.state.units) {
     if (o.dead || o.hidden || !canHit(faction, side, o)) continue;
     const d = Math.hypot(o.x - x, o.y - y);

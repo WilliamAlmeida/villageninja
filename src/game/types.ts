@@ -465,6 +465,8 @@ export interface ResourceNode {
   clear?: boolean;
   /** Arrancado: some do mapa (sem desenho nem colisão) até a rebrota longa. */
   cleared?: boolean;
+  /** Pegando fogo (jutsu de fogo na luta, game/battleScars.ts): segundos que ainda queima. */
+  burn?: number;
   missionId?: number;
   tx: number;
   ty: number;
