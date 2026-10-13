@@ -35,8 +35,8 @@
   avulsos** numa margem de 3 tiles em volta do prédio (`TypeLayout.extra`, células relativas ao canto, podem ser
   negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
   Célula `~` (água) em qualquer prédio (ciclo livre → muro → portão → água no Editor de cenário): o tile com célula de
-  água PODE ficar em cima da água do mapa (a roda d'água do lenhador nível 3 na beira do rio) ou em terra (lago de
-  carpas, fonte: o chão da célula é desenhado como água, `shoreGround`); nada é obrigatório e o fantasma não gruda
+  água PODE ficar em cima da água do mapa (a roda d'água do lenhador nível 3 na beira do rio) ou em terra (em terra
+  nada é desenhado embaixo; sobre água de verdade, a sombra, `shoreGround`); nada é obrigatório e o fantasma não gruda
   (`hasWater`/`wetTile` em world.ts; `World.groundBlock` = a regra do chão de um prédio comum: rocha nunca, água só sob
   tile com `~`, porta em terra firme; vale em `canPlace`, `placeError` e `growRoom`). O autor reprovou a versão em que a
   água no terreno tornava o nível um prédio de margem (obrigava água e grudava): só o Porto é assim.

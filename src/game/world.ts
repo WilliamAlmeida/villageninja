@@ -83,8 +83,8 @@ export function isShore(b: { type: BuildingType; level?: number }): boolean {
 }
 /**
  * O terreno deste nível tem células de água ("~", Editor de cenário): esses tiles PODEM ficar em cima da água do mapa
- * (a roda d'água do lenhador na beira do rio) ou em terra (lago de carpas, fonte: o chão sob a célula é desenhado como
- * água). Fora do Porto nada é obrigatório: o jogador põe onde quiser, só a porta precisa dar em terra firme.
+ * (a roda d'água do lenhador na beira do rio) ou em terra (aí nada é desenhado embaixo). Fora do Porto nada é
+ * obrigatório: o jogador põe onde quiser, só a porta precisa dar em terra firme.
  */
 export function hasWater(b: { type: BuildingType; level?: number }): boolean {
   return !!typeLayout(layoutKey(b))?.tiles?.some((r) => r.includes('~'));

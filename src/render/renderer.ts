@@ -598,6 +598,7 @@ export class Renderer {
 
     this.drawHover(g, ov.hoverUnitId, sel?.kind === 'unit' ? sel.id : null, cam, time);
     this.commandFlags(g, teamColor, time);
+    const flying = [];
     for (const p of s.projectiles) {
       if (p.dead) continue;
       const a = project(p.x, p.y);
@@ -606,8 +607,11 @@ export class Renderer {
       // projéteis voam na altura do peito
       const pp = { ...p, x: a.x, y: a.y - 8, vx: v.x, vy: v.y, tx: t.x, ty: t.y - 8 };
       this.particles.trail(pp, pp.x, pp.y, dt);
-      drawProjectile(ctx, pp, time);
+      flying.push(pp);
     }
+    this.particles.update(dt);
+    this.particles.draw(ctx, 'trail');
+    for (const p of flying) drawProjectile(ctx, p, time);
     for (const e of s.effects) {
       if (e.kind === 'wall') continue; // em pé, na ordem de profundidade
       if (e.kind === 'afterimage') {
@@ -623,7 +627,6 @@ export class Renderer {
       drawEffect(ctx, pe, cam.zoom, this.particles.snowy);
     }
     ctx.globalAlpha = 1;
-    this.particles.update(dt);
     this.particles.draw(ctx);
     this.seasonal.drawRain(ctx, s);
 
@@ -944,8 +947,8 @@ export class Renderer {
   }
 
   /**
-   * (chão) Terreno com água: terra batida sob as células de muro; sob as de água, a sombra do píer na água do mapa
-   * (Porto) ou a própria água desenhada (os outros prédios: lago de carpas, fonte), que não pedem água no mapa.
+   * (chão) Terreno com água: terra batida sob as células de muro; sob as de água, só a sombra do píer/roda onde o mapa
+   * é água de verdade. Célula de água em cima de terra não desenha nada (o autor reprovou pintar água ali).
    */
   private shoreGround(b: Building) {
     const ctx = this.ctx;
@@ -960,21 +963,19 @@ export class Renderer {
     cells('#');
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
     ctx.fill();
-    // célula de água: sombra do píer sobre a água do mapa; onde o mapa não é água (save de antes da regra), pinta a água
+    // célula de água: sombra do píer/roda só sobre a água do mapa
     const s = this.mapState;
     const wet = (fx: number, fy: number) => {
       const tx = b.tx + Math.floor(fx / SUB);
       const ty = b.ty + Math.floor(fy / SUB);
       return !!s && tx >= 0 && ty >= 0 && tx < s.mapW && ty < s.mapH && s.tiles[ty * s.mapW + tx] === T.WATER;
     };
-    for (const real of [true, false]) {
-      ctx.beginPath();
-      for (let fy = 0; fy < d.h * SUB; fy++)
-        for (let fx = 0; fx < d.w * SUB; fx++)
-          if (tileOf(layoutKey(b), fx, fy, b.flip) === '~' && wet(fx, fy) === real) ctx.roundRect(b.tx * TILE + fx * CELL - 2, b.ty * TILE + fy * CELL - 2, CELL + 4, CELL + 4, 4);
-      ctx.fillStyle = real ? 'rgba(8,24,44,0.3)' : '#3a80c0';
-      ctx.fill();
-    }
+    ctx.beginPath();
+    for (let fy = 0; fy < d.h * SUB; fy++)
+      for (let fx = 0; fx < d.w * SUB; fx++)
+        if (tileOf(layoutKey(b), fx, fy, b.flip) === '~' && wet(fx, fy)) ctx.roundRect(b.tx * TILE + fx * CELL - 2, b.ty * TILE + fy * CELL - 2, CELL + 4, CELL + 4, 4);
+    ctx.fillStyle = 'rgba(8,24,44,0.3)';
+    ctx.fill();
     ctx.restore();
   }
 
