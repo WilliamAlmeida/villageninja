@@ -12,6 +12,7 @@ export interface GameEvents {
   fps: void;
   /** Trocou a qualidade do desenho (Configurações). */
   quality: void;
+  occlusion: void;
 }
 
 type Handler<T> = (payload: T) => void;

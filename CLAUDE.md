@@ -21,6 +21,13 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   A profundidade é a LINHA ONDE O DESENHO TOCA O CHÃO (`Renderer.baseLine`: pés do boneco = ponto + 9 px, base da
   rocha/árvore, base do baú/ruína), mais o ajuste `depth` da arte no Editor de cenário (modo Arte, linha laranja).
   Prédios com peças usam a âncora de cada peça; prédios inteiros, o centro com a regra das faces da frente.
+  **Quem passa atrás** (`occluders` devolve quem cada prédio/árvore tapa; Configurações → "Atrás de prédios",
+  `OcclusionCfg` em ui/settings.ts → `Renderer.occl`, por aparelho): Silhueta (o desenho do personagem numa cor,
+  recortado pelos pixels de quem o tapa, por cima; só ninjas da vila, inimigos, bicho lutando e o selecionado),
+  Esmaecer (o prédio inteiro a 38%, o padrão), Furo (círculo em volta de quem está atrás) e Pontilhado (a transparência
+  vira um xadrez de Bayer 4×4 no tamanho do pixel da arte, alinhado ao mundo); combinam. Furo e pontilhado desenham o
+  prédio numa camada fora da tela só do tamanho dele (`toLayer`/`occludedBlock`); a silhueta redesenha quem tapa numa
+  segunda camada como máscara (`maskPass` evita a fumaça repetida).
   A câmera trabalha na cena projetada; fora do render use `camera.focus/jump/screenToWorld/worldToScreen` (mundo).
   Cliques no mapa comparam em coordenadas de tela (`ui/index.ts`).
 - Arte em pixel art: PNGs em `src/art`, **cada um na pasta do seu tipo** (`ninja/body`, `ninja/layers`, `ninja/busts`,

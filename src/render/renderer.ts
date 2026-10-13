@@ -58,6 +58,31 @@ const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 /** Tiles de névoa em volta do mapa (só na textura). */
 const FOG_PAD = 3;
 
+const TAU = Math.PI * 2;
+/** Como mostrar quem passa atrás de um prédio (as mesmas chaves de ui/settings.ts `OcclusionCfg`). */
+export type Occlusion = { silhouette: boolean; fade: boolean; cutout: boolean; dither: boolean };
+/** Corpo de um personagem para saber quem o tapa (ponto do peito na cena, índice na lista ordenada). */
+type Body = { x: number; y: number; i: number; u: Unit };
+type Rect = { x0: number; y0: number; x1: number; y1: number };
+
+/** Pontilhado ordenado (matriz de Bayer 4×4): `k` de 16 pixels opacos em cada bloco de 4×4, aninhados (k ⊂ k+1). */
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const bayerCache = new Map<number, HTMLCanvasElement>();
+function bayer(k: number): HTMLCanvasElement {
+  k = Math.max(0, Math.min(16, k));
+  let c = bayerCache.get(k);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = c.height = 4;
+    const x = c.getContext('2d')!;
+    const img = x.createImageData(4, 4);
+    for (let i = 0; i < 16; i++) img.data[i * 4 + 3] = BAYER4[i]! < k ? 255 : 0;
+    x.putImageData(img, 0, 0);
+    bayerCache.set(k, c);
+  }
+  return c;
+}
+
 type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco;
   /** Muralha de terra (Doryuuheki) parada no chão: entra na ordem de profundidade como um objeto. */
   wall?: Effect;
@@ -92,6 +117,17 @@ export class Renderer {
   private list: Drawable[] = [];
   /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
   private fade = new Map<string, number>();
+  /**
+   * Como mostrar quem passa atrás de um prédio/árvore (Configurações → "Atrás de prédios", posto pelo main): silhueta
+   * do personagem por cima, esmaecer o prédio inteiro (o de sempre), furo em volta do personagem e pontilhado no lugar
+   * da transparência (no esmaecer e no furo). Combinam entre si.
+   */
+  occl: Occlusion = { silhouette: false, fade: true, cutout: false, dither: false };
+  /** Camadas fora da tela para o furo, o pontilhado e a silhueta (crescem conforme a necessidade). */
+  private layerA: HTMLCanvasElement | null = null;
+  private layerB: HTMLCanvasElement | null = null;
+  /** Redesenho só para máscara (silhueta): sem efeitos colaterais (fumaça de chaminé). */
+  private maskPass = false;
   private lastTime = 0;
   /** Visual das estações (neve no chão, gelo, árvores, decorações). */
   private seasonal!: Seasonal;
@@ -439,33 +475,45 @@ export class Renderer {
         if (k > (this.hitNodes.get(u.taskId) ?? 0)) this.hitNodes.set(u.taskId, k);
       }
     const occluded = this.occluders(list);
-    for (const d of list) {
-      if (d.b || d.n || (d.site && d.piece != null)) {
-        // quem tapa uma unidade fica semitransparente (some e volta suavemente)
-        const key = d.b ? `b${d.b.id}:${d.top ? 'top' : (d.piece ?? '')}` : d.n ? `n${d.n.id}` : `s${d.site!.id}:${d.piece}`;
-        const target = occluded.has(d) ? 0.38 : 1;
-        const cur = this.fade.get(key) ?? 1;
-        const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
-        if (Math.abs(a - 1) < 0.01) this.fade.delete(key);
-        else this.fade.set(key, a);
-        ctx.globalAlpha = a;
-      }
+    const drawBlock = (d: Drawable) => {
       if (d.b && d.top) this.drawTop(d.b, s.level);
       else if (d.b && d.piece != null) this.drawPiece(d.b, d.piece, s.level);
       else if (d.b) this.building(d.b, time, night, s.level);
       else if (d.site && d.piece != null) this.drawSitePiece(d.site, d.piece, time, sel?.kind === 'site' && sel.id === d.site.id);
-      else if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
+      else if (d.n) {
+        // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
+        const c = this.ctx;
+        c.save();
+        c.translate(d.x - (d.n.tx * TILE + TILE / 2), d.y - (d.n.ty * TILE + TILE / 2));
+        this.node(d.n, time);
+        c.restore();
+      }
+    };
+    for (const d of list) {
+      if (d.b || d.n || (d.site && d.piece != null)) {
+        // quem tapa uma unidade fica semitransparente (some e volta suavemente), com furo e/ou pontilhado se ligados
+        const key = d.b ? `b${d.b.id}:${d.top ? 'top' : (d.piece ?? '')}` : d.n ? `n${d.n.id}` : `s${d.site!.id}:${d.piece}`;
+        const hits = occluded.get(d);
+        const target = hits && this.occl.fade ? 0.38 : 1;
+        const cur = this.fade.get(key) ?? 1;
+        const a = cur + (target - cur) * Math.min(1, dt * 10 || 1);
+        if (Math.abs(a - 1) < 0.01) this.fade.delete(key);
+        else this.fade.set(key, a);
+        const holes = this.occl.cutout && hits ? hits : null;
+        const r = (holes || (this.occl.dither && a < 0.99)) && this.blockRect(d, s.level);
+        if (r) this.occludedBlock(r, () => drawBlock(d), a, holes);
+        else {
+          ctx.globalAlpha = a;
+          drawBlock(d);
+        }
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
       else if (d.cave) drawCaveDeco(ctx, d.cave, d.x, d.y);
       else if (d.theme) drawThemeDeco(ctx, d.theme, d.x, d.y);
       else if (d.wall) drawWall(ctx, d.wall);
-      else if (d.n) {
-        // drawNode desenha no centro do tile em mundo: desloca para o ponto projetado
-        ctx.save();
-        ctx.translate(d.x - (d.n.tx * TILE + TILE / 2), d.y - (d.n.ty * TILE + TILE / 2));
-        this.node(d.n, time);
-        ctx.restore();
-      }
       ctx.globalAlpha = 1;
       if (d.u) {
         // vigia: anda entre os pontos da plataforma (só desenho), a 70%, e esmaece junto com a torre
@@ -507,6 +555,7 @@ export class Renderer {
         if (selected && !group.has(u.id)) this.label(ctx, u.name, u.x, u.y - 34, cam.zoom);
       }
     }
+    if (this.occl.silhouette) this.silhouettes(list, occluded, drawBlock, teamColor, focus, time);
     if (ghost) this.ghostSprite(ghost);
 
     this.drawHover(g, ov.hoverUnitId, sel?.kind === 'unit' ? sel.id : null, cam, time);
@@ -578,12 +627,12 @@ export class Renderer {
    * Prédios e árvores que ficam NA FRENTE de alguma unidade: desenhados depois dela (mais perto da câmera)
    * e com o retângulo do sprite cobrindo o corpo da unidade.
    */
-  private occluders(list: Drawable[]): Set<Drawable> {
-    const out = new Set<Drawable>();
-    const bodies: { x: number; y: number; i: number }[] = [];
+  private occluders(list: Drawable[]): Map<Drawable, Body[]> {
+    const out = new Map<Drawable, Body[]>();
+    const bodies: Body[] = [];
     list.forEach((d, i) => {
       // o vigia lá em cima não "está atrás" da própria torre (senão o parapeito por cima dele ficava transparente)
-      if (d.u && !d.u.dead && !d.lift) bodies.push({ x: d.x, y: d.y - 12, i });
+      if (d.u && !d.u.dead && !d.lift) bodies.push({ x: d.x, y: d.y - 12, i, u: d.u });
     });
     if (!bodies.length) return out;
     // peça pintada: a área de transparência do Editor de cenário, se houver; senão os pixels da própria peça (o
@@ -601,10 +650,13 @@ export class Renderer {
       if (fade) {
         const [fa, fb] = box.flip ? [1 - fade[2], 1 - fade[0]] : [fade[0], fade[2]];
         const r = { x0: box.left + fa * box.w, x1: box.left + fb * box.w, y0: box.top + fade[1] * box.h, y1: box.top + fade[3] * box.h };
-        return bodies.some((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1);
+        return bodies.filter((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1);
       }
       const at = (x: number, y: number) => pieceCovers(set, p, u(x), (y - box.top) / box.h);
-      return bodies.some((u) => u.i < i && (at(u.x, u.y) || at(u.x - 4, u.y - 6) || at(u.x + 4, u.y - 6) || at(u.x, u.y + 8)));
+      return bodies.filter((u) => u.i < i && (at(u.x, u.y) || at(u.x - 4, u.y - 6) || at(u.x + 4, u.y - 6) || at(u.x, u.y + 8)));
+    };
+    const add = (d: Drawable, hit: Body[]) => {
+      if (hit.length) out.set(d, hit);
     };
     list.forEach((d, i) => {
       let r: { x0: number; x1: number; y0: number; y1: number } | null = null;
@@ -613,7 +665,7 @@ export class Renderer {
         const set = box && pieceSet(box.artName, box.pic);
         if (box && set) {
           const L = artLayout(box.artName)!;
-          if (pieceHit(d, i, box, set, d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade)) out.add(d);
+          add(d, pieceHit(d, i, box, set, d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade));
         }
         return;
       } else if (d.b) {
@@ -627,15 +679,170 @@ export class Renderer {
         const set = box && pieceSet(box.name, box.pic);
         if (box && set) {
           const L = artLayout(box.name)!;
-          if (pieceHit(d, i, box, set, d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade)) out.add(d);
+          add(d, pieceHit(d, i, box, set, d.piece === 0 ? L.fade : L.pieces![d.piece - 1]?.fade));
         }
         return;
       } else if (d.n && d.n.type === 'tree') r = { x0: d.x - 16, x1: d.x + 16, y0: d.y - 50, y1: d.y - 6 };
       if (!r) return;
       // só conta quem está atrás (desenhado antes) e com o corpo dentro do sprite
-      if (bodies.some((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1)) out.add(d);
+      add(d, bodies.filter((u) => u.i < i && u.x > r.x0 + 4 && u.x < r.x1 - 4 && u.y > r.y0 && u.y < r.y1));
     });
     return out;
+  }
+
+  /** Retângulo (px da cena) do que um prédio/peça/árvore/peça de local desenha, com folga; null = desenha direto. */
+  private blockRect(d: Drawable, level: number): Rect | null {
+    const pad = 10;
+    if (d.b) {
+      const box = this.artBox(d.b, level);
+      return box ? { x0: box.left - pad, y0: box.top - pad, x1: box.left + box.w + pad, y1: box.top + box.h + pad } : null;
+    }
+    if (d.n) return { x0: d.x - 48, x1: d.x + 48, y0: d.y - 120, y1: d.y + 20 };
+    if (d.site) {
+      const p = project(d.site.tx * TILE + TILE / 2, d.site.ty * TILE + TILE / 2);
+      const box = this.siteBox(d.site, p.x, p.y);
+      return box ? { x0: box.left - pad, y0: box.top - pad, x1: box.left + box.w + pad, y1: box.top + box.h + pad } : null;
+    }
+    return null;
+  }
+
+  /**
+   * Prepara uma camada fora da tela que cobre o retângulo `r` (px da cena) com a mesma transformação do mapa e desenha
+   * `draw` nela. Devolve a camada e onde ela cai na tela (px do aparelho), ou null se estiver fora da tela.
+   */
+  private toLayer(which: 'A' | 'B', r: Rect, draw: () => void) {
+    const main = this.ctx;
+    const T = main.getTransform();
+    const x0 = Math.max(0, Math.floor(T.a * r.x0 + T.e));
+    const y0 = Math.max(0, Math.floor(T.d * r.y0 + T.f));
+    const x1 = Math.min(this.canvas.width, Math.ceil(T.a * r.x1 + T.e));
+    const y1 = Math.min(this.canvas.height, Math.ceil(T.d * r.y1 + T.f));
+    const w = x1 - x0;
+    const h = y1 - y0;
+    if (w <= 0 || h <= 0) return null;
+    let c = which === 'A' ? this.layerA : this.layerB;
+    if (!c || c.width < w || c.height < h) {
+      c = document.createElement('canvas');
+      c.width = Math.max(w, c?.width ?? 0);
+      c.height = Math.max(h, c?.height ?? 0);
+      if (which === 'A') this.layerA = c;
+      else this.layerB = c;
+    }
+    const l = c.getContext('2d')!;
+    l.setTransform(1, 0, 0, 1, 0, 0);
+    l.globalAlpha = 1;
+    l.globalCompositeOperation = 'source-over';
+    l.clearRect(0, 0, w, h);
+    l.setTransform(T.a, T.b, T.c, T.d, T.e - x0, T.f - y0);
+    l.imageSmoothingEnabled = main.imageSmoothingEnabled;
+    this.ctx = l;
+    try {
+      draw();
+    } finally {
+      this.ctx = main;
+    }
+    return { c, l, x0, y0, w, h, T };
+  }
+
+  /**
+   * Prédio/árvore que tapa alguém, numa camada: esmaecido `a` (alfa ou pontilhado) e com um furo em volta de cada
+   * personagem atrás (`holes`), suave ou pontilhado.
+   */
+  private occludedBlock(r: Rect, draw: () => void, a: number, holes: Body[] | null) {
+    const L = this.toLayer('A', r, draw);
+    if (!L) return;
+    const { c, l, x0, y0, w, h, T } = L;
+    const dither = this.occl.dither;
+    // pontilhado alinhado ao mundo (não "anda" com a câmera) e no tamanho do pixel da arte
+    const pat = (k: number) => {
+      const p = l.createPattern(bayer(k), 'repeat')!;
+      const s = Math.max(1, Math.round(T.a * 0.54));
+      p.setTransform(new DOMMatrix().translate(T.e - x0, T.f - y0).scale(s));
+      return p;
+    };
+    l.globalCompositeOperation = 'destination-out';
+    if (dither && a < 0.99) {
+      l.save();
+      l.setTransform(1, 0, 0, 1, 0, 0);
+      l.imageSmoothingEnabled = false;
+      l.fillStyle = pat(Math.round((1 - a) * 16));
+      l.fillRect(0, 0, w, h);
+      l.restore();
+    }
+    for (const b of holes ?? []) {
+      // o meio do corpo (os pés estão ~9 px abaixo do ponto e a cabeça ~25 acima); bicho grande, furo maior
+      const R = b.u.animal ? 34 : 24;
+      const cy = b.y + 4;
+      if (dither) {
+        for (const [rr, k] of [[R, 6], [R * 0.78, 10], [R * 0.55, 14]] as const) {
+          l.save();
+          l.beginPath();
+          l.arc(b.x, cy, rr, 0, TAU);
+          l.clip();
+          l.setTransform(1, 0, 0, 1, 0, 0);
+          l.imageSmoothingEnabled = false;
+          l.fillStyle = pat(k);
+          l.fillRect(0, 0, w, h);
+          l.restore();
+        }
+      } else {
+        const g = l.createRadialGradient(b.x, cy, 0, b.x, cy, R);
+        g.addColorStop(0, 'rgba(0,0,0,0.85)');
+        g.addColorStop(0.55, 'rgba(0,0,0,0.75)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        l.fillStyle = g;
+        l.fillRect(b.x - R, cy - R, R * 2, R * 2);
+      }
+    }
+    l.globalCompositeOperation = 'source-over';
+    const main = this.ctx;
+    main.save();
+    main.setTransform(1, 0, 0, 1, 0, 0);
+    main.globalAlpha = dither ? 1 : a;
+    main.drawImage(c, 0, 0, w, h, x0, y0, w, h);
+    main.restore();
+  }
+
+  /**
+   * Silhueta de quem está atrás de um prédio/árvore: o desenho do personagem pintado numa cor só, recortado pelos
+   * pixels de quem o tapa, por cima de tudo. Só para quem importa ver (ninjas da vila, inimigos, bicho lutando e o
+   * selecionado/grupo): com 150 moradores a vila não vira um mar de contornos.
+   */
+  private silhouettes(list: Drawable[], occluded: Map<Drawable, Body[]>, drawBlock: (d: Drawable) => void, teamColor: Map<number, string>, focus: Set<number>, time: number) {
+    const covers = new Map<Unit, Drawable[]>();
+    for (const [d, hits] of occluded) for (const b of hits) (covers.get(b.u) ?? covers.set(b.u, []).get(b.u)!).push(d);
+    for (const [u, blocks] of covers) {
+      const enemy = u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null);
+      if (!(focus.has(u.id) || (u.faction === 'village' && u.ninja) || enemy) || (u.cloak && u.faction !== 'village')) continue;
+      const pu = this.projected(u);
+      const big = u.animal ? 70 : 28;
+      const r = { x0: pu.x - big, x1: pu.x + big, y0: pu.y - (u.animal ? 130 : 56), y1: pu.y + 18 };
+      const color = enemy ? '#ff5a4a' : (teamColor.get(u.id) ?? '#8fe3ff');
+      const A = this.toLayer('A', r, () => drawUnit(this.ctx, pu, time, false, undefined, true));
+      if (!A) continue;
+      // só a parte tapada: os pixels de quem tapa (redesenhados numa segunda camada, sem efeitos)
+      this.maskPass = true;
+      const B = this.toLayer('B', r, () => {
+        for (const d of blocks) drawBlock(d);
+      });
+      this.maskPass = false;
+      if (!B) continue;
+      const { c, l, x0, y0, w, h } = A;
+      l.save();
+      l.setTransform(1, 0, 0, 1, 0, 0);
+      l.globalCompositeOperation = 'source-in';
+      l.fillStyle = color;
+      l.fillRect(0, 0, w, h);
+      l.globalCompositeOperation = 'destination-in';
+      l.drawImage(B.c, 0, 0, w, h, 0, 0, w, h);
+      l.restore();
+      const main = this.ctx;
+      main.save();
+      main.setTransform(1, 0, 0, 1, 0, 0);
+      main.globalAlpha = 0.6;
+      main.drawImage(c, 0, 0, w, h, x0, y0, w, h);
+      main.restore();
+    }
   }
 
   /**
@@ -854,7 +1061,7 @@ export class Renderer {
     // inverno: fumaça saindo das chaminés das casas
     // marcas do Editor de cenário (px a partir do meio da base, tamanho 1×) ou as posições de sempre
     const mk = artLayout(artName)?.marks;
-    if (b.type === 'house' && b.built && SEASON_VIEW.season === 'winter' && !lightWeatherFx() && Math.random() < this.frameDt * 1.6)
+    if (!this.maskPass && b.type === 'house' && b.built && SEASON_VIEW.season === 'winter' && !lightWeatherFx() && Math.random() < this.frameDt * 1.6)
       this.particles.chimney(mk?.chimney ? box.x + mk.chimney[0] : front.x + width * 0.16, mk?.chimney ? box.baseY + mk.chimney[1] : front.y + 4 - h * 0.86);
     // obra de upgrade: barra amarela na base
     if (b.built && b.upgrade != null) {

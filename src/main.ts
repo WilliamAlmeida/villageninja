@@ -13,7 +13,7 @@ import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
 import { demoMenu } from './ui/demoMenu';
-import { applySettings, followCam, quality, QUALITY_CFG } from './ui/settings';
+import { applySettings, followCam, occlusion, quality, QUALITY_CFG } from './ui/settings';
 import { warmPortraits } from './ui/warm';
 import { FpsMeter } from './ui/fps';
 
@@ -178,6 +178,9 @@ function applyQuality() {
 }
 applyQuality();
 bus.on('quality', applyQuality);
+// personagem atrás de prédio: silhueta / esmaecer / furo / pontilhado (Configurações)
+renderer.occl = occlusion();
+bus.on('occlusion', () => (renderer.occl = occlusion()));
 let lastDraw = 0;
 
 const fps = new FpsMeter();

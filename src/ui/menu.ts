@@ -2,7 +2,7 @@ import type { App } from '../app';
 import { el } from './dom';
 import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 import { rich } from './icons';
-import { FONT_SIZES, followCam, fontSize, QUALITIES, quality, setFollowCam, setFontSize, setQuality, setShowFps, setWeatherFxLight, showFps, weatherFxLight, type FontSize, type Quality } from './settings';
+import { FONT_SIZES, followCam, fontSize, occlusion, QUALITIES, quality, setFollowCam, setFontSize, setOcclusion, setQuality, setShowFps, setWeatherFxLight, showFps, weatherFxLight, type FontSize, type OcclusionCfg, type Quality } from './settings';
 import { bus } from '../core/events';
 import { setShown } from './anim';
 
@@ -37,6 +37,12 @@ export class Menu {
       if (a === 'quality') {
         setQuality((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg as Quality);
         bus.emit('quality', undefined);
+        this.render();
+      }
+      if (a === 'occl') {
+        const k = (e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg as keyof OcclusionCfg;
+        setOcclusion(k, !occlusion()[k]);
+        bus.emit('occlusion', undefined);
         this.render();
       }
       if (a === 'fps') {
@@ -134,6 +140,12 @@ export class Menu {
       <div class="setrow"><span class="sl">{snow} Clima</span>${seg('wfx', [['full', 'Completo', !weatherFxLight()], ['light', 'Leve', weatherFxLight()]])}</div>
       <div class="setrow"><span class="sl">{gear} Qualidade</span>${seg('quality', QUALITIES.map((q) => [q.id, q.label, q.id === quality()]))}</div>
       <p class="hint">${quality() === 'light' ? 'Leve: resolução menor, menos partículas, clima leve e até 30 quadros por segundo (para celular fraco).' : quality() === 'balanced' ? 'Equilibrada: resolução um pouco menor e menos partículas.' : 'Alta: resolução máxima da tela.'}</p>
+      <div class="setrow"><span class="sl">{eye} Atrás de prédios</span><div class="seg">${(
+        [['silhouette', 'Silhueta'], ['fade', 'Esmaecer'], ['cutout', 'Furo'], ['dither', 'Pontilhado']] as [keyof OcclusionCfg, string][]
+      )
+        .map(([k, label]) => `<button data-act="occl" data-arg="${k}" class="${occlusion()[k] ? 'on' : ''}">${label}</button>`)
+        .join('')}</div></div>
+      <p class="hint">Como ver quem passa atrás de um prédio. Cada um liga e desliga e eles combinam. Silhueta: o contorno do ninja aparece por cima do prédio. Esmaecer: o prédio inteiro fica transparente. Furo: só abre um círculo em volta de quem está atrás. Pontilhado: a transparência vira um xadrez de pixels (vale para o esmaecer e o furo).</p>
       <div class="setrow"><span class="sl">{chart} Medidor de FPS</span>${seg('fps', [['1', 'Mostrar', showFps()], ['0', 'Esconder', !showFps()]])}</div>
       <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
     </div>`);

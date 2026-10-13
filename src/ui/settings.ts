@@ -11,7 +11,7 @@ export const FONT_SIZES: { id: FontSize; label: string }[] = [
 ];
 
 /** Desktop (mouse + tela larga) começa no médio; celular, no pequeno. */
-function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown; fps?: unknown; fpsPos?: unknown; quality?: unknown } {
+function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown; fps?: unknown; fpsPos?: unknown; quality?: unknown; occl?: unknown } {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? '{}') ?? {};
   } catch {
@@ -57,6 +57,28 @@ export function quality(): Quality {
 export function setQuality(v: Quality) {
   store({ quality: v });
   setLightWeatherFx(weatherFxLight());
+}
+
+/**
+ * Personagem atrás de prédio (Configurações → "Atrás de prédios"), cada um liga/desliga e eles combinam: silhueta do
+ * personagem por cima do prédio, esmaecer o prédio inteiro (o de sempre, padrão), furo em volta do personagem e
+ * pontilhado no lugar da transparência (vale para o esmaecer e o furo). Desenho em render/renderer.ts (`Occlusion`).
+ */
+export interface OcclusionCfg {
+  silhouette: boolean;
+  fade: boolean;
+  cutout: boolean;
+  dither: boolean;
+}
+const OCCL_DEFAULT: OcclusionCfg = { silhouette: false, fade: true, cutout: false, dither: false };
+let occl: OcclusionCfg | null = null;
+export function occlusion(): OcclusionCfg {
+  const v = load().occl;
+  return (occl ??= { ...OCCL_DEFAULT, ...(v && typeof v === 'object' ? (v as Partial<OcclusionCfg>) : {}) });
+}
+export function setOcclusion(key: keyof OcclusionCfg, on: boolean) {
+  occl = { ...occlusion(), [key]: on };
+  store({ occl });
 }
 
 /** Medidor de FPS flutuante (ui/fps.ts), desligado por padrão; e onde ele fica na tela. */
