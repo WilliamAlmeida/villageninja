@@ -93,3 +93,6 @@
   que o equipado, lâminas com o ícone recortado do sprite (`bladeIcon`). Toque no item equipa; no espaço, tira.
   Listas longas em drawers rolam por dentro (`.scrollist`: Canil, jutsus, grupo, "Lá dentro", candidatos da equipe,
   receitas, inventário).
+- **Alerta de inimigos** (`ui/hud.ts`, `#banners`): a faixa vermelha ("N inimigos na sua vila") leva a câmera a um inimigo
+  dentro da vila e, a cada toque, ao próximo (`threat(next)`); o botão "Ficha" ao lado (`.brow .bsheet`) abre o painel do
+  inimigo em foco (`Game.select`), porque o toque no mapa em cima de uma luta cheia de etiquetas raramente acerta nele.

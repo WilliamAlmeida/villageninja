@@ -34,18 +34,21 @@
   portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`) e **bloqueios
   avulsos** numa margem de 3 tiles em volta do prédio (`TypeLayout.extra`, células relativas ao canto, podem ser
   negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
-  Célula `~` (água) em qualquer prédio (ciclo livre → muro → portão → água no Editor de cenário): o NÍVEL com água vira
-  prédio de margem como o Porto (`isShore` em world.ts: `shore` ou água no terreno de `layoutKey(b)`; colocar, mover,
-  girar e subir de nível — `growRoom` — pedem água de verdade sob as células só de água; tile meio a meio = a beira,
-  aceita os dois; o fantasma gruda na beira). Save de antes da regra com água pintada fora d'água: o chão da célula é
-  desenhado como água.
-  **Prédio de margem** (`BuildingDef.shore`: o Porto): célula `~` (água) no terreno = píer/barco em cima da água; para
-  construir, tile só com `~` precisa ser água, só com `#` terra (os dois = a beira) e a porta em terra (`World.shoreFits`).
+  Célula `~` (água) em qualquer prédio (ciclo livre → muro → portão → água no Editor de cenário): o tile com célula de
+  água PODE ficar em cima da água do mapa (a roda d'água do lenhador nível 3 na beira do rio) ou em terra (lago de
+  carpas, fonte: o chão da célula é desenhado como água, `shoreGround`); nada é obrigatório e o fantasma não gruda
+  (`hasWater`/`wetTile` em world.ts; `World.groundBlock` = a regra do chão de um prédio comum: rocha nunca, água só sob
+  tile com `~`, porta em terra firme; vale em `canPlace`, `placeError` e `growRoom`). O autor reprovou a versão em que a
+  água no terreno tornava o nível um prédio de margem (obrigava água e grudava): só o Porto é assim.
+  **Prédio de margem** (`BuildingDef.shore`: só o Porto; `isShore`): célula `~` (água) no terreno = píer/barco em cima da
+  água; para construir, tile só com `~` precisa ser água, só com `#` terra (os dois = a beira) e a porta em terra
+  (`World.shoreFits`).
   **Todo prédio pode ser espelhado** (`Building.flip`, `canFlip`; botão "Girar" e tecla R ao posicionar ou mover): troca x
   por y no terreno, nos bloqueios e pontos (`tileOf`/`extraOf`/`layoutPoint` com `flip`, também os da arena), espelha a
   arte em volta da ponta da frente (`artBox`) e as marcas (`guard`, `chimney`); terreno retangular troca largura e
-  altura (`defOf({…, flip})`); sem porta marcada, a porta vai para a face da frente-direita (`doorTile`). Ao posicionar,
-  o fantasma gruda na beira mais perto já com o lado certo (`shoreSpot`). Chão: terra batida só sob o muro e sombra na água
+  altura (`defOf({…, flip})`); sem porta marcada, a porta vai para a face da frente-direita (`doorTile`). Ao posicionar o
+  Porto, o fantasma gruda na beira mais perto já com o lado que põe mais água do terreno sobre água de verdade
+  (`shoreSpot`); depois do Girar o lado fica travado (`Ghost.flipLocked`). Chão: terra batida só sob o muro e sombra na água
   sob o `~` (`shoreGround`). A prévia usa o `artBox` (escala/deslocamento do editor), igual ao prédio pronto.
   **Colisão em meio tile** (`SUB`/`CELL`/`FINE_W` em config.ts): `World.fine` é a colisão de verdade (`walkablePx`,
   `walkableCell`), a busca de caminho anda nas células (`findPathPx`/`findCells`; `u.path` guarda índices de célula,

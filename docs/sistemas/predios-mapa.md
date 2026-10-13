@@ -18,8 +18,11 @@
   seed com a costura suavizada; território 19/26/36 e o mapa todo (era 12/17/23); nuvens de chuva pela área; a clareira
   inicial do `generateMap` acompanha o território do nível 0 (×1,6), não o mapa.
   **Chão em blocos** (`render/terrain.ts`, `Terrain`): o chão é pintado por blocos de 16×16 tiles só quando entram na
-  tela (`visibleTiles` pela câmera), guardados por 6 s fora dela e na metade da resolução com zoom < 0,75; a memória é
-  a do que se vê e o mapa não esbarra no limite de imagem do celular. Detalhe de cada tile com aleatoriedade fixa por
+  tela (`visibleTiles` pela câmera), guardados por 10 s fora dela, nas duas resoluções (inteira e metade, usada com
+  zoom < 0,75; trocar o zoom não repinta o que já existe); a memória é a do que se vê e o mapa não esbarra no limite de
+  imagem do celular. **Orçamento por quadro** (`BUDGET_MS` = 3 ms; o 1º quadro pinta tudo): ao dar zoom entravam dezenas
+  de blocos de uma vez e o FPS despencava; agora o que não cabe espera o quadro seguinte mostrando a outra resolução já
+  guardada ou um bloco liso (`paintFlat`, só as cores base, marcado `flat` e repintado de verdade depois). Detalhe de cada tile com aleatoriedade fixa por
   tile (sai igual em qualquer bloco); as ondinhas da água só nos tiles à vista.
   **Construções no padrão novo** (`scripts/building-art.py <lote>`; funções comuns em `scripts/iso_art.py`): uma imagem
   por peça no Codex com o gabarito v2 do terreno do nível, a arte de hoje como identidade, as casas do piloto como estilo

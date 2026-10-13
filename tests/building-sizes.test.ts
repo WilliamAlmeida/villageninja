@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION } from '../src/config';
-import { defOf } from '../src/data/buildings';
+import { BUILDINGS, defOf } from '../src/data/buildings';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import type { Building } from '../src/game/types';
 import { growRoom, startUpgrade, syncHokage, upgradeTime, workUpgrade } from '../src/game/upgrade';
-import { CENTER_TX, CENTER_TY, doorTile, isShore } from '../src/game/world';
-import { typeLayout } from '../src/data/layout';
+import { CENTER_TX, CENTER_TY, doorTile, hasWater, idx, isShore, T } from '../src/game/world';
+import { layout, type TypeLayout, typeLayout } from '../src/data/layout';
 import { placeBuilding } from '../src/game/commands';
 
 /** Casa nível 2 pronta num lugar com espaço de sobra em volta (para crescer para 3×3). */
@@ -168,18 +168,49 @@ describe('girar (espelhar) qualquer prédio', () => {
   });
 });
 
-describe('nível com célula de água = prédio de margem', () => {
-  test('lenhador nível 3 com água no terreno pede a beira; sem água no mapa, o upgrade diz por quê', () => {
+describe('célula de água no terreno: o tile pode ficar na água, sem obrigação (só o Porto é de margem)', () => {
+  test('lenhador nível 3 não é prédio de margem e sobe de nível em terra firme', () => {
     const { g, b } = setup(1601);
     b.type = 'lumber';
     b.level = 2;
     g.world.rebuild();
-    const water = typeLayout('lumber-3')?.tiles?.some((r) => r.includes('~'));
-    expect(isShore({ type: 'lumber', level: 1 })).toBe(false);
-    expect(isShore({ type: 'lumber', level: 3 })).toBe(!!water);
-    // tile com célula só de água pede água no mapa (aqui é terra): o upgrade explica; meio a meio (a beira) aceita os dois
-    const rows = typeLayout('lumber-3')?.tiles ?? [];
-    const fullWater = rows.some((r, y) => y % 2 === 0 && [...r].some((c, x) => x % 2 === 0 && c === '~' && r[x + 1] === '~' && rows[y + 1]?.[x] === '~' && rows[y + 1]?.[x + 1] === '~'));
-    if (water && fullWater) expect(growRoom(g, b, 3)).toContain('beira da água');
+    expect(isShore({ type: 'lumber', level: 3 })).toBe(false);
+    expect(isShore({ type: 'port' })).toBe(true);
+    expect(hasWater({ type: 'lumber', level: 3 })).toBe(!!typeLayout('lumber-3')?.tiles?.some((r) => r.includes('~')));
+    expect(growRoom(g, b, 3)).toBeNull();
+  });
+
+  test('água do mapa só sob um tile com célula de água; a porta em terra firme', () => {
+    const { g } = setup(1602);
+    const s = g.state;
+    // terreno de teste: 2×2 com a linha de baixo em água (a roda d'água), porta na face de cima... sem porta marcada a
+    // porta fica abaixo (ty + h), então a água do mapa vai na linha de cima do terreno
+    layout().types['market-9'] = { tiles: ['..~~', '..~~', '....', '....'] } as TypeLayout;
+    BUILDINGS.market.sizes = { ...(BUILDINGS.market.sizes ?? {}), 9: [2, 2] };
+    try {
+      const tx = CENTER_TX - 12;
+      const ty = CENTER_TY + 10;
+      for (let x = tx - 2; x <= tx + 4; x++) for (let y = ty - 2; y <= ty + 4; y++) s.tiles[idx(s, x, y)] = T.GRASS;
+      s.nodes = s.nodes.filter((n) => n.tx < tx - 2 || n.tx > tx + 4 || n.ty < ty - 2 || n.ty > ty + 4);
+      g.world.rebuild();
+      expect(g.world.canPlace('market', tx, ty, false, 9)).toBe(true);
+      // água sob o tile da direita de cima (célula de água): pode
+      s.tiles[idx(s, tx + 1, ty)] = T.WATER;
+      expect(g.world.canPlace('market', tx, ty, false, 9)).toBe(true);
+      expect(g.world.groundBlock('market', tx, ty, false, 9)).toBeNull();
+      // água sob um tile sem célula de água: não
+      s.tiles[idx(s, tx, ty + 1)] = T.WATER;
+      expect(g.world.canPlace('market', tx, ty, false, 9)).toBe(false);
+      expect(g.world.groundBlock('market', tx, ty, false, 9)).toContain('parte de água');
+      s.tiles[idx(s, tx, ty + 1)] = T.GRASS;
+      // porta (abaixo do prédio) na água: não
+      s.tiles[idx(s, tx + 1, ty + 2)] = T.WATER;
+      expect(g.world.groundBlock('market', tx, ty, false, 9)).toContain('porta');
+      // prédio comum: água sob qualquer tile bloqueia
+      expect(g.world.groundBlock('market', tx, ty + 2, false, 1)).toContain('água');
+    } finally {
+      delete layout().types['market-9'];
+      delete BUILDINGS.market.sizes![9];
+    }
   });
 });

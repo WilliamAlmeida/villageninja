@@ -13,7 +13,20 @@ export const CHUNK = 16;
 /** Zoom abaixo do qual os blocos são pintados na metade da resolução. */
 const HALF_BELOW = 0.75;
 /** Segundos fora da tela até um bloco ser descartado. */
-const KEEP = 6;
+const KEEP = 10;
+/**
+ * Orçamento de pintura por quadro (ms). Pintar um bloco custa uns milissegundos; ao dar zoom entram muitos de uma vez
+ * (e ao cruzar `HALF_BELOW` todos os à vista trocavam de resolução no mesmo quadro: o FPS despencava). O que não cabe
+ * no orçamento espera o quadro seguinte, mostrando enquanto isso a outra resolução já guardada ou um bloco liso.
+ */
+const BUDGET_MS = 3;
+
+interface Chunk {
+  c: HTMLCanvasElement;
+  seen: number;
+  /** Bloco liso de espera (só as cores base): é repintado de verdade assim que couber no orçamento. */
+  flat?: boolean;
+}
 
 const BASE: Record<number, string> = {
   [T.GRASS]: '#5e9b42',
@@ -48,7 +61,8 @@ export function visibleTiles(cam: Camera, m: { mapW: number; mapH: number }, pad
 }
 
 export class Terrain {
-  private chunks = new Map<number, { c: HTMLCanvasElement; half: boolean; seen: number }>();
+  /** Blocos guardados, nas duas resoluções (chave = bloco × 2 + metade): trocar o zoom não repinta o que já existe. */
+  private chunks = new Map<number, Chunk>();
   /** Distância (tiles) de cada tile de água até a margem (0 = terra); também usada pelo gelo. */
   readonly depth: Uint8Array;
   private readonly cols: number;
@@ -64,13 +78,30 @@ export class Terrain {
     const v = visibleTiles(cam, s);
     const half = cam.zoom < HALF_BELOW;
     const px = CHUNK * TILE;
+    const t0 = performance.now();
+    // primeiro quadro (nada guardado): pinta tudo de uma vez, para o mapa não abrir liso
+    const budget = this.chunks.size ? BUDGET_MS : Infinity;
     for (let cy = Math.floor(v.y0 / CHUNK); cy <= Math.floor(v.y1 / CHUNK); cy++)
       for (let cx = Math.floor(v.x0 / CHUNK); cx <= Math.floor(v.x1 / CHUNK); cx++) {
-        const key = cy * this.cols + cx;
+        const key = ((cy * this.cols + cx) << 1) | (half ? 1 : 0);
         let e = this.chunks.get(key);
-        if (!e || e.half !== half) {
-          e = { c: this.paint(cx, cy, half), half, seen: time };
-          this.chunks.set(key, e);
+        if (!e || e.flat) {
+          if (performance.now() - t0 < budget) {
+            e = { c: this.paint(cx, cy, half), seen: time };
+            this.chunks.set(key, e);
+          } else {
+            // sem orçamento neste quadro: a outra resolução, se já existe; senão um bloco liso até dar tempo
+            const other = this.chunks.get(key ^ 1);
+            if (other && !other.flat) {
+              other.seen = time;
+              ctx.drawImage(other.c, cx * px, cy * px, px, px);
+              continue;
+            }
+            if (!e) {
+              e = { c: this.paintFlat(cx, cy), seen: time, flat: true };
+              this.chunks.set(key, e);
+            }
+          }
         }
         e.seen = time;
         ctx.drawImage(e.c, cx * px, cy * px, px, px);
@@ -82,6 +113,27 @@ export class Terrain {
   /** Quantos blocos estão guardados agora (para o medidor). */
   get cached() {
     return this.chunks.size;
+  }
+
+  /** Bloco liso de espera: só a cor base de cada tile, num canvas pequeno (custa quase nada). */
+  private paintFlat(cx: number, cy: number): HTMLCanvasElement {
+    const s = this.state;
+    const c = document.createElement('canvas');
+    const k = 0.25;
+    c.width = CHUNK * TILE * k;
+    c.height = CHUNK * TILE * k;
+    const ctx = c.getContext('2d')!;
+    ctx.scale(k, k);
+    ctx.translate(-cx * CHUNK * TILE, -cy * CHUNK * TILE);
+    const x1 = Math.min(s.mapW - 1, (cx + 1) * CHUNK - 1);
+    const y1 = Math.min(s.mapH - 1, (cy + 1) * CHUNK - 1);
+    for (let y = cy * CHUNK; y <= y1; y++)
+      for (let x = cx * CHUNK; x <= x1; x++) {
+        const t = s.tiles[idx(s, x, y)]!;
+        ctx.fillStyle = t === T.WATER ? DEEP[Math.min(DEEP.length - 1, this.depth[idx(s, x, y)]!)]! : (BASE[t] ?? '#000');
+        ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+      }
+    return c;
   }
 
   /** Pinta um bloco: os tiles dele e 1 de margem (as transições e a espuma passam da divisa; o canvas corta o resto). */

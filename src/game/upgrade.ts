@@ -6,7 +6,7 @@ import { levelDef } from '../data/villageLevels';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import type { Building, Cost } from './types';
-import { buildingCenter, doorPos, idx, inBounds, isShore, T } from './world';
+import { buildingCenter, doorPos, isShore } from './world';
 import { inTerritory } from './village';
 import { clearRoadsUnder } from './roads';
 
@@ -96,16 +96,15 @@ export function growRoom(g: Game, b: Building, next: number): string | null {
     for (let x = tx - 1; fits && x <= tx + grown.w; x++) {
       const o = g.world.buildingIdAt(x, y);
       if (o && o !== b.id) fits = false;
-      const inside = x >= tx && x < tx + grown.w && y >= ty && y < ty + grown.h;
-      // nível de margem (célula de água no terreno): a água é conferida tile a tile abaixo (shoreFits)
-      if (!shore && inside && inBounds(s, x, y) && (s.tiles[idx(s, x, y)] === T.WATER || s.tiles[idx(s, x, y)] === T.ROCK)) fits = false;
     }
   if (fits)
     fits = !s.nodes.some((n) => (n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + grown.w && n.ty >= ty && n.ty < ty + grown.h);
-  if (fits && shore) fits = g.world.shoreFits(b.type, tx, ty, !!b.flip, next);
-  if (!fits && shore)
+  if (!fits) return `No nível ${next} ocupa ${grown.w}×${grown.h} tiles (cresce para a direita e para baixo): abra espaço em volta ou mova o prédio.`;
+  // o chão do terreno novo (água, rocha, porta): o Porto pela regra da margem; os outros, água só sob célula de água
+  if (shore && !g.world.shoreFits(b.type, tx, ty, !!b.flip, next))
     return `No nível ${next} ele fica na beira da água (${grown.w}×${grown.h}, cresce para a direita e para baixo): a parte de água do terreno precisa cair em cima de água do mapa. Mova-o para a margem.`;
-  return fits ? null : `No nível ${next} ocupa ${grown.w}×${grown.h} tiles (cresce para a direita e para baixo): abra espaço em volta ou mova o prédio.`;
+  const why = shore ? null : g.world.groundBlock(b.type, tx, ty, !!b.flip, next);
+  return why ? `No nível ${next} ocupa ${grown.w}×${grown.h} tiles (cresce para a direita e para baixo). ${why} Mova o prédio.` : null;
 }
 
 /** Começa o upgrade: paga e abre a obra (os moradores vêm trabalhar; o prédio continua funcionando). */

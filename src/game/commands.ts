@@ -39,7 +39,8 @@ export function canBuild(g: Game, type: BuildingType): Result {
 export function placeError(g: Game, type: BuildingType, tx: number, ty: number, level = 1, flip = false) {
   const d = defOf({ type, level, flip });
   if (!inTerritory(g.state, tx, ty, d.w, d.h + 1)) return 'Fora do território da vila. Evolua a vila para expandir.';
-  return isShore({ type, level }) ? 'Precisa ficar na beira da água: a parte de água em cima da água do mapa e o resto em terra.' : 'Local inválido.';
+  if (isShore({ type, level })) return 'Precisa ficar na beira da água: a parte de água em cima da água do mapa e o resto em terra.';
+  return g.world.groundBlock(type, tx, ty, flip, level) ?? 'Local inválido.';
 }
 
 /** `flip`: prédio de margem espelhado (a água do outro lado, ver `canFlip`). */

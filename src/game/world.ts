@@ -75,11 +75,24 @@ export function siteTiles(site: Site) {
   return { x0: site.tx - ox, y0: site.ty - oy, w, h };
 }
 /**
- * Prédio de margem neste nível: o Porto (`shore`) ou qualquer prédio cujo terreno do nível (Editor de cenário) tenha
- * células de água ("~"), como a serraria do lenhador nível 3. As células "~" pedem água de verdade no mapa.
+ * Prédio de margem: o Porto (`BuildingDef.shore`). Só ele é obrigado a ficar na água (a parte de água do terreno em cima
+ * de água do mapa, o muro em terra) e gruda na beira ao posicionar (`shoreSpot`).
  */
 export function isShore(b: { type: BuildingType; level?: number }): boolean {
-  return !!BUILDINGS[b.type].shore || !!typeLayout(layoutKey(b))?.tiles?.some((r) => r.includes('~'));
+  return !!BUILDINGS[b.type].shore;
+}
+/**
+ * O terreno deste nível tem células de água ("~", Editor de cenário): esses tiles PODEM ficar em cima da água do mapa
+ * (a roda d'água do lenhador na beira do rio) ou em terra (lago de carpas, fonte: o chão sob a célula é desenhado como
+ * água). Fora do Porto nada é obrigatório: o jogador põe onde quiser, só a porta precisa dar em terra firme.
+ */
+export function hasWater(b: { type: BuildingType; level?: number }): boolean {
+  return !!typeLayout(layoutKey(b))?.tiles?.some((r) => r.includes('~'));
+}
+/** O tile (x, y) do terreno `key` tem alguma célula de água? */
+export function wetTile(key: string, x: number, y: number, flip = false): boolean {
+  for (let c = 0; c < SUB * SUB; c++) if (tileOf(key, x * SUB + (c % SUB), y * SUB + Math.floor(c / SUB), flip) === '~') return true;
+  return false;
 }
 
 export function buildingCenter(b: Building) {
@@ -297,13 +310,32 @@ export class World implements MapSize {
       for (let x = tx - 1; x <= tx + d.w; x++) if (this.inBounds(x, y) && this.occupied[this.idx(x, y)] !== 0) return false;
     if (isShore({ type, level }) && tileOf(layoutKey({ type, level }), 0, 0) !== undefined) {
       if (!this.shoreFits(type, tx, ty, flip, level)) return false;
-    } else
-      for (let y = ty; y <= ty + d.h; y++)
-        for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[this.idx(x, y)] === T.WATER || this.state.tiles[this.idx(x, y)] === T.ROCK) return false;
+    } else if (this.groundBlock(type, tx, ty, flip, level)) return false;
     for (const n of this.state.nodes)
       // rocha/veio esgotado (rachado, crescendo de volta) não bloqueia: some quando constroem em cima
       if ((n.type === 'rock' || n.type === 'ore') && n.amount > 0 && n.tx >= tx && n.tx < tx + d.w && n.ty >= ty && n.ty < ty + d.h) return false;
     return inTerritory(this.state, tx, ty, d.w, d.h + 1);
+  }
+
+  /**
+   * Chão sob um prédio comum (o Porto usa `shoreFits`): rocha nunca; água só sob um tile que tenha célula de água no
+   * terreno (`wetTile`); a porta em terra firme. Devolve o motivo, ou null se cabe.
+   */
+  groundBlock(type: BuildingType, tx: number, ty: number, flip = false, level = 1): string | null {
+    const d = defOf({ type, level, flip });
+    const key = layoutKey({ type, level });
+    const wet = hasWater({ type, level });
+    const tiles = this.state.tiles;
+    for (let y = 0; y < d.h; y++)
+      for (let x = 0; x < d.w; x++) {
+        const t = tiles[this.idx(tx + x, ty + y)];
+        if (t === T.ROCK) return 'Não dá para construir em rocha.';
+        if (t === T.WATER && !(wet && wetTile(key, x, y, flip))) return wet ? 'Na água só pode ficar a parte de água do terreno (em azul).' : 'Não dá para construir na água.';
+      }
+    const door = doorTile({ type, tx, ty, flip, level } as Building);
+    if (!this.inBounds(door.tx, door.ty)) return 'A porta precisa dar em terra firme.';
+    const dt = tiles[this.idx(door.tx, door.ty)];
+    return dt === T.WATER || dt === T.ROCK ? 'A porta precisa dar em terra firme.' : null;
   }
 
   /**

@@ -464,10 +464,10 @@ function renderProps() {
     else {
       h += `<h3>Terreno</h3><div class="legend"><span><i style="background:rgba(125,220,107,.6)"></i>livre</span><span><i style="background:rgba(255,90,90,.7)"></i>muro</span><span><i style="background:rgba(255,211,77,.8)"></i>portão</span>${building ? '<span><i style="background:rgba(70,150,255,.8)"></i>água</span>' : ''}</div>`;
       h += `<div class="row"><label>Largura</label><input type="number" id="tw" min="1" max="10" value="${gi.w}"><label>Altura</label><input type="number" id="th" min="1" max="10" value="${gi.h}"></div>`;
-      if (building)
-        h += `<p class="hint">Água: com pelo menos uma célula de água este nível vira <b>prédio de margem</b> (como o Porto): a água do terreno precisa cair em cima de água do mapa, o muro em terra, e o jogo gruda na beira ao posicionar.</p>`;
+      if (building && !defOf(building).shore)
+        h += `<p class="hint">Água: o tile com célula de água <b>pode</b> ficar em cima da água do mapa (a roda d'água na beira do rio) ou em terra (lago de carpas, fonte: o chão da célula é desenhado como água). Nada é obrigatório; só a porta precisa dar em terra firme. A célula bloqueia a passagem como o muro.</p>`;
       if (building && defOf(building).shore)
-        h += `<p class="hint">Prédio de margem: para construir, tile só com água pede água no mapa, tile só com muro pede terra (os dois = a beira). Com terreno quadrado o jogo espelha sozinho quando a água está do outro lado.</p>`;
+        h += `<p class="hint">Prédio de margem (só o Porto): para construir, tile só com água pede água no mapa, tile só com muro pede terra (os dois = a beira), e o jogo gruda na beira ao posicionar, já com o lado certo.</p>`;
       if (building) h += `<p class="hint">Em volta do terreno há uma margem: clique ou arraste nela para marcar <b>bloqueios avulsos</b> (a arte que passa do terreno, como o muro da arena), sem aumentar o prédio.</p><p class="warn">Mudar o tamanho de um prédio muda o jogo: saves com ele construído podem ficar encostados em outro prédio.</p>`;
       if (site || item.kind === 'node') h += `<p class="hint">${item.kind === 'node' ? 'Objetos: muro = não dá para atravessar (vale no estágio desta arte; toco e rocha rachada têm o seu). ' : ''}Shift+clique escolhe o tile onde ${item.kind === 'node' ? 'o objeto' : 'o local'} fica (origem).</p>`;
       h += `<div class="row"><button id="tilesreset">Voltar ao padrão</button></div>`;

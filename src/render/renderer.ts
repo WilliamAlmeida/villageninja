@@ -27,7 +27,7 @@ import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { isRoad } from '../game/roads';
-import { buildingCenter, doorPos, doorTile, isShore, nodeArt, T } from '../game/world';
+import { buildingCenter, doorPos, doorTile, hasWater, nodeArt, T } from '../game/world';
 import { art, artFoot, ART_SCALE, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
@@ -273,7 +273,7 @@ export class Renderer {
     for (const b of shown) {
       const d = defOf(b);
       if (d.walkable) continue;
-      if (tileOf(layoutKey(b), 0, 0) !== undefined && isShore(b)) {
+      if (tileOf(layoutKey(b), 0, 0) !== undefined && hasWater(b)) {
         this.shoreGround(b);
         continue;
       }
@@ -1919,7 +1919,7 @@ export class Renderer {
     ctx.fillStyle = gh.valid ? 'rgba(80,220,100,0.35)' : 'rgba(240,60,60,0.4)';
     ctx.fillRect(x, y, d.w * TILE, d.h * TILE);
     // prédio de margem: as células que vão na água em azul
-    if (isShore(gh) && tileOf(layoutKey(gh), 0, 0) !== undefined) {
+    if (hasWater(gh) && tileOf(layoutKey(gh), 0, 0) !== undefined) {
       ctx.fillStyle = 'rgba(70,150,255,0.45)';
       for (let fy = 0; fy < d.h * SUB; fy++)
         for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(layoutKey(gh), fx, fy, gh.flip) === '~') ctx.fillRect(x + fx * CELL, y + fy * CELL, CELL, CELL);
