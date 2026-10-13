@@ -165,7 +165,7 @@ export function drawWaterPrison(ctx: CanvasRenderingContext2D, x: number, y: num
   return !!s && drawSpriteFx(ctx, s, x, y, 0, t, id);
 }
 
-/** Os dois Rasengan usam a mesma folha; tamanho é definido na configuração. */
+/** Formação na mão: folha e tamanho definidos na configuração do jutsu. */
 export function drawHandJutsu(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, t: number, uid: number, growth = 1): boolean {
   const s = spriteFx(id);
   return !!s && drawSpriteFx(ctx, { ...s, size: s.size * Math.max(0.2, growth) }, x, y, 0, t, uid);
@@ -176,7 +176,8 @@ export function drawJutsuImpact(ctx: CanvasRenderingContext2D, e: Effect): boole
   if (!s) return false;
   ctx.save();
   ctx.globalAlpha = 1;
-  const drawn = drawSpriteFx(ctx, s, e.x, e.y, 0, e.t, 0, undefined, Math.floor(e.t * s.fps));
+  const fade = e.fx === 'rasenshuriken' ? Math.max(0, Math.min(1, (e.life - e.t) / 0.16)) : 1;
+  const drawn = drawSpriteFx(ctx, { ...s, opacity: s.opacity * fade }, e.x, e.y, 0, e.t, 0, undefined, Math.floor(e.t * s.fps));
   ctx.restore();
   return drawn;
 }

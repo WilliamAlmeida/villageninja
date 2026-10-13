@@ -4,10 +4,10 @@ import { fx } from './fx';
 import type { Game } from './game';
 import { T } from './world';
 
-/** Impacto visual compartilhado. O dano continua sendo resolvido por dashTick. */
+/** Impacto da família Rasengan; o chamador continua responsável pelo dano. */
 export function rasenganHitFx(g: Game, id: string | undefined, x: number, y: number): boolean {
-  if (id !== 'rasengan' && id !== 'odama') return false;
-  const config = FX.jutsus[id], scale = id === 'odama' ? 2 : 1;
+  if (id !== 'rasengan' && id !== 'odama' && id !== 'rasenshuriken') return false;
+  const config = FX.jutsus[id], scale = id === 'odama' ? 2 : id === 'rasenshuriken' ? 3 : 1;
   const impact = config?.impact;
   fx(g, 'burst', x, y, { r: 24 * scale, color: '#7fc8ff', vfx: 'wind', fx: id,
     life: impact ? impact.frames / Math.max(1, impact.fps) : 0.5 });

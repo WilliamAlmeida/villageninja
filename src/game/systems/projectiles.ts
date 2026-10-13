@@ -6,6 +6,7 @@ import type { Game } from '../game';
 import type { Projectile, Unit } from '../types';
 import { wallHit } from '../walls';
 import { dragonPoint } from '../dragonFlight';
+import { rasenganHitFx } from '../rasenganFx';
 
 export function projectileSystem(g: Game, dt: number) {
   for (const p of g.state.projectiles) {
@@ -57,7 +58,9 @@ function explode(g: Game, p: Projectile, hit: Unit | null) {
   p.dead = true;
   const owner = g.unit(p.ownerId) ?? null;
   if (p.radius > 0) {
-    fx(g, 'burst', p.x, p.y, { r: p.radius, color: p.color, life: 0.45, vfx: p.vfx, fx: p.fx });
+    if (p.fx !== 'rasenshuriken' || !rasenganHitFx(g, p.fx, p.x, p.y)) {
+      fx(g, 'burst', p.x, p.y, { r: p.radius, color: p.color, life: 0.45, vfx: p.vfx, fx: p.fx });
+    }
     areaDamage(g, owner, p.faction, p.x, p.y, p.radius, p.damage, p.nature, 0, p.stun, p.side);
   } else if (hit) {
     fx(g, 'burst', p.x, p.y, { r: p.kind === 'kunai' ? 8 : 14, color: p.color, life: 0.25, vfx: p.vfx, fx: p.fx });

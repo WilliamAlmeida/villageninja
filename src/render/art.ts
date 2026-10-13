@@ -288,12 +288,15 @@ import effectSuirou from '../art/effects/effect-suirou.png';
 import rasenganSphere from '../art/effects/effect-rasengan-v1.png';
 import rasenganImpact from '../art/effects/effect-rasengan-impact-v1.png';
 import rasenganCrater from '../art/effects/effect-rasengan-crater-v1.png';
+import rasenshuriken from '../art/effects/projectile-rasenshuriken-v1.png';
+import rasenshurikenImpact from '../art/effects/effect-rasenshuriken-impact-v1.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'projectile-housenka': projectileHousenka, 'projectile-goukakyuu': projectileGoukakyuu,
   'projectile-mizurappa': projectileMizurappa, 'projectile-hirudora': projectileHirudora, 'effect-suirou': effectSuirou,
   'effect-suiryuudan-head': dragonHead, 'effect-suiryuudan-body': dragonBody, 'effect-suiryuudan-origin': dragonOrigin,
   'effect-rasengan-v1': rasenganSphere, 'effect-rasengan-impact-v1': rasenganImpact, 'effect-rasengan-crater-v1': rasenganCrater,
+  'projectile-rasenshuriken-v1': rasenshuriken, 'effect-rasenshuriken-impact-v1': rasenshurikenImpact,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-top': towerTop, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3,

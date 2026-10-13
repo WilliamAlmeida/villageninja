@@ -619,9 +619,10 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   }
   // Amaterasu: chamas negras subindo pelo corpo
   if (u.burn) sageWisps(ctx, u, t * 1.6, '#120814', '#4a1a5a', 24, 'source-over');
-  // Rasengan: a esfera de chakra girando na mão, na corrida e no golpe
-  const orbJ = u.dash?.id ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
-  const orb = orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
+  // Rasengan na investida; Rasenshuriken se forma no fim dos selos, antes do arremesso.
+  const charging = u.cast?.id === 'rasenshuriken' && u.cast.t <= 0.3;
+  const orbJ = u.dash?.id ?? (charging ? u.cast!.id : undefined) ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
+  const orb = orbJ === 'rasenshuriken' ? '#7fc8ff' : orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
   if (orb && orbJ) {
     const r = artRect(pic, ux, uy, height, frame, row);
     const pose = pic.dataset.pose as DollPose | undefined;
@@ -631,7 +632,8 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
       : ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4);
     const hy = hp ? r.top + (hp[1] + 0.5) * r.h / r.fh : uy - 13;
     const size = JUTSUS[orbJ]?.orbSize ?? 1;
-    const growth = u.dash ? Math.min(1, 0.25 + (1 - u.dash.t) / 0.12) : 1;
+    const growth = charging ? Math.min(1, 0.2 + (0.3 - u.cast!.t) / 0.24)
+      : u.dash ? Math.min(1, 0.25 + (1 - u.dash.t) / 0.12) : 1;
     if (!drawHandJutsu(ctx, orbJ, hx, hy - 3 - 4 * (size - 1), t, u.id, growth)) handOrb(ctx, hx, hy - 3, orb, t, size);
   }
   // Shintenshin: a mente de outro dentro dele (espiral rosa acima da cabeça)
