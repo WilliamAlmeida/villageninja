@@ -1,6 +1,6 @@
 import type { App } from '../app';
 import { BUILDING_LIST, BUILDINGS, type BuildingType, defOf } from '../data/buildings';
-import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, shoreSpot } from '../game/commands';
+import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, placeError, shoreSpot } from '../game/commands';
 import { isShore, toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
@@ -107,7 +107,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     this.place = el(
       'div',
       { id: 'placebar', hidden: '' },
-      rich(`<span class="hint" data-t="name"></span><button class="btn icon" data-act="cancel" title="Cancelar">{x}</button><button class="btn" data-act="rotate" ${tipAttr('Girar', 'Espelha o prédio: a frente passa para o outro lado (no desktop, tecla R).')}>{refresh} Girar</button><button class="btn primary" data-act="ok">{check} Construir</button>`),
+      rich(`<span class="hint" data-t="name"></span><span class="why" data-t="why" hidden></span><button class="btn icon" data-act="cancel" title="Cancelar">{x}</button><button class="btn" data-act="rotate" ${tipAttr('Girar', 'Espelha o prédio: a frente passa para o outro lado (no desktop, tecla R).')}>{refresh} Girar</button><button class="btn primary" data-act="ok">{check} Construir</button>`),
     );
     this.place.addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
@@ -348,9 +348,19 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     this.place.querySelector('[data-act="ok"]')!.innerHTML = rich(ok);
   }
 
+  /** O lugar vale? Se não, o motivo aparece na barra (antes só saía ao confirmar, e com o mouse nem isso). */
   private validAt(tx: number, ty: number, flip = false) {
     const type = this.app.buildType!;
-    return this.moveId != null ? canMove(this.app.home, this.moveId, tx, ty, flip).ok : this.app.home.world.canPlace(type, tx, ty, flip);
+    const g = this.app.home;
+    let why: string | null = null;
+    if (this.moveId != null) {
+      const r = canMove(g, this.moveId, tx, ty, flip);
+      if (!r.ok) why = r.error;
+    } else if (!g.world.canPlace(type, tx, ty, flip)) why = placeError(g, type, tx, ty, 1, flip);
+    const e = this.place.querySelector<HTMLElement>('[data-t="why"]')!;
+    e.hidden = !why;
+    if (why && e.textContent !== why) e.textContent = why;
+    return !why;
   }
 
   /** Chamado pelo toque no mapa durante o modo de construção. */

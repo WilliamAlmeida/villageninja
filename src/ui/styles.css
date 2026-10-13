@@ -156,6 +156,8 @@ button:disabled { cursor: not-allowed; }
 #placebar, #roadbar { white-space: nowrap; }
 #orderbar { max-width: min(43rem, 70vw); border-color: var(--warn); }
 #placebar .hint, #orderbar .hint, #roadbar .hint { color: var(--muted); font-size: 0.92rem; white-space: normal; margin: 0; }
+/* motivo de o lugar não valer, ao posicionar/mover (fica vermelho ao lado do nome) */
+#placebar .why { color: #ff8a80; font-size: 0.88rem; white-space: normal; max-width: 18rem; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.85rem; border-radius: 0.65rem;
