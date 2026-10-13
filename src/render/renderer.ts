@@ -40,8 +40,9 @@ export interface Ghost {
   tx: number;
   ty: number;
   valid: boolean;
-  /** Espelhado (botão Girar; o de margem escolhe sozinho). */
+  /** Espelhado (botão Girar; o de margem escolhe sozinho até o jogador girar: aí `flipLocked`). */
   flip?: boolean;
+  flipLocked?: boolean;
   /** Nível do prédio sendo movido: o fantasma mostra a arte e o terreno desse nível (construir novo = 1). */
   level?: number;
   /** Movendo: o prédio de origem some e no lugar dele fica só a base marcada (dá para ver quantos tiles andou). */

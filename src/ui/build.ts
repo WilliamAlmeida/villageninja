@@ -367,9 +367,10 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     if (gh && gh.type === type && ((gh.tx === tx && gh.ty === ty) || (gh.at?.tx === tx && gh.at?.ty === ty))) return;
     // prédio de margem: gruda na beira da água mais perto, já com o lado (espelhado ou não) que encaixa
     if (isShore({ type, level: gh?.type === type ? gh.level : undefined })) {
-      const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined, 4, gh?.type === type ? (gh.level ?? 1) : 1);
+      const same = gh?.type === type;
+      const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined, 4, same ? (gh.level ?? 1) : 1, same && gh.flipLocked ? !!gh.flip : undefined);
       if (spot) {
-        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, moveId: gh?.moveId, moveFrom: gh?.moveFrom, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
+        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, moveId: gh?.moveId, moveFrom: gh?.moveFrom, flipLocked: gh?.flipLocked, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
         return;
       }
     }
@@ -377,7 +378,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const flip = !!gh?.flip && gh.type === type;
     // movendo: o nível do prédio (arte e terreno dele) vai junto com o fantasma
     const same = gh?.type === type;
-    this.app.ghost = { type, tx, ty, flip, level: same ? gh.level : undefined, moveId: same ? gh.moveId : undefined, moveFrom: same ? gh.moveFrom : undefined, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
+    this.app.ghost = { type, tx, ty, flip, flipLocked: same ? gh.flipLocked : undefined, level: same ? gh.level : undefined, moveId: same ? gh.moveId : undefined, moveFrom: same ? gh.moveFrom : undefined, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
   }
 
   /** Espelha o prédio sendo posicionado/movido (o canto fica no lugar; o terreno retangular troca largura e altura). */
@@ -385,6 +386,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const gh = this.app.ghost;
     if (!gh) return;
     gh.flip = !gh.flip;
+    gh.flipLocked = true; // o lado escolhido fica (o prédio de margem para de escolher sozinho)
     gh.valid = this.validAt(gh.tx, gh.ty, gh.flip);
   }
 

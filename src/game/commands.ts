@@ -1,7 +1,8 @@
 // Ações do jogador. A UI só altera o jogo por aqui (fácil de testar / reaproveitar).
 import { promoteToSensei } from './teams';
-import { TILE } from '../config';
-import { BUILDINGS, type BuildingType, defOf } from '../data/buildings';
+import { SUB, TILE } from '../config';
+import { BUILDINGS, type BuildingType, defOf, layoutKey } from '../data/buildings';
+import { tileOf } from '../data/layout';
 import { JUTSU_LIST, JUTSUS, type JutsuDef } from '../data/jutsus';
 import { RANKS, STAT_INFO, STAT_KEYS, type StatKey } from '../data/ninja';
 import { pick } from '../core/rng';
@@ -12,7 +13,7 @@ import { addStat, focusCapped, nextRank, trainBlocked } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
-import { canFlip, doorPos, isShore } from './world';
+import { canFlip, doorPos, isShore, T } from './world';
 import { clearRoadsUnder } from './roads';
 import { academyRecruitLevel, workersOf } from './upgrade';
 import { needsScroll, studyable } from './library';
@@ -71,24 +72,43 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
  * Prédio de margem: o lugar válido mais perto de (tx, ty), num raio de `r` tiles, com o lado da água (espelhado ou não)
  * que encaixa. `ignoreId` = prédio sendo movido (testa como se ele já tivesse saído). Null se não houver.
  */
-export function shoreSpot(g: Game, type: BuildingType, tx: number, ty: number, ignoreId?: number, r = 4, level = 1): { tx: number; ty: number; flip: boolean } | null {
+export function shoreSpot(g: Game, type: BuildingType, tx: number, ty: number, ignoreId?: number, r = 4, level = 1, onlyFlip?: boolean): { tx: number; ty: number; flip: boolean } | null {
   const s = g.state;
   const i = ignoreId == null ? -1 : s.buildings.findIndex((b) => b.id === ignoreId);
   const out = i >= 0 ? s.buildings.splice(i, 1)[0]! : null;
   if (out) g.world.rebuild();
   let best: { tx: number; ty: number; flip: boolean } | null = null;
+  // o melhor lugar é o que põe mais células de água do prédio em cima de água de verdade (a roda d'água virada para o
+  // rio, não para a terra); empate: o mais perto de onde o jogador apontou. `onlyFlip`: lado travado pelo Girar.
+  let bestWet = -1;
   let bestD = Infinity;
-  const flips = canFlip(type) ? [false, true] : [false];
+  const flips = onlyFlip != null ? [onlyFlip] : canFlip(type) ? [false, true] : [false];
+  const key = layoutKey({ type, level });
+  const wetOn = (x0: number, y0: number, flip: boolean) => {
+    const d = defOf({ type, level, flip });
+    let n = 0;
+    for (let fy = 0; fy < d.h * SUB; fy++)
+      for (let fx = 0; fx < d.w * SUB; fx++) {
+        if (tileOf(key, fx, fy, flip) !== '~') continue;
+        const x = x0 + Math.floor(fx / SUB);
+        const y = y0 + Math.floor(fy / SUB);
+        if (x >= 0 && y >= 0 && x < s.mapW && y < s.mapH && s.tiles[y * s.mapW + x] === T.WATER) n++;
+      }
+    return n;
+  };
   for (let dy = -r; dy <= r; dy++)
     for (let dx = -r; dx <= r; dx++) {
       const d = dx * dx + dy * dy;
-      if (d > r * r || d >= bestD) continue;
-      for (const flip of flips)
-        if (g.world.canPlace(type, tx + dx, ty + dy, flip, level)) {
+      if (d > r * r) continue;
+      for (const flip of flips) {
+        if (!g.world.canPlace(type, tx + dx, ty + dy, flip, level)) continue;
+        const wet = wetOn(tx + dx, ty + dy, flip);
+        if (wet > bestWet || (wet === bestWet && d < bestD)) {
           best = { tx: tx + dx, ty: ty + dy, flip };
+          bestWet = wet;
           bestD = d;
-          break;
         }
+      }
     }
   if (out) {
     s.buildings.splice(i, 0, out);
