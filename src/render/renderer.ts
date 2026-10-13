@@ -44,6 +44,9 @@ export interface Ghost {
   flip?: boolean;
   /** Nível do prédio sendo movido: o fantasma mostra a arte e o terreno desse nível (construir novo = 1). */
   level?: number;
+  /** Movendo: o prédio de origem some e no lugar dele fica só a base marcada (dá para ver quantos tiles andou). */
+  moveId?: number;
+  moveFrom?: { tx: number; ty: number; w: number; h: number };
   /** Onde o jogador tocou (o prédio de margem gruda na beira mais perto e pode ficar noutro tile). */
   at?: { tx: number; ty: number };
 }
@@ -259,9 +262,11 @@ export class Renderer {
     }
     ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, (s.mapW + FOG_PAD * 2) * TILE, (s.mapH + FOG_PAD * 2) * TILE);
 
+    // movendo um prédio: o de origem não é desenhado (só a base marcada, em ghostGround)
+    const shown = ghost?.moveId != null ? s.buildings.filter((b) => b.id !== ghost.moveId) : s.buildings;
     // chão batido sob prédios (o de margem: só sob as células de terra, e sombra na água sob o píer e o barco)
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
-    for (const b of s.buildings) {
+    for (const b of shown) {
       const d = defOf(b);
       if (d.walkable) continue;
       if (d.shore && tileOf(layoutKey(b), 0, 0) !== undefined) {
@@ -274,7 +279,7 @@ export class Renderer {
     }
     // campos e áreas abertas ficam deitados no chão
     // (os que têm arte isométrica vão como decalque logo depois desta passada)
-    for (const b of s.buildings) if (defOf(b).walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
+    for (const b of shown) if (defOf(b).walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
 
     if (sel?.kind === 'building') {
       const b = g.building(sel.id);
@@ -315,7 +320,7 @@ export class Renderer {
     this.drawRoads(g);
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
     // (Editor de cenário), só o "resto" vai no chão e as peças entram em pé
-    for (const b of s.buildings) {
+    for (const b of shown) {
       const box = this.artBox(b, s.level);
       const set = box && pieceSet(box.artName, box.pic);
       if (set) {
@@ -336,7 +341,7 @@ export class Renderer {
 
     const list = this.list;
     list.length = 0;
-    for (const b of s.buildings) {
+    for (const b of shown) {
       const def = defOf(b);
       const box = this.artBox(b, s.level);
       const set = box && pieceSet(box.artName, box.pic);
@@ -1864,6 +1869,17 @@ export class Renderer {
   /** (chão) Grade e base do prédio que está sendo posicionado: verde = pode, vermelho = não pode. */
   private ghostGround(gh: Ghost) {
     const ctx = this.ctx;
+    // de onde o prédio está saindo: só a base, tracejada (o prédio não é desenhado ali)
+    if (gh.moveFrom) {
+      const o = gh.moveFrom;
+      ctx.fillStyle = 'rgba(255,211,77,0.18)';
+      ctx.fillRect(o.tx * TILE, o.ty * TILE, o.w * TILE, o.h * TILE);
+      ctx.strokeStyle = 'rgba(255,211,77,0.85)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(o.tx * TILE, o.ty * TILE, o.w * TILE, o.h * TILE);
+      ctx.setLineDash([]);
+    }
     const d = defOf(gh);
     const x = gh.tx * TILE;
     const y = gh.ty * TILE;

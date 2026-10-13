@@ -337,7 +337,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const d = defOf(b);
     this.moveId = id;
     this.app.buildType = b.type;
-    this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false, flip: !!b.flip, level: b.level };
+    this.app.ghost = { type: b.type, tx: b.tx, ty: b.ty, valid: false, flip: !!b.flip, level: b.level, moveId: b.id, moveFrom: { tx: b.tx, ty: b.ty, w: d.w, h: d.h } };
     this.showPlacebar(`{refresh} Mover ${d.name} — toque no novo lugar`, '{check} Mover aqui');
   }
 
@@ -369,14 +369,15 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     if (BUILDINGS[type].shore) {
       const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined);
       if (spot) {
-        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
+        this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, moveId: gh?.moveId, moveFrom: gh?.moveFrom, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
         return;
       }
     }
     // mantém o lado escolhido no Girar enquanto o fantasma anda
     const flip = !!gh?.flip && gh.type === type;
     // movendo: o nível do prédio (arte e terreno dele) vai junto com o fantasma
-    this.app.ghost = { type, tx, ty, flip, level: gh?.type === type ? gh.level : undefined, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
+    const same = gh?.type === type;
+    this.app.ghost = { type, tx, ty, flip, level: same ? gh.level : undefined, moveId: same ? gh.moveId : undefined, moveFrom: same ? gh.moveFrom : undefined, valid: this.validAt(tx, ty, flip), at: { tx, ty } };
   }
 
   /** Espelha o prédio sendo posicionado/movido (o canto fica no lugar; o terreno retangular troca largura e altura). */
