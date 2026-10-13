@@ -116,3 +116,13 @@ mostra o que está EM USO, estilo ou "Só deste jutsu", e edita isso; avisa quai
 `JutsuDef` ao carregar, o original fica em `JUTSU_BASE`). Projéteis e explosões levam o jutsu de origem
 (`Projectile.fx`/`Effect.fx`, save v42). Emissores: `n` por segundo no rastro (tamanho > 6 dobra) ou quantidade na
 explosão (+`nR` por px de raio, até `max`); "$" nas cores = a cor do jutsu; estilo sem rastro cai no da natureza/tipo.
+
+## Rasengan e Ōdama: mão, impacto e cratera
+
+`drawHandJutsu` desenha a folha compartilhada no ponto da mão da pose (`drawUnitArt`), crescendo nos primeiros
+0,12 s da investida. A esfera some no contato. `JutsuFx.impact` e `.crater` em `jutsu-fx.json` configuram as duas
+peças adicionais; `formatFx` preserva ambos ao gravar pelo editor. Ōdama usa as mesmas folhas com tamanho 2x.
+`drawJutsuImpact` usa quadro explícito, sem reiniciar o ciclo; `drawJutsuCrater` entra na passada do chão, em
+coordenadas já projetadas, antes das unidades. A imagem da cratera já é 2:1 e não recebe novo achatamento.
+Ela cresce em 0,12 s e desvanece nos últimos 30% da duração. Rastro e partículas procedurais ficam vazios neste par
+para não cobrir a arte. As configurações de impacto/cratera são editadas no JSON; o painel ainda edita a esfera.

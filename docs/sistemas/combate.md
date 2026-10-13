@@ -76,3 +76,11 @@
   (`Game.noteEngaged`; a contagem é por passo). O Som chama só os `SOUND.chasers` (6) mais perto para perseguir quem carrega.
   Com o save do autor, ninjas atrás do Som: 78 → 14.
 - Ninjas descansando (`rest`) ficam dentro do prédio (escondidos) e só saem para lutar com 60% de vida.
+
+## Impacto visual do Rasengan e Ōdama
+
+No contato da investida, `dashTick` chama `rasenganHitFx` (`game/rasenganFx.ts`): descarga animada de 0,5 s e
+efeito `crater` no chão, com duração de 12/18 s. Investida cancelada, sem alvo ou bloqueada não cria marca.
+Rasengan mantém dano em um alvo; Ōdama mantém o dano em área configurado no catálogo. A cratera é cosmética,
+não muda tiles nem colisão; não aparece na água ou fora do mapa. Limite de 24 marcas, removendo a mais antiga.
+São efeitos transitórios eliminados ao salvar, sem novos campos persistidos e sem migração do save v44.

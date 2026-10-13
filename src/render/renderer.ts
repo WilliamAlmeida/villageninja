@@ -3,6 +3,7 @@ import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
+import { drawJutsuCrater } from './jutsuSprites';
 import { dragonPoint } from '../game/dragonFlight';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
@@ -360,6 +361,11 @@ export class Renderer {
       } else if (defOf(b).walkable && art(b.type)) this.building(b, time, night, s.level);
     }
     this.drawHarvest(g);
+    for (const e of s.effects) {
+      if (e.kind !== 'crater') continue;
+      const pos = project(e.x, e.y);
+      drawJutsuCrater(ctx, { ...e, x: pos.x, y: pos.y });
+    }
     this.drawTethers(g, time);
     drawCaveFlat(ctx, s, (tx, ty) => isExplored(s, tx, ty));
 
@@ -667,7 +673,7 @@ export class Renderer {
     this.particles.draw(ctx, 'trail');
     for (const p of flying) drawProjectile(ctx, p, time);
     for (const e of s.effects) {
-      if (e.kind === 'wall') continue; // em pé, na ordem de profundidade
+      if (e.kind === 'wall' || e.kind === 'crater') continue; // muralha em pé; cratera já desenhada no chão
       if (e.kind === 'afterimage') {
         this.afterimage(g, e, time);
         continue;

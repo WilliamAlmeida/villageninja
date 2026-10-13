@@ -1,5 +1,6 @@
 import { plainTokens } from '../core/tokens';
 import type { Effect } from '../game/types';
+import { drawJutsuImpact } from './jutsuSprites';
 
 type Ctx = CanvasRenderingContext2D;
 const TAU = Math.PI * 2;
@@ -187,6 +188,7 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       break;
     }
     case 'burst': {
+      if (drawJutsuImpact(ctx, e)) break;
       // núcleo curto; o grosso da explosão vem das partículas (render/particles.ts)
       ctx.globalAlpha = (1 - k) * (1 - k) * 0.45;
       const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r * (0.4 + 0.6 * k));
@@ -295,6 +297,7 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       break;
     }
     case 'tether':
+    case 'crater':
       return; // sombra do Kage Mane: no chão (renderer.drawTethers)
     case 'hit': {
       // estrela de impacto: 4 pontas que se abrem e somem rápido

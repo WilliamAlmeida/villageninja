@@ -255,6 +255,28 @@
      {"shape":"streak","colors":["#e8fff0","#b6f2cc","#7fe0a0"],"n":16,"life":[0.3,0.3],"size":[5,10],"speed":[30,90],"nR":1,"max":48,"glow":true,"opacity":0.81},
      {"shape":"smoke","colors":["#8a8078"],"n":5,"life":[0.6,1],"size":[0.35,0.55],"scale":true,"speed":[0,0],"rise":[-14,-6],"spread":0.4}
    ]
+  },
+  "rasengan": {
+   "sprite": {"sheet":"effect-rasengan-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":24,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":false},
+   "impact": {"sheet":"effect-rasengan-impact-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":72,"anchorX":0.5,"anchorY":0.72,"dy":0,"opacity":0.95,"blend":"normal","rotate":false,"flip":false},
+   "crater": {"sheet":"effect-rasengan-crater-v1","cols":1,"rows":1,"frames":1,"fps":1,"size":56,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":0.85,"blend":"normal","rotate":false,"flip":false,"life":12},
+   "trail": [
+
+   ],
+   "burst": [
+
+   ]
+  },
+  "odama": {
+   "sprite": {"sheet":"effect-rasengan-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":48,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":false},
+   "impact": {"sheet":"effect-rasengan-impact-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":144,"anchorX":0.5,"anchorY":0.72,"dy":0,"opacity":0.95,"blend":"normal","rotate":false,"flip":false},
+   "crater": {"sheet":"effect-rasengan-crater-v1","cols":1,"rows":1,"frames":1,"fps":1,"size":112,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":0.85,"blend":"normal","rotate":false,"flip":false,"life":18},
+   "trail": [
+
+   ],
+   "burst": [
+
+   ]
   }
  },
  "status": {

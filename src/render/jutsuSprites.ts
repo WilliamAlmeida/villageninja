@@ -1,7 +1,7 @@
 // Sprites dos jutsus: folhas em grade (data/jutsu-fx.json, ajustáveis no painel "Ajuste" do Laboratório) desenhadas
 // sobre o projétil do jutsu (`Projectile.fx`, ou o tipo para projéteis antigos) e a Prisão d'Água sobre o preso.
 import { art } from './art';
-import type { Projectile } from '../game/types';
+import type { Effect, Projectile } from '../game/types';
 import { JUTSUS } from '../data/jutsus';
 import { FX, PARTS_DEFAULT, spriteFx, type SpriteFx } from '../data/jutsuFx';
 import { suiryuudanPose } from './projectileMotion';
@@ -92,11 +92,11 @@ function cells(img: HTMLImageElement, s: SpriteFx) {
 }
 
 /** Quadro em loop no ponto (x, y), girando com `angle` se a folha pede; preserva o estado do canvas. */
-export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: number, y: number, angle: number, t: number, phase: number, behind?: number): boolean {
+export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: number, y: number, angle: number, t: number, phase: number, behind?: number, frameOverride?: number): boolean {
   const img = art(s.sheet);
   if (!img) return false;
   const { cols, cw, ch, frames } = cells(img, s);
-  const frame = (Math.floor(t * s.fps) + (phase % frames)) % frames;
+  const frame = frameOverride == null ? (Math.floor(t * s.fps) + (phase % frames)) % frames : Math.max(0, Math.min(frames - 1, frameOverride));
   const w = s.size, h = (s.size * ch) / cw;
   const left = Math.cos(angle) < 0;
   ctx.save();
@@ -163,4 +163,34 @@ export function drawJutsuProjectile(ctx: CanvasRenderingContext2D, p: Projectile
 export function drawWaterPrison(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, id: number): boolean {
   const s = FX.status.water;
   return !!s && drawSpriteFx(ctx, s, x, y, 0, t, id);
+}
+
+/** Os dois Rasengan usam a mesma folha; tamanho é definido na configuração. */
+export function drawHandJutsu(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, t: number, uid: number, growth = 1): boolean {
+  const s = spriteFx(id);
+  return !!s && drawSpriteFx(ctx, { ...s, size: s.size * Math.max(0.2, growth) }, x, y, 0, t, uid);
+}
+
+export function drawJutsuImpact(ctx: CanvasRenderingContext2D, e: Effect): boolean {
+  const s = e.fx ? FX.jutsus[e.fx]?.impact : undefined;
+  if (!s) return false;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  const drawn = drawSpriteFx(ctx, s, e.x, e.y, 0, e.t, 0, undefined, Math.floor(e.t * s.fps));
+  ctx.restore();
+  return drawn;
+}
+
+/** Decalque já em perspectiva 2:1; chamado no chão, com posição projetada. */
+export function drawJutsuCrater(ctx: CanvasRenderingContext2D, e: Effect): boolean {
+  const s = e.fx ? FX.jutsus[e.fx]?.crater : undefined;
+  if (!s) return false;
+  const fade = Math.max(0, Math.min(1, (1 - e.t / e.life) / 0.3));
+  const growth = Math.min(1, e.t / 0.12);
+  if (growth <= 0) return true;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  const drawn = drawSpriteFx(ctx, { ...s, size: s.size * growth, opacity: s.opacity * fade }, e.x, e.y, 0, 0, 0);
+  ctx.restore();
+  return drawn;
 }

@@ -60,3 +60,18 @@ remoção de fundo branco comeria os brilhos. Preparo: `python scripts/prepare-h
 mesma escala em todos os quadros, focinho alinhado em x 0,984 / y 0,5 = a âncora, confere folga e quadro vazio). No
 jogo (`jutsu-fx.json` → `hirudora`): largura 110, 10 qps, gira com o voo, espelha à esquerda e "nasce da mão"
 (`emerge`: o corpo aparece saindo do punho).
+
+## Rasengan e Ōdama: esfera, impacto e cratera compartilhados
+
+`src/art/effects/effect-rasengan-v1.png`: RGBA 256x128, grade 4x2, oito quadros de 64x64,
+centro (32,32), esfera com aproximadamente 48 px de diâmetro na célula. Gerada com ImageGen integrado;
+fonte, prompt e prévia animada em `docs/arte/jutsus/rasengan/`. Preparo: `scripts/prepare-rasengan.ps1`.
+Decisão do autor: uma única spritesheet; Rasengan em escala normal e Ōdama em 2x.
+Integrada à mão da pose, com formação curta por escala. Célula desenhada a 24/48 px (diâmetro visível ~18/36 px).
+`effect-rasengan-impact-v1.png`: RGBA 384x192, grade 4x2, células 96x96, oito quadros a 16 qps, uma execução;
+âncora (0,5; 0,72), largura 72/144 px. `effect-rasengan-crater-v1.png`: RGBA 128x64, decalque estático 2:1,
+largura 56/112 px. As três imagens são compartilhadas entre as variações, com escala 2x no Ōdama.
+Fontes, prompts e `preview-impacto.html` em `docs/arte/jutsus/rasengan/`; preparo técnico reproduzível em
+`scripts/prepare-rasengan-impact.ps1` (escala comum, nearest-neighbor e corte de alpha residual abaixo de 32).
+Prévia independente: `bun scripts/preview-rasengan.ts`. Aprovação visual em `docs/PENDENCIAS.md`;
+inventário dos 56 jutsus e prioridades em `docs/jutsus-sprites.md`.

@@ -130,6 +130,9 @@ export const PROJ_KEYS: (keyof ProjFx)[] = ['projSpeed', 'projSize', 'radius', '
 
 export interface JutsuFx {
   sprite?: SpriteFx;
+  /** Descarga curta no contato e marca temporária no chão. */
+  impact?: SpriteFx;
+  crater?: SpriteFx & { life: number };
   /** Troca o estilo visual (rastro, impacto, estado) do jutsu. */
   vfx?: Vfx;
   proj?: ProjFx;
@@ -193,6 +196,8 @@ export function formatFx(data: FxData): string {
       .map(([k, j]) => {
         const parts: string[] = [];
         if (j.sprite) parts.push(`   "sprite": ${line(j.sprite)}`);
+        if (j.impact) parts.push(`   "impact": ${line(j.impact)}`);
+        if (j.crater) parts.push(`   "crater": ${line(j.crater)}`);
         if (j.vfx) parts.push(`   "vfx": ${line(j.vfx)}`);
         if (j.proj && Object.keys(j.proj).length) parts.push(`   "proj": ${line(j.proj)}`);
         if (j.flight) parts.push(`   "flight": ${line(j.flight)}`);

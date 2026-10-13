@@ -1,7 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
-import { drawJutsuProjectile, drawWaterPrison } from './jutsuSprites';
+import { drawHandJutsu, drawJutsuProjectile, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -620,9 +620,20 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // Amaterasu: chamas negras subindo pelo corpo
   if (u.burn) sageWisps(ctx, u, t * 1.6, '#120814', '#4a1a5a', 24, 'source-over');
   // Rasengan: a esfera de chakra girando na mão, na corrida e no golpe
-  const orbJ = u.dash?.id ?? (u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
+  const orbJ = u.dash?.id ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
   const orb = orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
-  if (orb) handOrb(ctx, ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4), uy - 13 + (row === SHEET_ROWS.back ? -2 : 0), orb, t, JUTSUS[orbJ!]?.orbSize ?? 1);
+  if (orb && orbJ) {
+    const r = artRect(pic, ux, uy, height, frame, row);
+    const pose = pic.dataset.pose as DollPose | undefined;
+    const hp = (pose && (dollPoses.hand as unknown as Record<string, ([number, number] | null)[]>)[pose]?.[row * r.frames + frame])
+      || artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
+    const hx = hp ? (flip ? 2 * ux - r.left - r.w : r.left) + ((flip ? r.fw - hp[0] - 1 : hp[0]) + 0.5) * r.w / r.fw
+      : ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4);
+    const hy = hp ? r.top + (hp[1] + 0.5) * r.h / r.fh : uy - 13;
+    const size = JUTSUS[orbJ]?.orbSize ?? 1;
+    const growth = u.dash ? Math.min(1, 0.25 + (1 - u.dash.t) / 0.12) : 1;
+    if (!drawHandJutsu(ctx, orbJ, hx, hy - 3 - 4 * (size - 1), t, u.id, growth)) handOrb(ctx, hx, hy - 3, orb, t, size);
+  }
   // Shintenshin: a mente de outro dentro dele (espiral rosa acima da cabeça)
   if (u.charm) mindMark(ctx, ux, uy - height - 5, t);
   // Edo Tensei: pó cinza se soltando do corpo

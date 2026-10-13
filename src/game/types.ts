@@ -534,6 +534,8 @@ export type EffectKind =
   /** `wall`: muralha do Doryuuheki parada no chão (`facing` = para onde foi levantada, `uid` = dono; game/walls.ts).
    *  `bones`: ossos brotando do chão em volta do ponto (Sawarabi no Mai, raio `r`). */
   | 'wall' | 'bones'
+  /** Marca temporária de impacto no chão, desenhada antes das unidades. */
+  | 'crater'
   /** Momento especial (Kage, Sannin, chefe, proibido): câmera lenta curta, fundo escuro e o nome no centro (main.ts). */
   | 'moment';
 

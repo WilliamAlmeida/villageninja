@@ -1,5 +1,6 @@
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { scarArea } from './battleScars';
+import { rasenganHitFx } from './rasenganFx';
 import { createDragonFlight, dragonPoint } from './dragonFlight';
 import { FX } from '../data/jutsuFx';
 import { raiseWall, wallCovers } from './walls';
@@ -776,13 +777,18 @@ export function dashTick(g: Game, u: Unit, dt: number) {
     u.dash = undefined;
     u.moving = false;
     dashTrail(g, u, d);
-    fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx, fx: d.id });
-    fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
+    const rasengan = rasenganHitFx(g, d.id, t.x, t.y);
+    if (!rasengan) {
+      fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx, fx: d.id });
+      fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
+    }
     const def = d.id ? JUTSUS[d.id] : undefined;
     if (def?.dashRadius) {
       // chega e o golpe pega todos em volta (calcanhar da Tsunade, Ōkashō, Nikudan Sensha)
-      fx(g, 'ring', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5 });
-      fx(g, 'wave', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5, vfx: d.vfx });
+      if (!rasengan) {
+        fx(g, 'ring', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5 });
+        fx(g, 'wave', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5, vfx: d.vfx });
+      }
       areaDamage(g, u, u.faction, t.x, t.y, def.dashRadius, d.power, d.nature, 40, def.stun ?? 0);
     } else applyDamage(g, u, t, d.power, d.nature, { knock: def?.launch ? 30 : 26, stun: def?.stun, launch: def?.launch });
     playMoves(u, def, 0.45); // chegada da investida: o golpe no alvo e recupera (desenho)
@@ -810,6 +816,7 @@ export function dashTick(g: Game, u: Unit, dt: number) {
 
 /** Rastro da investida: raio (Chidori, Raiton) ou vultos vermelhos de quem força o corpo (Passo de Sangue). */
 function dashTrail(g: Game, u: Unit, d: NonNullable<Unit['dash']>) {
+  if (d.id === 'rasengan' || d.id === 'odama') return;
   if (d.vfx === 'blood' || d.vfx === 'impact') {
     fx(g, 'afterimage', d.lx, d.ly, { uid: u.id, facing: u.facing, life: 0.3, color: d.color });
     fx(g, 'burst', d.lx, d.ly + 6, { r: 6, color: d.color, life: 0.3, vfx: d.vfx });
