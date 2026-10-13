@@ -42,7 +42,7 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Prioridade | Jutsus | Entregáveis visuais |
 |---|---|---|
 | Concluído; aprovado pelo autor | Rasengan e Ōdama Rasengan | Esfera compartilhada ligada à mão, formação por escala, impacto e cratera temporária; Ōdama usa tudo em 2× (73c11ca). |
-| Muito alta | Rasenshuriken | Esfera, lâminas giratórias, voo e explosão em expansão. |
+| Concluído; aprovado pelo autor | Rasenshuriken | Formação na mão, quatro lâminas giratórias, voo, domo expansivo e cratera ampliada. |
 | Muito alta | Chidori | Chakra elétrico na mão, descarga durante a investida e impacto. |
 | Muito alta | Doryuuheki | Muralha surgindo, permanecendo e desmoronando. |
 | Muito alta | Kirin | Formação no céu, dragão elétrico e queda; avaliar peças separadas. |
@@ -75,3 +75,13 @@ A esfera acompanha o ponto da mão da pose em `render/sprites.ts`, com crescimen
 `handOrb` continua como fallback se a imagem não carregar. O impacto só nasce no contato; cancelamentos não deixam cratera.
 A marca fica abaixo dos personagens, não aparece sobre água e tem limite de 24 crateras simultâneas.
 Este lote usa uma descarga curta; o domo expansivo fica no planejamento do Rasenshuriken como decisão visual.
+
+## Segundo lote: Rasenshuriken
+
+- `projectile-rasenshuriken-v1.png`: esfera azul e quatro lâminas de vento, oito quadros em loop a 24 qps.
+- `effect-rasenshuriken-impact-v1.png`: domo que cresce e se desfaz, oito fases a 10 qps (0,8 s), com transparência.
+- Reaproveita `effect-rasengan-crater-v1.png`, largura 164 px, duração 20 s. Não muda o terreno.
+- Forma na mão nos últimos 0,3 s dos selos; a mesma folha passa a desenhar o projétil lançado.
+- Mantém velocidade, dano, alcance, colisão e raio de área do catálogo. A explosão visual não causa dano adicional.
+- Fontes, prompts do ImageGen integrado e prévia: `docs/arte/jutsus/rasenshuriken/`.
+- Aprovado visualmente pelo autor em 2026-10-13; integrado no jogo e pronto para commit.

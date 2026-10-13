@@ -84,3 +84,8 @@ efeito `crater` no chão, com duração de 12/18 s. Investida cancelada, sem alv
 Rasengan mantém dano em um alvo; Ōdama mantém o dano em área configurado no catálogo. A cratera é cosmética,
 não muda tiles nem colisão; não aparece na água ou fora do mapa. Limite de 24 marcas, removendo a mais antiga.
 São efeitos transitórios eliminados ao salvar, sem novos campos persistidos e sem migração do save v44.
+
+Rasenshuriken também usa `rasenganHitFx`, chamado por `projectileSystem.explode`: o `burst` dura o ciclo inteiro
+de 0,8 s, seguido visualmente pela cratera de 20 s. Mantém a resolução imediata de dano em área (raio 70),
+velocidade 200 e colisões existentes; não aplica dano a cada quadro do domo. Muralha continua bloqueando o golpe
+com o impacto de terra existente, sem domo nem cratera de Rasenshuriken. A formação na mão é somente desenho.

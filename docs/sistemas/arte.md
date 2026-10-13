@@ -75,3 +75,13 @@ Fontes, prompts e `preview-impacto.html` em `docs/arte/jutsus/rasengan/`; prepar
 `scripts/prepare-rasengan-impact.ps1` (escala comum, nearest-neighbor e corte de alpha residual abaixo de 32).
 Prévia independente: `bun scripts/preview-rasengan.ts`. Aprovação visual em `docs/PENDENCIAS.md`;
 inventário dos 56 jutsus e prioridades em `docs/jutsus-sprites.md`.
+
+## Rasenshuriken: lâminas e domo
+
+`projectile-rasenshuriken-v1.png`: RGBA 384x192, grade 4x2 de células 96x96; oito fases a 24 qps,
+centro (0,5; 0,5), largura 56 px. `effect-rasenshuriken-impact-v1.png`: RGBA 512x256, grade 4x2 de células
+128x128; oito fases a 10 qps, largura 208 px, âncora de chão (0,5; 0,78), opacidade 0,75 e deslocamento vertical +8 px.
+Cratera reaproveitada do Rasengan, largura 164 px. ImageGen integrado; fontes, prompts e prévia em
+`docs/arte/jutsus/rasenshuriken/`. Preparo técnico: `scripts/prepare-rasenshuriken.ps1`, com limpeza de ruído
+solto, alpha mínimo 32, nearest-neighbor, escala comum e alinhamento da base do domo entre as fases.
+Prévia autocontida: `bun scripts/preview-rasenshuriken.ts`. Configuração do lote: `scripts/configure-rasenshuriken.ts`.

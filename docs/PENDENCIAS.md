@@ -60,7 +60,7 @@ Inventário dos 56 jutsus, artes existentes e prioridades: [jutsus-sprites.md](j
 As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação visual e commit.
 
 - [x] Rasengan e Ōdama Rasengan — esfera compartilhada na mão, formação por escala, impacto animado e cratera temporária no chão (12/18 s). Ōdama usa as mesmas três imagens em 2×. Aprovado visualmente pelo autor em 2026-10-13 (73c11ca); prévia em `docs/arte/jutsus/rasengan/preview-impacto.html`.
-- [ ] Rasenshuriken — esfera, lâminas giratórias, voo e explosão.
+- [x] Rasenshuriken — formação na mão, projétil com quatro lâminas giratórias, domo expansivo de 0,8 s (baixado +8 px no eixo Y) e cratera compartilhada ampliada (20 s). Aprovado visualmente pelo autor em 2026-10-13; prévia em `docs/arte/jutsus/rasenshuriken/preview.html`.
 - [ ] Chidori — chakra elétrico na mão, investida e impacto.
 - [ ] Doryuuheki — surgimento, permanência e desmoronamento da muralha.
 - [ ] Kirin — formação no céu, dragão elétrico e queda; avaliar peças separadas.

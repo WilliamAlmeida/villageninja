@@ -126,3 +126,8 @@ peças adicionais; `formatFx` preserva ambos ao gravar pelo editor. Ōdama usa a
 coordenadas já projetadas, antes das unidades. A imagem da cratera já é 2:1 e não recebe novo achatamento.
 Ela cresce em 0,12 s e desvanece nos últimos 30% da duração. Rastro e partículas procedurais ficam vazios neste par
 para não cobrir a arte. As configurações de impacto/cratera são editadas no JSON; o painel ainda edita a esfera.
+
+Rasenshuriken usa esse mesmo caminho: nos últimos 0,3 s dos selos, `drawUnitArt` forma a folha de quatro lâminas
+na mão; no voo, `drawJutsuProjectile` anima a mesma folha em 24 qps, sem giro adicional pela direção do voo.
+`drawJutsuImpact` mostra o domo em oito fases a 10 qps, opacidade 0,75, com fade nos últimos 0,16 s; cratera de
+164 px na passada do chão, por 20 s. O domo recebe +8 px no eixo Y para assentar melhor no chão. Rastro e partículas de explosão ficam vazios para preservar a leitura das sprites.
