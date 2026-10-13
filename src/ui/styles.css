@@ -88,9 +88,9 @@ button:disabled { cursor: not-allowed; }
 .bossbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff4d4d, #ff8a2b); }
 @keyframes pulse { to { background: #e5392f; } }
 /* alerta de inimigos: a faixa e, ao lado, o botão que abre a ficha do inimigo em foco */
-.brow { display: flex; align-items: center; gap: 0.3rem; max-width: 100%; pointer-events: none; }
-.brow .banner { flex: 1 1 auto; min-width: 0; }
-.brow .bsheet { pointer-events: auto; flex: 0 0 auto; white-space: nowrap; }
+.threatrow { display: flex; align-items: center; gap: 0.3rem; max-width: 100%; pointer-events: none; }
+.threatrow .banner:not(.boss) { flex: 1 1 auto; min-width: 0; }
+.threatrow .bsheet { pointer-events: auto; flex: 0 0 auto; white-space: nowrap; }
 #toasts {
   position: fixed; top: 3.4rem; left: calc(0.6rem + var(--safe-l)); z-index: 11;
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; pointer-events: none; width: min(26rem, 42vw);

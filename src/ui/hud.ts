@@ -79,21 +79,26 @@ export class Hud {
     }
 
     this.alert = el('div', { id: 'banners' });
-    // alerta de inimigos: a faixa leva a câmera até um inimigo (cada toque, o próximo); "Ficha" ao lado abre o painel dele
-    const threatRow = el('div', { class: 'brow', 'data-b': 'alert', hidden: '' });
+    // alerta de inimigos: a faixa leva a câmera até um inimigo (cada toque, o próximo); "Ficha" ao lado abre o painel dele.
+    // A Ficha só aparece no alerta tocado por último (uma por vez: duas faixas com botão poluem a tela)
+    const threatRow = el('div', { class: 'threatrow', 'data-b': 'alert', hidden: '' });
     const threat = el('button', { class: 'banner danger', 'data-t': 'threat' }, rich('Inimigos na sua vila — toque para ver'));
     // os avisos de baixo são da vila: olhando a invasão, volta para a vila antes de levar a câmera
     const toHome = () => this.app.viewScene && this.app.setView(false);
     threat.addEventListener('click', () => {
       toHome();
-      this.focusThreat(true);
+      this.sheetFor = 'threat';
+      this.focusFoe('threat', true);
     });
-    const sheet = el('button', { class: 'btn danger mini bsheet', 'data-tip-title': 'Ficha do inimigo', 'data-tip': 'Abre o painel do inimigo em foco (vida, golpes, mandar atacar). A faixa ao lado passa para o próximo.' }, rich('{skull} Ficha'));
-    sheet.addEventListener('click', () => {
-      toHome();
-      this.openThreat();
-    });
-    threatRow.append(threat, sheet);
+    const sheetBtn = (which: 'threat' | 'boss') => {
+      const b = el('button', { class: 'btn danger mini bsheet', 'data-sheet': which, hidden: '', 'data-tip-title': 'Ficha do inimigo', 'data-tip': 'Abre o painel do inimigo em foco (vida, golpes, mandar atacar). A faixa ao lado passa para o próximo.' }, rich('{skull} Ficha'));
+      b.addEventListener('click', () => {
+        toHome();
+        this.openFoe(which);
+      });
+      return b;
+    };
+    threatRow.append(threat, sheetBtn('threat'));
     const exam = el('button', { class: 'banner exam', 'data-b': 'exam', hidden: '' });
     exam.addEventListener('click', () => {
       toHome();
@@ -108,10 +113,12 @@ export class Hud {
     const boss = el('button', { class: 'banner boss', 'data-b': 'boss', hidden: '' }, '<span data-t="name"></span><span class="bossbar"><i></i></span>');
     boss.addEventListener('click', () => {
       toHome();
-      const b = this.app.home.state.units.find((u) => u.boss && !u.dead);
-      if (b) this.app.camera.focus(b.x, b.y);
+      this.sheetFor = 'boss';
+      this.focusFoe('boss', true);
     });
-    this.alert.append(threatRow, exam, warn, boss);
+    const bossRow = el('div', { class: 'threatrow', 'data-b': 'bossrow', hidden: '' });
+    bossRow.append(boss, sheetBtn('boss'));
+    this.alert.append(threatRow, exam, warn, bossRow);
 
     this.toasts = el('div', { id: 'toasts' });
     bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y, !!t.scene));
@@ -177,6 +184,10 @@ export class Hud {
     const bosses = s.units.filter((u) => u.boss && !u.dead);
     const bossEl = this.alert.querySelector<HTMLElement>('[data-b="boss"]')!;
     bossEl.hidden = !bosses.length;
+    this.alert.querySelector<HTMLElement>('[data-b="bossrow"]')!.hidden = !bosses.length;
+    // a Ficha some junto com o alerta dela
+    if ((this.sheetFor === 'threat' && !s.flags.alert) || (this.sheetFor === 'boss' && !bosses.length)) this.sheetFor = null;
+    this.alert.querySelectorAll<HTMLElement>('[data-sheet]').forEach((b) => (b.hidden = b.dataset.sheet !== this.sheetFor));
     if (bosses.length) {
       const hp = bosses.reduce((a, u) => a + u.hp, 0) / bosses.reduce((a, u) => a + u.maxHp, 0);
       const name = bosses.length > 1 ? `${bosses[0]!.name.split(' ')[0]} ×${bosses.length}` : bosses[0]!.name;
@@ -213,24 +224,27 @@ export class Hud {
     const g = this.app.home;
     return g.state.units.filter((u) => !u.dead && u.faction !== 'village' && g.world.inVillage(u.x, u.y));
   }
-  private threatId: number | null = null;
-  /** O inimigo em foco: o último mostrado, se ainda está na vila (senão o primeiro); `next` passa para o seguinte. */
-  private threat(next = false) {
-    const list = this.threats();
+  /** Alerta com a Ficha à vista (o tocado por último); null = nenhuma. */
+  private sheetFor: 'threat' | 'boss' | null = null;
+  /** Em foco em cada alerta: inimigo na vila / chefe. */
+  private foeId: Record<'threat' | 'boss', number | null> = { threat: null, boss: null };
+  /** O inimigo em foco no alerta: o último mostrado, se ainda vale (senão o primeiro); `next` passa para o seguinte. */
+  private foe(which: 'threat' | 'boss', next = false) {
+    const list = which === 'threat' ? this.threats() : this.app.home.state.units.filter((u) => u.boss && !u.dead);
     if (!list.length) return null;
-    let i = list.findIndex((u) => u.id === this.threatId);
+    let i = list.findIndex((u) => u.id === this.foeId[which]);
     if (i < 0) i = 0;
     else if (next) i = (i + 1) % list.length;
-    this.threatId = list[i]!.id;
+    this.foeId[which] = list[i]!.id;
     return list[i]!;
   }
-  private focusThreat(next = false) {
-    const t = this.threat(next);
+  private focusFoe(which: 'threat' | 'boss', next = false) {
+    const t = this.foe(which, next);
     if (t) this.app.camera.focus(t.x, t.y);
   }
-  /** Abre o painel do inimigo em foco (e leva a câmera até ele). */
-  private openThreat() {
-    const t = this.threat();
+  /** Abre o painel do inimigo em foco no alerta (e leva a câmera até ele). */
+  private openFoe(which: 'threat' | 'boss') {
+    const t = this.foe(which);
     if (!t) return;
     this.app.camera.focus(t.x, t.y);
     this.app.home.select({ kind: 'unit', id: t.id });

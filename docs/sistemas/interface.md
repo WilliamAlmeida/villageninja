@@ -94,5 +94,9 @@
   Listas longas em drawers rolam por dentro (`.scrollist`: Canil, jutsus, grupo, "Lá dentro", candidatos da equipe,
   receitas, inventário).
 - **Alerta de inimigos** (`ui/hud.ts`, `#banners`): a faixa vermelha ("N inimigos na sua vila") leva a câmera a um inimigo
-  dentro da vila e, a cada toque, ao próximo (`threat(next)`); o botão "Ficha" ao lado (`.brow .bsheet`) abre o painel do
-  inimigo em foco (`Game.select`), porque o toque no mapa em cima de uma luta cheia de etiquetas raramente acerta nele.
+  dentro da vila e, a cada toque, ao próximo (`foe('threat', next)`); a faixa do chefe ("Kagerō ×2", com a vida somada)
+  faz o mesmo entre os chefes vivos (`foe('boss', next)`). Cada faixa tem o seu botão "Ficha" (`.threatrow .bsheet`), que
+  abre o painel do inimigo em foco (`Game.select`), porque o toque no mapa em cima de uma luta cheia de etiquetas raramente
+  acerta nele. **Uma Ficha por vez** (pedido do autor: duas faixas com botão poluem): ela só aparece na faixa tocada por
+  último (`sheetFor`) e some quando aquele alerta acaba. A linha é `.threatrow` (era `.brow`, que colidia com o
+  chaveamento do Exame e ganhava fundo marrom).
