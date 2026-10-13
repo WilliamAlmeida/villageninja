@@ -355,7 +355,7 @@ h4 small { text-transform: none; letter-spacing: 0; }
 .setrow { display: flex; align-items: center; gap: 0.6rem; font-size: 0.92rem; color: var(--muted); }
 .setrow .seg { flex: 1; }
 /* menu de pausa numa coluna só: ações em grade, configurações, novo jogo; o guia abre no lugar delas */
-#modal .box.menu1 { width: min(30rem, 92vw); grid-template-columns: 1fr; gap: 0.6rem; }
+#modal .box.menu1 { width: min(calc(30rem + 50px), 92vw); grid-template-columns: 1fr; gap: 0.6rem; }
 #modal .menu1 h4 { margin: 0.3rem 0 0; display: flex; gap: 0.35rem; align-items: center; color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
 #modal .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
 #modal .mgrid .btn.primary, #modal .mgrid .wide { grid-column: 1 / -1; }
@@ -860,7 +860,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .lrow > .btn, .lrow > .mpill { grid-column: 3; grid-row: 2; justify-self: end; }
 .badge.role-tank { color: #9fc4ff; } .badge.role-striker { color: #ffb067; } .badge.role-ranged { color: #ff8a8a; } .badge.role-support { color: #7dff9a; }
 .ttactic { flex-wrap: wrap; }
-#battlebtn { position: fixed; top: 3.4rem; left: 50%; transform: translateX(-50%); z-index: 9; box-shadow: 0 0 0 2px rgba(255, 80, 70, 0.5), var(--shadow); }
+#battlebtn { position: fixed; top: 3.4rem; left: 50%; transform: translateX(-50%); z-index: 9; }
 .khead { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .khead .bup-cost { margin: 4px 0 0 0; align-items: center; }
 .khead .bup-cost > small { color: var(--muted); }

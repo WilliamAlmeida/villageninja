@@ -145,7 +145,6 @@ export class Menu {
       )
         .map(([k, label]) => `<button data-act="occl" data-arg="${k}" class="${occlusion()[k] ? 'on' : ''}">${label}</button>`)
         .join('')}</div></div>
-      <p class="hint">Como ver quem passa atrás de um prédio. Cada um liga e desliga e eles combinam. Silhueta: o contorno do ninja aparece por cima do prédio. Esmaecer: o prédio inteiro fica transparente. Furo: só abre um círculo em volta de quem está atrás. Pontilhado: a transparência vira um xadrez de pixels (vale para o esmaecer e o furo).</p>
       <div class="setrow"><span class="sl">{chart} Medidor de FPS</span>${seg('fps', [['1', 'Mostrar', showFps()], ['0', 'Esconder', !showFps()]])}</div>
       <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
     </div>`);
