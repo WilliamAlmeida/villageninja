@@ -43,7 +43,10 @@ describe('rebrota e limpar área', () => {
     expect(g.state.res.wood).toBeGreaterThanOrEqual(wood0 + left - 5); // alguém pode ter cortado um pedaço antes
     expect(nodeArt(tree)).toBe('cleared');
     expect(tree.clear).toBeUndefined();
-    expect(tree.regrow).toBeCloseTo(regrowTime(g.state, 'tree') * CLEAR.regrowMult, 0);
+    // a natureza pode descontar até 1 s no mesmo passo em que ele arranca
+    const long = regrowTime(g.state, 'tree') * CLEAR.regrowMult;
+    expect(tree.regrow!).toBeGreaterThan(long - 2);
+    expect(tree.regrow!).toBeLessThanOrEqual(long);
     // a rebrota longa termina: volta inteira
     tree.regrow = 0.5;
     run(g, 2);

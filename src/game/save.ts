@@ -277,6 +277,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // obra pronta esperando espaço
   // v39: limpar área (ResourceNode.clear/cleared, campos opcionais: nada a converter)
   38: () => {},
+  // v40: aterrar e cavar (state.earthworks)
+  39: (s) => {
+    for (const st of [s, s.scene].filter(Boolean)) st.earthworks ??= [];
+  },
   37: (s) => {
     const types: BuildingType[] = ['market', 'academy', 'hospital', 'library', 'forge', 'pharmacy', 'sealshop', 'lumber', 'quarry'];
     for (const st of [s, s.scene].filter(Boolean))

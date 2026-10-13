@@ -26,7 +26,7 @@ export interface App {
   buildType: BuildingType | null;
   /** Pintando ruas: arrastar no mapa calça (ou tira, em 'erase') os tiles (game/roads.ts). */
   /** Pintando no mapa arrastando: rua (calçar/tirar) ou limpar área (marcar/desmarcar). */
-  roadMode: 'pave' | 'erase' | 'clear' | 'unclear' | null;
+  roadMode: 'pave' | 'erase' | 'clear' | 'unclear' | 'fill' | 'dig' | 'unearth' | null;
   /** Modo "dar ordem": o próximo toque no mapa vira ordem para estes ninjas. */
   orderMode: { ids: number[]; label: string } | null;
   /** Ninjas selecionados em grupo (caixa de seleção). */

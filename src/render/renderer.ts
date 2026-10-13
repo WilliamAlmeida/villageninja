@@ -112,7 +112,7 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private terrain: Terrain | null = null;
   /** Cache por mapa (a vila e o mapa de missão alternam na tela). */
-  private maps = new WeakMap<GameState, { terrain: Terrain; seasonal: Seasonal }>();
+  private maps = new WeakMap<GameState, { terrain: Terrain; seasonal: Seasonal; rev: number }>();
   private dpr = 1;
   private list: Drawable[] = [];
   /** Transparência atual de prédios/árvores que tapam alguém (chave → alpha), para a transição ficar suave. */
@@ -181,8 +181,13 @@ export class Renderer {
     this.seed = s.seed;
     let cache = this.maps.get(s);
     if (!cache) {
-      cache = { terrain: new Terrain(s), seasonal: new Seasonal(s) };
+      cache = { terrain: new Terrain(s), seasonal: new Seasonal(s), rev: g.terrainRev };
       this.maps.set(s, cache);
+    } else if (cache.rev !== g.terrainRev) {
+      // aterraram/cavaram: o chão (blocos e profundidade da água) e a água da neve/gelo se refazem
+      cache.terrain = new Terrain(s);
+      cache.seasonal.refreshWater(s);
+      cache.rev = g.terrainRev;
     }
     this.terrain = cache.terrain;
     this.depth = cache.terrain.depth;
@@ -240,6 +245,16 @@ export class Renderer {
     this.seasonal.drawWet(ctx);
     this.seasonal.drawGround(ctx, s);
     this.seasonal.drawCloudShadows(ctx, s);
+    // aterrar (marrom) / cavar (azul) marcados, esperando um morador
+    for (const e of s.earthworks ?? []) {
+      ctx.fillStyle = e.op === 'fill' ? 'rgba(168,131,85,0.55)' : 'rgba(80,150,225,0.5)';
+      ctx.fillRect(e.tx * TILE + 2, e.ty * TILE + 2, TILE - 4, TILE - 4);
+      ctx.strokeStyle = e.op === 'fill' ? 'rgba(255,200,120,0.9)' : 'rgba(170,220,255,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(e.tx * TILE + 2, e.ty * TILE + 2, TILE - 4, TILE - 4);
+      ctx.setLineDash([]);
+    }
     ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, (s.mapW + FOG_PAD * 2) * TILE, (s.mapH + FOG_PAD * 2) * TILE);
 
     // chão batido sob prédios (o de margem: só sob as células de terra, e sombra na água sob o píer e o barco)

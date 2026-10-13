@@ -470,7 +470,13 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   da rua, `App.roadMode` 'clear'/'unclear'): arrastar marca árvores, tocos, rochas e veios (`ResourceNode.clear`, anel
   tracejado laranja); morador sem obra vai lá (`toClear`/`clearing` em systems/villagers.ts) e arranca: rende o que
   sobrava, o recurso fica `cleared` (sem desenho nem colisão, `nodeArt` 'cleared') e só volta depois de
-  `CLEAR.regrowMult` (4×) a rebrota normal; com prédio ou rua em cima, sai do mapa de vez (`regrowCleared`). Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
+  `CLEAR.regrowMult` (4×) a rebrota normal; com prédio ou rua em cima, sai do mapa de vez (`regrowCleared`).
+  **Aterrar e cavar** (`game/earthworks.ts`, cartões ao lado do Limpar área, modos 'fill'/'dig'/'unearth'): marca tiles
+  dentro do território (`state.earthworks`, save v40); aterrar paga `EARTH.fillCost` ao marcar (volta ao desmarcar),
+  cavar é grátis (sem árvore/pedra/prédio no tile). Morador sem obra faz o trabalho de um tile vizinho em terra
+  (`toEarth`/`earthwork`; prioridade: obras > terreno > limpar área), então o lago fecha pela margem. Pronto: troca o
+  tile, refaz a areia em volta (`reshore`), a colisão e `Game.terrainRev`, que faz o renderer refazer o chão em blocos
+  e a água da neve/gelo (`Seasonal.refreshWater`). Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
   coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
   consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor
@@ -630,7 +636,7 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v39.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v40.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

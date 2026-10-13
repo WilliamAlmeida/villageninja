@@ -109,6 +109,17 @@ export class Seasonal {
     this.wet = new Float32Array(n);
   }
 
+  /** O terreno mudou (aterrar/cavar): refaz só onde é água (sem neve; o gelo vem da profundidade). */
+  refreshWater(s: GameState) {
+    for (let y = 0; y < this.GH; y++)
+      for (let x = 0; x < this.GW; x++) {
+        const tx = Math.floor((x * CELL) / TILE);
+        const ty = Math.floor((y * CELL) / TILE);
+        this.water[y * this.GW + x] = s.tiles[idx(s, tx, ty)] === T.WATER ? 1 : 0;
+      }
+    this.iceShown = -1; // o gelo se redesenha com a água nova
+  }
+
   /** Ruído estável por mapa (manchas de neve) e onde é água (sem neve). */
   private setup(s: GameState) {
     this.seed = s.seed;

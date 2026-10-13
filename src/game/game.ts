@@ -123,6 +123,8 @@ export class Game {
    * Estatísticas, Kage, Vila, Clãs) só se remontam quando ela muda (ou de 3 em 3 s, por segurança).
    */
   rev = 0;
+  /** Sobe quando o terreno muda (aterrar/cavar): o renderer refaz o chão e a água. Não é salvo. */
+  terrainRev = 0;
 
   addUnit(u: Unit) {
     this.rev++;

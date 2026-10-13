@@ -145,6 +145,8 @@ export interface Unit {
   timer: number;
   targetId: number | null;
   taskId: number | null;
+  /** Tile de aterrar/cavar em que o morador está trabalhando (game/earthworks.ts). */
+  earth?: { tx: number; ty: number };
   homeId: number | null;
   jobId: number | null;
   carry: { res: ResKey; amount: number } | null;
@@ -447,6 +449,13 @@ export interface Site {
   respawn?: number;
 }
 
+/** Obra no terreno marcada pelo jogador: aterrar (água → terra) ou cavar (terra → água). */
+export interface Earthwork {
+  tx: number;
+  ty: number;
+  op: 'fill' | 'dig';
+}
+
 export interface ResourceNode {
   id: number;
   type: 'tree' | 'rock' | 'herb' | 'ore';
@@ -615,6 +624,8 @@ export interface GameState {
   bijuu: { jar: number[] };
   /** Ruas calçadas: 1 bit por tile, como `explored` (game/roads.ts). */
   roads: number[];
+  /** Tiles marcados para aterrar/cavar (game/earthworks.ts), esperando um morador. */
+  earthworks?: Earthwork[];
   /** Ninjas da vila que caíram (mais recentes primeiro): Pedra Memorial e Edo Tensei (game/memorial.ts). */
   fallen: Fallen[];
   pendingBoss: { kind: BossKind; x: number; y: number; t: number } | null;

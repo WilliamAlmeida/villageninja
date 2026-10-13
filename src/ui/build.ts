@@ -12,6 +12,7 @@ import { artUrl } from '../render/art';
 import { isShown, setShown } from './anim';
 import { pave, ROAD, unpave } from '../game/roads';
 import { CLEAR, markClear, toClear } from '../game/clearing';
+import { EARTH, markEarth, unmarkEarth } from '../game/earthworks';
 import { TILE } from '../config';
 import { DECO_MOOD_MAX } from '../game/mood';
 
@@ -51,6 +52,22 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
             rich(`<span class="i">{axe}</span><span class="n">Limpar área</span><span class="c">grátis</span><span class="lock"></span>`),
           ),
         );
+        // aterrar e cavar: o terreno muda tile a tile pelo trabalho dos moradores (game/earthworks.ts)
+        this.bar.appendChild(
+          el(
+            'button',
+            { class: 'bcard road', 'data-earth': 'fill', 'data-tip-title': 'Aterrar', 'data-tip': `Arraste sobre a água para virar terra. Os moradores sem obra aterram da margem para dentro (o meio do lago espera a margem chegar).
+Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarcar)` },
+            rich(`<span class="i">{stone}</span><span class="n">Aterrar</span><span class="c">${costLabel(EARTH.fillCost)} / tile</span><span class="lock"></span>`),
+          ),
+        );
+        this.bar.appendChild(
+          el(
+            'button',
+            { class: 'bcard road', 'data-earth': 'dig', 'data-tip-title': 'Cavar', 'data-tip': 'Arraste sobre a terra para virar água (lago, canal, beira para o Porto). Os moradores sem obra cavam. Árvore e pedra no caminho: limpe a área antes.' },
+            rich(`<span class="i">{drop}</span><span class="n">Cavar</span><span class="c">grátis</span><span class="lock"></span>`),
+          ),
+        );
         continue;
       }
       this.bar.appendChild(
@@ -70,6 +87,12 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
       }
       if ((e.target as HTMLElement).closest('[data-clear]')) {
         this.startRoad('clear');
+        return;
+      }
+      const earth = (e.target as HTMLElement).closest<HTMLElement>('[data-earth]')?.dataset.earth as 'fill' | 'dig' | undefined;
+      if (earth) {
+        this.earthOp = earth;
+        this.startRoad(earth);
         return;
       }
       const c = (e.target as HTMLElement).closest<HTMLElement>('[data-type]');
@@ -102,7 +125,8 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
       if (a === 'erase') {
         const m = this.app.roadMode;
-        this.app.roadMode = m === 'erase' ? 'pave' : m === 'pave' ? 'erase' : m === 'clear' ? 'unclear' : 'clear';
+        this.app.roadMode =
+          m === 'erase' ? 'pave' : m === 'pave' ? 'erase' : m === 'clear' ? 'unclear' : m === 'unclear' ? 'clear' : m === 'unearth' ? this.earthOp : 'unearth';
         this.roadHint();
       }
       if (a === 'done') this.exit();
@@ -115,8 +139,11 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
   private lastRoad: { tx: number; ty: number } | null = null;
   private roadMsg = '';
 
-  /** Entra no modo de pintar ruas (ou de marcar a área a limpar). */
-  private startRoad(mode: 'pave' | 'clear' = 'pave') {
+  /** Última obra de terreno escolhida (o "Desmarcar" volta para ela). */
+  private earthOp: 'fill' | 'dig' = 'fill';
+
+  /** Entra no modo de pintar ruas (ou de marcar a área a limpar, ou de aterrar/cavar). */
+  private startRoad(mode: 'pave' | 'clear' | 'fill' | 'dig' = 'pave') {
     setShown(this.bar, false);
     this.app.roadMode = mode;
     this.lastRoad = null;
@@ -127,11 +154,19 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
   private roadHint() {
     const m = this.app.roadMode;
     const clearing = m === 'clear' || m === 'unclear';
-    const erase = m === 'erase' || m === 'unclear';
+    const earth = m === 'fill' || m === 'dig' || m === 'unearth';
+    const erase = m === 'erase' || m === 'unclear' || m === 'unearth';
     const btn = this.roadBar.querySelector('[data-act="erase"]')!;
     btn.classList.toggle('on', erase);
-    btn.innerHTML = rich(clearing ? '{eraser} Desmarcar' : '{eraser} Tirar');
-    const msg = clearing
+    btn.innerHTML = rich(clearing || earth ? '{eraser} Desmarcar' : '{eraser} Tirar');
+    const works = this.app.home.state.earthworks ?? [];
+    const msg = earth
+      ? m === 'unearth'
+        ? '{eraser} Arraste no mapa para desmarcar'
+        : m === 'fill'
+          ? `{stone} Arraste sobre a água para aterrar · ${costLabel(EARTH.fillCost)} por tile · ${works.filter((e) => e.op === 'fill').length} marcados`
+          : `{drop} Arraste sobre a terra para cavar · ${works.filter((e) => e.op === 'dig').length} marcados`
+      : clearing
       ? m === 'unclear'
         ? '{axe} Arraste no mapa para desmarcar'
         : `{axe} Arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.home.state).length} marcados`
@@ -152,7 +187,13 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
     for (let i = 0; i <= n; i++) {
       const x = Math.round(from.tx + ((tx - from.tx) * i) / n);
       const y = Math.round(from.ty + ((ty - from.ty) * i) / n);
-      if (this.app.roadMode === 'clear' || this.app.roadMode === 'unclear') markClear(g, x, y, this.app.roadMode === 'clear');
+      const m = this.app.roadMode;
+      if (m === 'clear' || m === 'unclear') markClear(g, x, y, m === 'clear');
+      else if (m === 'unearth') unmarkEarth(g, x, y);
+      else if (m === 'fill' || m === 'dig') {
+        const r = markEarth(g, x, y, m);
+        if (!r.ok && r.error !== 'Já está marcado.' && r.error !== 'Aqui já é terra.' && r.error !== 'Aqui já é água.') why = r.error;
+      }
       else if (this.app.roadMode === 'erase') unpave(g, x, y);
       else {
         const r = pave(g, x, y);
@@ -161,7 +202,7 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
     }
     this.lastRoad = done || tap ? null : { tx, ty };
     const msg = why ?? '';
-    if (msg !== this.roadMsg || this.app.roadMode === 'clear' || this.app.roadMode === 'unclear') {
+    if (msg !== this.roadMsg || (this.app.roadMode !== 'pave' && this.app.roadMode !== 'erase')) {
       this.roadMsg = msg;
       this.roadHint();
     }

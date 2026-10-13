@@ -6,13 +6,14 @@ import { farmYield, marketYield, needsBuilders, workUpgrade } from '../upgrade';
 import { harvestMult, workMult } from '../mood';
 import { levelOf } from '../upgrade';
 import { CLEAR, clearNode, regrowTime } from '../clearing';
+import { EARTH, earthSpot, earthworkAt, finishEarthwork } from '../earthworks';
 import { marketSale } from '../specialize';
 import { advanceCraft } from '../gear';
 import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
 import { followPath, setDestination } from '../movement';
 import { isNight } from '../time';
-import type { Building, ResKey, ResourceNode, Unit } from '../types';
+import type { Building, Earthwork, ResKey, ResourceNode, Unit } from '../types';
 import { doorPos, tileCenter, toTile } from '../world';
 
 const FLEE_RADIUS = 170;
@@ -255,6 +256,34 @@ function work(g: Game, u: Unit, dt: number) {
       }
       break;
     }
+    case 'toEarth': {
+      const e = u.earth && earthworkAt(g.state, u.earth.tx, u.earth.ty);
+      if (!e) u.state = 'idle';
+      else if (followPath(g, u, dt)) {
+        u.state = 'earthwork';
+        u.timer = EARTH.work;
+        u.facing = Math.atan2(tileCenter(e.ty) - u.y, tileCenter(e.tx) - u.x);
+      }
+      break;
+    }
+    case 'earthwork': {
+      // aterrando/cavando o tile marcado, de pá na mão (mesmo gesto da coleta)
+      const e = u.earth && earthworkAt(g.state, u.earth.tx, u.earth.ty);
+      if (!e) {
+        u.state = 'idle';
+        break;
+      }
+      u.moving = false;
+      u.anim = 0.2;
+      if (Math.random() < dt * 2.5) fx(g, 'chips', tileCenter(e.tx), tileCenter(e.ty), { color: e.op === 'fill' ? '#a88355' : '#8fc8f0', life: 0.4 });
+      if (u.timer <= 0) {
+        finishEarthwork(g, e);
+        u.earth = undefined;
+        u.state = 'idle';
+        u.timer = 0.3;
+      }
+      break;
+    }
     case 'toClear': {
       const n = g.node(u.taskId);
       if (!n || !n.clear || n.cleared) u.state = 'idle';
@@ -340,7 +369,17 @@ function decide(g: Game, u: Unit) {
       return;
     }
   }
-  // sem obra: limpar o que o jogador marcou (o mais perto que ninguém está limpando)
+  // sem obra: aterrar/cavar o que o jogador marcou (o mais perto com acesso que ninguém está fazendo)
+  const ew = nearestEarthwork(g, u);
+  if (ew) {
+    u.earth = { tx: ew.e.tx, ty: ew.e.ty };
+    if (setDestination(g, u, ew.spot.x, ew.spot.y)) {
+      u.state = 'toEarth';
+      return;
+    }
+    u.earth = undefined;
+  }
+  // depois, limpar o que o jogador marcou (o mais perto que ninguém está limpando)
   const n = nearestClear(g, u);
   if (n) {
     u.taskId = n.id;
@@ -411,6 +450,25 @@ function findNode(g: Game, b: Building, type: 'tree' | 'rock' | 'ore') {
     .sort((a, b) => a.d - b.d)
     .slice(0, 4);
   return near.length ? pick(near).n : null;
+}
+
+function nearestEarthwork(g: Game, u: Unit) {
+  const list = g.state.earthworks;
+  if (!list?.length) return null;
+  const taken = new Set<string>();
+  for (const o of g.state.units) if (o !== u && o.earth && (o.state === 'toEarth' || o.state === 'earthwork')) taken.add(`${o.earth.tx},${o.earth.ty}`);
+  let best: { e: Earthwork; spot: { x: number; y: number } } | null = null;
+  let bd = Infinity;
+  for (const e of list) {
+    if (taken.has(`${e.tx},${e.ty}`)) continue;
+    const d = Math.hypot(tileCenter(e.tx) - u.x, tileCenter(e.ty) - u.y);
+    if (d >= bd) continue;
+    const spot = earthSpot(g, e);
+    if (!spot) continue; // meio do lago: espera a margem chegar até ele
+    bd = d;
+    best = { e, spot };
+  }
+  return best;
 }
 
 function nearestClear(g: Game, u: Unit) {

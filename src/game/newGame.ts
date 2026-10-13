@@ -53,6 +53,7 @@ export function baseState(seed: number, scene = false): GameState {
     effects: [],
     explored: emptyExplored(m),
     roads: emptyRoads(m),
+    earthworks: [],
     sites: [],
     scrolls: [],
     jutsuOpen: [],
