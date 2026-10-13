@@ -1,0 +1,96 @@
+# Prédios, mapa, terreno e recursos
+
+> Detalhe movido do CLAUDE.md (o índice fica lá). Mantenha atualizado ao mexer no sistema.
+
+- **Upgrade de prédios** (nível 1–3; `data/upgrades.ts` + `game/upgrade.ts`): casa, fazenda, lenhador, pedreira, mercado,
+  torre, hospital, campo de treino e academia (estudo mais rápido, recruta já sai com nível). A Residência do Hokage
+  não tem upgrade: o nível dela (`Building.level`) segue o da vila (+1, `syncHokage` na automação) e o
+  terreno cresce junto: 3×3, 3×3, 4×4, 5×5 (`sizes`; sem espaço, espera; save v37); arte `hokage`, `hokage-2..4`. A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
+  Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
+  Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
+- **Tamanho do mapa por estado** (`GameState.mapW/mapH`; `VILLAGE_W/H` = 112×112 e `SCENE_W/H` = 72×48 em config.ts):
+  não há mais `MAP_W`/`WORLD_W` globais. Índices e limites vêm do mapa: `World.idx/inBounds/fidx/inFine/cellCenter` e
+  `world.mapW/fineW`, ou `idx(s, …)`/`inBounds(s, …)`/`centerOf(s)` com o estado (`CENTER_TX/TY` = centro da VILA; os
+  mapas de missão usam `SCENE_CX/CY` em scene.ts). Bitsets (`emptyExplored(s)`, `emptyRoads(s)`), câmera (`camera.map`,
+  posto pelo `Renderer.render`), névoa, terreno e estações (`new Seasonal(s)`) pelo tamanho do estado; buffers do A* do
+  tamanho do maior (`MAX_MAP_W/H`). Save v35/v36 (`growMap` em save.ts): a vila 72×48 foi para o meio do mapa novo
+  (+20, +32 tiles) com tudo que tem posição (rotas = células remapeadas, névoa, ruas) e o terreno em volta gerado pela
+  seed com a costura suavizada; território 19/26/36 e o mapa todo (era 12/17/23); nuvens de chuva pela área; a clareira
+  inicial do `generateMap` acompanha o território do nível 0 (×1,6), não o mapa.
+  **Chão em blocos** (`render/terrain.ts`, `Terrain`): o chão é pintado por blocos de 16×16 tiles só quando entram na
+  tela (`visibleTiles` pela câmera), guardados por 6 s fora dela e na metade da resolução com zoom < 0,75; a memória é
+  a do que se vê e o mapa não esbarra no limite de imagem do celular. Detalhe de cada tile com aleatoriedade fixa por
+  tile (sai igual em qualquer bloco); as ondinhas da água só nos tiles à vista.
+  **Construções no padrão novo** (`scripts/building-art.py <lote>`; funções comuns em `scripts/iso_art.py`): uma imagem
+  por peça no Codex com o gabarito v2 do terreno do nível, a arte de hoje como identidade, as casas do piloto como estilo
+  e o nível anterior já novo como referência; recorte, tamanho pela base (= losango) e grade do boneco →
+  `docs/arte/predios/final/`; `--instalar` copia com backup (`docs/arte/_backup/<data>/<lote>/`), põe escala/posição
+  no layout.json e tira peças antigas, ART_SCALE provisório e a marca de editada à mão. Lotes em `BATCHES` (feitos: kage;
+  lote1 = academia, hospital, biblioteca com os 3 níveis, mercado; lote2 = forja, farmácia e selos (redesenhadas:
+  botica de ervas com cortina roxa; oficina de papel de telhado cinza), lenhador, pedreira; `redesign` no lote = sem a
+  arte de hoje como referência). O nível 3 ocupa mais terreno em mercado, forja,
+  farmácia, selos, lenhador, pedreira (3×3), academia (4×4), hospital e biblioteca (4×3) (`sizes`; save v38: cresce no
+  lugar, muda para o espaço livre mais perto ou volta ao nível 2 com a obra pronta esperando espaço).
+- **Terreno por nível** (`BuildingDef.sizes`, `defOf(b)` e `layoutKey(b)` em data/buildings.ts): a casa nível 3 ocupa 3×3
+  (cresce para a direita e para baixo a partir do canto). Onde o tamanho importa e há um prédio, use `defOf(b)`, não
+  `BUILDINGS[b.type]`; terreno/porta/pontos do layout desse nível ficam em `<tipo>-<nível>`. O upgrade pede o espaço
+  (`growRoom`) e, se fecharem o espaço durante a obra, ela espera (`Building.waitRoom`). Save v34 cresceu as casas nível 3.
+- **Torre de Vigia 2×2** (save v33: a 1×1 cresceu no lugar ou foi para o lugar livre mais perto, `growBuildings` em
+  save.ts). Arte em camadas: `<arte>` = base e `<arte>-top` = telhado/pilastras/parapeito da frente, no mesmo retângulo; o
+  renderer desenha base → vigia → topo (`Drawable.top`, `drawTop`). Os 3 níveis usam a MESMA arte (`tower` + `tower-top`,
+  pedido do autor; só os bônus mudam com o nível); as temáticas (`tower-fishing`/`-desert`) ainda são a 1×1 de antes
+  20% maior (`ART_SCALE` provisório).
+- **Vigia da torre** (`game/towerWatch.ts`, seção "Vigia" no drawer da Torre; `Building.guardId` ↔ `Unit.onTower`, save
+  v32): um ninja da vila (fora de equipe, não estudando, não Kage) sobe e arremessa as kunais no lugar da torre com o dano
+  e o ritmo dele (Força/Velocidade) e o XP é dele (`watchTick` no sistema dos ninjas, antes da IA comum). Fica fora das
+  lutas comuns (`availableFighters`, auto-sensei, auto-ensino e "Montar" o ignoram); desce se for tirado, se a torre virar
+  obra, ferido (< 30%: trata até o fim e volta), mandado estudar, ou sem alternativa (inimigo a menos de 70 px da porta e
+  ninguém da vila lutando por perto). A posição lógica é a porta (é alvo de quem chega); o desenho fica na plataforma
+  (marca `guard` da arte no Editor de cenário, `Renderer.guardSpot`), depois das peças de baixo e antes das peças com
+  "Por cima do vigia" (`LayoutPiece.over`: o parapeito da frente de cada torre). Sem vigia a torre atira sozinha, sem
+  ninguém desenhado (a folha `tower-guard` saiu).
+  No desenho (`Renderer.watchPose`) ele fica a 70%, anda a cada ~5 s entre os pontos da plataforma (`guard`, `guard2`,
+  `guard3` no Editor de cenário; sem eles, dois passos atrás de cada lado) e olha para os lados; arremessando, vira para o
+  alvo. Não conta como "alguém atrás" da própria torre e esmaece junto com ela (`towerFade`).
+  `remove-bg.py --vaos` limpa vãos brancos fechados (torres, porto, ruína). O `remove-bg.py` só considera fundo o quase
+  branco SEM cor (parede creme e grama clara encostadas no fundo ficam) e tira a franja clara do contorno.
+  `python scripts/rebg.py [nome]` refaz o fundo das artes de docs/arte/iso a partir da crua do Codex (achada no
+  `.codex.txt`; anteriores em `docs/arte/iso/_antes-rebg/`).
+- **Recursos crescem de volta** (`data/regrow.ts`, `systems/nature.ts`): árvore/rocha/veio esgotado vira toco/rocha rachada
+  (`ResourceNode.regrow`) em vez de sumir. A rebrota fica mais lenta com o nível da vila (`regrowTime`, `CLEAR.levelMult`
+  1/2/3/4× em game/clearing.ts). **Limpar área** (cartão na seção Decoração da barra de construção, mesmo modo de pintar
+  da rua, `App.roadMode` 'clear'/'unclear'): arrastar marca árvores, tocos, rochas e veios (`ResourceNode.clear`, anel
+  tracejado laranja); morador sem obra vai lá (`toClear`/`clearing` em systems/villagers.ts) e arranca: rende o que
+  sobrava, o recurso fica `cleared` (sem desenho nem colisão, `nodeArt` 'cleared') e só volta depois de
+  `CLEAR.regrowMult` (4×) a rebrota normal; com prédio ou rua em cima, sai do mapa de vez (`regrowCleared`).
+  **Aterrar e cavar** (`game/earthworks.ts`, cartões ao lado do Limpar área, modos 'fill'/'dig'/'unearth'): marca tiles
+  dentro do território (`state.earthworks`, save v40); aterrar paga `EARTH.fillCost` ao marcar (volta ao desmarcar),
+  cavar é grátis (sem árvore/pedra/prédio no tile). Morador sem obra faz o trabalho de um tile vizinho em terra
+  (`toEarth`/`earthwork`; prioridade: obras > terreno > limpar área), então o lago fecha pela margem. Pronto: troca o
+  tile, refaz a areia em volta (`reshore`), a colisão e `Game.terrainRev`, que faz o renderer refazer o chão em blocos
+  e a água da neve/gelo (`Seasonal.refreshWater`).
+  **A luta marca o cenário** (`game/battleScars.ts`, chamado por `areaDamage` fora do duelo do Exame): golpe em área corta
+  árvores (perdem madeira, esgotadas viram toco; golpe enorme arranca, rebrota ×2) e racha/quebra rochas e veios, sem render
+  recurso; Katon põe a árvore para queimar (`ResourceNode.burn`, `burnTick` no sistema da natureza: chamas e fumaça,
+  pode pegar nas vizinhas, sobra o toco queimado com rebrota ×2); Suiton e chuva apagam (save v41). Esgotado não bloqueia construção e é removido ao construir em cima. Alcance de
+  coleta `searchTiles` (cresce com o nível; círculo tracejado no mapa ao selecionar lenhador/pedreira/mina).
+- **Prédios repetidos com papel próprio** (`game/specialize.ts`, `data/specialize.ts`): Campo de Treino tem vagas
+  (`TRAIN_SLOTS` 3/5/7 por nível; `Unit.trainId`), o ninja vai ao campo livre mais perto preferindo o do seu foco
+  (`pickField`), e cada campo pode ter um foco (`Building.focus`, +50%; quem não tem foco treina o do campo). Cada
+  Mercado pode vender o excedente de uma mercadoria (`Building.sells`, `marketSale`, sempre deixando a reserva `keep`).
+  Únicos (um por vila): Hokage, Academia, Hospital, Biblioteca, Missões, Forja, Farmácia, Selos, Porto, Inteligência,
+  Marionetes, Canil, Arena, Monte.
+- **Decorações e ruas** (pedido do autor a partir dos mockups): decorações são prédios com `deco`/`mood` em
+  data/buildings.ts (lanterna, banco, canteiro, estandarte, pedra sagrada, gato da sorte, cerejeira, fonte, lago de carpas,
+  pagode; arte do Codex numa grade, `scripts/deco-grid.py` → docs/arte/iso → prepare-art; tamanho no mapa por
+  `ART_SCALE`), seção "Decoração" na barra de construção; somam felicidade até `DECO_MOOD_MAX` (`decoMood` em mood.ts; a
+  cerejeira floresce na primavera, fica verde e sem folhas no inverno: arte pela estação em `Renderer.artBox`; a lanterna
+  acende à noite). **Ruas calçadas** (`game/roads.ts`, `state.roads` bitset por tile): cartão "Rua calçada" abre o modo de
+  pintar (`App.roadMode`, arraste usa a caixa de seleção do Input; "Tirar" apaga), custo por tile, +30% de velocidade
+  (`roadSpeed` em movement.ts) e o A* prefere a rua (`ROAD.pathCost`); prédio construído/movido em cima tira o calçamento;
+  desenho no chão em `Renderer.drawRoads`.
+- **Monte dos Kages e Pedra Memorial**: o monte é um paredão de montanha com um rosto esculpido por Kage de
+  `state.kageHistory` (arte `monument-f1..6` de `scripts/monument-faces.py`, escolhida em `Renderer.artBox`; o antigo,
+  bloco com arco, foi reprovado e está em docs/arte/_backup/2026-10-11/monte-antigo). Pedra Memorial (`memorial`, prédio
+  único): lista `state.fallen` no drawer e o luto passa duas vezes mais rápido (systems/seasons.ts).
+- Prédios podem ser movidos de graça (`canMove`/`moveBuilding` em commands.ts; o Hokage só se ninguém sair do território).
