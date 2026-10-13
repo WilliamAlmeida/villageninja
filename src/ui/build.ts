@@ -1,7 +1,7 @@
 import type { App } from '../app';
 import { BUILDING_LIST, BUILDINGS, type BuildingType, defOf } from '../data/buildings';
 import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, shoreSpot } from '../game/commands';
-import { toTile } from '../game/world';
+import { isShore, toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
@@ -366,8 +366,8 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const gh = this.app.ghost;
     if (gh && gh.type === type && ((gh.tx === tx && gh.ty === ty) || (gh.at?.tx === tx && gh.at?.ty === ty))) return;
     // prédio de margem: gruda na beira da água mais perto, já com o lado (espelhado ou não) que encaixa
-    if (BUILDINGS[type].shore) {
-      const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined);
+    if (isShore({ type, level: gh?.type === type ? gh.level : undefined })) {
+      const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined, 4, gh?.type === type ? (gh.level ?? 1) : 1);
       if (spot) {
         this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, moveId: gh?.moveId, moveFrom: gh?.moveFrom, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
         return;

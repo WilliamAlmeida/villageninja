@@ -321,8 +321,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
   portão `g` / livre `.` (`tiles` com h×2 linhas de w×2 letras; clique troca, arrastar pinta; `World.rebuild` e `blockSites`) e **bloqueios
   avulsos** numa margem de 3 tiles em volta do prédio (`TypeLayout.extra`, células relativas ao canto, podem ser
   negativas): a arte que passa do terreno (muro da arena) bloqueia sem aumentar o prédio.
-  Célula `~` (água) em qualquer prédio (ciclo livre → muro → portão → água no Editor de cenário): bloqueia como o muro e
-  o chão embaixo é desenhado como água (lago de carpas, fonte), sem pedir água no mapa.
+  Célula `~` (água) em qualquer prédio (ciclo livre → muro → portão → água no Editor de cenário): o NÍVEL com água vira
+  prédio de margem como o Porto (`isShore` em world.ts: `shore` ou água no terreno de `layoutKey(b)`; colocar, mover,
+  girar e subir de nível — `growRoom` — pedem água de verdade sob as células só de água; tile meio a meio = a beira,
+  aceita os dois; o fantasma gruda na beira). Save de antes da regra com água pintada fora d'água: o chão da célula é
+  desenhado como água.
   **Prédio de margem** (`BuildingDef.shore`: o Porto): célula `~` (água) no terreno = píer/barco em cima da água; para
   construir, tile só com `~` precisa ser água, só com `#` terra (os dois = a beira) e a porta em terra (`World.shoreFits`).
   **Todo prédio pode ser espelhado** (`Building.flip`, `canFlip`; botão "Girar" e tecla R ao posicionar ou mover): troca x

@@ -16,7 +16,7 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { plainTokens } from '../core/tokens';
-import { artLayout, tileOf, typeLayout } from '../data/layout';
+import { artLayout, tileOf } from '../data/layout';
 import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
@@ -27,7 +27,7 @@ import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { isRoad } from '../game/roads';
-import { buildingCenter, doorPos, doorTile, nodeArt } from '../game/world';
+import { buildingCenter, doorPos, doorTile, isShore, nodeArt, T } from '../game/world';
 import { art, artFoot, ART_SCALE, smoothIfShrunk } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
@@ -133,6 +133,8 @@ export class Renderer {
   private layerB: HTMLCanvasElement | null = null;
   /** Redesenho só para máscara (silhueta): sem efeitos colaterais (fumaça de chaminé). */
   private maskPass = false;
+  /** Mapa sendo desenhado agora (o chão do prédio de margem confere onde é água de verdade). */
+  private mapState: GameState | null = null;
   private lastTime = 0;
   /** Visual das estações (neve no chão, gelo, árvores, decorações). */
   private seasonal!: Seasonal;
@@ -178,6 +180,7 @@ export class Renderer {
 
   render(g: Game, cam: Camera, ghost: Ghost | null, time: number, ov: Overlay = NO_OVERLAY) {
     const s = g.state;
+    this.mapState = s;
     cam.map = s; // a câmera fica dentro do mapa que está na tela (a vila é maior que os mapas de missão)
     this.level = s.level;
     this.season = seasonOf(s);
@@ -269,7 +272,7 @@ export class Renderer {
     for (const b of shown) {
       const d = defOf(b);
       if (d.walkable) continue;
-      if (tileOf(layoutKey(b), 0, 0) !== undefined && (d.shore || this.hasWater(b))) {
+      if (tileOf(layoutKey(b), 0, 0) !== undefined && isShore(b)) {
         this.shoreGround(b);
         continue;
       }
@@ -939,12 +942,6 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** O terreno do prédio (Editor de cenário) tem células de água? (lago de carpas, fonte) */
-  private hasWater(b: Building) {
-    const L = typeLayout(layoutKey(b));
-    return !!L?.tiles?.some((r) => r.includes('~'));
-  }
-
   /**
    * (chão) Terreno com água: terra batida sob as células de muro; sob as de água, a sombra do píer na água do mapa
    * (Porto) ou a própria água desenhada (os outros prédios: lago de carpas, fonte), que não pedem água no mapa.
@@ -962,9 +959,21 @@ export class Renderer {
     cells('#');
     ctx.fillStyle = 'rgba(120,90,55,0.35)';
     ctx.fill();
-    cells('~');
-    ctx.fillStyle = defOf(b).shore ? 'rgba(8,24,44,0.3)' : '#3a80c0';
-    ctx.fill();
+    // célula de água: sombra do píer sobre a água do mapa; onde o mapa não é água (save de antes da regra), pinta a água
+    const s = this.mapState;
+    const wet = (fx: number, fy: number) => {
+      const tx = b.tx + Math.floor(fx / SUB);
+      const ty = b.ty + Math.floor(fy / SUB);
+      return !!s && tx >= 0 && ty >= 0 && tx < s.mapW && ty < s.mapH && s.tiles[ty * s.mapW + tx] === T.WATER;
+    };
+    for (const real of [true, false]) {
+      ctx.beginPath();
+      for (let fy = 0; fy < d.h * SUB; fy++)
+        for (let fx = 0; fx < d.w * SUB; fx++)
+          if (tileOf(layoutKey(b), fx, fy, b.flip) === '~' && wet(fx, fy) === real) ctx.roundRect(b.tx * TILE + fx * CELL - 2, b.ty * TILE + fy * CELL - 2, CELL + 4, CELL + 4, 4);
+      ctx.fillStyle = real ? 'rgba(8,24,44,0.3)' : '#3a80c0';
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -1909,7 +1918,7 @@ export class Renderer {
     ctx.fillStyle = gh.valid ? 'rgba(80,220,100,0.35)' : 'rgba(240,60,60,0.4)';
     ctx.fillRect(x, y, d.w * TILE, d.h * TILE);
     // prédio de margem: as células que vão na água em azul
-    if (d.shore && tileOf(layoutKey(gh), 0, 0) !== undefined) {
+    if (isShore(gh) && tileOf(layoutKey(gh), 0, 0) !== undefined) {
       ctx.fillStyle = 'rgba(70,150,255,0.45)';
       for (let fy = 0; fy < d.h * SUB; fy++)
         for (let fx = 0; fx < d.w * SUB; fx++) if (tileOf(layoutKey(gh), fx, fy, gh.flip) === '~') ctx.fillRect(x + fx * CELL, y + fy * CELL, CELL, CELL);

@@ -12,7 +12,7 @@ import { addStat, focusCapped, nextRank, trainBlocked } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
 import { levelDef } from '../data/villageLevels';
 import { inTerritory } from './village';
-import { canFlip, doorPos } from './world';
+import { canFlip, doorPos, isShore } from './world';
 import { clearRoadsUnder } from './roads';
 import { academyRecruitLevel, workersOf } from './upgrade';
 import { needsScroll, studyable } from './library';
@@ -38,7 +38,7 @@ export function canBuild(g: Game, type: BuildingType): Result {
 export function placeError(g: Game, type: BuildingType, tx: number, ty: number, level = 1, flip = false) {
   const d = defOf({ type, level, flip });
   if (!inTerritory(g.state, tx, ty, d.w, d.h + 1)) return 'Fora do território da vila. Evolua a vila para expandir.';
-  return d.shore ? 'Precisa ficar na beira da água: o píer em cima da água e a casa em terra.' : 'Local inválido.';
+  return isShore({ type, level }) ? 'Precisa ficar na beira da água: a parte de água em cima da água do mapa e o resto em terra.' : 'Local inválido.';
 }
 
 /** `flip`: prédio de margem espelhado (a água do outro lado, ver `canFlip`). */
@@ -71,7 +71,7 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
  * Prédio de margem: o lugar válido mais perto de (tx, ty), num raio de `r` tiles, com o lado da água (espelhado ou não)
  * que encaixa. `ignoreId` = prédio sendo movido (testa como se ele já tivesse saído). Null se não houver.
  */
-export function shoreSpot(g: Game, type: BuildingType, tx: number, ty: number, ignoreId?: number, r = 4): { tx: number; ty: number; flip: boolean } | null {
+export function shoreSpot(g: Game, type: BuildingType, tx: number, ty: number, ignoreId?: number, r = 4, level = 1): { tx: number; ty: number; flip: boolean } | null {
   const s = g.state;
   const i = ignoreId == null ? -1 : s.buildings.findIndex((b) => b.id === ignoreId);
   const out = i >= 0 ? s.buildings.splice(i, 1)[0]! : null;
@@ -84,7 +84,7 @@ export function shoreSpot(g: Game, type: BuildingType, tx: number, ty: number, i
       const d = dx * dx + dy * dy;
       if (d > r * r || d >= bestD) continue;
       for (const flip of flips)
-        if (g.world.canPlace(type, tx + dx, ty + dy, flip)) {
+        if (g.world.canPlace(type, tx + dx, ty + dy, flip, level)) {
           best = { tx: tx + dx, ty: ty + dy, flip };
           bestD = d;
           break;

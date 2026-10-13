@@ -74,6 +74,14 @@ export function siteTiles(site: Site) {
   const [ox, oy] = L.origin ?? [Math.floor(w / 2), Math.floor(h / 2)];
   return { x0: site.tx - ox, y0: site.ty - oy, w, h };
 }
+/**
+ * Prédio de margem neste nível: o Porto (`shore`) ou qualquer prédio cujo terreno do nível (Editor de cenário) tenha
+ * células de água ("~"), como a serraria do lenhador nível 3. As células "~" pedem água de verdade no mapa.
+ */
+export function isShore(b: { type: BuildingType; level?: number }): boolean {
+  return !!BUILDINGS[b.type].shore || !!typeLayout(layoutKey(b))?.tiles?.some((r) => r.includes('~'));
+}
+
 export function buildingCenter(b: Building) {
   const d = defOf(b);
   return { x: (b.tx + d.w / 2) * TILE, y: (b.ty + d.h / 2) * TILE };
@@ -287,8 +295,8 @@ export class World implements MapSize {
     // 1 tile de folga entre prédios garante que sempre exista caminho.
     for (let y = ty - 1; y <= ty + d.h; y++)
       for (let x = tx - 1; x <= tx + d.w; x++) if (this.inBounds(x, y) && this.occupied[this.idx(x, y)] !== 0) return false;
-    if (d.shore && tileOf(type, 0, 0) !== undefined) {
-      if (!this.shoreFits(type, tx, ty, flip)) return false;
+    if (isShore({ type, level }) && tileOf(layoutKey({ type, level }), 0, 0) !== undefined) {
+      if (!this.shoreFits(type, tx, ty, flip, level)) return false;
     } else
       for (let y = ty; y <= ty + d.h; y++)
         for (let x = tx; x < tx + d.w; x++) if (this.state.tiles[this.idx(x, y)] === T.WATER || this.state.tiles[this.idx(x, y)] === T.ROCK) return false;
@@ -302,15 +310,16 @@ export class World implements MapSize {
    * Prédio de margem: cada tile do terreno pelo que as 4 células dele pedem: só água ("~") = tile de água; só muro
    * ("#") = terra; os dois = a beira (qualquer um); só livre = qualquer chão. A porta tem que dar em terra firme.
    */
-  shoreFits(type: BuildingType, tx: number, ty: number, flip = false): boolean {
-    const d = BUILDINGS[type];
+  shoreFits(type: BuildingType, tx: number, ty: number, flip = false, level = 1): boolean {
+    const d = defOf({ type, level, flip });
+    const key = layoutKey({ type, level });
     const tiles = this.state.tiles;
     for (let y = 0; y < d.h; y++)
       for (let x = 0; x < d.w; x++) {
         let wet = false;
         let dry = false;
         for (let c = 0; c < SUB * SUB; c++) {
-          const k = tileOf(type, x * SUB + (c % SUB), y * SUB + Math.floor(c / SUB), flip);
+          const k = tileOf(key, x * SUB + (c % SUB), y * SUB + Math.floor(c / SUB), flip);
           if (k === '~') wet = true;
           else if (k === '#') dry = true;
         }
@@ -319,7 +328,7 @@ export class World implements MapSize {
         if (wet && !dry && t !== T.WATER) return false;
         if (dry && !wet && t === T.WATER) return false;
       }
-    const door = doorTile({ type, tx, ty, flip } as Building);
+    const door = doorTile({ type, tx, ty, flip, level } as Building);
     if (!this.inBounds(door.tx, door.ty)) return false;
     const dt = tiles[this.idx(door.tx, door.ty)];
     return dt !== T.WATER && dt !== T.ROCK;

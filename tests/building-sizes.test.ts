@@ -7,7 +7,8 @@ import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import type { Building } from '../src/game/types';
 import { growRoom, startUpgrade, syncHokage, upgradeTime, workUpgrade } from '../src/game/upgrade';
-import { CENTER_TX, CENTER_TY, doorTile } from '../src/game/world';
+import { CENTER_TX, CENTER_TY, doorTile, isShore } from '../src/game/world';
+import { typeLayout } from '../src/data/layout';
 import { placeBuilding } from '../src/game/commands';
 
 /** Casa nível 2 pronta num lugar com espaço de sobra em volta (para crescer para 3×3). */
@@ -164,5 +165,21 @@ describe('girar (espelhar) qualquer prédio', () => {
     const b = { type: 'market', tx: 10, ty: 10 } as Building;
     expect(doorTile(b)).toEqual({ tx: 11, ty: 12 });
     expect(doorTile({ ...b, flip: true } as Building)).toEqual({ tx: 12, ty: 11 });
+  });
+});
+
+describe('nível com célula de água = prédio de margem', () => {
+  test('lenhador nível 3 com água no terreno pede a beira; sem água no mapa, o upgrade diz por quê', () => {
+    const { g, b } = setup(1601);
+    b.type = 'lumber';
+    b.level = 2;
+    g.world.rebuild();
+    const water = typeLayout('lumber-3')?.tiles?.some((r) => r.includes('~'));
+    expect(isShore({ type: 'lumber', level: 1 })).toBe(false);
+    expect(isShore({ type: 'lumber', level: 3 })).toBe(!!water);
+    // tile com célula só de água pede água no mapa (aqui é terra): o upgrade explica; meio a meio (a beira) aceita os dois
+    const rows = typeLayout('lumber-3')?.tiles ?? [];
+    const fullWater = rows.some((r, y) => y % 2 === 0 && [...r].some((c, x) => x % 2 === 0 && c === '~' && r[x + 1] === '~' && rows[y + 1]?.[x] === '~' && rows[y + 1]?.[x + 1] === '~'));
+    if (water && fullWater) expect(growRoom(g, b, 3)).toContain('beira da água');
   });
 });
