@@ -75,7 +75,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
         el(
           'button',
           { class: 'bcard', 'data-type': d.type, 'data-tip-title': d.name, 'data-tip': plainInfo(d) },
-          rich(`${artUrl(d.type) ? `<img class="bg" src="${artUrl(d.type)}" alt="" draggable="false">` : ''}<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span>
+          rich(`${artUrl(d.type) ? `<img class="bg" src="${artUrl(d.type)}" alt="" draggable="false">` : ''}<span class="i">${d.icon}</span><span class="n">${d.name}</span><span class="c">${costLabel(d.cost)}</span><span class="lock"></span><span class="cnt"></span>
             <span class="info" data-info title="Detalhes">{info}</span>`),
         ),
       );
@@ -362,6 +362,12 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
         le.setAttribute('data-raw', lock);
         le.innerHTML = rich(lock);
       }
+      // teto por nível da vila: "3/8"; cheio fica em destaque e o toque abre o aviso com o motivo (canBuild)
+      const cap = g.buildingCap(type);
+      const cnt = Number.isFinite(cap) && !lock ? `${g.buildingCount(type)}/${cap}` : '';
+      const ce = c.querySelector('.cnt')!;
+      if (ce.textContent !== cnt) ce.textContent = cnt;
+      ce.classList.toggle('full', !!cnt && g.buildingCount(type) >= cap);
     });
   }
 
@@ -376,6 +382,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       `Tamanho ${d.w}×${d.h}`,
       `Obra: ${d.buildTime}s`,
       d.unique && 'Só um por vila',
+      d.maxCount && `Até ${d.maxCount[g.state.level]} neste nível da vila (${d.maxCount[d.maxCount.length - 1]} no máximo)`,
       d.walkable && 'Dá para andar por cima',
       d.mood && `+${d.mood} de felicidade (decorações somam até ${DECO_MOOD_MAX})`,
     ].filter(Boolean);

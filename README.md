@@ -135,7 +135,8 @@ navegador. Se um dia precisar de WebGL, a troca fica só na camada `render/`.
 - [docs/sistemas/](docs/sistemas/): detalhe de cada sistema (render, arte, combate, interface, prédios e mapa,
   mundo, organizações, vila e ninjas, ferramentas, ninja em camadas).
 - [docs/ROADMAP.md](docs/ROADMAP.md), [docs/PENDENCIAS.md](docs/PENDENCIAS.md) (lista viva do que falta),
-  [docs/REQUISITOS.md](docs/REQUISITOS.md) (aparelhos medidos), [docs/design-ui.md](docs/design-ui.md).
+  [docs/REQUISITOS.md](docs/REQUISITOS.md) (aparelhos medidos), [docs/design-ui.md](docs/design-ui.md),
+  [docs/gdd-escala-ilhas-pvp.md](docs/gdd-escala-ilhas-pvp.md) (tetos de prédios, colônias nas ilhas e PvP: proposta).
 
 ## Estado
 

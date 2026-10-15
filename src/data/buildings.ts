@@ -65,6 +65,11 @@ export interface BuildingDef {
   /** Nível mínimo da vila para construir (padrão 0). */
   minLevel?: number;
   /**
+   * Teto de prédios deste tipo por nível da vila (0..3); sem o campo, sem teto (`unique` = 1). A vila cresce subindo
+   * o nível dos prédios, não repetindo: ver docs/gdd-escala-ilhas-pvp.md, seção 3.
+   */
+  maxCount?: [number, number, number, number];
+  /**
    * Prédio de margem (Porto): parte em cima da água. As células "~" do terreno (Editor de cenário) precisam ser água e
    * as de muro, terra; espelhado (`Building.flip`, vale para todo prédio) a água fica do outro lado.
    */
@@ -86,31 +91,31 @@ const LIST: BuildingDef[] = [
     sizes: { 3: [4, 4], 4: [5, 5] },
   },
   {
-    type: 'house', name: 'Casa', icon: '{house}', desc: 'Abriga 4 moradores.',
-    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 14, housing: 4, buildable: true, lights: true,
+    type: 'house', name: 'Casa', icon: '{house}', desc: 'Abriga 4 moradores (8 no nível 2, 12 no nível 3).',
+    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 14, housing: 4, buildable: true, lights: true, maxCount: [5, 8, 11, 14],
     sizes: { 3: [3, 3] }, // nível 3: casa grande de dois andares com ala e jardim
     roof: '#5b7fa6', wall: '#dccaa2',
   },
   {
     type: 'farm', name: 'Fazenda', icon: '{wheat}', desc: '2 fazendeiros cultivam comida.',
-    w: 3, h: 3, cost: { wood: 25 }, buildTime: 10, workers: 2, job: 'farmer', buildable: true, walkable: true,
+    w: 3, h: 3, cost: { wood: 25 }, buildTime: 10, workers: 2, job: 'farmer', buildable: true, walkable: true, maxCount: [2, 3, 4, 5],
     roof: '#7a5a2a', wall: '#b89a5a',
   },
   {
     type: 'lumber', name: 'Lenhador', icon: '{axe}', desc: '2 lenhadores cortam árvores próximas.',
-    w: 2, h: 2, cost: { wood: 20, stone: 5 }, buildTime: 10, workers: 2, job: 'lumber', buildable: true,
+    w: 2, h: 2, cost: { wood: 20, stone: 5 }, buildTime: 10, workers: 2, job: 'lumber', buildable: true, maxCount: [2, 3, 4, 5],
     sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#7b5233', wall: '#a57c4f',
   },
   {
     type: 'quarry', name: 'Pedreira', icon: '{pickaxe}', desc: '2 mineradores quebram rochas próximas.',
-    w: 2, h: 2, cost: { wood: 30 }, buildTime: 12, workers: 2, job: 'miner', buildable: true,
+    w: 2, h: 2, cost: { wood: 30 }, buildTime: 12, workers: 2, job: 'miner', buildable: true, maxCount: [2, 3, 4, 5],
     sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#5f666e', wall: '#a5a29a',
   },
   {
     type: 'market', name: 'Mercado', icon: '{lantern}', desc: 'Um comerciante gera ryo.',
-    w: 2, h: 2, cost: { wood: 40, stone: 20 }, buildTime: 16, workers: 1, job: 'merchant', buildable: true, lights: true,
+    w: 2, h: 2, cost: { wood: 40, stone: 20 }, buildTime: 16, workers: 1, job: 'merchant', buildable: true, lights: true, maxCount: [1, 2, 2, 3],
     sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#c9822b', wall: '#e3cfa3',
   },
@@ -122,7 +127,7 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'training', name: 'Campo de Treino', icon: '{barbell}', desc: 'Ninjas treinam e melhoram atributos.',
-    w: 3, h: 3, cost: { wood: 40, stone: 10 }, buildTime: 12, buildable: true, walkable: true,
+    w: 3, h: 3, cost: { wood: 40, stone: 10 }, buildTime: 12, buildable: true, walkable: true, maxCount: [1, 2, 3, 4],
     roof: '#7a5a2a', wall: '#a57c4f',
   },
   {
@@ -133,7 +138,7 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'tower', name: 'Torre de Vigia', icon: '{tower}', desc: 'Arremessa kunais em inimigos próximos.',
-    w: 2, h: 2, cost: { wood: 25, stone: 25 }, buildTime: 12, buildable: true,
+    w: 2, h: 2, cost: { wood: 25, stone: 25 }, buildTime: 12, buildable: true, maxCount: [3, 5, 8, 12],
     roof: '#8e3b2a', wall: '#6b4a2b',
   },
   {
@@ -149,12 +154,12 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'ironmine', name: 'Mina de Ferro', icon: '{iron}', desc: '2 mineiros extraem ferro de veios de minério próximos.',
-    w: 2, h: 2, cost: { wood: 40, stone: 30 }, buildTime: 16, workers: 2, job: 'ironminer', buildable: true, minLevel: 1,
+    w: 2, h: 2, cost: { wood: 40, stone: 30 }, buildTime: 16, workers: 2, job: 'ironminer', buildable: true, minLevel: 1, maxCount: [0, 2, 3, 4],
     roof: '#4a4f57', wall: '#8b8378',
   },
   {
     type: 'herbgarden', name: 'Horta de Ervas', icon: '{herbs}', desc: '2 jardineiros cultivam ervas medicinais.',
-    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 10, workers: 2, job: 'gardener', buildable: true, walkable: true, minLevel: 1,
+    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 10, workers: 2, job: 'gardener', buildable: true, walkable: true, minLevel: 1, maxCount: [0, 2, 3, 4],
     roof: '#3c6e3c', wall: '#8fbf6a',
   },
   {
@@ -292,6 +297,14 @@ export function defOf(b: { type: BuildingType; level?: number; flip?: boolean })
     sized.set(key, out);
   }
   return out;
+}
+
+/** Teto de prédios do tipo no nível da vila (`maxCount`; `unique` = 1; sem teto = Infinity). */
+export function maxCountOf(type: BuildingType, villageLevel: number): number {
+  const d = BUILDINGS[type];
+  if (d.unique) return 1;
+  const m = d.maxCount;
+  return m ? m[Math.max(0, Math.min(m.length - 1, villageLevel))]! : Infinity;
 }
 
 /** Chave do layout (terreno, porta e pontos no Editor de cenário) do prédio: `<tipo>-<nível>` nos níveis de outro tamanho. */

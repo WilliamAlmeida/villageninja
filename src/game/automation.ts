@@ -9,7 +9,7 @@ import { createNinja, randomStats, refreshDerived } from './entities';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { enqueueCraft, recipesOf, stock } from './gear';
-import { jutsuOptions, teachJutsu } from './commands';
+import { jutsuOptions, ninjaBlock, teachJutsu } from './commands';
 import { joinAsSensei, teamFit, teamOf } from './teams';
 import type { Building, Cost, Unit } from './types';
 import { levelOf } from './upgrade';
@@ -134,6 +134,8 @@ export function hireBlock(g: Game, rank: 'chunin' | 'jounin'): string | null {
   if (!g.findBuilt('missions')) return 'Construa a Mesa de Missões.';
   if (g.state.level < m.minVillage) return `A vila precisa ser maior para atrair um ${RANKS[rank].name}.`;
   if (g.population() >= g.popCap()) return 'Sem vaga nas casas: construa casas para o mercenário morar.';
+  const full = ninjaBlock(g);
+  if (full) return full;
   if (!g.canAfford(m.cost)) return `Custa ${costLabel(m.cost)}.`;
   return null;
 }

@@ -61,8 +61,9 @@ um sistema, atualize o arquivo dele (não este).
 - **Qualidade** (Configurações; `ui/settings.ts`, `QUALITY_CFG`): Alta (resolução até 2×), Equilibrada (1,5×, 70% das
   partículas; padrão no celular), Leve (1×, 45% das partículas, clima leve, até 30 qps). Zoom < 0,85: metade das
   partículas e sem anéis no chão/marcas de missão (`far` no renderer). Retratos do Bingo/Kage feitos com o jogo ocioso
-  (`ui/warm.ts`). **Teto de população** pelo nível da vila (`popLimit` 60/100/150/200 em villageLevels; `popCap` =
-  casas até o teto).
+  (`ui/warm.ts`). **Teto de população** pelo nível da vila (`popLimit` 40/90/130/170 em villageLevels; `popCap` =
+  casas até o teto; `ninjaLimit` 10/20/32/45) e **teto de prédios por tipo** (`maxCount`, `docs/sistemas/predios-mapa.md`):
+  a vila cresce melhorando prédios, não repetindo (docs/gdd-escala-ilhas-pvp.md).
 
 ## Balanceamento (2026-10-11, medido com o save do autor: dia 314, 77 ninjas, força militar ~5.000)
 - Réguas em `.perf/` (fora do git): `bal-jutsus.ts` (cada jutsu: dano no alvo/total, tempo preso, valor por segundo

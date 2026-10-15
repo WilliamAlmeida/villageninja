@@ -147,6 +147,10 @@ button:disabled { cursor: not-allowed; }
 .bcard.off { opacity: 0.45; }
 .bcard .lock { font-size: 0.77rem; color: var(--warn); }
 .bcard .lock:empty { display: none; }
+/* teto por nível da vila ("3/8"); cheio em destaque */
+.bcard .cnt { position: absolute; top: 0.3rem; right: 0.45rem; font-size: 0.77rem; color: var(--muted); }
+.bcard .cnt:empty { display: none; }
+.bcard .cnt.full { color: var(--warn); font-weight: 700; }
 
 #placebar, #orderbar, #roadbar {
   position: fixed; left: 50%; bottom: calc(0.75rem + var(--safe-b)); transform: translateX(-50%); z-index: 12;

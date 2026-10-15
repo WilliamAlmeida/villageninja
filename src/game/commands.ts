@@ -1,7 +1,8 @@
 // Ações do jogador. A UI só altera o jogo por aqui (fácil de testar / reaproveitar).
 import { promoteToSensei } from './teams';
 import { SUB, TILE } from '../config';
-import { BUILDINGS, type BuildingType, defOf, layoutKey } from '../data/buildings';
+import { BUILDINGS, type BuildingType, defOf, layoutKey, maxCountOf } from '../data/buildings';
+import { UPGRADES } from '../data/upgrades';
 import { tileOf } from '../data/layout';
 import { JUTSU_LIST, JUTSUS, type JutsuDef } from '../data/jutsus';
 import { RANKS, STAT_INFO, STAT_KEYS, type StatKey } from '../data/ninja';
@@ -11,7 +12,7 @@ import { fx, fxText } from './fx';
 import type { Game } from './game';
 import { addStat, focusCapped, nextRank, trainBlocked } from './progression';
 import type { Building, Cost, NinjaOrder, Unit } from './types';
-import { levelDef } from '../data/villageLevels';
+import { levelDef, MAX_VILLAGE_LEVEL } from '../data/villageLevels';
 import { inTerritory } from './village';
 import { canFlip, doorPos, isShore, T } from './world';
 import { clearRoadsUnder } from './roads';
@@ -31,8 +32,34 @@ export function canBuild(g: Game, type: BuildingType): Result {
   if ((def.minLevel ?? 0) > g.state.level) return fail(`Requer nível ${levelDef(def.minLevel!).name}.`);
   if (type === 'monument' && !g.state.kageHistory.length) return fail('Requer um Kage eleito.');
   if (def.unique && g.state.buildings.some((b) => b.type === type)) return fail('Só pode haver um.');
+  const why = countBlock(g, type);
+  if (why) return fail(why);
   if (!g.canAfford(def.cost)) return fail('Recursos insuficientes.');
   return ok;
+}
+
+/**
+ * Motivo de não poder construir mais um prédio deste tipo (teto `maxCount` por nível da vila), ou null. A vila cresce
+ * subindo o nível dos prédios que tem; save antigo acima do teto fica como está, só não constrói o próximo.
+ */
+export function countBlock(g: Game, type: BuildingType): string | null {
+  const cap = g.buildingCap(type);
+  if (!Number.isFinite(cap) || g.buildingCount(type) < cap) return null;
+  const def = BUILDINGS[type];
+  const lv = levelDef(g.state.level);
+  const next = g.state.level < MAX_VILLAGE_LEVEL ? maxCountOf(type, g.state.level + 1) : cap;
+  if (cap === 0) return `Requer nível ${levelDef(def.minLevel ?? 1).name}.`;
+  const more = next > cap ? `suba a vila de nível (${next} no nível ${levelDef(g.state.level + 1).name})` : 'é o máximo do jogo';
+  return `Limite de ${cap} ${plural(def.name, cap)} no nível ${lv.name}: ${more}${UPGRADES[type] ? ` ou melhore ${cap === 1 ? 'o que tem' : 'os que tem'}` : ''}.`;
+}
+
+/** Plural simples do nome do prédio para as mensagens de teto ("Casa" → "casas", "Torre de Vigia" → "torres de vigia"). */
+function plural(name: string, n: number) {
+  const low = name.toLowerCase();
+  if (n === 1) return low;
+  const [head, ...rest] = low.split(' ');
+  const h = head!.endsWith('r') || head!.endsWith('s') ? `${head}es` : `${head}s`;
+  return [h, ...rest].join(' ');
 }
 
 /** Fora do território → mensagem específica (as outras regras dão "Local inválido"). */
@@ -200,10 +227,19 @@ export function setDesiredWorkers(g: Game, id: number, delta: number): Result {
 
 export const RECRUIT_COST: Cost = { ryo: 60, food: 20 };
 
+/** Motivo de a vila não poder ganhar mais um ninja (teto `ninjaLimit` do nível), ou null. */
+export function ninjaBlock(g: Game): string | null {
+  if (g.ninjaCount() < g.ninjaCap()) return null;
+  const next = g.state.level < MAX_VILLAGE_LEVEL ? ` Suba a vila de nível (${levelDef(g.state.level + 1).ninjaLimit} no nível ${levelDef(g.state.level + 1).name}).` : '';
+  return `Limite de ${g.ninjaCap()} ninjas no nível ${levelDef(g.state.level).name}.${next}`;
+}
+
 export function recruitNinja(g: Game): Result {
   if (!g.findBuilt('academy')) return fail('Construa a Academia Ninja primeiro.');
   const candidates = g.state.units.filter((u) => !u.dead && u.kind === 'villager');
   if (candidates.length <= 1) return fail('A vila precisa de mais moradores.');
+  const full = ninjaBlock(g);
+  if (full) return fail(full);
   if (!g.canAfford(RECRUIT_COST)) return fail('Recursos insuficientes.');
   // prefere desempregados
   const u = candidates.find((c) => c.jobId == null) ?? candidates[0]!;

@@ -15,7 +15,7 @@ export interface UpgradeDef {
 }
 
 export const UPGRADES: Partial<Record<BuildingType, UpgradeDef>> = {
-  house: { costs: [{ wood: 50, stone: 30 }, { wood: 90, stone: 70, ryo: 60 }], minVillage: [0, 1], perks: ['4 moradores', '6 moradores', '8 moradores'] },
+  house: { costs: [{ wood: 50, stone: 30 }, { wood: 90, stone: 70, ryo: 60 }], minVillage: [0, 1], perks: ['4 moradores', '8 moradores', '12 moradores'] },
   farm: { costs: [{ wood: 40, stone: 10 }, { wood: 80, stone: 40, ryo: 50 }], minVillage: [0, 1], perks: ['+2 comida por colheita', '+3 comida por colheita', '+4 comida por colheita'] },
   lumber: { costs: [{ wood: 40, stone: 20 }, { wood: 70, stone: 50, ryo: 40 }], minVillage: [0, 1], perks: ['2 lenhadores', '3 lenhadores', '4 lenhadores'] },
   quarry: { costs: [{ wood: 50, stone: 10 }, { wood: 80, stone: 40, ryo: 40 }], minVillage: [0, 1], perks: ['2 mineradores', '3 mineradores', '4 mineradores'] },

@@ -1,6 +1,6 @@
 import { bus, type ToastKind } from '../core/events';
 import { dist2 } from '../core/math';
-import type { BuildingType } from '../data/buildings';
+import { type BuildingType, maxCountOf } from '../data/buildings';
 import { RES_KEYS } from '../data/resources';
 import type { Building, Cost, Faction, GameState, ResourceNode, Selection, Team, Unit } from './types';
 import { canHit, isHostile } from './factions';
@@ -198,6 +198,25 @@ export class Game {
   /** Vagas: as casas, até o teto do nível da vila (`popLimit`). */
   popCap() {
     return Math.min(this.housingCap(), levelDef(this.state.level).popLimit);
+  }
+  /** Ninjas vivos da vila. */
+  ninjaCount() {
+    let n = 0;
+    for (const u of this.state.units) if (!u.dead && u.faction === 'village' && u.kind === 'ninja') n++;
+    return n;
+  }
+  /** Teto de ninjas pelo nível da vila (`ninjaLimit`). */
+  ninjaCap() {
+    return levelDef(this.state.level).ninjaLimit;
+  }
+  /** Prédios do tipo (prontos ou em obra) e o teto deles neste nível (`maxCount`). */
+  buildingCount(type: BuildingType) {
+    let n = 0;
+    for (const b of this.state.buildings) if (b.type === type) n++;
+    return n;
+  }
+  buildingCap(type: BuildingType) {
+    return maxCountOf(type, this.state.level);
   }
   /** Vagas nas casas (sem o teto do nível). */
   housingCap() {

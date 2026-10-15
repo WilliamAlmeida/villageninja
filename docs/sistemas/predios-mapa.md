@@ -8,6 +8,17 @@
   terreno cresce junto: 3×3, 3×3, 4×4, 5×5 (`sizes`; sem espaço, espera; save v37); arte `hokage`, `hokage-2..4`. A obra é feita pelos construtores (`needsBuilders`) com o prédio funcionando.
   Efeitos por nível via helpers (`housingOf`, `workersOf`, `farmYield`…) — use-os em vez de `BUILDINGS[t].housing`.
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
+- **Teto de prédios por nível da vila** (2026-10-15, docs/gdd-escala-ilhas-pvp.md seção 3; `BuildingDef.maxCount`
+  `[n0..n3]`, `maxCountOf(type, level)`, `Game.buildingCount/buildingCap`, `countBlock` em commands.ts dentro de
+  `canBuild`): a vila cresce subindo o nível dos prédios, não repetindo. Casa 5/8/11/14; fazenda, lenhador e pedreira
+  2/3/4/5; mina de ferro e horta 0/2/3/4; mercado 1/2/2/3; torre 3/5/8/12; campo de treino 1/2/3/4; únicos = 1;
+  decorações e ruas sem teto. Prédio em obra conta. **Casa abriga 4 / 8 / 12** (`housingOf` = 4 × nível; era 4/6/8) e
+  o `popLimit` é o das casas do teto cheias: 40/90/130/170 (era 60/100/150/200), imposto 3/4/4/5. Save antigo acima
+  do teto: nada é demolido; `canBuild` só recusa o próximo ("Limite de 8 casas no nível Vila: suba a vila de nível (11
+  no nível Vila Oculta) ou melhore os que tem."). Mover continua livre. UI: contador `3/8` no card do menu de construção
+  (`.cnt`, cheio em `--warn`; o toque abre o cartão com o motivo), fato "Até N neste nível" no cartão, cartão "Casas
+  N / teto" na janela Vila e aviso na aba de melhoria do drawer quando no teto. Sem migração de save. Testes em
+  `tests/limits.test.ts`.
 - **Tamanho do mapa por estado** (`GameState.mapW/mapH`; `VILLAGE_W/H` = 112×112 e `SCENE_W/H` = 72×48 em config.ts):
   não há mais `MAP_W`/`WORLD_W` globais. Índices e limites vêm do mapa: `World.idx/inBounds/fidx/inFine/cellCenter` e
   `world.mapW/fineW`, ou `idx(s, …)`/`inBounds(s, …)`/`centerOf(s)` com o estado (`CENTER_TX/TY` = centro da VILA; os

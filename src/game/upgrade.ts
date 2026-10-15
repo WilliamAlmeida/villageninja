@@ -15,10 +15,10 @@ const fail = (error: string): Result => ({ ok: false, error });
 
 export const levelOf = (b: Building) => b.level ?? 1;
 
-/** Moradores que cabem (casas ganham +2 por nível). */
+/** Moradores que cabem (casa 4 / 8 / 12: ela vale mais a cada nível, em vez de se repetir; há teto de casas). */
 export const housingOf = (b: Building) => {
   const base = defOf(b).housing ?? 0;
-  return base && b.type === 'house' ? base + (levelOf(b) - 1) * 2 : base;
+  return base && b.type === 'house' ? base * levelOf(b) : base;
 };
 
 /** Máximo de trabalhadores (lenhador e pedreira ganham +1 por nível). */

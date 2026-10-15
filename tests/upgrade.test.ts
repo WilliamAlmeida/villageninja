@@ -24,8 +24,8 @@ describe('upgrade de prédios', () => {
     }
     expect(house.upgrade).toBeNull();
     expect(levelOf(house)).toBe(2);
-    expect(housingOf(house)).toBe(6);
-    expect(g.popCap()).toBe(cap0 + 2);
+    expect(housingOf(house)).toBe(8);
+    expect(g.popCap()).toBe(cap0 + 4);
   });
 
   test('bloqueios: sem recursos, durante a obra e no nível máximo', () => {

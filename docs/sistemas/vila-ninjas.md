@@ -23,6 +23,11 @@
   rotina Treinar volta para Auto e o Auto não treina.
   Foco em atributo já no teto da patente fica bloqueado (`focusCapped` em progression.ts: botão com `blocked` e o aviso
   dizendo a patente que libera; `setFocus` recusa); chegando ao teto treinando, o foco volta para Aleatório com aviso.
+- **Teto de ninjas** (2026-10-15, docs/gdd-escala-ilhas-pvp.md seção 3; `ninjaLimit` 10/20/32/45 em
+  `data/villageLevels.ts`, `Game.ninjaCount/ninjaCap`, `ninjaBlock` em commands.ts): recrutar na Academia
+  (`recruitNinja`), contratar mercenário (`hireBlock`) e o ninja errante da honra (`region.ts`) param no teto; quem
+  nasce ninja por outro caminho (Kage, clã, cena) não é bloqueado. Save acima do teto não perde ninguém, só não recebe
+  mais até cair. UI: botão Recrutar com `blocked` e chip `N / teto` na Academia; cartão "Ninjas N / teto" na janela Vila.
 - **Profissões e invocações** (`data/specs.ts`, `data/contracts.ts`, `game/specs.ts` via `specTick` no sistema dos ninjas):
   Chunin+ aprende médico (Hospital nv 2), espião (Torre de Inteligência: revela espiões e marca alvos +15%) ou marionetista
   (Oficina de Marionetes: boneco = clone com `role: 'puppet'`). Contrato (lugares sagrados) invoca sapo/serpente/lesma:

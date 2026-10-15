@@ -31,8 +31,8 @@ import { ROLE_INFO, roleOf, setTeamTactic, TACTIC_INFO, type Role, type Tactic }
 import { isOpen, LIBRARY, LIBRARY_JUTSUS, libraryLevel, openBlock, openScroll, scrollCost, studyable } from '../game/library';
 import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
 import {
-  costLabel, demolish, jutsuOptions, promote, recruitNinja, RECRUIT_COST, setDesiredWorkers, setFocus, setOrder, teachJutsu,
-  type Result,
+  costLabel, countBlock, demolish, jutsuOptions, ninjaBlock, promote, recruitNinja, RECRUIT_COST, setDesiredWorkers, setFocus, setOrder,
+  teachJutsu, type Result,
 } from '../game/commands';
 import { focusCapped, nextRank, statsMaxed, trainBlocked } from '../game/progression';
 import { nextLevelStatus, upgradeVillage } from '../game/village';
@@ -1401,8 +1401,8 @@ export class Panel {
       }
       if (bd.type === 'academy') {
         const villagers = g.state.units.filter((u) => !u.dead && u.kind === 'villager').length;
-        html += `<div class="bsec"><h4>{userplus} Recrutamento ${infoTip('Recrutamento', 'Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui.')}</h4>
-          <div class="wtools"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.'], RECRUIT_COST)}>{ninja} Recrutar ${costTag(RECRUIT_COST)}</button></div></div>`;
+        html += `<div class="bsec"><h4>{userplus} Recrutamento ${infoTip('Recrutamento', `Transforma um morador em Genin. Alguns já nascem com jutsu, outros precisam estudar aqui. A vila comporta até ${g.ninjaCap()} ninjas neste nível.`)}</h4>
+          <div class="wtools"><button class="btn primary" data-act="recruit" ${blocked(g, [villagers <= 1 && 'Precisa sobrar pelo menos um morador na vila.', ninjaBlock(g)], RECRUIT_COST)}>{ninja} Recrutar ${costTag(RECRUIT_COST)}</button><span class="mchip">{ninja} ${g.ninjaCount()} / ${g.ninjaCap()}</span></div></div>`;
         html += `<div class="bsec"><h4>{books} Ensino ${infoTip('Ensino', 'Para escolher o jutsu de alguém: selecione o ninja → "Ensinar jutsu".')}</h4><div class="wtools">${this.teachBar()}</div></div>`;
       }
       if (bd.type === 'training') html += this.fieldSection(bd, t);
@@ -1855,6 +1855,8 @@ export class Panel {
       return html;
     }
     if (lvl >= MAX_BUILDING_LEVEL) return html + `<div class="hint">{check} Nível máximo.</div></div>`;
+    // no teto de prédios deste tipo: a melhoria é o jeito de crescer
+    if (bd.built && countBlock(g, bd.type)) html += `<div class="hint">{info} A vila está no limite deste tipo de prédio neste nível: a próxima vaga vem da melhoria.</div>`;
     const st = upgradeStatus(g, bd);
     const cost = st.cost ?? {};
     // requisito de nível da vila também como etiqueta (ex.: Biblioteca nível 3 pede a Vila Oculta)
@@ -1930,7 +1932,8 @@ export class Panel {
     let left = `<div class="bsec"><h4>{chart} Números da vila</h4><div class="statgrid">`;
     left += cell('calendar', 'Dia', s.day, 'Dias desde a fundação da vila.');
     left += cell('users', 'População', `${g.population()} / ${g.popCap()}`, `Moradores e ninjas / vagas nas casas, até o teto do nível da vila (${levelDef(g.state.level).popLimit}). Construa ou melhore casas, ou suba o nível da vila, para crescer.`);
-    left += cell('shinobi', 'Ninjas', ninjas.length, 'Ninjas da vila (recrutados na Academia).');
+    left += cell('house', 'Casas', `${g.buildingCount('house')} / ${g.buildingCap('house')}`, `Casas / teto de casas neste nível da vila. No teto, a vila cresce melhorando as casas (4, 8 e 12 moradores) ou subindo de nível.`);
+    left += cell('shinobi', 'Ninjas', `${ninjas.length} / ${g.ninjaCap()}`, 'Ninjas da vila (recrutados na Academia) / teto de ninjas neste nível da vila.');
     left += cell('star', 'Reputação', s.reputation, 'Sobe com missões, exames, chefes vencidos e o Monte dos Kages; cai quando uma missão fracassa.');
     left += cell('swords', 'Abates', s.stats.kills, 'Inimigos e animais derrotados.');
     left += cell('shield', 'Invasões repelidas', s.stats.raidsRepelled, 'Ataques de renegados que a vila venceu.');
