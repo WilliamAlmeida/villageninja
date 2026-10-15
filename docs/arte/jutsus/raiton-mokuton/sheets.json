@@ -1,0 +1,99 @@
+{
+    "status":  "Integrado no commit 3de1e8b; Kirin, Jukai e Raikyuu aprovados; posição de Nagashi a avaliar",
+    "tool":  "ImageGen integrado",
+    "sheets":  [
+                   {
+                       "id":  "kirin",
+                       "file":  "effect-kirin-v1.png",
+                       "cell":  128,
+                       "mode":  "one-shot",
+                       "size":  180,
+                       "fps":  10,
+                       "anchorY":  0.78,
+                       "phases":  {
+                                      "charge":  [
+                                                     0
+                                                 ],
+                                      "head":  [
+                                                   1,
+                                                   2
+                                               ],
+                                      "descent":  [
+                                                      3
+                                                  ],
+                                      "impact":  [
+                                                     4,
+                                                     5
+                                                 ],
+                                      "dissipate":  [
+                                                        6,
+                                                        7
+                                                    ]
+                                  },
+                       "path":  "src/art/effects/effect-kirin-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "jukai",
+                       "file":  "effect-jukai-v1.png",
+                       "cell":  96,
+                       "mode":  "phases",
+                       "size":  76,
+                       "fps":  12,
+                       "anchorY":  0.78,
+                       "phases":  {
+                                      "grow":  [
+                                                   0,
+                                                   1,
+                                                   2
+                                               ],
+                                      "hold":  [
+                                                   3,
+                                                   4
+                                               ],
+                                      "withdraw":  [
+                                                       5,
+                                                       6,
+                                                       7
+                                                   ]
+                                  },
+                       "path":  "src/art/effects/effect-jukai-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "raikyuu",
+                       "file":  "projectile-raikyuu-v1.png",
+                       "cell":  64,
+                       "mode":  "loop",
+                       "size":  30,
+                       "fps":  16,
+                       "anchorY":  0.5,
+                       "path":  "src/art/effects/projectile-raikyuu-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "chidorinagashi",
+                       "file":  "effect-chidorinagashi-v1.png",
+                       "cell":  128,
+                       "mode":  "one-shot",
+                       "size":  142,
+                       "fps":  10,
+                       "anchorY":  0.78,
+                       "path":  "src/art/effects/effect-chidorinagashi-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5,
+                       "dy":  18
+                   }
+               ]
+}

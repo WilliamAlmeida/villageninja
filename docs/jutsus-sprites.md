@@ -45,10 +45,10 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Concluído; aprovado pelo autor | Rasenshuriken | Formação na mão, quatro lâminas giratórias, voo, domo expansivo e cratera ampliada. |
 | Muito alta | Chidori | Chakra elétrico na mão, descarga durante a investida e impacto. |
 | Integrado; avaliação no jogo pendente | Doryuuheki; Doryuudan; Suna no Tate; Sabaku Kyū | Muralha, cabeça de terra e projétil de lama separados, barreira curva de areia e casulo com compressão. |
-| Muito alta | Kirin | Formação no céu, dragão elétrico e queda; avaliar peças separadas. |
-| Alta | Amaterasu e Susano'o | Chamas negras presas ao alvo; armadura de chakra em camadas ao redor do ninja. |
-| Alta | Jukai Kōtan | Raízes crescendo e envolvendo. |
-| Alta | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo. |
+| Aprovado pelo autor (3de1e8b) | Kirin | Formação no céu, dragão elétrico e queda. |
+| Adiados pelo autor em 2026-10-14 | Amaterasu e Susano'o | Chamas negras presas ao alvo; armadura de chakra em camadas ao redor do ninja. |
+| Aprovado pelo autor (3de1e8b) | Jukai Kōtan | Raízes crescendo e envolvendo. |
+| Raikyuu aprovado; Nagashi com posição a avaliar (3de1e8b) | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo, deslocada +18 px. |
 | Alta | Yōkai | Massa de lava e explosão viscosa próprias. |
 | Média | Daitoppa, Shinkuu Ha e Sekizō | Rajadas, lâminas e colunas de ar. |
 | Média | Kaiten, Sōshiken, Gatsūga e Nikudan Sensha | Domo giratório, leões de chakra, tornado e corpo rolando. |
@@ -102,3 +102,19 @@ alinhamento da base e conferência de margens. Prévia autocontida: `bun scripts
 Fontes, prompts, metadados e prévia em `docs/arte/jutsus/doton-suna/`. Integrado no jogo (3a50dcf); avaliação visual pendente.
 Doryuudan mantém um projétil de dano e acrescenta a origem visual fixa; muralha e casulo usam fases pela duração,
 e o escudo acompanha o ninja. Dados em `jutsu-fx.json`; configuração reproduzível em `scripts/configure-doton-suna.ts`.
+
+## Quarto lote: Kirin, Jukai Kōtan, Raikyuu e Chidori Nagashi
+
+Iniciado em 2026-10-14 após os commits `3a50dcf` e `0d0e25b` do lote Doton/areia. Amaterasu e Susano'o adiados
+por pedido explícito do autor. Quatro folhas em grade 4x2 com oito quadros e transparência:
+
+- `effect-kirin-v1.png`: formação da cabeça de dragão elétrico, descida e descarga, sequência única.
+- `effect-jukai-v1.png`: raízes crescendo e envolvendo, permanência e retração.
+- `projectile-raikyuu-v1.png`: esfera de raios pulsante, loop.
+- `effect-chidorinagashi-v1.png`: descarga radial de raios com centro aberto para o ninja, sequência única.
+
+Fontes, prompts ImageGen integrado, metadados e prévia em `docs/arte/jutsus/raiton-mokuton/`.
+Preparo em `scripts/prepare-raiton-mokuton.ps1`; prévia com `bun scripts/preview-raiton-mokuton.ts`.
+Integrado no jogo em 2026-10-15. Configuração reproduzível: `scripts/configure-raiton-mokuton.ts`.
+Kirin e Nagashi usam impacto único de 0,8 s; raízes seguem o tempo de prisão, Raikyuu anima no voo.
+Commit 3de1e8b. Kirin, Jukai e Raikyuu aprovados; falta avaliar o ajuste Y do Nagashi.

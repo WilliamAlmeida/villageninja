@@ -66,10 +66,11 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [ ] Doryuudan — integrado: cabeça fixa na origem, boca alinhada ao projétil de lama, espelhamento pela direção. Implementado no commit 3a50dcf; avaliação no jogo pendente.
 - [ ] Suna no Tate — integrado: barreira curva de areia acompanhando o ninja enquanto o escudo estiver ativo. Implementado no commit 3a50dcf; avaliação no jogo pendente.
 - [ ] Sabaku Kyū — integrado: envolver, fechar, manter, comprimir e desfazer o casulo conforme o tempo restante da prisão. Implementado no commit 3a50dcf; avaliação no jogo pendente. Prévia das artes em `docs/arte/jutsus/doton-suna/preview.html`.
-- [ ] Kirin — formação no céu, dragão elétrico e queda; avaliar peças separadas.
-- [ ] Amaterasu e Susano'o — chamas negras e armadura de chakra em camadas.
-- [ ] Jukai Kōtan — crescimento de raízes e aprisionamento.
-- [ ] Raikyuu e Chidori Nagashi — esfera elétrica e descarga ao redor do corpo.
+- [x] Kirin — integrado em 2026-10-15: formação, cabeça descendente e descarga no chão em 0,8 s; mantém redução de força sem tempestade. Aprovado visualmente pelo autor (3de1e8b).
+- [ ] Amaterasu e Susano'o — adiados por solicitação do autor em 2026-10-14.
+- [x] Jukai Kōtan — integrado: raízes crescem, envolvem, permanecem e recuam pelo tempo da prisão. Aprovado visualmente pelo autor (3de1e8b).
+- [x] Raikyuu — esfera elétrica em voo integrada e aprovada visualmente pelo autor (3de1e8b).
+- [ ] Chidori Nagashi — descarga radial de 0,8 s acompanhando o corpo, com centro aberto; deslocamento Y corrigido para +18 px em 2026-10-15. Commit 3de1e8b; falta avaliar o posicionamento; prévia em `docs/arte/jutsus/raiton-mokuton/preview.html`.
 - [ ] Yōkai — substituir a arte reaproveitada do Housenka por lava própria.
 - [ ] Daitoppa, Shinkuu Ha e Sekizō — rajadas, lâminas e colunas de ar.
 - [ ] Kaiten, Sōshiken, Gatsūga e Nikudan Sensha — efeitos característicos sobre as poses atuais.
