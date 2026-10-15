@@ -5,7 +5,7 @@ import { placeBuilding } from '../src/game/commands';
 import { decoMood, DECO_MOOD_MAX } from '../src/game/mood';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
-import { isRoad, pave, ROAD, roadCount, roadSpeed, unpave } from '../src/game/roads';
+import { commitRoads, draftRoad, isRoad, pave, ROAD, type RoadDraft, roadCount, roadSpeed, unpave } from '../src/game/roads';
 import { SYSTEMS } from '../src/game/systems';
 import type { Game } from '../src/game/game';
 import { createDemoGame } from '../src/game/demo';
@@ -26,7 +26,7 @@ function freeTile(g: Game): [number, number] {
 }
 
 describe('ruas calçadas', () => {
-  test('calçar custa pedra, acelera quem anda e sai quando um prédio é construído em cima', () => {
+  test('calçar custa pedra, acelera quem anda e fica embaixo do prédio construído em cima', () => {
     const g = createNewGame(SYSTEMS, 91);
     g.state.res.stone = 100;
     const [tx, ty] = freeTile(g);
@@ -38,7 +38,34 @@ describe('ruas calçadas', () => {
     expect(pave(g, tx, ty).ok).toBe(false); // já é rua
     Object.assign(g.state.res, { wood: 500, stone: 500, ryo: 500 });
     expect(placeBuilding(g, 'lantern', tx, ty).ok).toBe(true);
+    expect(isRoad(g.state, tx, ty)).toBe(true);
+    // e dá para calçar embaixo de prédio pronto
+    unpave(g, tx, ty);
+    expect(pave(g, tx, ty).ok).toBe(true);
+  });
+
+  test('o rascunho não muda nada nem cobra até o "Pronto"', () => {
+    const g = createNewGame(SYSTEMS, 94);
+    g.state.res.stone = 100;
+    const [tx, ty] = freeTile(g);
+    g.state.res.stone = 100; // freeTile calça e tira para achar o tile
+    const d: RoadDraft = new Map();
+    expect(draftRoad(g, d, tx, ty, true)).toBeNull();
+    draftRoad(g, d, tx + 1, ty, true);
     expect(isRoad(g.state, tx, ty)).toBe(false);
+    expect(g.state.res.stone).toBe(100);
+    // tirar o que ainda é rascunho só desfaz
+    draftRoad(g, d, tx + 1, ty, false);
+    expect(d.size).toBe(1);
+    expect(commitRoads(g, d)).toBe(1);
+    expect(isRoad(g.state, tx, ty)).toBe(true);
+    expect(g.state.res.stone).toBe(100 - ROAD.cost.stone!);
+    // pedra que dá só para alguns: o resto do rascunho é recusado na hora
+    g.state.res.stone = ROAD.cost.stone! * 2;
+    let fails = 0;
+    for (let i = 1; i <= 4; i++) if (draftRoad(g, d, tx, ty + i, true)) fails++;
+    expect(d.size).toBeLessThanOrEqual(2);
+    expect(fails).toBeGreaterThan(0);
   });
 
   test('não calça água nem fora do território', () => {

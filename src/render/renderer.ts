@@ -29,8 +29,8 @@ import { drawThemeDeco, type ThemeDeco, themeDecos } from './themeProps';
 import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
-import { isRoad } from '../game/roads';
-import { buildingCenter, doorPos, doorTile, hasWater, nodeArt, T } from '../game/world';
+import { draftPaves, isRoad as isRoadNow, paveBlock, type RoadDraft } from '../game/roads';
+import { buildingCenter, doorPos, doorTile, hasWater, idx, inBounds, nodeArt, T } from '../game/world';
 import { art, artFoot, ART_SCALE, drawWhole } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
@@ -61,7 +61,15 @@ export interface Overlay {
   group: number[];
   hoverUnitId: number | null;
   selectBox: { x0: number; y0: number; x1: number; y1: number } | null;
+  /** Modo de pintar no mapa (rua, limpar, aterrar/cavar): calçando, os prédios ficam transparentes. */
+  roadMode?: string | null;
+  /** Ruas pintadas e ainda não confirmadas. */
+  roadDraft?: RoadDraft | null;
+  /** Tile que o clique vai pegar (prévia). */
+  roadHover?: { tx: number; ty: number; del?: boolean } | null;
 }
+/** Opacidade do que fica por cima do chão nos modos de pintar. */
+const THIN = 0.28;
 const NO_OVERLAY: Overlay = { group: [], hoverUnitId: null, selectBox: null };
 
 /** Item em pé na cena (prédio, nó ou unidade), ordenado por profundidade (y da cena). */
@@ -211,6 +219,9 @@ export class Renderer {
   /** Árvores: era árvore no quadro anterior (para pegar a hora em que vira toco) e quando começou a cair. */
   private treeWas = new Map<number, { tree: boolean; t: number }>();
   private treeFall = new Map<number, number>();
+  /** Opacidade de prédios/campos (`thinB`) e de árvores/pedras (`thinN`) nos modos de pintar no mapa. */
+  private thinB = 1;
+  private thinN = 1;
   /** Recurso sendo golpeado agora: força da tremida (0–1) por id. */
   private hitNodes = new Map<number, number>();
 
@@ -293,6 +304,11 @@ export class Renderer {
 
     // caverna (mapa de mina): sempre escura, iluminada pelas tochas da equipe
     const night = s.sceneInfo?.kind === 'mine' || s.sceneInfo?.kind === 'hideout' ? 0.8 : darkness(s);
+    // modos de pintar no mapa (rua, limpar, aterrar/cavar): prédios e campos quase transparentes, para ver e pintar o
+    // chão em volta e embaixo; árvores e pedras também, menos ao limpar (é nelas que se toca)
+    const painting = !!ov.roadMode;
+    this.thinB = painting ? THIN : 1;
+    this.thinN = painting && ov.roadMode !== 'clear' ? THIN : 1;
     const sel = g.selected;
     const hkSel = sel?.kind === 'building' && g.building(sel.id)?.type === 'hokage';
 
@@ -350,7 +366,9 @@ export class Renderer {
     this.mark('chão: batido');
     // campos e áreas abertas ficam deitados no chão
     // (os que têm arte isométrica vão como decalque logo depois desta passada)
+    ctx.globalAlpha = this.thinB;
     for (const b of shown) if (defOf(b).walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
+    ctx.globalAlpha = 1;
     this.mark('chão: campos');
 
     if (sel?.kind === 'building') {
@@ -390,10 +408,12 @@ export class Renderer {
     ctx.restore();
 
     this.mark('chão');
-    this.drawRoads(g);
+    this.drawRoads(g, ov.roadDraft ?? null);
+    if (ov.roadMode) this.paintPreview(g, ov);
     this.mark('ruas');
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
     // (Editor de cenário), só o "resto" vai no chão e as peças entram em pé
+    ctx.globalAlpha = this.thinB;
     for (const b of shown) {
       const box = this.artBox(b, s.level);
       const set = box && pieceSet(box.artName, box.pic);
@@ -401,6 +421,7 @@ export class Renderer {
         if (artLayout(box!.artName)!.ground ?? !!defOf(b).walkable) this.drawPiece(b, 0, s.level);
       } else if (defOf(b).walkable && art(b.type)) this.building(b, time, night, s.level);
     }
+    ctx.globalAlpha = 1;
     this.drawHarvest(g);
     for (const e of s.effects) {
       const groundImpact = e.kind === 'burst' && FX.jutsus[e.fx ?? '']?.impact?.layer === 'ground';
@@ -643,7 +664,8 @@ export class Renderer {
         const fades: Map<string | number, number> = d.n ? this.nodeFade : this.fade;
         const key = d.n ? d.n.id : d.b ? `b${d.b.id}:${d.top ? 'top' : (d.piece ?? '')}` : `s${d.site!.id}:${d.piece}`;
         const hits = occluded.get(d);
-        const target = hits && this.occl.fade ? 0.38 : 1;
+        const thin = d.b || d.site ? this.thinB : this.thinN;
+        const target = thin < 1 ? thin : hits && this.occl.fade ? 0.38 : 1;
         const cur = fades.get(key) ?? 1;
         const a = cur === target ? cur : cur + (target - cur) * Math.min(1, dt * 10 || 1);
         if (Math.abs(a - 1) < 0.01) {
@@ -1109,7 +1131,9 @@ export class Renderer {
     const shrink = z < t.s * 0.98;
     ctx.imageSmoothingEnabled = shrink;
     if (shrink) ctx.imageSmoothingQuality = 'low';
+    ctx.globalAlpha = this.thinN;
     ctx.drawImage(t.c, t.col * COLW, t.band * BAND - PAD_TOP, COLW, TILE_H);
+    ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;
     if (this.silTrees.size) for (const e of t.painted) if (this.silTrees.has(e)) this.silBlock(e, occluded);
   }
@@ -1145,7 +1169,7 @@ export class Renderer {
     ctx.clip();
     for (const e of front) {
       const hits = occluded.get(this.stripD(e));
-      ctx.globalAlpha = this.occl.fade && d.u && hits?.some((h) => h.u === d.u) ? 0.38 : 1;
+      ctx.globalAlpha = Math.min(this.thinN, this.occl.fade && d.u && hits?.some((h) => h.u === d.u) ? 0.38 : 1);
       this.drawStripNode(e, time);
       if (this.silTrees.has(e)) this.silBlock(e, occluded);
     }
@@ -1595,10 +1619,13 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Ruas calçadas (game/roads.ts): pedras no losango de cada tile, com a borda escura onde a rua acaba. */
-  private drawRoads(g: Game) {
+  /** Ruas calçadas (game/roads.ts): pedras no losango de cada tile, com a borda escura onde a rua acaba. O rascunho
+   * entra junto: o que vai ser calçado já aparece como rua (contorno amarelo) e o que vai sair, em vermelho. */
+  private drawRoads(g: Game, draft: RoadDraft | null) {
     const s = g.state;
-    if (!s.roads?.some((w) => w)) return;
+    const pending = !!draft?.size;
+    if (!pending && !s.roads?.some((w) => w)) return;
+    const isRoad = pending ? (s2: GameState, x: number, y: number) => isRoadNow(s2, x, y) || (inBounds(s2, x, y) && !!draft!.get(idx(s2, x, y))) : isRoadNow;
     const ctx = this.ctx;
     const winter = this.season === 'winter';
     const P = (x: number, y: number) => project(x * TILE, y * TILE);
@@ -1641,6 +1668,61 @@ export class Renderer {
         if (!isRoad(s, tx - 1, ty)) (ctx.moveTo(d.x, d.y), ctx.lineTo(a.x, a.y));
         ctx.stroke();
       }
+    if (!pending) return;
+    // rascunho por cima: contorno tracejado amarelo (calçar) ou vermelho (tirar)
+    ctx.save();
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([3, 2]);
+    for (const [i, on] of draft!) {
+      const tx = i % s.mapW;
+      const ty = Math.floor(i / s.mapW);
+      this.tileDiamond(tx, ty);
+      if (!on) {
+        ctx.fillStyle = 'rgba(220,60,50,0.45)';
+        ctx.fill();
+      }
+      ctx.strokeStyle = on ? 'rgba(255,211,77,0.95)' : 'rgba(255,110,90,0.95)';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** Caminho do losango de um tile (na cena). */
+  private tileDiamond(tx: number, ty: number, inset = 0) {
+    const ctx = this.ctx;
+    const P = (x: number, y: number) => project(x * TILE, y * TILE);
+    const a = P(tx + inset, ty + inset);
+    const b = P(tx + 1 - inset, ty + inset);
+    const c = P(tx + 1 - inset, ty + 1 - inset);
+    const d = P(tx + inset, ty + 1 - inset);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineTo(c.x, c.y);
+    ctx.lineTo(d.x, d.y);
+    ctx.closePath();
+  }
+
+  /** Modos de pintar: o tile que o clique vai pegar, verde se dá, vermelho se não (o motivo sai na barra ao pintar). */
+  private paintPreview(g: Game, ov: Overlay) {
+    const h = ov.roadHover;
+    if (!h || !inBounds(g.state, h.tx, h.ty)) return;
+    const s = g.state;
+    const m = ov.roadMode;
+    const i = idx(s, h.tx, h.ty);
+    const draft = ov.roadDraft;
+    const ok =
+      m === 'pave' ? draft?.get(i) === true || isRoadNow(s, h.tx, h.ty) || !paveBlock(g, h.tx, h.ty, draft ? draftPaves(draft) : 0) : true;
+    const color = h.del ? '255,120,100' : m === 'clear' ? '255,170,60' : ok ? '140,230,120' : '255,90,80';
+    const ctx = this.ctx;
+    ctx.save();
+    this.tileDiamond(h.tx, h.ty);
+    ctx.fillStyle = `rgba(${color},0.28)`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${color},0.95)`;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
   }
 
   /** Kage Mane: faixa de sombra no chão do ninja até o preso, ondulando nas bordas (por baixo de todo mundo). */

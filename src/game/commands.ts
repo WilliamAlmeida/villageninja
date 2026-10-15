@@ -60,7 +60,7 @@ export function placeBuilding(g: Game, type: BuildingType, tx: number, ty: numbe
     } else if ((n.type === 'rock' || n.type === 'ore') && n.amount <= 0) g.removeNode(n.id); // rocha esgotada sai do caminho
   }
   g.state.res.wood += wood;
-  clearRoadsUnder(g.state, tx, ty, def.w, def.h); // a obra tira o calçamento
+  clearRoadsUnder(g.state, tx, ty, def.w, def.h, !!def.walkable); // campo tira o calçamento (prédio deixa a rua embaixo)
   const b: Building = { id: g.newId(), type, tx, ty, built: false, progress: 0, desired: def.workers ?? 0, workers: [], cd: 0 };
   if (flip) b.flip = true;
   g.addBuilding(b);
@@ -164,7 +164,7 @@ export function moveBuilding(g: Game, id: number, tx: number, ty: number, flip =
   }
   b.tx = tx;
   b.ty = ty;
-  clearRoadsUnder(g.state, tx, ty, defOf(b).w, defOf(b).h);
+  clearRoadsUnder(g.state, tx, ty, defOf(b).w, defOf(b).h, !!defOf(b).walkable);
   if (flip) b.flip = true;
   else delete b.flip;
   g.world.rebuild();

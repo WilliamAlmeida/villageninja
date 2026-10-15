@@ -71,6 +71,8 @@ const app: App = {
   ghost: null,
   buildType: null,
   roadMode: null,
+  roadDraft: new Map(),
+  roadHover: null,
   orderMode: null,
   group: [],
   hoverUnitId: null,

@@ -2,6 +2,7 @@ import type { Camera } from './core/camera';
 import type { BuildingType } from './data/buildings';
 import type { Game } from './game/game';
 import type { Ghost } from './render/renderer';
+import type { RoadDraft } from './game/roads';
 
 /** Retângulo em coordenadas de tela. */
 export interface ScreenBox {
@@ -24,9 +25,12 @@ export interface App {
   camera: Camera;
   ghost: Ghost | null;
   buildType: BuildingType | null;
-  /** Pintando ruas: arrastar no mapa calça (ou tira, em 'erase') os tiles (game/roads.ts). */
-  /** Pintando no mapa arrastando: rua (calçar/tirar) ou limpar área (marcar/desmarcar). */
-  roadMode: 'pave' | 'erase' | 'clear' | 'unclear' | 'fill' | 'dig' | 'unearth' | null;
+  /** Pintando no mapa: rua, limpar área ou aterrar/cavar (o toque em cima do que já está marcado tira). */
+  roadMode: 'pave' | 'clear' | 'fill' | 'dig' | null;
+  /** Ruas pintadas e ainda não confirmadas (só valem no "Pronto"; game/roads.ts). */
+  roadDraft: RoadDraft;
+  /** Tile sob o mouse nos modos de pintar (a prévia de onde o toque vai cair). */
+  roadHover: { tx: number; ty: number; del?: boolean } | null;
   /** Modo "dar ordem": o próximo toque no mapa vira ordem para estes ninjas. */
   orderMode: { ids: number[]; label: string } | null;
   /** Ninjas selecionados em grupo (caixa de seleção). */

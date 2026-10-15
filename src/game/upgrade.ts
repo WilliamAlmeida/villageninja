@@ -149,7 +149,7 @@ function growTo(g: Game, b: Building, next: number) {
   if (!grew) return;
   const d = defOf(b);
   for (const n of [...g.state.nodes]) if (n.tx >= b.tx && n.tx < b.tx + d.w && n.ty >= b.ty && n.ty < b.ty + d.h) g.removeNode(n.id);
-  clearRoadsUnder(g.state, b.tx, b.ty, d.w, d.h);
+  clearRoadsUnder(g.state, b.tx, b.ty, d.w, d.h, !!d.walkable);
   g.world.rebuild();
 }
 

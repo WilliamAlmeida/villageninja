@@ -10,9 +10,10 @@ import { el } from './dom';
 import { rich } from './icons';
 import { artUrl } from '../render/art';
 import { isShown, setShown } from './anim';
-import { pave, ROAD, unpave } from '../game/roads';
+import { commitRoads, draftPaves, draftRoad, ROAD, roadCost, roadWith } from '../game/roads';
 import { CLEAR, markClear, toClear } from '../game/clearing';
-import { EARTH, markEarth, unmarkEarth } from '../game/earthworks';
+import type { ResourceNode } from '../game/types';
+import { EARTH, earthworkAt, markEarth, unmarkEarth } from '../game/earthworks';
 import { TILE } from '../config';
 import { DECO_MOOD_MAX } from '../game/mood';
 
@@ -91,7 +92,6 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       }
       const earth = (e.target as HTMLElement).closest<HTMLElement>('[data-earth]')?.dataset.earth as 'fill' | 'dig' | undefined;
       if (earth) {
-        this.earthOp = earth;
         this.startRoad(earth);
         return;
       }
@@ -120,17 +120,17 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     this.roadBar = el(
       'div',
       { id: 'roadbar', class: 'placebar', hidden: '' },
-      rich(`<span class="hint" data-t="road"></span><button class="btn tog" data-act="erase">{eraser} Tirar</button><button class="btn primary" data-act="done">{check} Pronto</button>`),
+      rich(`<span class="hint" data-t="road"></span><button class="btn icon corner" data-act="cancel" ${tipAttr('Cancelar', 'Sai do modo; as ruas pintadas e ainda não confirmadas são descartadas.')}>{x}</button><button class="btn primary" data-act="done">{check} Pronto</button>`),
     );
     this.roadBar.addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
-      if (a === 'erase') {
-        const m = this.app.roadMode;
-        this.app.roadMode =
-          m === 'erase' ? 'pave' : m === 'pave' ? 'erase' : m === 'clear' ? 'unclear' : m === 'unclear' ? 'clear' : m === 'unearth' ? this.earthOp : 'unearth';
-        this.roadHint();
+      if (a === 'cancel') this.cancel();
+      if (a === 'done') {
+        // o rascunho da rua só vale aqui: paga e calça (ou tira) de uma vez
+        const g = this.app.home;
+        if (this.app.roadDraft.size && commitRoads(g, this.app.roadDraft)) g.rev++;
+        this.exit();
       }
-      if (a === 'done') this.exit();
     });
     this.roadBar.addEventListener('pointerdown', (e) => e.stopPropagation());
   }
@@ -140,75 +140,156 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   private lastRoad: { tx: number; ty: number } | null = null;
   private roadMsg = '';
 
-  /** Última obra de terreno escolhida (o "Desmarcar" volta para ela). */
-  private earthOp: 'fill' | 'dig' = 'fill';
+  /**
+   * Traço atual tira em vez de pôr: decidido no primeiro tile (em cima de rua/marca, tira; senão, põe) e mantido até
+   * soltar, para o arraste não ficar alternando. null = nenhum traço em andamento.
+   */
+  private strokeDel: boolean | null = null;
 
   /** Entra no modo de pintar ruas (ou de marcar a área a limpar, ou de aterrar/cavar). */
   private startRoad(mode: 'pave' | 'clear' | 'fill' | 'dig' = 'pave') {
     setShown(this.bar, false);
     this.app.roadMode = mode;
     this.lastRoad = null;
+    this.strokeDel = null;
     this.roadBar.hidden = false;
     this.roadHint();
   }
 
   private roadHint() {
     const m = this.app.roadMode;
-    const clearing = m === 'clear' || m === 'unclear';
-    const earth = m === 'fill' || m === 'dig' || m === 'unearth';
-    const erase = m === 'erase' || m === 'unclear' || m === 'unearth';
-    const btn = this.roadBar.querySelector('[data-act="erase"]')!;
-    btn.classList.toggle('on', erase);
-    btn.innerHTML = rich(clearing || earth ? '{eraser} Desmarcar' : '{eraser} Tirar');
     const works = this.app.home.state.earthworks ?? [];
-    const msg = earth
-      ? m === 'unearth'
-        ? '{eraser} Arraste no mapa para desmarcar'
-        : m === 'fill'
-          ? `{stone} Arraste sobre a água para aterrar · ${costLabel(EARTH.fillCost)} por tile · ${works.filter((e) => e.op === 'fill').length} marcados`
-          : `{drop} Arraste sobre a terra para cavar · ${works.filter((e) => e.op === 'dig').length} marcados`
-      : clearing
-      ? m === 'unclear'
-        ? '{axe} Arraste no mapa para desmarcar'
-        : `{axe} Arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.home.state).length} marcados`
-      : erase
-        ? '{road} Arraste no mapa para tirar a rua'
-        : `{road} Arraste no mapa para calçar · ${costLabel(ROAD.cost)} por tile`;
-    this.roadBar.querySelector('[data-t="road"]')!.innerHTML = rich(this.roadMsg ? `${msg} · <b>${this.roadMsg}</b>` : msg);
+    const msg =
+      m === 'fill'
+        ? `{stone} Toque ou arraste sobre a água para aterrar · ${costLabel(EARTH.fillCost)} por tile · ${works.filter((e) => e.op === 'fill').length} marcados`
+        : m === 'dig'
+          ? `{drop} Toque ou arraste sobre a terra para cavar · ${works.filter((e) => e.op === 'dig').length} marcados`
+          : m === 'clear'
+            ? `{axe} Toque ou arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.home.state).length} marcados`
+            : this.roadDraftHint();
+    const raw = this.roadMsg ? `${msg} · <b>${this.roadMsg}</b>` : msg;
+    const e = this.roadBar.querySelector<HTMLElement>('[data-t="road"]')!;
+    if (e.dataset.raw === raw) return; // o arraste chama a cada movimento
+    e.dataset.raw = raw;
+    e.innerHTML = rich(raw);
   }
 
-  /** Calça (ou tira) o tile sob o ponto e os do meio desde o último, num arraste. `tap` = toque solto. */
-  paintRoad(wx: number, wy: number, tap: boolean, done = false) {
+  /** Rua: o que o rascunho tem até agora (nada é pago antes do "Pronto"). */
+  private roadDraftHint() {
+    const d = this.app.roadDraft;
+    const add = draftPaves(d);
+    const del = d.size - add;
+    const pend = [add && `${add} a calçar · ${costLabel(roadCost(add))}`, del && `${del} a tirar`].filter(Boolean).join(' · ');
+    const base = `{road} Toque ou arraste para calçar · ${costLabel(ROAD.cost)} por tile`;
+    return pend ? `${base} · ${pend}` : base;
+  }
+
+  /** O toque/traço começando aqui tira (já tem rua, marca de limpar ou de terreno) em vez de pôr? */
+  private removesAt(tx: number, ty: number, node: ResourceNode | null): boolean {
+    const g = this.app.home;
+    const m = this.app.roadMode;
+    if (m === 'pave') return roadWith(g.state, this.app.roadDraft, tx, ty);
+    if (m === 'clear') return !!node?.clear;
+    return !!earthworkAt(g.state, tx, ty);
+  }
+
+  /**
+   * Recurso sob o ponto da tela (limpar área): a arte fica em pé acima do tile, então o toque na copa da árvore conta.
+   * Entre os que o ponto toca, o de tronco mais perto na horizontal (empate: o da frente, desenhado por cima).
+   */
+  pickNode(sx: number, sy: number): ResourceNode | null {
+    const cam = this.app.camera;
+    const w = cam.screenToWorld(sx, sy);
+    const z = cam.zoom;
+    let best: ResourceNode | null = null;
+    let bestD = Infinity;
+    let bestY = -Infinity;
+    for (const n of this.app.home.state.nodes) {
+      if (n.cleared) continue;
+      const cx = n.tx * TILE + TILE / 2;
+      const cy = n.ty * TILE + TILE / 2;
+      if (Math.abs(cx - w.x) > TILE * 5 || Math.abs(cy - w.y) > TILE * 5) continue;
+      const p = cam.worldToScreen(cx, cy);
+      // segmento do pé ao alto da arte (árvore ~55 px de cena, o resto ~14), com folga de ~18 px
+      const top = p.y - (n.type === 'tree' && n.amount > 0 ? 55 : 14) * z;
+      const dy = sy > p.y ? sy - p.y : sy < top ? top - sy : 0;
+      const dist = Math.hypot(sx - p.x, dy);
+      if (dist > 18 * z) continue;
+      if (dist < bestD - 2 * z || (dist <= bestD + 2 * z && p.y > bestY)) {
+        bestD = dist;
+        bestY = p.y;
+        best = n;
+      }
+    }
+    return best;
+  }
+
+  /** Mouse sobre o mapa num modo de pintar: o tile (ou o recurso, ao limpar) que o clique vai pegar. */
+  hoverPaint(sx: number, sy: number) {
+    if (this.app.roadMode === 'clear') {
+      const n = this.pickNode(sx, sy);
+      this.app.roadHover = n ? { tx: n.tx, ty: n.ty, del: !!n.clear } : null;
+      return;
+    }
+    const w = this.app.camera.screenToWorld(sx, sy);
+    const tx = Math.floor(w.x / TILE);
+    const ty = Math.floor(w.y / TILE);
+    this.app.roadHover = { tx, ty, del: this.removesAt(tx, ty, null) };
+  }
+
+  /**
+   * Pinta o tile sob o ponto e os do meio desde o último, num arraste. `tap` = toque solto. O primeiro tile decide se
+   * o traço põe ou tira (em cima do que já está calçado/marcado, tira). Rua vai para o rascunho (só vale no "Pronto");
+   * limpar e aterrar/cavar marcam na hora. `sx, sy` (tela): ao limpar, toque e arraste pegam só os recursos por onde o
+   * ponteiro passa de fato (`sx0, sy0` = onde o arraste começou).
+   */
+  paintRoad(wx: number, wy: number, tap: boolean, done = false, sx?: number, sy?: number, sx0?: number, sy0?: number) {
     const g = this.app.home;
     const tx = Math.floor(wx / TILE);
     const ty = Math.floor(wy / TILE);
+    const m = this.app.roadMode;
+    // o traço decide pôr/tirar pelo recurso onde começou (o primeiro evento do arraste já vem com o ponteiro andado)
+    const picked = m === 'clear' && sx != null && sy != null && (tap || this.strokeDel == null) ? this.pickNode(tap ? sx : (sx0 ?? sx), tap ? sy : (sy0 ?? sy)) : null;
+    const del = this.strokeDel ?? this.removesAt(tx, ty, picked);
+    this.strokeDel = done || tap ? null : del;
+    if (m === 'clear') {
+      if (tap || sx == null || sy == null) {
+        if (picked) markClear(g, picked.tx, picked.ty, !del, 0);
+      } else {
+        // arraste: amostra a linha na tela desde o último ponto (ou o começo do traço), a cada ~6 px
+        const a = this.lastScreen ?? { x: sx0 ?? sx, y: sy0 ?? sy };
+        const k = Math.max(1, Math.ceil(Math.hypot(sx - a.x, sy - a.y) / 6));
+        for (let i = 0; i <= k; i++) {
+          const nd = this.pickNode(a.x + ((sx - a.x) * i) / k, a.y + ((sy - a.y) * i) / k);
+          if (nd) markClear(g, nd.tx, nd.ty, !del, 0);
+        }
+      }
+      this.lastScreen = done || tap || sx == null || sy == null ? null : { x: sx, y: sy };
+      this.lastRoad = null;
+      this.roadHint();
+      g.rev++;
+      return;
+    }
     const from = tap || !this.lastRoad ? { tx, ty } : this.lastRoad;
     const n = Math.max(Math.abs(tx - from.tx), Math.abs(ty - from.ty), 1);
     let why: string | null = null;
     for (let i = 0; i <= n; i++) {
       const x = Math.round(from.tx + ((tx - from.tx) * i) / n);
       const y = Math.round(from.ty + ((ty - from.ty) * i) / n);
-      const m = this.app.roadMode;
-      if (m === 'clear' || m === 'unclear') markClear(g, x, y, m === 'clear');
-      else if (m === 'unearth') unmarkEarth(g, x, y);
+      if ((m === 'fill' || m === 'dig') && del) unmarkEarth(g, x, y);
       else if (m === 'fill' || m === 'dig') {
         const r = markEarth(g, x, y, m);
         if (!r.ok && r.error !== 'Já está marcado.' && r.error !== 'Aqui já é terra.' && r.error !== 'Aqui já é água.') why = r.error;
-      }
-      else if (this.app.roadMode === 'erase') unpave(g, x, y);
-      else {
-        const r = pave(g, x, y);
-        if (!r.ok && r.error !== 'Já é rua.') why = r.error;
-      }
+      } else why = draftRoad(g, this.app.roadDraft, x, y, !del) ?? why;
     }
     this.lastRoad = done || tap ? null : { tx, ty };
-    const msg = why ?? '';
-    if (msg !== this.roadMsg || (this.app.roadMode !== 'pave' && this.app.roadMode !== 'erase')) {
-      this.roadMsg = msg;
-      this.roadHint();
-    }
+    this.roadMsg = why ?? '';
+    this.roadHint();
     g.rev++;
   }
+
+  /** Último ponto de tela do arraste ao limpar (para amostrar o caminho). */
+  private lastScreen: { x: number; y: number } | null = null;
 
   private dragged = false;
 
@@ -431,6 +512,10 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     this.app.ghost = null;
     this.app.buildType = null;
     this.app.roadMode = null;
+    this.app.roadDraft.clear(); // saiu sem "Pronto": as ruas pintadas não valem
+    this.app.roadHover = null;
+    this.strokeDel = null;
+    this.lastScreen = null;
     this.roadBar.hidden = true;
     this.roadMsg = '';
     this.moveId = null;

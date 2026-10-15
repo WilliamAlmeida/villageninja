@@ -62,8 +62,10 @@
 - **Recursos crescem de volta** (`data/regrow.ts`, `systems/nature.ts`): árvore/rocha/veio esgotado vira toco/rocha rachada
   (`ResourceNode.regrow`) em vez de sumir. A rebrota fica mais lenta com o nível da vila (`regrowTime`, `CLEAR.levelMult`
   1/2/3/4× em game/clearing.ts). **Limpar área** (cartão na seção Decoração da barra de construção, mesmo modo de pintar
-  da rua, `App.roadMode` 'clear'/'unclear'): arrastar marca árvores, tocos, rochas e veios (`ResourceNode.clear`, anel
-  tracejado laranja); morador sem obra vai lá (`toClear`/`clearing` em systems/villagers.ts) e arranca: rende o que
+  da rua, `App.roadMode` 'clear'): arrastar marca árvores, tocos, rochas e veios (`ResourceNode.clear`, anel
+  tracejado laranja): toque e arraste marcam só os recursos por onde o ponteiro passa de fato (`BuildUI.pickNode` pela
+  arte em pé na tela, a copa da árvore conta; entre vários, o tronco mais perto; o arraste amostra a linha na tela a cada
+  ~6 px desde onde começou), e o mouse mostra qual antes do clique; morador sem obra vai lá (`toClear`/`clearing` em systems/villagers.ts) e arranca: rende o que
   sobrava, o recurso fica `cleared` (sem desenho nem colisão, `nodeArt` 'cleared') e só volta depois de
   `CLEAR.regrowMult` (4×) a rebrota normal; com prédio ou rua em cima, sai do mapa de vez (`regrowCleared`).
   **Aterrar e cavar** (`game/earthworks.ts`, cartões ao lado do Limpar área, modos 'fill'/'dig'/'unearth'): marca tiles
@@ -90,8 +92,15 @@
   cerejeira floresce na primavera, fica verde e sem folhas no inverno: arte pela estação em `Renderer.artBox`; a lanterna
   acende à noite). **Ruas calçadas** (`game/roads.ts`, `state.roads` bitset por tile): cartão "Rua calçada" abre o modo de
   pintar (`App.roadMode`, arraste usa a caixa de seleção do Input; "Tirar" apaga), custo por tile, +30% de velocidade
-  (`roadSpeed` em movement.ts) e o A* prefere a rua (`ROAD.pathCost`); prédio construído/movido em cima tira o calçamento;
-  desenho no chão em `Renderer.drawRoads`.
+  (`roadSpeed` em movement.ts) e o A* prefere a rua (`ROAD.pathCost`). A pintura é um **rascunho** (`App.roadDraft`,
+  `draftRoad`/`commitRoads`): nada muda nem é pago até o "Pronto"; o X, Esc ou recarregar descartam. Nos quatro modos de pintar
+  (rua, limpar, aterrar, cavar) não há botão "Tirar": o primeiro tile do toque/traço decide (`BuildUI.strokeDel`): em cima
+  do que já está calçado/marcado, tira; senão, põe. Prédios e campos ficam quase transparentes (`Renderer.thinB`, 28%), e
+  árvores/pedras também (`thinN`, inclusive os blocos do cenário), menos ao limpar. O tile sob o mouse aparece verde
+  (põe), vermelho (não dá) ou rosado (vai tirar) (`paintPreview`, `App.roadHover.del`); o rascunho com contorno amarelo
+  (calçar) ou vermelho (tirar). O X fica na quina de cima à direita da barra. A rua vale **embaixo de prédio** (calça-se por baixo e ela fica ao
+  construir/mover/subir de nível); só campo/área aberta (`walkable`) tira o calçamento e não deixa calçar.
+  Desenho no chão em `Renderer.drawRoads`.
 - **Monte dos Kages e Pedra Memorial**: o monte é um paredão de montanha com um rosto esculpido por Kage de
   `state.kageHistory` (arte `monument-f1..6` de `scripts/monument-faces.py`, escolhida em `Renderer.artBox`; o antigo,
   bloco com arco, foi reprovado e está em docs/arte/_backup/2026-10-11/monte-antigo). Pedra Memorial (`memorial`, prédio

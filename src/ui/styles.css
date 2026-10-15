@@ -2470,6 +2470,8 @@ h4 > * { image-rendering: auto; }
 #placebar, #orderbar, #roadbar { bottom: calc(6.6rem + var(--safe-b)); }
 #placebar .hint, #orderbar .hint, #roadbar .hint { color: #f3e3c3; }
 @media (max-height: 520px) { #placebar, #orderbar, #roadbar { bottom: calc(5.3rem + var(--safe-b)); } }
+/* X da barra de pintar: no canto de cima à direita, com o meio dele na quina da moldura (6px em cima, 14px dos lados) */
+#roadbar .btn.corner { position: absolute; top: -6px; right: -14px; transform: translate(50%, -50%); width: 2rem; height: 2rem; z-index: 1; }
 #maptip {
   --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
@@ -2773,7 +2775,6 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 /* construção: separador da seção Decoração e o cartão da rua (sem arte, só o glifo) */
 .bsep { flex: 0 0 auto; align-self: stretch; display: flex; align-items: center; writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 0.15rem; color: #f3e3c3; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
 .bcard.road .i .ic { width: 2rem; height: 2rem; }
-#roadbar .btn.tog.on { background: #a33; }
 
 /* Pedra Memorial e Monte dos Kages: lista de nomes */
 .memlist { list-style: none; margin: 0.3rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; max-height: 14rem; }

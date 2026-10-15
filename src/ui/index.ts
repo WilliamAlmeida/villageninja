@@ -312,7 +312,7 @@ export function createUI(app: App, root: HTMLElement) {
     const g = app.game;
     const w = app.camera.screenToWorld(sx, sy);
     if (app.roadMode) {
-      build.paintRoad(w.x, w.y, true);
+      build.paintRoad(w.x, w.y, true, false, sx, sy);
       return;
     }
     if (app.buildType) {
@@ -363,7 +363,7 @@ export function createUI(app: App, root: HTMLElement) {
     if (app.roadMode) {
       // pintando ruas: o arraste calça cada tile por onde o dedo/mouse passa
       const w = app.camera.screenToWorld(x1, y1);
-      build.paintRoad(w.x, w.y, false, done);
+      build.paintRoad(w.x, w.y, false, done, x1, y1, x0, y0);
       return;
     }
     if (!done) {
@@ -415,11 +415,16 @@ export function createUI(app: App, root: HTMLElement) {
   /** Mouse sobre o mapa: destaca a unidade e devolve o cursor adequado. */
   function onHover(sx: number, sy: number): string {
     if (sx < 0) {
+      app.roadHover = null;
       app.hoverUnitId = panel.hoverId;
       tipAt(null, 0, 0);
       return 'grab';
     }
-    if (app.roadMode) return 'cell';
+    if (app.roadMode) {
+      // prévia: o tile (ou o recurso, ao limpar) que o clique vai pegar
+      build.hoverPaint(sx, sy);
+      return 'cell';
+    }
     if (app.buildType) {
       // no desktop o fantasma do prédio acompanha o mouse; o clique confirma
       const w = app.camera.screenToWorld(sx, sy);
