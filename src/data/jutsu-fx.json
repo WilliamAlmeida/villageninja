@@ -290,9 +290,7 @@
    ]
   },
   "doryuuheki": {
-   "sprite": {"sheet":"effect-doryuuheki-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":64,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":false},
-   "profile": {"sheet":"effect-doryuuheki-profile-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":58,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":true},
-   "oblique": {"sheet":"effect-doryuuheki-oblique-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":58,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":true}
+   "sprite": {"sheet":"effect-doryuuheki-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":64,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":false}
   },
   "doryuudan": {
    "sprite": {"sheet":"projectile-doryuudan-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":22,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":false},

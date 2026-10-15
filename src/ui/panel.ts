@@ -672,8 +672,6 @@ export class Panel {
           <div class="jm">Rank ${JUTSU_RANK_LABEL[d.rank]} · ${JUTSU_TYPE_LABEL[d.type]} · ${jutsuChakra(d, n.stats)} chakra</div></div></div>`;
       }
       html += `</div>` + this.basicTechniques(u, t);
-      if (isOwn) html += this.fichaTeam(u);
-      if (isOwn) html += `<div class="k2div"></div>`; // separador do kit 2 antes da carreira
       if (n.learning) {
         const d = JUTSUS[n.learning.jutsuId]!;
         html += `<h4>Estudando</h4><div class="hint">${esc(d.name)} → slot ${n.learning.slot + 1}</div><div class="bar pg"><i data-b="learn"></i><span data-t="learn"></span></div>`;
@@ -2695,16 +2693,6 @@ export class Panel {
       <span class="nc-line">${team ? `<span class="dot"></span>${esc(team.name)}` : `<span class="dot" style="--c:#666"></span>Sem equipe`}</span>
       <span class="nc-js">${n.jutsu.map((id) => jutsuChip(id)).join('')}</span>
       ${notable ? `<span class="mpill ${stCls}">${stIc} ${stLabel}</span>` : ''}</button>`;
-  }
-
-  /** Ficha: a equipe do ninja em cartão (retratos dos colegas e o atalho para a equipe), como no mockup. */
-  private fichaTeam(u: Unit) {
-    const g = this.app.game;
-    const team = teamOf(g, u);
-    if (!team) return '';
-    let html = `<h4>Equipe</h4><div class="fteam" style="--c:${team.color}"><span class="dot"></span><b>${esc(team.name)}</b><span class="rs-faces">`;
-    for (const m of teamUnits(g, team)) html += `<button class="rs-face ${m.id === u.id ? 'me' : ''}" data-act="pick" data-arg="${m.id}" ${tipAttr(m.name, RANKS[m.ninja!.rank].name, true)}>${pimg(unitPortrait(m))}</button>`;
-    return html + `</span><button class="btn" data-act="open-team" data-arg="${team.id}">{users} Ver equipe</button></div>`;
   }
 
   /** Faixa embaixo da lista de Ninjas: a equipe do ninja selecionado (retratos) e a missão dela (como no mockup). */
