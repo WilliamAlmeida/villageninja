@@ -80,7 +80,7 @@ export function baseState(seed: number, scene = false): GameState {
     nextId,
     timers: { animal: 35, raid: DAY_LENGTH * 2.6, birth: 30, jobs: 0, homes: 0 },
     flags: { starving: false, alert: false, raidActive: false, raidStole: false, shelterRookies: true, autoTeach: false, autoSensei: true },
-    stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0, missionsDone: 0, bossesDefeated: 0 },
+    stats: { kills: 0, raidsRepelled: 0, born: 0, lost: 0, missionsDone: 0, bossesDefeated: 0, duelsWon: 0, duelsLost: 0 },
   };
 }
 

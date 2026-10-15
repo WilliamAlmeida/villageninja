@@ -61,6 +61,8 @@ import { flickerCooldown, flickerStyle, isShinobi, KAWARIMI, kawarimiChance, SHU
 import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, clanOf, FOUND_COST, FOUND_MIN_LEVEL, foundClan, needLabel, surname } from '../game/clans';
 import { KEKKEI, KEKKEI_LIST, KEKKEI_STAT, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
+import { duelBlock, duelCandidates, duelist, setDuelist, startDuel } from '../game/duel';
+import { decodeSnapshot, encodeSnapshot, snapshotOf } from '../game/snapshot';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemDef, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, carried, carryMax, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, owned, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
@@ -89,7 +91,7 @@ import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, u
 import { atlasCell, pxIco, rich } from './icons';
 import { GLYPHS } from './glyphs';
 import { morph } from './morph';
-import { blocked, blockedClick, tipAttr } from './popup';
+import { blocked, blockedClick, showAlert, tipAttr } from './popup';
 import { JOB_LABEL, STATE_LABEL } from './labels';
 
 type UnitTab = 'info' | 'cmd' | 'gear';
@@ -2394,7 +2396,7 @@ export class Panel {
     const ex = g.state.exam;
     let html = '';
     if (ex) {
-      html += `<div class="lvlcard"><div class="lvlname">{arena} Exame Chunin</div><div class="hint">${esc(examLabel(g))}</div></div>`;
+      html += `<div class="lvlcard"><div class="lvlname">{arena} ${ex.duel ? 'Duelo por retrato' : 'Exame Chunin'}</div><div class="hint">${esc(examLabel(g))}</div></div>`;
       const a = ex.phase !== 'gather' ? g.unit(ex.bracket[ex.match]) : undefined;
       const c = ex.phase !== 'gather' ? g.unit(ex.bracket[ex.match + 1]) : undefined;
       if (a && c) {
@@ -2427,7 +2429,68 @@ export class Panel {
         html += `<li class="${r.promoted ? 'ok' : ''}">${r.promoted ? '{medal}' : r.village ? '{leaf}' : '{flag}'} ${esc(r.name)} <b>${r.score}</b></li>`;
       html += `</ul>`;
     }
+    return html + this.duelSection();
+  }
+
+  /** Duelo por retrato: escolher o campeão, copiar o retrato dele e desafiar o retrato de outro jogador. */
+  private duelSection() {
+    const g = this.app.game;
+    const s = g.state;
+    const list = duelCandidates(g).slice(0, 9);
+    const cur = duelist(g);
+    let html = `<h4>Duelo por retrato ${infoTip('Duelo por retrato', 'O retrato é um texto com tudo o que um ninja é (atributos, jutsus, equipamento). Copie o do seu campeão e mande para um amigo; cole o dele aqui e os dois lutam na arena com as regras do Exame. Vencer dá XP; nada de promoção.')}</h4>`;
+    if (list.length) {
+      html += `<div class="chips">`;
+      for (const u of list) html += `<button data-act="duel-pick" data-arg="${u.id}" class="${cur?.id === u.id ? 'on' : ''}" ${tipAttr(u.name, `${RANKS[u.ninja!.rank].name} nível ${u.ninja!.level}`)}>${esc(u.name.split(' ').pop()!)}</button>`;
+      html += `</div>`;
+    } else html += `<p class="hint">Nenhum ninja disponível para duelar.</p>`;
+    const why = duelBlock(g);
+    html += `<div class="btnrow"><button class="btn" data-act="duel-copy" ${blocked(g, [!cur && 'Escolha um ninja.'])}>{clipboard} Copiar retrato</button>
+      <button class="btn primary" data-act="duel-paste" ${blocked(g, [why])}>{swords} Desafiar retrato</button></div>`;
+    const ld = s.lastDuel;
+    html += `<p class="hint">{trophy} ${s.stats.duelsWon} vitória(s) · ${s.stats.duelsLost} derrota(s)${ld ? ` · último: ${esc(ld.mine.split(' ').pop()!)} × ${esc(ld.foe)} (${ld.won ? 'venceu' : 'perdeu'}, dia ${ld.day})` : ''}</p>`;
     return html;
+  }
+
+  /** Mostra o retrato do campeão para copiar (área de texto; tenta a área de transferência também). */
+  private showSnapshot() {
+    const g = this.app.game;
+    const u = duelist(g);
+    if (!u) return;
+    const code = encodeSnapshot(snapshotOf(g, u));
+    navigator.clipboard?.writeText(code).catch(() => undefined);
+    showAlert({
+      kind: 'info',
+      title: `Retrato de ${u.name}`,
+      extra: `<p class="hint">Copiado para a área de transferência. Se não deu, selecione o texto abaixo e copie. Mande para quem vai desafiar.</p><textarea class="snap" readonly rows="4">${esc(code)}</textarea>`,
+    });
+  }
+
+  /** Pede o retrato do adversário e começa o duelo. */
+  private askSnapshot() {
+    const g = this.app.game;
+    showAlert({
+      kind: 'info',
+      title: 'Desafiar retrato',
+      extra: `<p class="hint">Cole aqui o retrato que o outro jogador mandou (começa com VN1.).</p><textarea class="snap" id="duel-code" rows="4" placeholder="VN1...."></textarea>`,
+      action: {
+        label: '{swords} Lutar',
+        run: () => {
+          const text = (document.getElementById('duel-code') as HTMLTextAreaElement | null)?.value ?? '';
+          const snap = decodeSnapshot(text);
+          if (!snap) {
+            g.toast('Isso não é um retrato válido. Cole o texto inteiro, começando com VN1.', 'warn');
+            return;
+          }
+          this.report(startDuel(g, snap));
+          const a = g.findBuilt('arena');
+          if (a) {
+            const c = arenaSpots(a).center;
+            this.app.camera.focus(c.x, c.y);
+          }
+        },
+      },
+    });
   }
 
   /** Oficina: estoque, receitas (fabricar) e fila de produção. */
@@ -3356,6 +3419,12 @@ export class Panel {
           return this.report(startExam(g));
         case 'exam-size':
           return this.report(setExamSize(g, Number(arg)));
+        case 'duel-pick':
+          return this.report(setDuelist(g, Number(arg)));
+        case 'duel-copy':
+          return this.showSnapshot();
+        case 'duel-paste':
+          return this.askSnapshot();
         case 'watch': {
           const a = g.findBuilt('arena');
           if (a) {

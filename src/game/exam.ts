@@ -52,7 +52,7 @@ export function examStatus(g: Game) {
   const eligible = eligibleGenin(g);
   let reason = '';
   if (!arena) reason = 'Construa a Arena do Exame.';
-  else if (s.exam) reason = 'Um exame já está acontecendo.';
+  else if (s.exam) reason = s.exam.duel ? 'A arena está ocupada com um duelo.' : 'Um exame já está acontecendo.';
   else if (s.day < s.examNextDay) reason = `Próximo exame a partir do dia ${s.examNextDay}.`;
   else if (eligible.length < 2) reason = `Precisa de 2 genins de nível ${EXAM_MIN_LEVEL}+ livres (há ${eligible.length}).`;
   return { ready: !reason, reason, eligible, arena };
@@ -186,6 +186,7 @@ export function finishExam(g: Game) {
   const s = g.state;
   const exam = s.exam;
   if (!exam) return;
+  if (exam.duel) return finishDuel(g, exam);
   const champion = exam.bracket[0];
   const ranking = exam.entrants
     .map((e) => ({ e, sc: score(e, g) + (e.id === champion ? 2 : 0) }))
@@ -235,11 +236,42 @@ export function finishExam(g: Game) {
   );
 }
 
+/** Fim do duelo por retrato (game/duel.ts): XP e placar, sem promoção nem cooldown; o convidado vai embora. */
+function finishDuel(g: Game, exam: Exam) {
+  const s = g.state;
+  const winner = exam.bracket[0];
+  const mineE = exam.entrants.find((e) => e.village);
+  const foeE = exam.entrants.find((e) => !e.village);
+  const mine = g.unit(mineE?.id);
+  const won = mineE != null && winner === mineE.id;
+  for (const e of exam.entrants) {
+    const u = g.unit(e.id);
+    if (!u) continue;
+    if (!e.village) {
+      fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.6, color: '#ddd' });
+      u.dead = true;
+      continue;
+    }
+    u.arenaSide = undefined;
+    if (u.perch != null) leaveSeat(g, u);
+    u.stun = 0;
+    u.state = 'idle';
+    u.hp = Math.max(u.hp, u.maxHp * 0.5);
+  }
+  if (won) s.stats.duelsWon++;
+  else s.stats.duelsLost++;
+  if (mine && !mine.dead) gainXp(g, mine, won ? 40 : 15);
+  const foeName = foeE?.name.replace(' (convidado)', '') ?? '?';
+  s.lastDuel = { day: s.day, mine: mineE?.name ?? '?', foe: foeName, won };
+  s.exam = null;
+  g.toast(won ? `{trophy} ${mineE?.name} venceu o duelo contra ${foeName}!` : `{arena} ${foeName} venceu o duelo contra ${mineE?.name ?? '?'}.`, won ? 'good' : 'info');
+}
+
 /** "Semifinal: Kenta × Yui" — texto curto do momento atual do exame. */
 export function examLabel(g: Game) {
   const ex = g.state.exam;
   if (!ex) return '';
-  const stage = ex.bracket.length === 2 ? 'Final' : ex.bracket.length === 4 ? 'Semifinal' : `Rodada ${ex.round}`;
+  const stage = ex.duel ? 'Duelo' : ex.bracket.length === 2 ? 'Final' : ex.bracket.length === 4 ? 'Semifinal' : `Rodada ${ex.round}`;
   if (ex.phase === 'gather') return `${stage} · preparando`;
   const nm = (id: number | undefined) => g.unit(id)?.name.replace(' (convidado)', '').split(' ').pop() ?? '?';
   return `${stage}: ${nm(ex.bracket[ex.match])} × ${nm(ex.bracket[ex.match + 1])}`;

@@ -21,6 +21,17 @@
   `Unit.perch` = id da arena); o renderer o desenha logo depois da peça mais ao fundo (a arquibancada), sem deixá-la
   transparente. Chamado para lutar ou fim do exame: desce (`leaveSeat`). **Vagas** 4 ou 8 no drawer da arena
   (`flags.examSize`, `setExamSize`).
+- **Duelo por retrato** (2026-10-15, docs/gdd-escala-ilhas-pvp.md 6.2; `game/snapshot.ts`, `game/duel.ts`): o retrato
+  (`snapshotOf` → `encodeSnapshot`: texto `VN1.` + base64url do JSON com nome, visual, patente, natureza, nível,
+  atributos com duas casas, jutsus, kekkei, equipamento/lâmina, contrato, profissão, Sannin, Bijuu, ANBU, arte do Kage,
+  clã só para mostrar) é copiado no drawer da Arena ("Copiar retrato", área de transferência + textarea) e colado por
+  outro jogador ("Desafiar retrato"). `decodeSnapshot`/`sanitize` desconfiam de tudo: ids conferidos nos dados, atributos
+  presos a `RANKS[rank].statCap`, nível ≤ `SNAPSHOT_MAX_LEVEL` (60), nome só com letras/números, cores `#rrggbb`.
+  `startDuel` cria o convidado (`unitFromSnapshot`, facção `guest`, nome "(convidado)") sentado na arquibancada e abre um
+  Exame de um par com `Exam.duel`: a máquina de systems/exam.ts faz caminhada, "VS", luta, ring-out e tempo; `finishExam`
+  desvia para `finishDuel` (XP 40/15, `stats.duelsWon/duelsLost`, `state.lastDuel`; sem promoção, sem `examNextDay`,
+  sem `lastExam`). Campeão escolhido em `flags.duelistId` (`setDuelist`; padrão o mais forte livre, `duelist`). Exame e
+  duelo se excluem na arena (`examStatus`/`duelBlock`). Save v47. Testes em tests/duel.test.ts.
 - **Estratégia de luta** (`game/tactics.ts`): papel automático pelo atributo (`roleOf`: tanque, atacante, atirador,
   suporte = quem tem cura), com etiqueta no drawer e marca pequena na cabeça durante a luta; **duelos**: `pickFoe` escolhe o
   mais perto penalizando quem já está sendo enfrentado (o bolo vira lutas lado a lado) e o inimigo prefere o tanque

@@ -665,6 +665,8 @@ export interface GameState {
   /** Dia a partir do qual um novo Exame Chunin pode ser convocado. */
   examNextDay: number;
   lastExam: ExamResult | null;
+  /** Último duelo por retrato (save v47; sem = nunca duelou). */
+  lastDuel?: DuelResult | null;
   projectiles: Projectile[];
   effects: Effect[];
   /** Névoa: tiles já explorados, 1 bit por tile (32 por número). Ver game/explore.ts. */
@@ -721,8 +723,8 @@ export interface GameState {
   usage?: { day: number; days: Record<string, number>[] };
   nextId: number;
   timers: { animal: number; raid: number; birth: number; jobs: number; homes: number };
-  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean; /** Vagas do Exame Chunin (4 ou 8; padrão 8). */ examSize?: number; /** Forja nv 2+ conserta sozinha (padrão sim). */ autoRepair?: boolean };
-  stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number };
+  flags: { starving: boolean; alert: boolean; raidActive: boolean; raidStole: boolean; /** Distribui equipamento sozinho. */ autoGear?: boolean; /** Genins se abrigam de inimigos fortes demais. */ shelterRookies?: boolean; /** Academia ensina sozinha. */ autoTeach?: boolean; /** Equipes sem sensei recebem um. */ autoSensei?: boolean; /** Afastamento leve entre aliados lutando (padrão sim). */ spread?: boolean; /** Vagas do Exame Chunin (4 ou 8; padrão 8). */ examSize?: number; /** Forja nv 2+ conserta sozinha (padrão sim). */ autoRepair?: boolean; /** Ninja escolhido para os duelos por retrato (id). */ duelistId?: number };
+  stats: { kills: number; raidsRepelled: number; born: number; lost: number; missionsDone: number; bossesDefeated: number; /** Duelos por retrato (save v47). */ duelsWon: number; duelsLost: number };
 }
 
 export interface ExamEntrant {
@@ -746,6 +748,17 @@ export interface Exam {
   /** Índice do par atual dentro de `bracket` (0, 2, 4…). */
   match: number;
   timer: number;
+  /** Duelo por retrato (game/duel.ts): um só par, sem promoção, sem cooldown do Exame. */
+  duel?: boolean;
+}
+
+/** Último duelo por retrato na arena. */
+export interface DuelResult {
+  day: number;
+  /** Nome do ninja da vila e do retrato enfrentado. */
+  mine: string;
+  foe: string;
+  won: boolean;
 }
 
 export interface ExamResult {

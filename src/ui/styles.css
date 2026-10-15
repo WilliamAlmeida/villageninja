@@ -448,6 +448,8 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   border: 1px solid var(--line); border-top: 0.25rem solid var(--warn); box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6); animation: pop 0.14s ease-out;
 }
 #alertbox .card.info { border-top-color: var(--accent); }
+/* retrato de ninja (duelo): texto longo para copiar/colar */
+#alertbox textarea.snap { width: 100%; box-sizing: border-box; margin: 0.4rem 0; padding: 0.4rem; font: inherit; font-size: 0.78rem; word-break: break-all; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); resize: vertical; }
 @keyframes pop { from { transform: scale(0.94); opacity: 0; } }
 #alertbox .at { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
 #alertbox .card.warn .at { color: var(--warn); }

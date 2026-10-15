@@ -277,6 +277,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // obra pronta esperando espaço
   // v39: limpar área (ResourceNode.clear/cleared, campos opcionais: nada a converter)
   38: () => {},
+  // v47: duelos por retrato (stats.duelsWon/duelsLost; lastDuel, flags.duelistId e Exam.duel opcionais)
+  46: (s) => {
+    if (!s.stats) return; // saves mínimos dos testes de migração
+    s.stats.duelsWon ??= 0;
+    s.stats.duelsLost ??= 0;
+  },
   // v46: vínculo opcional do Gatsūga do ninken e posição/fonte de texto auxiliar.
   45: () => {},
   // v45: sequência do Sekizō e origem dos canhões, opcionais; saves anteriores continuam sem sequência.

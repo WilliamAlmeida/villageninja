@@ -139,7 +139,7 @@ function startMatch(g: Game, exam: Exam) {
   }
   exam.phase = 'walk';
   exam.timer = 15;
-  const label = exam.bracket.length === 2 ? 'Final' : exam.bracket.length === 4 ? 'Semifinal' : `Rodada ${exam.round}`;
+  const label = exam.duel ? 'Duelo' : exam.bracket.length === 2 ? 'Final' : exam.bracket.length === 4 ? 'Semifinal' : `Rodada ${exam.round}`;
   g.toast(`{arena} ${label}: ${a.name} × ${b.name}`, 'info', a);
 }
 
