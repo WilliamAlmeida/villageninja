@@ -117,11 +117,15 @@
   liga, pontos, força e o perfil (jutsus, kekkei, equipamento: `snapshotProfile`); **tela VS** (`arenaVersus`, em
   `showAlert` largo `.dl-vs`: os dois bonecos, patente, nível, força e jutsus em volta do emblema `ART['duel-vs']` com o
   "VS" escrito por CSS; "Hajime!" chama `arenaFight`); resultado em cartão `.dl-result` com o emblema `duel-win`/`duel-lose`
-  e o delta grande; **ligas** por pontuação (`LEAGUES`/`leagueOf` em arenaClient.ts: Genin até 1099, Chunin 1100,
-  Jounin 1250, Kage 1400, Lendas 1600; emblemas `league-*` no atlas dos selos `badge-ranks.png`, `leagueBadge`) na faixa,
-  no cartão do adversário e no ranking; bolinha vermelha `.dock-badge` no botão Duelos com as defesas novas e o aviso
-  "Enquanto você estava fora" ao abrir o jogo (`arena.boot` em ui/index.ts, só para quem já tem token). Atlas dos selos
-  agora tem 12 casas em 10×2 (`scripts/prepare-ui.py`; `KEEP` preserva o `ui-scroll`, que vem de outro script).
+  e o delta grande; **ligas** com os nomes das patentes (pedido do autor; `LEAGUES`/`leagueOf` em arenaClient.ts:
+  Genin até 1099, Chunin 1100, Jounin 1250, ANBU 1400, Kage 1550, Sannin 1700; emblemas `league-*` no atlas dos selos
+  `badge-ranks.png`, `leagueBadge`) na faixa, no cartão do adversário, no ranking e nas defesas; **defesas** com números
+  em blocos (`defenseStats`: desafios, segurou, perdeu, pontos) e linhas com o boneco e a liga de quem atacou
+  (`defenseRow`; o servidor manda `attackerCode`/`attackerRating`), borda verde/vermelha; o aviso "Enquanto você estava
+  fora" ao abrir o jogo usa o mesmo relatório sobre o fundo da arena (`.dl-report`, `arena.boot` em ui/index.ts, só
+  para quem já tem token) e a bolinha vermelha `.dock-badge` no botão Duelos conta as novas. Esses pedaços ficam em
+  `ui/duelArt.ts` (`snapshotPortrait`, `leagueBadge`, `defenseStats`, `defenseRow`), usados pela janela e pelo aviso.
+  Atlas dos selos com 13 casas em 10×2 (`scripts/prepare-ui.py`; `KEEP` preserva o `ui-scroll`, que vem de outro script).
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
   consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor

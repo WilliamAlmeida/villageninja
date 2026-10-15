@@ -1,7 +1,6 @@
 // Painel lateral de detalhes. Estrutura HTML só é recriada quando muda;
 // valores dinâmicos (barras, números) são atualizados in-place via data-t / data-b.
 import type { App } from '../app';
-import type { Game } from '../game/game';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS, defOf } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
@@ -63,8 +62,9 @@ import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, cl
 import { KEKKEI, KEKKEI_LIST, KEKKEI_STAT, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { duelBlock, duelCandidates, duelist, setDuelist, startDuel } from '../game/duel';
-import { decodeSnapshot, encodeSnapshot, type NinjaSnapshot, snapshotOf, unitFromSnapshot } from '../game/snapshot';
+import { decodeSnapshot, encodeSnapshot, type NinjaSnapshot, snapshotOf } from '../game/snapshot';
 import { arena, leagueOf, type NinjaBrief, nextLeague, type Opponent } from './arenaClient';
+import { defenseRow, defenseStats, leagueBadge, snapshotPortrait } from './duelArt';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemDef, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, carried, carryMax, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, owned, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
@@ -2489,31 +2489,12 @@ export class Panel {
     return sameDay ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   }
 
-  /** Emblema da liga pela pontuação (atlas dos selos; sem a arte, só o nome). */
   private leagueBadge(rating: number, cls = 'dl-lg') {
-    const l = leagueOf(rating);
-    return atlasCell(BADGE_RANKS, l.emblem, cls, tipAttr(l.name, `${rating} pontos`, true)) ?? `<span class="mchip" ${tipAttr(l.name, `${rating} pontos`, true)}>${esc(l.name)}</span>`;
+    return leagueBadge(rating, cls);
   }
-
-  /** Retrato (corpo inteiro) do ninja de um retrato recebido: cria a unidade fora do jogo só para desenhar. */
   private snapshotPortrait(code: string): string | null {
-    const hit = Panel.snapPortraits.get(code);
-    if (hit !== undefined) return hit;
-    const snap = decodeSnapshot(code);
-    let url: string | null = null;
-    if (snap) {
-      const u = unitFromSnapshot(Panel.portraitGame, snap, 0, 0);
-      // o penteado sai do id: um id estável pelo nome (ids negativos quebrariam o módulo)
-      u.id = [...snap.name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
-      url = unitPortrait(u, true);
-    }
-    // null = a arte ainda está sendo montada (quem chama mostra o esqueleto e tenta de novo na próxima remontagem)
-    if (url || !snap) Panel.snapPortraits.set(code, url);
-    return url;
+    return snapshotPortrait(code);
   }
-  private static snapPortraits = new Map<string, string | null>();
-  /** "Jogo" mínimo para criar a unidade do retrato sem mexer na vila (createNinja só usa newId e addUnit). */
-  private static portraitGame = { newId: () => -1, addUnit: (u: Unit) => u } as unknown as Game;
 
   /** Jutsus, kekkei e equipamento de um retrato (perfil do adversário). */
   private snapshotProfile(snap: NinjaSnapshot) {
@@ -2645,13 +2626,8 @@ export class Panel {
     let html = `<div class="bsec"><h4>Defesas do seu retrato ${infoTip('Defesas', 'Quem desafiou o seu retrato enquanto você estava fora, e como foi. Revanche: enfrentar o retrato de quem venceu o seu.')}</h4>`;
     if (!d) return html + `<p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Carregando...'}</p></div>`;
     if (!d.defenses.length) return html + `<p class="hint">Ninguém desafiou o seu retrato ainda. Publique-o na aba Duelo para entrar no sorteio.</p></div>`;
-    html += `<ul class="dl-defs">`;
-    for (const x of d.defenses) {
-      const pill = x.left ? `<span class="mpill info">Desistiu</span>` : x.held ? `<span class="mpill safe">Segurou</span>` : `<span class="mpill danger">Perdeu</span>`;
-      html += `<li class="${x.unseen ? 'new' : ''}">${pill}<span class="dl-name"><b>${esc(x.attacker.name)}</b><small>${x.attackerNinja ? `${esc(x.attackerNinja.name)} · ${esc(RANKS[x.attackerNinja.rank as Rank]?.name ?? x.attackerNinja.rank)} Nv ${x.attackerNinja.level}` : ''}</small></span>
-        <span class="dl-delta ${x.defDelta != null && x.defDelta < 0 ? 'bad' : ''}">${x.defDelta == null ? '' : `${x.defDelta >= 0 ? '+' : ''}${x.defDelta}`}</span><small>${this.when(x.at)}</small>
-        ${!x.held && !x.revenged ? `<button class="btn mini" data-act="arena-revenge" data-arg="${x.attacker.id}">{swords} Revanche</button>` : ''}</li>`;
-    }
+    html += defenseStats(d.defenses) + `<ul class="dl-defs">`;
+    for (const x of d.defenses) html += defenseRow(x);
     return html + `</ul></div>`;
   }
 

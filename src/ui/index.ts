@@ -18,6 +18,8 @@ import { BattleCam } from './battle';
 import { Panel, type View } from './panel';
 import { applyKit } from './kit';
 import { arena } from './arenaClient';
+import { defenseRow, defenseStats, snapshotPortrait } from './duelArt';
+import { ART } from './pxicons';
 import dockBarUrl from '../art/ui/frame/dock-bar.png';
 import windowFrameUrl from '../art/ui/frame/window-frame.png';
 import kitDialog from '../art/ui/frame/dialog.png';
@@ -92,15 +94,19 @@ export function createUI(app: App, root: HTMLElement) {
   void arena.boot().then((fresh) => {
     if (!fresh || !arena.defenses) return;
     const d = arena.defenses.defenses.filter((x) => x.unseen);
-    const held = d.filter((x) => x.held).length;
-    const delta = d.reduce((s, x) => s + (x.defDelta ?? 0), 0);
-    showAlert({
-      kind: 'info',
-      title: 'Enquanto você estava fora',
-      text: `${d.length} ninja(s) desafiaram o seu retrato: ${held} defesa(s) segura(s), ${d.length - held} perdida(s) (${delta >= 0 ? '+' : ''}${delta} pontos).`,
-      rows: d.slice(0, 5).map((x) => `${x.held ? '{shield}' : '{skull}'} ${x.attacker.name}${x.attackerNinja ? ` (${x.attackerNinja.name})` : ''}`),
-      action: { label: '{swords} Ver defesas', run: () => win.show({ kind: 'duelDefenses' }) },
-    });
+    const more = d.length > 4 ? `<p class="hint">e mais ${d.length - 4} na aba Defesas.</p>` : '';
+    // os bonecos dos atacantes são montados na primeira chamada (assíncrono): pede agora e mostra o aviso logo depois
+    for (const x of d.slice(0, 4)) snapshotPortrait(x.attackerCode);
+    setTimeout(
+      () =>
+        showAlert({
+          kind: 'info',
+          title: 'Enquanto você estava fora',
+          extra: `<div class="dl-report" style="${ART['duel-arena-bg'] ? `background-image:url('${ART['duel-arena-bg']}')` : ''}"><p class="dl-report-t">{swords} Seu retrato foi desafiado</p>${defenseStats(d)}<ul class="dl-defs">${d.slice(0, 4).map((x) => defenseRow(x, false)).join('')}</ul>${more}</div>`,
+          action: { label: '{swords} Ver defesas', run: () => win.show({ kind: 'duelDefenses' }) },
+        }),
+      700,
+    );
   });
   const btnSelect = dock.querySelector<HTMLElement>('[data-act="select"]')!;
   dock.addEventListener('pointerdown', (e) => e.stopPropagation());

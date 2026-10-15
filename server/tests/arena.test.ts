@@ -140,6 +140,8 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     expect(def.data.unseen).toBe(1);
     expect(def.data.defenses[0]).toMatchObject({ held: false, left: false, defDelta: -8, revenged: false });
     expect(def.data.defenses[0].attackerNinja.rank).toBe('genin');
+    expect(def.data.defenses[0].attackerCode.startsWith('VN1.')).toBe(true);
+    expect(def.data.defenses[0].attackerRating).toBe(999);
     await api('POST', '/api/duel/defenses/seen', {}, b);
     expect((await api('GET', '/api/duel/defenses', undefined, b)).data.unseen).toBe(0);
     const rev = await api('GET', `/api/duel/opponent/${def.data.defenses[0].attacker.id}`, undefined, b);

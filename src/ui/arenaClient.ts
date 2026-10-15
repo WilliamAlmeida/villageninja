@@ -56,6 +56,9 @@ export interface Defense {
   at: string;
   attacker: { id: string; name: string };
   attackerNinja: NinjaBrief | null;
+  /** Retrato VN1 do ninja que atacou (para desenhar o boneco) e os pontos dele (liga). */
+  attackerCode: string | null;
+  attackerRating: number;
   held: boolean;
   left: boolean;
   defDelta: number | null;
@@ -94,13 +97,14 @@ const ERROR_TEXT: Record<string, string> = {
   OFFLINE: 'Sem conexão com o servidor de duelos.',
 };
 
-/** Ligas por pontuação (emblemas `league-*` no atlas dos selos). */
+/** Ligas por pontuação, com os nomes das patentes ninja (pedido do autor); emblemas `league-*` no atlas dos selos. */
 export const LEAGUES: { min: number; name: string; emblem: string }[] = [
   { min: 0, name: 'Liga Genin', emblem: 'league-genin' },
   { min: 1100, name: 'Liga Chunin', emblem: 'league-chunin' },
   { min: 1250, name: 'Liga Jounin', emblem: 'league-jounin' },
-  { min: 1400, name: 'Liga Kage', emblem: 'league-kage' },
-  { min: 1600, name: 'Liga das Lendas', emblem: 'league-legend' },
+  { min: 1400, name: 'Liga ANBU', emblem: 'league-anbu' },
+  { min: 1550, name: 'Liga Kage', emblem: 'league-kage' },
+  { min: 1700, name: 'Liga Sannin', emblem: 'league-sannin' },
 ];
 export function leagueOf(rating: number) {
   let out = LEAGUES[0]!;

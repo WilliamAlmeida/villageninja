@@ -1,7 +1,7 @@
 // Retratos e duelos assíncronos (molde do Duelo do battlecard-server): o jogador publica o retrato do campeão; outro
 // jogador busca um adversário de força parecida, luta no próprio aparelho contra a cópia do retrato e manda o
 // resultado. ELO próprio: K 32 para quem ataca, K 16 para quem defende (o defensor não estava lá).
-import { decodeSnapshot, type NinjaSnapshot } from '../../../src/game/snapshot';
+import { decodeSnapshot, encodeSnapshot, type NinjaSnapshot } from '../../../src/game/snapshot';
 import { STAT_KEYS } from '../../../src/data/ninja';
 import { sql } from '../db';
 import { ApiError } from '../errors';
@@ -54,6 +54,9 @@ export interface Defense {
   at: string;
   attacker: { id: string; name: string };
   attackerNinja: { name: string; rank: string; level: number } | null;
+  /** Retrato (texto VN1) do ninja que atacou e pontos dele: o jogo desenha o boneco e a liga. */
+  attackerCode: string | null;
+  attackerRating: number;
   /** O retrato segurou. */
   held: boolean;
   /** Quem atacou largou o duelo. */
@@ -249,11 +252,11 @@ export const duels = {
   async defenses(userId: string): Promise<{ defenses: Defense[]; unseen: number; rating: number }> {
     const me = await this.stats(userId);
     const [seen] = await sql<Array<{ at: Date | null }>>`SELECT report_seen_at as at FROM duel_stats WHERE user_id = ${userId}`;
-    const rows = await sql<Array<{ id: string; at: Date; attackerId: string; name: string; attackerSnapshot: NinjaSnapshot | null; won: boolean; endReason: string | null; summary: Record<string, unknown> | null; revenged: boolean }>>`
+    const rows = await sql<Array<{ id: string; at: Date; attackerId: string; name: string; attackerSnapshot: NinjaSnapshot | null; attackerRating: number | null; won: boolean; endReason: string | null; summary: Record<string, unknown> | null; revenged: boolean }>>`
       SELECT d.id, d.finished_at as at, a.id as "attackerId", a.display_name as name, d.attacker_snapshot as "attackerSnapshot",
-        d.won, d.end_reason as "endReason", d.summary,
+        ds.rating as "attackerRating", d.won, d.end_reason as "endReason", d.summary,
         EXISTS (SELECT 1 FROM duels r WHERE r.attacker_id = ${userId} AND r.defender_id = a.id AND r.started_at > d.started_at) as revenged
-      FROM duels d JOIN users a ON a.id = d.attacker_id
+      FROM duels d JOIN users a ON a.id = d.attacker_id LEFT JOIN duel_stats ds ON ds.user_id = a.id
       WHERE d.defender_id = ${userId} AND d.finished_at IS NOT NULL AND NOT a.is_test
       ORDER BY d.finished_at DESC LIMIT ${DUEL.REPORT_LIMIT}
     `;
@@ -263,6 +266,8 @@ export const duels = {
       at: new Date(r.at).toISOString(),
       attacker: { id: r.attackerId, name: r.name },
       attackerNinja: r.attackerSnapshot ? { name: r.attackerSnapshot.name, rank: r.attackerSnapshot.rank, level: r.attackerSnapshot.level } : null,
+      attackerCode: r.attackerSnapshot ? encodeSnapshot(r.attackerSnapshot) : null,
+      attackerRating: r.attackerRating ?? DUEL.START_RATING,
       held: !r.won,
       left: r.endReason === 'abandon' || r.endReason === 'retreat',
       defDelta: typeof r.summary?.defDelta === 'number' ? (r.summary.defDelta as number) : null,
