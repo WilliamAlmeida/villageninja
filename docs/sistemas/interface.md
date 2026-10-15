@@ -110,6 +110,18 @@
   Sem conexão. Dados da rede ficam em `ui/arenaClient.ts` (`arena`), pedidos por aba com `arenaWant` (a cada 30 s ou
   no botão de atualizar) e a janela remonta quando chega resposta (`arena.onChange`). Formulários da Conta em
   `showAlert` (campos `.dl-field`). Estilos `.dl-*`. Regras em docs/sistemas/combate.md ("Janela Duelos").
+  **Passada visual** (2026-10-15, assets pelo Codex `gpt-6-sol`, fontes em docs/arte/ui/): faixa "Arena de Duelos" no
+  topo da aba (`ART['duel-banner']`, 2:1 recortado em `center 68%`), com a liga e os pontos; cartão do adversário com o
+  fundo da arena vista de cima (`ART['duel-arena-bg']`), o boneco do retrato dele (`snapshotPortrait`: `unitFromSnapshot`
+  num "jogo" mínimo só para desenhar, `unitPortrait(u, true)`; null enquanto a arte monta, não vai para o cache),
+  liga, pontos, força e o perfil (jutsus, kekkei, equipamento: `snapshotProfile`); **tela VS** (`arenaVersus`, em
+  `showAlert` largo `.dl-vs`: os dois bonecos, patente, nível, força e jutsus em volta do emblema `ART['duel-vs']` com o
+  "VS" escrito por CSS; "Hajime!" chama `arenaFight`); resultado em cartão `.dl-result` com o emblema `duel-win`/`duel-lose`
+  e o delta grande; **ligas** por pontuação (`LEAGUES`/`leagueOf` em arenaClient.ts: Genin até 1099, Chunin 1100,
+  Jounin 1250, Kage 1400, Lendas 1600; emblemas `league-*` no atlas dos selos `badge-ranks.png`, `leagueBadge`) na faixa,
+  no cartão do adversário e no ranking; bolinha vermelha `.dock-badge` no botão Duelos com as defesas novas e o aviso
+  "Enquanto você estava fora" ao abrir o jogo (`arena.boot` em ui/index.ts, só para quem já tem token). Atlas dos selos
+  agora tem 12 casas em 10×2 (`scripts/prepare-ui.py`; `KEEP` preserva o `ui-scroll`, que vem de outro script).
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
   consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor

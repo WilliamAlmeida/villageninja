@@ -1,6 +1,7 @@
 // Painel lateral de detalhes. Estrutura HTML só é recriada quando muda;
 // valores dinâmicos (barras, números) são atualizados in-place via data-t / data-b.
 import type { App } from '../app';
+import type { Game } from '../game/game';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS, defOf } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
@@ -62,8 +63,8 @@ import { AWAKEN_COST, awakenKekkei, awakenOptions, canFoundClan, clanMembers, cl
 import { KEKKEI, KEKKEI_LIST, KEKKEI_STAT, type KekkeiId } from '../data/kekkei';
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { duelBlock, duelCandidates, duelist, setDuelist, startDuel } from '../game/duel';
-import { decodeSnapshot, encodeSnapshot, snapshotOf } from '../game/snapshot';
-import { arena, type NinjaBrief, type Opponent } from './arenaClient';
+import { decodeSnapshot, encodeSnapshot, type NinjaSnapshot, snapshotOf, unitFromSnapshot } from '../game/snapshot';
+import { arena, leagueOf, type NinjaBrief, nextLeague, type Opponent } from './arenaClient';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemDef, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, carried, carryMax, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, owned, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
@@ -2488,13 +2489,55 @@ export class Panel {
     return sameDay ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   }
 
-  /** Aba Duelo: 1) o campeão e o retrato publicado, 2) o adversário e a luta. */
+  /** Emblema da liga pela pontuação (atlas dos selos; sem a arte, só o nome). */
+  private leagueBadge(rating: number, cls = 'dl-lg') {
+    const l = leagueOf(rating);
+    return atlasCell(BADGE_RANKS, l.emblem, cls, tipAttr(l.name, `${rating} pontos`, true)) ?? `<span class="mchip" ${tipAttr(l.name, `${rating} pontos`, true)}>${esc(l.name)}</span>`;
+  }
+
+  /** Retrato (corpo inteiro) do ninja de um retrato recebido: cria a unidade fora do jogo só para desenhar. */
+  private snapshotPortrait(code: string): string | null {
+    const hit = Panel.snapPortraits.get(code);
+    if (hit !== undefined) return hit;
+    const snap = decodeSnapshot(code);
+    let url: string | null = null;
+    if (snap) {
+      const u = unitFromSnapshot(Panel.portraitGame, snap, 0, 0);
+      // o penteado sai do id: um id estável pelo nome (ids negativos quebrariam o módulo)
+      u.id = [...snap.name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
+      url = unitPortrait(u, true);
+    }
+    // null = a arte ainda está sendo montada (quem chama mostra o esqueleto e tenta de novo na próxima remontagem)
+    if (url || !snap) Panel.snapPortraits.set(code, url);
+    return url;
+  }
+  private static snapPortraits = new Map<string, string | null>();
+  /** "Jogo" mínimo para criar a unidade do retrato sem mexer na vila (createNinja só usa newId e addUnit). */
+  private static portraitGame = { newId: () => -1, addUnit: (u: Unit) => u } as unknown as Game;
+
+  /** Jutsus, kekkei e equipamento de um retrato (perfil do adversário). */
+  private snapshotProfile(snap: NinjaSnapshot) {
+    const kk = snap.kekkei ? `<span class="badge nat" style="--c:${KEKKEI[snap.kekkei].color}">${KEKKEI[snap.kekkei].kanji} ${KEKKEI[snap.kekkei].name}</span>` : '';
+    const gear = (['weapon', 'armor', 'item'] as const)
+      .map((k) => snap.equip[k])
+      .filter((id): id is string => !!id)
+      .map((id) => (ITEMS[id] ? `<span class="badge">${itemPx(ITEMS[id]!)} ${esc(ITEMS[id]!.name)}</span>` : `<span class="badge">{swords} ${esc(id)}</span>`))
+      .join('');
+    return `<span class="nc-js">${snap.jutsu.map((id) => jutsuChip(id)).join('')}</span>${kk || gear ? `<span class="nc-badges">${kk}${gear}</span>` : ''}`;
+  }
+
+  /** Aba Duelo: faixa da arena, 1) o campeão e o retrato publicado, 2) o adversário e a luta, resultado e histórico. */
   private duelTab() {
     const g = this.app.game;
     const list = duelCandidates(g).slice(0, 12);
     const cur = duelist(g);
     const pub = arena.published;
     const why = duelBlock(g);
+    const st = arena.stats;
+    // ---- faixa: arte da arena, liga e pontos
+    const next = st ? nextLeague(st.rating) : null;
+    const banner = `<div class="dl-banner" style="${ART['duel-banner'] ? `background-image:url('${ART['duel-banner']}')` : ''}"><div class="dl-banner-t"><b>Arena de Duelos</b><small>Seu campeão contra o retrato de ninjas de outras vilas</small></div>
+      ${st ? `<div class="dl-banner-r">${this.leagueBadge(st.rating, 'dl-lg big')}<div><b>${esc(leagueOf(st.rating).name)}</b><small>${st.rating} pontos${next ? ` · ${next.min - st.rating} para a ${esc(next.name)}` : ' · liga máxima'}</small></div></div>` : ''}</div>`;
     // ---- 1. campeão
     let left = `<div class="bsec"><h4>1. Seu campeão ${infoTip('Campeão', 'O ninja que representa a vila nos duelos. O retrato dele (atributos, jutsus, equipamento) é o que os outros jogadores enfrentam quando você publica.')}</h4>`;
     if (cur) {
@@ -2511,7 +2554,7 @@ export class Panel {
     } else left += `<p class="hint">Nenhum ninja disponível (todos fora ou em missão).</p>`;
     const stale = pub && cur && pub.ninja.name !== cur.name;
     const pubLine = !pub
-      ? `<span class="mpill info">Ainda não publicado</span>`
+      ? `<span class="mpill info">Ainda não publicado</span> <small class="hint">Publique para entrar no sorteio dos outros jogadores.</small>`
       : `<span class="mpill ${stale ? 'risky' : 'safe'}">${stale ? 'Publicado: outro ninja' : 'Publicado'}</span> <small class="hint">${esc(pub.ninja.name)} · força ${pub.power} · ${this.when(pub.updatedAt)}</small>`;
     left += `<div class="dl-pub">${pubLine}</div>
       <div class="actions"><button class="btn primary" data-act="arena-publish" ${blocked(g, [!cur && 'Escolha um ninja.', arena.offline && 'Sem conexão com o servidor.'])}>{upload} ${pub && !stale ? 'Atualizar retrato' : 'Publicar retrato'}</button>
@@ -2526,9 +2569,13 @@ export class Panel {
     } else {
       const o = arena.opponent;
       if (o) {
-        right += `<div class="dl-opp"><div class="dl-opp-head"><b>${esc(o.name)}</b><span class="mchip gold">{trophy} ${o.rating}</span><span class="mchip">${o.wins}V ${o.losses}D</span></div>
+        const snap = decodeSnapshot(o.code);
+        right += `<div class="dl-opp" style="${ART['duel-arena-bg'] ? `background-image:url('${ART['duel-arena-bg']}')` : ''}"><div class="dl-opp-in">
+          <span class="dl-face foe">${pimg(this.snapshotPortrait(o.code))}</span>
+          <div class="dl-opp-body"><div class="dl-opp-head"><b>${esc(o.name)}</b>${this.leagueBadge(o.rating)}<span class="mchip gold">{trophy} ${o.rating}</span><span class="mchip">${o.wins}V ${o.losses}D</span></div>
           <div class="dl-opp-ninja">${this.ninjaBrief(o.ninja)} <span class="mchip" ${tipAttr('Força', 'Soma dos atributos × nível do retrato. A sua: ' + (pub ? pub.power : '— (publique o retrato)'), true)}>{barbell} ${o.power}</span></div>
-          <div class="actions"><button class="btn primary" data-act="arena-fight" ${blocked(g, [why])}>{swords} Lutar</button><button class="btn" data-act="arena-find">{refresh} Outro</button></div></div>`;
+          ${snap ? `<div class="dl-prof">${this.snapshotProfile(snap)}</div>` : ''}</div></div>
+          <div class="actions dl-opp-act"><button class="btn primary" data-act="arena-versus" ${blocked(g, [why])}>{swords} Lutar</button><button class="btn" data-act="arena-find">{refresh} Outro</button></div></div>`;
       } else {
         right += `<p class="hint">Procure alguém de força parecida com o seu retrato.</p>
           <div class="actions"><button class="btn primary" data-act="arena-find" ${blocked(g, [arena.busy && 'Procurando...'])}>{search} Procurar adversário</button></div>`;
@@ -2541,8 +2588,10 @@ export class Panel {
     let hist = '';
     if (lo || ld) {
       hist += `<div class="bsec"><h4>Último duelo</h4>`;
-      if (lo) hist += `<p class="dl-last ${lo.won ? 'won' : 'lost'}">${lo.won ? '{trophy} Venceu' : '{skull} Perdeu'} contra <b>${esc(lo.opponent.name)}</b> (${esc(lo.opponent.ninja.name)}) · ${lo.delta >= 0 ? '+' : ''}${lo.delta} pontos</p>`;
-      else if (ld) hist += `<p class="dl-last ${ld.won ? 'won' : 'lost'}">${ld.won ? '{trophy} Venceu' : '{skull} Perdeu'}: ${esc(ld.mine)} × ${esc(ld.foe)} (dia ${ld.day})</p>`;
+      if (lo) {
+        const ic = atlasCell(BADGE_RANKS, lo.won ? 'duel-win' : 'duel-lose', 'dl-ric') ?? (lo.won ? '{trophy}' : '{skull}');
+        hist += `<div class="dl-result ${lo.won ? 'won' : 'lost'}">${ic}<div><b>${lo.won ? 'Vitória' : 'Derrota'}</b><small>contra ${esc(lo.opponent.name)} (${esc(lo.opponent.ninja.name)})</small></div><span class="dl-big">${lo.delta >= 0 ? '+' : ''}${lo.delta}</span></div>`;
+      } else if (ld) hist += `<p class="dl-last ${ld.won ? 'won' : 'lost'}">${ld.won ? '{trophy} Venceu' : '{skull} Perdeu'}: ${esc(ld.mine)} × ${esc(ld.foe)} (dia ${ld.day})</p>`;
       if (arena.history?.length) {
         hist += `<ul class="dl-hist">`;
         for (const h of arena.history.slice(0, 6)) hist += `<li><span class="mpill ${h.won == null ? 'info' : h.won ? 'safe' : 'danger'}">${h.won == null ? 'aberto' : h.won ? 'V' : 'D'}</span> ${esc(h.defender)} <small>${esc(h.ninja.name)}</small><span class="dl-delta">${h.delta == null ? '' : `${h.delta >= 0 ? '+' : ''}${h.delta}`}</span><small>${this.when(h.at)}</small></li>`;
@@ -2551,7 +2600,28 @@ export class Panel {
       hist += `</div>`;
     }
     if (!arena.offline && arena.status === 'ok') this.arenaWant('history', () => arena.loadHistory(), 60_000);
-    return `<div class="vfill vgrid dl-grid"><div class="vcol">${left}</div><div class="vcol">${right}${hist}</div></div>`;
+    return banner + `<div class="vfill vgrid dl-grid"><div class="vcol">${left}</div><div class="vcol">${right}${hist}</div></div>`;
+  }
+
+  /** Tela VS antes da luta: os dois retratos, patente, nível, força e jutsus; "Hajime!" começa. */
+  private arenaVersus(o: Opponent | null) {
+    const g = this.app.game;
+    const cur = duelist(g);
+    if (!o || !cur) return;
+    const snap = decodeSnapshot(o.code);
+    const n = cur.ninja!;
+    const side = (face: string | null, name: string, who: string, rank: string, level: number, power: number | null, extra: string) =>
+      `<div class="dl-vs-side"><span class="dl-face">${pimg(face)}</span><b>${esc(name)}</b><small>${esc(who)}</small><span class="nc-badges"><span class="rbadge r-${rank}">${RANKS[rank as Rank]?.name ?? rank}</span><span class="lvbadge">Nv ${level}</span>${power != null ? `<span class="mchip">{barbell} ${power}</span>` : ''}</span>${extra}</div>`;
+    const mine = snapshotOf(g, cur);
+    const myPower = Math.round(STAT_KEYS.reduce((a, k) => a + mine.stats[k], 0) * (mine.level + 5));
+    const vs = ART['duel-vs'] ? `<span class="dl-vs-em" style="background-image:url('${ART['duel-vs']}')"><b>VS</b></span>` : `<span class="dl-vs-em plain"><b>VS</b></span>`;
+    showAlert({
+      kind: 'info',
+      title: 'Duelo',
+      extra: `<div class="dl-vs">${side(unitPortrait(cur, true), cur.name, 'Sua vila', n.rank, n.level, myPower, `<span class="nc-js">${n.jutsu.map((id) => jutsuChip(id)).join('')}</span>`)}${vs}${side(this.snapshotPortrait(o.code), o.ninja.name, o.name, o.ninja.rank, o.ninja.level, o.power, snap ? this.snapshotProfile(snap) : '')}</div>
+        <p class="hint">Regras do Exame: até o nocaute, o tempo ou cair da arena. Vale pontos para os dois.</p>`,
+      action: { label: '{swords} Hajime!', run: () => this.arenaFight(o) },
+    });
   }
 
   private duelRankTab() {
@@ -2559,12 +2629,12 @@ export class Panel {
     const r = arena.ranking;
     if (!r) return `<div class="bsec"><p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Carregando o ranking...'}</p></div>`;
     const me = arena.account?.id;
-    let html = `<div class="bsec"><h4>Ranking de duelos ${infoTip('Ranking', 'Pontos no estilo ELO: 1000 no começo; vencer alguém mais forte vale mais. Quem defende ganha ou perde metade.')}</h4>`;
-    html += `<p class="hint">${r.me.position ? `Sua posição: <b>${r.me.position}º</b> com ${r.me.rating} pontos` : 'Você ainda não duelou on-line.'} · ${r.me.defWins} defesa(s) seguras, ${r.me.defLosses} perdida(s)</p>`;
+    let html = `<div class="bsec"><h4>Ranking de duelos ${infoTip('Ranking', 'Pontos no estilo ELO: 1000 no começo; vencer alguém mais forte vale mais. Quem defende ganha ou perde metade. As ligas vão de Genin (até 1099) a Lendas (1600+).')}</h4>`;
+    html += `<p class="hint">${r.me.position ? `Sua posição: <b>${r.me.position}º</b> com ${r.me.rating} pontos (${esc(leagueOf(r.me.rating).name)})` : 'Você ainda não duelou on-line.'} · ${r.me.defWins} defesa(s) seguras, ${r.me.defLosses} perdida(s)</p>`;
     if (!r.top.length) return html + `<p class="hint">Ninguém duelou ainda. Seja o primeiro.</p></div>`;
     html += `<ol class="dl-rank">`;
     r.top.forEach((row, i) => {
-      html += `<li class="${row.userId === me ? 'me' : ''}"><span class="dl-pos">${i + 1}</span><span class="dl-name"><b>${esc(row.name)}</b><small>${row.ninja ? `${esc(row.ninja.name)} · ${esc(RANKS[row.ninja.rank as Rank]?.name ?? row.ninja.rank)} Nv ${row.ninja.level}` : 'sem retrato'}</small></span><span class="mchip gold">{trophy} ${row.rating}</span><span class="dl-wl">${row.wins}V ${row.losses}D</span></li>`;
+      html += `<li class="${row.userId === me ? 'me' : ''}"><span class="dl-pos">${i + 1}</span>${this.leagueBadge(row.rating)}<span class="dl-name"><b>${esc(row.name)}</b><small>${row.ninja ? `${esc(row.ninja.name)} · ${esc(RANKS[row.ninja.rank as Rank]?.name ?? row.ninja.rank)} Nv ${row.ninja.level}` : 'sem retrato'}</small></span><span class="mchip gold">{trophy} ${row.rating}</span><span class="dl-wl">${row.wins}V ${row.losses}D</span></li>`;
     });
     return html + `</ol></div>`;
   }
@@ -3273,6 +3343,8 @@ export class Panel {
       case 'arena-find':
         void arena.findOpponent();
         return;
+      case 'arena-versus':
+        return this.arenaVersus(arena.opponent);
       case 'arena-fight':
         return this.arenaFight(arena.opponent);
       case 'arena-revenge':

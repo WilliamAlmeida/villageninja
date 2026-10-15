@@ -35,13 +35,14 @@ if not items:
 rows = math.ceil(len(items) / cols)
 sheet = os.path.join(ROOT, 'docs', 'arte', 'ui', 'grids', f'{group}-{items[0][0]}.png')
 os.makedirs(os.path.dirname(sheet), exist_ok=True)
-cells = '\n'.join(f'Row {i // cols + 1}, column {i % cols + 1}: {d}.' for i, (_, d) in enumerate(items))
+# tudo numa linha só: no Windows (shell=True) uma quebra de linha no argumento engolia as descrições das casas
+cells = ' '.join(f'Row {i // cols + 1}, column {i % cols + 1}: {d}.' for i, (_, d) in enumerate(items))
 desc = (
     f'A SHEET of {len(items)} separate pixel art game UI icons arranged in a strict grid of {cols} columns and {rows} rows, '
     'every cell the same size, ONE item centered in each cell, each item filling about 70% of its cell with clear empty '
     'white space between items (items never touch or overlap the cell borders). Same style for all items, matching the '
     'attached reference exactly (16-bit look, crisp dark outline, 3-4 flat shades with a bright highlight, front view). '
-    'Pure white background, no grid lines, no labels, no text, no shadows.\n' + cells
+    'Pure white background, no grid lines, no labels, no text, no shadows. ' + cells
 )
 r = subprocess.run(['node', 'scripts/codex-image.mjs', sheet, desc, '--ref', ref, '--size', size], cwd=ROOT, capture_output=True, text=True, shell=os.name == 'nt')
 print((r.stdout or '').strip().splitlines()[-1:] or r.stderr)

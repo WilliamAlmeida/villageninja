@@ -77,7 +77,7 @@ export function createUI(app: App, root: HTMLElement) {
     'div',
     { id: 'dock' },
     rich(
-      `<button class="bigbtn" data-act="build" title="Construir (B)">${pxIco('hammer')}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">${pxIco('ninja')}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">${pxIco('castle')}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">${pxIco('scroll')}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">${pxIco('map')}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">${pxIco('anvil')}<span>Oficinas</span></button><button class="bigbtn" data-act="duels" title="Duelos contra outros jogadores (D)">{swords}<span>Duelos</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">${pxIco('select')}<span>Selecionar</span></button>`,
+      `<button class="bigbtn" data-act="build" title="Construir (B)">${pxIco('hammer')}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">${pxIco('ninja')}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">${pxIco('castle')}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">${pxIco('scroll')}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">${pxIco('map')}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">${pxIco('anvil')}<span>Oficinas</span></button><button class="bigbtn" data-act="duels" title="Duelos contra outros jogadores (D)">{swords}<span>Duelos</span><i class="dock-badge" data-t="duels-new" hidden></i></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">${pxIco('select')}<span>Selecionar</span></button>`,
     ),
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
@@ -87,6 +87,21 @@ export function createUI(app: App, root: HTMLElement) {
   const btnWorld = dock.querySelector<HTMLElement>('[data-act="world"]')!;
   const btnCrafts = dock.querySelector<HTMLElement>('[data-act="crafts"]')!;
   const btnDuels = dock.querySelector<HTMLElement>('[data-act="duels"]')!;
+  const duelsNew = btnDuels.querySelector<HTMLElement>('[data-t="duels-new"]')!;
+  // quem já entrou na arena alguma vez reconecta ao abrir o jogo: defesas novas viram bolinha no botão e um aviso
+  void arena.boot().then((fresh) => {
+    if (!fresh || !arena.defenses) return;
+    const d = arena.defenses.defenses.filter((x) => x.unseen);
+    const held = d.filter((x) => x.held).length;
+    const delta = d.reduce((s, x) => s + (x.defDelta ?? 0), 0);
+    showAlert({
+      kind: 'info',
+      title: 'Enquanto você estava fora',
+      text: `${d.length} ninja(s) desafiaram o seu retrato: ${held} defesa(s) segura(s), ${d.length - held} perdida(s) (${delta >= 0 ? '+' : ''}${delta} pontos).`,
+      rows: d.slice(0, 5).map((x) => `${x.held ? '{shield}' : '{skull}'} ${x.attacker.name}${x.attackerNinja ? ` (${x.attackerNinja.name})` : ''}`),
+      action: { label: '{swords} Ver defesas', run: () => win.show({ kind: 'duelDefenses' }) },
+    });
+  });
   const btnSelect = dock.querySelector<HTMLElement>('[data-act="select"]')!;
   dock.addEventListener('pointerdown', (e) => e.stopPropagation());
   dock.addEventListener('click', (e) => {
@@ -486,6 +501,9 @@ export function createUI(app: App, root: HTMLElement) {
     btnWorld.classList.toggle('on', WORLD_VIEWS.includes(win.kind ?? ''));
     btnCrafts.classList.toggle('on', win.kind === 'crafts');
     btnDuels.classList.toggle('on', DUEL_VIEWS.includes(win.kind ?? ''));
+    const unseen = arena.unseen;
+    if (duelsNew.hidden === unseen > 0) duelsNew.hidden = unseen <= 0;
+    if (unseen > 0 && duelsNew.textContent !== String(unseen)) duelsNew.textContent = String(unseen);
     arena.tick(app.home); // duelo on-line que acabou: manda o resultado ao servidor
     sceneBar.update();
     battle.update(dt);

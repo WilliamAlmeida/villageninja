@@ -94,6 +94,24 @@ const ERROR_TEXT: Record<string, string> = {
   OFFLINE: 'Sem conexão com o servidor de duelos.',
 };
 
+/** Ligas por pontuação (emblemas `league-*` no atlas dos selos). */
+export const LEAGUES: { min: number; name: string; emblem: string }[] = [
+  { min: 0, name: 'Liga Genin', emblem: 'league-genin' },
+  { min: 1100, name: 'Liga Chunin', emblem: 'league-chunin' },
+  { min: 1250, name: 'Liga Jounin', emblem: 'league-jounin' },
+  { min: 1400, name: 'Liga Kage', emblem: 'league-kage' },
+  { min: 1600, name: 'Liga das Lendas', emblem: 'league-legend' },
+];
+export function leagueOf(rating: number) {
+  let out = LEAGUES[0]!;
+  for (const l of LEAGUES) if (rating >= l.min) out = l;
+  return out;
+}
+/** Pontos que faltam para a próxima liga (null na última). */
+export function nextLeague(rating: number) {
+  return LEAGUES.find((l) => l.min > rating) ?? null;
+}
+
 export class ArenaError extends Error {
   constructor(public code: string) {
     super(ERROR_TEXT[code] ?? `Erro do servidor (${code}).`);
@@ -161,6 +179,23 @@ export class ArenaClient {
 
   get offline() {
     return this.status === 'offline';
+  }
+
+  /** Defesas que o jogador ainda não viu (bolinha no botão Duelos). */
+  get unseen() {
+    return this.defenses?.unseen ?? 0;
+  }
+
+  /**
+   * Ao abrir o jogo: só quem já entrou na arena alguma vez (tem token) é reconectado, para contar as defesas novas;
+   * quem nunca abriu a janela não vira convidado à toa.
+   */
+  async boot(): Promise<boolean> {
+    if (!this.token) return false;
+    const me = await this.refreshMe();
+    if (!me) return false;
+    await this.loadDefenses(false);
+    return this.unseen > 0;
   }
 
   private changed() {

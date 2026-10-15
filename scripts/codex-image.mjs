@@ -8,13 +8,13 @@
 //     --sheet  folha de sprite no padrão do jogo: manda o gabarito de poses (docs/arte/gabarito-*.png) como
 //              1ª referência e usa o prompt fixo (grade 4×3, de lado para a direita / frente / costas).
 // Depois tira o fundo branco localmente (scripts/remove-bg.py). Para folhas, rode scripts/prepare-art.py (valida).
-// Modelo do agente: CODEX_MODEL (padrão gpt-5.5; o padrão do config.toml não é aceito no login do ChatGPT).
+// Modelo do agente: CODEX_MODEL (padrão gpt-6-sol; desde 2026-10-15 o gpt-5.5 é recusado no login do ChatGPT; aceitos: gpt-6-sol/luna/astra, gpt-5.6-sol/luna/terra).
 // ~1–2 min por imagem; pode rodar várias em paralelo. O que o Codex respondeu fica em <saida>.codex.txt.
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const MODEL = process.env.CODEX_MODEL ?? 'gpt-5.5';
+const MODEL = process.env.CODEX_MODEL ?? 'gpt-6-sol';
 const args = process.argv.slice(2);
 const flag = (name) => {
   const i = args.indexOf(name);

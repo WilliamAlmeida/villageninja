@@ -2880,3 +2880,48 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 #alertbox .dl-field { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.45rem 0; font-size: 0.85rem; color: var(--muted); }
 #alertbox .dl-field input { font: inherit; font-size: 1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 0.45rem 0.55rem; }
 @media (max-width: 760px) { .dl-grid { grid-template-columns: minmax(0, 1fr); } }
+/* passada visual da janela Duelos: faixa da arena, cartão do adversário com fundo, ligas, VS e resultado */
+.dl-banner { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 0.8rem; min-height: 8.5rem; margin-top: 0.55rem; padding: 0.7rem 0.9rem; border-radius: var(--r); border: 1px solid rgba(255, 211, 77, 0.35); background: #2a1a10 center 68% / cover no-repeat; image-rendering: pixelated; overflow: hidden; }
+.dl-banner::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 12, 6, 0.1), rgba(20, 12, 6, 0.75)); }
+.dl-banner > * { position: relative; }
+.dl-banner-t { display: flex; flex-direction: column; text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,0,0,0.8); }
+.dl-banner-t b { font-size: 1.35rem; color: var(--warn); letter-spacing: 0.02em; }
+.dl-banner-t small, .dl-banner-r small { color: #e8dcc4; font-size: 0.8rem; }
+.dl-banner-r { display: flex; align-items: center; gap: 0.5rem; text-shadow: 0 1px 2px #000; }
+.dl-banner-r > div { display: flex; flex-direction: column; }
+.dl-lg { display: inline-block; width: 1.9rem; height: 1.9rem; flex: 0 0 auto; background-repeat: no-repeat; image-rendering: pixelated; }
+.dl-lg.big { width: 3.4rem; height: 3.4rem; }
+.dl-opp { position: relative; padding: 0.6rem 0.7rem; border-radius: var(--r); border: 1px solid rgba(255,211,77,0.3); background: #2a1a10 center / cover no-repeat; image-rendering: pixelated; overflow: hidden; }
+.dl-opp::before { content: ''; position: absolute; inset: 0; background: rgba(20, 12, 6, 0.62); }
+.dl-opp > * { position: relative; }
+.dl-opp-in { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 0.6rem; align-items: start; }
+.dl-opp-body { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.dl-face.foe .pim, .dl-face.foe .skel { transform: scaleX(-1); }
+.dl-prof { display: flex; flex-direction: column; gap: 0.3rem; }
+.dl-opp-act { margin-top: 0.6rem; }
+.dl-result { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.7rem; border-radius: var(--r); background: var(--card-hi); }
+.dl-result > div { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.dl-result b { font-size: 1.1rem; }
+.dl-result small { color: var(--muted); }
+.dl-result.won b, .dl-result.won .dl-big { color: var(--good); }
+.dl-result.lost b, .dl-result.lost .dl-big { color: var(--bad); }
+.dl-ric { display: inline-block; width: 3rem; height: 3rem; flex: 0 0 auto; background-repeat: no-repeat; image-rendering: pixelated; }
+.dl-big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+#alertbox .dl-vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 0.6rem; align-items: center; margin: 0.4rem 0; }
+#alertbox .dl-vs-side { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.25rem; min-width: 0; }
+#alertbox .dl-vs-side .dl-face .pim, #alertbox .dl-vs-side .dl-face .skel { width: 5.2rem; height: 5.2rem; }
+#alertbox .dl-vs-side:last-child .dl-face .pim { transform: scaleX(-1); }
+#alertbox .dl-vs-side small { color: var(--muted); }
+#alertbox .dl-vs-side .nc-badges, #alertbox .dl-vs-side .nc-js { justify-content: center; flex-wrap: wrap; }
+#alertbox .dl-vs-em { width: 4.6rem; height: 4.6rem; display: grid; place-items: center; background: center / contain no-repeat; image-rendering: pixelated; }
+#alertbox .dl-vs-em b { font-size: 1.3rem; color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+#alertbox .dl-vs-em.plain { border-radius: 50%; background: var(--card-hi); border: 2px solid var(--warn); }
+#alertbox .dl-vs-side .dl-face .pim { image-rendering: pixelated; }
+/* bolinha de defesas novas no botão Duelos do dock */
+.bigbtn { position: relative; }
+.dock-badge { position: absolute; top: -0.3rem; right: -0.2rem; min-width: 1.25rem; height: 1.25rem; padding: 0 0.3rem; border-radius: 0.7rem; background: var(--bad); color: #fff; font-size: 0.72rem; font-weight: 800; display: grid; place-items: center; border: 1px solid #000; }
+.dock-badge[hidden] { display: none; }
+@media (max-width: 760px) { .dl-banner { min-height: 5.5rem; } .dl-banner-t b { font-size: 1.1rem; } #alertbox .dl-vs { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); } }
+#alertbox .card:has(.dl-vs) { max-width: 38rem; width: min(38rem, 96vw); }
+#alertbox .dl-vs-side .nc-js { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem; max-width: 100%; }
+#alertbox .dl-vs-side .njs > span { max-width: 7rem; }

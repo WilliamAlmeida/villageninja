@@ -211,9 +211,11 @@ for f in sorted(glob.glob(os.path.join(SRC, 'art', '*.png'))):
         continue
     save_small(defringe(fit(im, ART_MAX, False), 1), out)
     art.append(name)
-# ilustração que saiu da fonte sai do jogo também
+# ilustração que saiu da fonte sai do jogo também (menos as que vêm de outro script: o pergaminho das missões,
+# `ui-scroll`, sai de docs/arte/ui/mission-scroll.png pelo artpaths.py)
+KEEP = {'ui-scroll'}
 for f in glob.glob(os.path.join(DST, 'art', '*.png')):
-    if os.path.splitext(os.path.basename(f))[0] not in art:
+    if os.path.splitext(os.path.basename(f))[0] not in art and os.path.splitext(os.path.basename(f))[0] not in KEEP:
         os.remove(f)
 print('art:', len(art))
 
