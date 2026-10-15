@@ -61,7 +61,7 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 
 - [x] Rasengan e Ōdama Rasengan — esfera compartilhada na mão, formação por escala, impacto animado e cratera temporária no chão (12/18 s). Ōdama usa as mesmas três imagens em 2×. Aprovado visualmente pelo autor em 2026-10-13 (73c11ca); prévia em `docs/arte/jutsus/rasengan/preview-impacto.html`.
 - [x] Rasenshuriken — formação na mão, projétil com quatro lâminas giratórias, domo expansivo de 0,8 s (baixado +8 px no eixo Y) e cratera compartilhada ampliada (20 s). Aprovado visualmente pelo autor em 2026-10-13; prévia em `docs/arte/jutsus/rasenshuriken/preview.html`.
-- [ ] Chidori — chakra elétrico na mão, investida e impacto.
+- [x] Chidori — formação baixa, corrida com a mão baixa, perfuração e dissipação; sem empurrão e sem partículas de água no impacto. Aprovado pelo autor em 2026-10-15 após revisão das referências.
 - [x] Doryuuheki — muralha frontal, diagonal e perfil aprovados; registros de perfil e diagonal restaurados após regressão na configuração; três vistas deslocadas +7 px em Y. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
 - [x] Doryuudan — cabeça e lama aprovadas; afastamento visual da cabeça aumentado 12 px na direção do disparo. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
 - [x] Suna no Tate — barreira de areia aprovada. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
@@ -70,13 +70,13 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [ ] Amaterasu e Susano'o — adiados por solicitação do autor em 2026-10-14.
 - [x] Jukai Kōtan — integrado: raízes crescem, envolvem, permanecem e recuam pelo tempo da prisão. Aprovado visualmente pelo autor (3de1e8b).
 - [x] Raikyuu — esfera elétrica em voo integrada e aprovada visualmente pelo autor (3de1e8b).
-- [x] Chidori Nagashi — alinhamento Y entre os oito quadros corrigido em 2026-10-15: fundo da abertura central em referência fixa, dy final −9 px no laboratório. Prévia atualizada e montagem em `docs/arte/jutsus/raiton-mokuton/nagashi-alinhamento.png`; Aprovado pelo autor em 2026-10-15.
+- [x] Chidori Nagashi — alinhamento Y entre os oito quadros corrigido em 2026-10-15: fundo da abertura central em referência fixa, dy final +9 px no laboratório; restaurado e sincronizado com o configurador/prévia em 2026-10-15. Prévia atualizada e montagem em `docs/arte/jutsus/raiton-mokuton/nagashi-alinhamento.png`; Aprovado pelo autor em 2026-10-15.
 - [x] Yōkai — lava própria e impacto de 0,8 s integrados em 2026-10-15; Aprovado pelo autor em 2026-10-15. Prévia em `docs/arte/jutsus/lava-vento/preview.html`.
 - [x] Daitoppa e Shinkuu Ha — rajada e lâmina integradas; artes aprovadas pelo autor em 2026-10-15.
 - [x] Sekizō — substituído o leque/coluna por cinco socos sucessivos, canhões longos de ar comprimido e deslocamentos ao redor do alvo. Corrigido a partir da referência do autor em 2026-10-15; captura em `output/playwright/sekizo-canhoes.png`; Aprovado pelo autor em 2026-10-15.
 - [x] Ajustes de contato e posicionamento aprovados pelo autor em 2026-10-15: frente física das sprites, impacto do Yōkai no chão, origem ajustável do Daitoppa e controles de todas as peças no laboratório. Auditoria em `docs/auditoria-projeteis.md`.
 - [x] Kaiten — folha própria aprovada em 2026-10-15 e integrada: formação, seis quadros de rotação e dissipação, acompanhando o tempo do escudo; posição editável no laboratório.
-- [x] Sōshiken, Gatsūga e Nikudan Sensha — artes aprovadas e integradas em 2026-10-15: leões ligados aos punhos, uma broca no ninja e outra no ninken próximo durante a investida e bola de tecido neutro recolorida pela roupa externa do ninja; ajustes disponíveis no laboratório.
+- [x] Sōshiken, Gatsūga e Nikudan Sensha — implementação e resultado no jogo aprovados pelo autor em 2026-10-15: leões ligados aos punhos, uma broca no ninja e outra no ninken próximo durante a investida e bola de tecido neutro recolorida pela roupa externa do ninja; ajustes disponíveis no laboratório.
 - [ ] Sensatsu, Reiza e Kajōsatsu — agulhas de gelo, feixes e esferas de calor.
 - [ ] Kage Bunshin, Edo Tensei e Shousen — aparição, invocação e cura.
 - [ ] Avaliar efeitos compartilhados de impacto, poeira, cortes e chakra para os golpes físicos restantes.

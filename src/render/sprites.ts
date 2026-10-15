@@ -3,7 +3,7 @@
 import { drawPressureProjectile } from './pressureCannon';
 import { drawRollingBody, drawLionFists } from './taijutsuSprites';
 import { TILE } from '../config';
-import { drawKaiten, drawHandJutsu, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
+import { drawKaiten, drawHandJutsu, drawChidoriHand, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -14,6 +14,8 @@ import { artLayout, artPoint } from '../data/layout';
 import { ART_SIZE } from './unitShape';
 import { STRIKE_ANIM } from '../game/combat';
 import dollPoses from '../data/doll-poses.json';
+import { CHIDORI_CHARGE, chidoriAge } from '../data/chidori';
+import { chidoriArt, chidoriHandPoint } from './chidoriPose';
 import { JUTSUS } from '../data/jutsus';
 import { bijuu, bijuuScale } from '../data/bijuu';
 import { eyeOf } from '../game/dojutsu';
@@ -560,8 +562,10 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   const pz = !action ? poseOf(u, t) : null;
   const rolling = !action ? u.dash?.id ?? (u.anim > 0 && u.animKind === 'moves' && pz?.fx === 'roll' ? u.moveJutsu : undefined) : undefined;
   if (!silColor && drawRollingBody(ctx, u, rolling, t)) return true;
-  const pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash), pz?.pose);
+  let pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash), pz?.pose);
   if (!pic) return false;
+  const chidoriPose = !action && (u.dash?.id === 'chidori' || u.moveJutsu === 'chidori' && u.animKind === 'moves' && u.anim > 0);
+  if (chidoriPose) pic = chidoriArt(unitPic(u, true), pic);
   const posed = !!pz && pic.dataset.pose === pz.pose; // a arte da pose pode ainda estar carregando (vem a caminhada)
   const dx = Math.cos(u.facing);
   const dy = Math.sin(u.facing);
@@ -661,12 +665,14 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   if (u.burn) sageWisps(ctx, u, t * 1.6, '#120814', '#4a1a5a', 24, 'source-over');
   // Rasengan na investida; Rasenshuriken se forma no fim dos selos, antes do arremesso.
   const charging = u.cast?.id === 'rasenshuriken' && u.cast.t <= 0.3;
-  const orbJ = u.dash?.id ?? (charging ? u.cast!.id : undefined) ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
-  const orb = orbJ === 'rasenshuriken' ? '#7fc8ff' : orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
+  const chidoriRecovery = u.moveJutsu === 'chidori' && u.animKind === 'moves' && u.anim > 0;
+  const orbJ = u.dash?.id ?? (chidoriRecovery ? 'chidori' : undefined) ?? (charging ? u.cast!.id : undefined) ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
+  const orb = orbJ === 'chidori' ? '#9fd8ff' : orbJ === 'rasenshuriken' ? '#7fc8ff' : orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
   if (orb && orbJ) {
     const r = artRect(pic, ux, uy, height, frame, row);
     const pose = pic.dataset.pose as DollPose | undefined;
-    const hp = (pose && (dollPoses.hand as unknown as Record<string, ([number, number] | null)[]>)[pose]?.[row * r.frames + frame])
+    const hp = pic.dataset.chidori ? chidoriHandPoint(row, frame)
+      : (pose && (dollPoses.hand as unknown as Record<string, ([number, number] | null)[]>)[pose]?.[row * r.frames + frame])
       || artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
     const hx = hp ? (flip ? 2 * ux - r.left - r.w : r.left) + ((flip ? r.fw - hp[0] - 1 : hp[0]) + 0.5) * r.w / r.fw
       : ux + (flip ? -1 : 1) * (row === SHEET_ROWS.side ? 9 : 4);
@@ -674,7 +680,8 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     const size = JUTSUS[orbJ]?.orbSize ?? 1;
     const growth = charging ? Math.min(1, 0.2 + (0.3 - u.cast!.t) / 0.24)
       : u.dash ? Math.min(1, 0.25 + (1 - u.dash.t) / 0.12) : 1;
-    if (!drawHandJutsu(ctx, orbJ, hx, hy - 3 - 4 * (size - 1), t, u.id, growth)) handOrb(ctx, hx, hy - 3, orb, t, size);
+    if (orbJ === 'chidori') drawChidoriHand(ctx, u, hx, hy, t, uy);
+    else if (!drawHandJutsu(ctx, orbJ, hx, hy - 3 - 4 * (size - 1), t, u.id, growth)) handOrb(ctx, hx, hy - 3, orb, t, size);
   }
   if (u.moveJutsu === 'soshiken' && u.animKind === 'moves' && u.anim > 0 && !u.dead && u.stun <= 0) {
     const r = artRect(pic, ux, uy, height, frame, row);
@@ -716,9 +723,14 @@ function poseOf(u: Unit, t: number): PoseNow | null {
   }
   // investida: o 1º passo da coreografia na corrida (chute voador, bola rolando…); sem coreografia, avanço do soco
   if (u.dash) {
+    if (u.dash.id === 'chidori') {
+      const age = chidoriAge(u.dash.t);
+      return { pose: 'strike', frame: age < CHIDORI_CHARGE ? 0 : 1 + Math.floor((age - CHIDORI_CHARGE) * 12) % 2, h: 0 };
+    }
     const first = u.dash.id ? JUTSUS[u.dash.id]?.moves?.[0] : undefined;
     return first ? { pose: first[0], frame: first[1], h: first[3] ?? 0, fx: first[4] } : { pose: 'strike', frame: 1, h: 0 };
   }
+  if (u.moveJutsu === 'chidori' && u.animKind === 'moves' && u.anim > 0) return { pose: 'strike', frame: 3, h: 0 };
   // nocaute do duelo: caído no chão
   if (u.state === 'ko') return { pose: 'hurt', frame: 2, h: 0 };
   // de volta da expedição com espólio: anda com o saco no ombro (ciclo de caminhada da folha carry)

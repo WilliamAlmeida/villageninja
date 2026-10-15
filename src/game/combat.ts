@@ -2,6 +2,7 @@ import { startSekizo } from './sekizo';
 import { dogOf } from './ninken';
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { scarArea } from './battleScars';
+import { CHIDORI_CHARGE, CHIDORI_DASH_TIME, chidoriAge } from '../data/chidori';
 import { rasenganHitFx } from './rasenganFx';
 import { createDragonFlight, dragonPoint } from './dragonFlight';
 import { FX } from '../data/jutsuFx';
@@ -354,7 +355,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     }
     case 'dash':
       // corre até o alvo deixando um rastro (dashTick); golpeia ao chegar
-      u.dash = { id: def.id, targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
+      u.dash = { id: def.id, targetId: t.id, t: def.id === 'chidori' ? CHIDORI_DASH_TIME : 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
       u.hasGoal = false;
       if (def.id === 'gatsuga') joinGatsuga(g, u, t);
       break;
@@ -811,12 +812,18 @@ export function dashTick(g: Game, u: Unit, dt: number) {
   u.facing = Math.atan2(t.y - u.y, t.x - u.x);
   u.anim = 0.2;
   u.animKind = undefined;
-  if (dist <= 20) {
+  // Chidori termina mais perto, com o braço de perfuração alcançando o alvo.
+  const contact = d.id === 'chidori' ? 14.1 : 20;
+  if (d.id === 'chidori' && chidoriAge(d.t) < CHIDORI_CHARGE) { u.moving = false; return; }
+  if (dist <= contact) {
     u.dash = undefined;
     u.moving = false;
     dashTrail(g, u, d);
     const rasengan = rasenganHitFx(g, d.id, t.x, t.y);
-    if (!rasengan) {
+    const chidori = d.id === 'chidori' && FX.jutsus.chidori?.impact;
+    if (chidori) fx(g, 'burst', t.x, t.y, { fx: 'chidori', vfx: 'lightning', facing: u.facing,
+      color: d.color, r: 0, life: chidori.frames / Math.max(1, chidori.fps) });
+    if (!rasengan && !chidori) {
       fx(g, 'burst', t.x, t.y, { r: 26, color: d.color, life: 0.4, vfx: d.vfx, fx: d.id });
       fx(g, 'hit', t.x, t.y - 8, { r: 18, color: d.color, life: 0.3, vfx: d.vfx ?? 'impact' });
     }
@@ -828,11 +835,11 @@ export function dashTick(g: Game, u: Unit, dt: number) {
         fx(g, 'wave', t.x, t.y, { r: def.dashRadius, color: d.color, life: 0.5, vfx: d.vfx });
       }
       areaDamage(g, u, u.faction, t.x, t.y, def.dashRadius, d.power, d.nature, 40, def.stun ?? 0);
-    } else applyDamage(g, u, t, d.power, d.nature, { knock: def?.launch ? 30 : 26, stun: def?.stun, launch: def?.launch });
+    } else applyDamage(g, u, t, d.power, d.nature, { knock: d.id === 'chidori' ? 0 : def?.launch ? 30 : 26, stun: def?.stun, launch: def?.launch });
     playMoves(u, def, 0.45); // chegada da investida: o golpe no alvo e recupera (desenho)
     return;
   }
-  const step = Math.min(dist - 16, DASH_SPEED * dt);
+  const step = Math.min(dist - (d.id === 'chidori' ? 14 : 16), DASH_SPEED * dt);
   const nx = u.x + ((t.x - u.x) / dist) * step;
   const ny = u.y + ((t.y - u.y) / dist) * step;
   if (!g.world.walkablePx(nx, ny)) {
@@ -854,7 +861,7 @@ export function dashTick(g: Game, u: Unit, dt: number) {
 
 /** Rastro da investida: raio (Chidori, Raiton) ou vultos vermelhos de quem força o corpo (Passo de Sangue). */
 function dashTrail(g: Game, u: Unit, d: NonNullable<Unit['dash']>) {
-  if (d.id === 'rasengan' || d.id === 'odama' ||
+  if (d.id === 'chidori' || d.id === 'rasengan' || d.id === 'odama' ||
       ((d.id === 'gatsuga' || d.id === 'nikudan') && FX.jutsus[d.id]?.sprite)) return;
   if (d.vfx === 'blood' || d.vfx === 'impact') {
     fx(g, 'afterimage', d.lx, d.ly, { uid: u.id, facing: u.facing, life: 0.3, color: d.color });

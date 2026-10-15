@@ -664,6 +664,7 @@ preloadArt().then(() => {
     for(let elapsed=0;elapsed<seconds;elapsed+=SIM_DT)g.step(SIM_DT);
     clock=seconds;setPaused(true);now.textContent=JUTSUS[id]!.name;
   }
+  renderer.render(g, camera, null, clock); // primeiro quadro pronto mesmo antes do próximo repaint do navegador
   requestAnimationFrame(frame);
 });
 

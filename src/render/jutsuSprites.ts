@@ -1,6 +1,7 @@
 // Sprites dos jutsus: folhas em grade (data/jutsu-fx.json, ajustáveis no painel "Ajuste" do Laboratório) desenhadas
 // sobre o projétil do jutsu (`Projectile.fx`, ou o tipo para projéteis antigos) e a Prisão d'Água sobre o preso.
 import { art } from './art';
+import { CHIDORI_CHARGE, chidoriAge } from '../data/chidori';
 import type { Effect, Projectile } from '../game/types';
 import { JUTSUS } from '../data/jutsus';
 import { FX, PARTS_DEFAULT, spriteFx, type SpriteFx } from '../data/jutsuFx';
@@ -249,6 +250,36 @@ export function drawHandJutsu(ctx: CanvasRenderingContext2D, id: string, x: numb
   return !!s && drawSpriteFx(ctx, { ...s, size: s.size * Math.max(0.2, growth) }, x, y, 0, t, uid);
 }
 
+/** Eletricidade registrada na palma: formação, ciclo ativo e dissipação. */
+export function drawChidoriHand(ctx: CanvasRenderingContext2D, u: import('../game/types').Unit, x: number, y: number, t: number, feetY = y + 6): boolean {
+  const s = spriteFx('chidori');
+  if (!s || u.dead || u.stun > 0 || u.hidden || u.away != null) return false;
+  const age = u.dash?.id === 'chidori' ? chidoriAge(u.dash.t) : null;
+  const remaining = u.anim;
+  const frame = age != null
+    ? age < CHIDORI_CHARGE ? Math.min(2, Math.floor(age / (CHIDORI_CHARGE / 3))) : 2 + Math.floor((age - CHIDORI_CHARGE) * s.fps) % 4
+    : remaining > .14 ? 2 + Math.floor(t * s.fps) % 4 : remaining > .07 ? 6 : 7;
+  // Fios finos entre a palma baixa e o chão durante a concentração.
+  if (age != null && age < CHIDORI_CHARGE) {
+    const power = Math.min(1, age / .35);
+    const tick = Math.floor(age * 18);
+    ctx.save(); ctx.globalAlpha *= power * .8;
+    for (let arc = 0; arc < 5; arc++) {
+      const endX = x + (arc - 2) * 9 * power, endY = feetY + (arc % 2 ? 3 : -1);
+      ctx.strokeStyle = arc % 2 ? '#ffffff' : '#9cddff'; ctx.lineWidth = .65;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      for (let step = 1; step <= 5; step++) {
+        const k = step / 5;
+        const jitter = step === 5 ? 0 : Math.sin((tick + arc * 7 + step * 3) * 8.1) * 3;
+        ctx.lineTo(x + (endX - x) * k + jitter, y + (endY - y) * k - Math.sin(k * Math.PI) * 8 * power);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  return drawSpriteFx(ctx, s, x, y, u.facing, t, u.id, undefined, frame);
+}
+
 /** Rajada em execução única entre os pontos já projetados do efeito. */
 export function drawJutsuGust(ctx: CanvasRenderingContext2D, e: Effect): boolean {
   const s = e.fx ? FX.jutsus[e.fx]?.gust : undefined;
@@ -266,7 +297,7 @@ export function drawJutsuImpact(ctx: CanvasRenderingContext2D, e: Effect): boole
   ctx.globalAlpha = 1;
   const fade = ['rasenshuriken', 'kirin', 'chidorinagashi'].includes(e.fx ?? '')
     ? Math.max(0, Math.min(1, (e.life - e.t) / 0.16)) : 1;
-  const drawn = drawSpriteFx(ctx, { ...s, opacity: s.opacity * fade }, e.x, e.y, 0, e.t, 0, undefined, Math.floor(e.t * s.fps));
+  const drawn = drawSpriteFx(ctx, { ...s, opacity: s.opacity * fade }, e.x, e.y, e.fx === 'chidori' ? projectAngle(e.facing ?? 0) : 0, e.t, 0, undefined, Math.floor(e.t * s.fps));
   ctx.restore();
   return drawn;
 }

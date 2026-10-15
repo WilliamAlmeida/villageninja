@@ -46,17 +46,17 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 |---|---|---|
 | Concluído; aprovado pelo autor | Rasengan e Ōdama Rasengan | Esfera compartilhada ligada à mão, formação por escala, impacto e cratera temporária; Ōdama usa tudo em 2× (73c11ca). |
 | Concluído; aprovado pelo autor | Rasenshuriken | Formação na mão, quatro lâminas giratórias, voo, domo expansivo e cratera ampliada. |
-| Muito alta | Chidori | Chakra elétrico na mão, descarga durante a investida e impacto. |
+| Concluído; aprovado pelo autor em 2026-10-15 | Chidori | Folhas próprias na mão e no impacto, formação baixa de 0.65s, corrida com mão baixa e extensão no contato, sem empurrão; contato aproximado para 14px. Plano em `arte/jutsus/chidori/README.md`. |
 | Aprovado pelo autor em 2026-10-15 | Doryuuheki; Doryuudan; Suna no Tate; Sabaku Kyū | Muralha, cabeça de terra e projétil de lama separados, barreira curva de areia e casulo com compressão. |
 | Aprovado pelo autor (3de1e8b) | Kirin | Formação no céu, dragão elétrico e queda. |
 | Adiados pelo autor em 2026-10-14 | Amaterasu e Susano'o | Chamas negras presas ao alvo; armadura de chakra em camadas ao redor do ninja. |
 | Aprovado pelo autor (3de1e8b) | Jukai Kōtan | Raízes crescendo e envolvendo. |
-| Concluído; aprovado pelo autor em 2026-10-15 | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo, quadros alinhados pela abertura central e deslocamento final −9 px no laboratório. |
+| Concluído; aprovado pelo autor em 2026-10-15 | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo, quadros alinhados pela abertura central e deslocamento Y +9 px no laboratório, sincronizado com o preparo e a prévia. |
 | Concluído; aprovado pelo autor em 2026-10-15 | Yōkai | Massa de lava e explosão viscosa próprias. |
 | Concluído; aprovado pelo autor em 2026-10-15 | Daitoppa e Shinkuu Ha | Rajada e lâmina de ar com ajustes no painel. |
 | Concluído; aprovado pelo autor em 2026-10-15 | Sekizō | Cinco socos sucessivos com canhões longos de pressão, de direções diferentes. |
 | Concluído; arte aprovada pelo autor em 2026-10-15 | Kaiten | Domo com formação, rotação e dissipação; folha própria 4x2. |
-| Concluído; arte aprovada pelo autor em 2026-10-15 | Sōshiken, Gatsūga e Nikudan Sensha | Leões acompanhando os punhos; uma broca por participante do Gatsūga (ninja e ninken próximo); bola com costuras e cor da roupa externa. |
+| Concluído; implementação e visual aprovados pelo autor em 2026-10-15 | Sōshiken, Gatsūga e Nikudan Sensha | Leões acompanhando os punhos; uma broca por participante do Gatsūga (ninja e ninken próximo); bola com costuras e cor da roupa externa. |
 | Média | Sensatsu, Reiza e Kajōsatsu | Agulhas de gelo, feixes elétricos e esferas de calor. |
 | Complementar | Kage Bunshin, Edo Tensei e Shousen | Fumaça de criação, surgimento da invocação e aura de cura. |
 

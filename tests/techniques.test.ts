@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { Particles } from '../src/render/particles';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { applyDamage, castJutsu, castTick, dashTick, engage } from '../src/game/combat';
 import { createAnimal } from '../src/game/entities';
@@ -119,12 +120,28 @@ describe('técnicas ninja', () => {
     castJutsu(g, n, 0, wolf);
     expect(n.dash).toBeDefined();
     expect(dist(n, wolf)).toBeCloseTo(d0, 0);
-    dashTick(g, n, SIM_DT);
+    const targetPosition = {x:wolf.x,y:wolf.y};
+    for (let elapsed = 0; elapsed < .5; elapsed += SIM_DT) dashTick(g, n, SIM_DT);
+    expect(dist(n, wolf)).toBeCloseTo(d0, 6); // formação parada, antes da corrida
+    expect(wolf.hp).toBe(9999);
+    for (let elapsed = 0; elapsed < .2; elapsed += SIM_DT) dashTick(g, n, SIM_DT);
     expect(dist(n, wolf)).toBeLessThan(d0);
     expect(dist(n, wolf)).toBeGreaterThan(20);
     for (let i = 0; i < 100 && n.dash; i++) dashTick(g, n, SIM_DT);
     expect(n.dash).toBeUndefined();
     expect(wolf.hp).toBeLessThan(9999);
+    expect(wolf.x).toBe(targetPosition.x);
+    expect(wolf.y).toBe(targetPosition.y);
+    expect(wolf.knockT ?? 0).toBe(0);
+    const impact = g.state.effects.find(e => e.kind === 'burst' && e.fx === 'chidori')!;
+    expect(impact.vfx).toBe('lightning');
+    const particles = new Particles();
+    particles.effect(impact, impact);
+    // A folha já representa a descarga; o fallback pela cor não deve emitir gotas ou fumaça.
+    expect((particles as unknown as {list:unknown[]}).list).toHaveLength(0);
+    const hp = wolf.hp;
+    dashTick(g,n,.5);
+    expect(wolf.hp).toBe(hp); // um único golpe, sem repetir na recuperação
   });
 
   test('Hiraishin: o Kage marca com a kunai e aparece no clarão junto do alvo', () => {

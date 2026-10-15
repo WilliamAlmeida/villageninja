@@ -348,7 +348,7 @@
    ]
   },
   "chidorinagashi": {
-   "impact": {"sheet":"effect-chidorinagashi-v1","cols":4,"rows":2,"frames":8,"fps":10,"size":142,"anchorX":0.5,"anchorY":0.78,"dy":-9,"opacity":0.95,"blend":"normal","rotate":false,"flip":false},
+   "impact": {"sheet":"effect-chidorinagashi-v1","cols":4,"rows":2,"frames":8,"fps":10,"size":142,"anchorX":0.5,"anchorY":0.78,"dy":9,"opacity":0.81,"blend":"normal","rotate":false,"flip":false},
    "burst": [
 
    ]
@@ -388,6 +388,13 @@
   },
   "nikudan": {
    "sprite": {"sheet":"effect-nikudan-v2","cols":4,"rows":2,"frames":8,"fps":16,"size":84,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":true}
+  },
+  "chidori": {
+   "sprite": {"sheet":"effect-chidori-hand-v2","cols":4,"rows":2,"frames":8,"fps":18,"size":24,"anchorX":0.5,"anchorY":0.54,"dy":0,"opacity":0.91,"blend":"normal","rotate":false,"flip":false},
+   "impact": {"sheet":"effect-chidori-impact-v1","cols":4,"rows":2,"frames":8,"fps":18,"size":46,"anchorX":0.5,"anchorY":0.57,"dy":-13,"opacity":1,"blend":"normal","rotate":true,"flip":true},
+   "burst": [
+
+   ]
   }
  },
  "status": {
