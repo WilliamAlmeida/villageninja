@@ -6,7 +6,7 @@ import type { Game } from './game';
 import { arenaOf, arenaSpots } from './exam';
 import { missionOfTeam } from './missions';
 import { type NinjaSnapshot, unitFromSnapshot } from './snapshot';
-import { teamOf } from './teams';
+import { teamOf, teamUnits } from './teams';
 import type { Exam, Unit } from './types';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -47,6 +47,15 @@ export function duelBlock(g: Game): string | null {
   return null;
 }
 
+/** Sensei e companheiros de equipe do campeão que estão na vila (vão para a arquibancada). */
+function teamWatchers(g: Game, mine: Unit): number[] {
+  const t = teamOf(g, mine);
+  if (!t) return [];
+  return teamUnits(g, t)
+    .filter((u) => u !== mine && u.away == null && u.arenaSide == null)
+    .map((u) => u.id);
+}
+
 /** Começa o duelo: o retrato entra como convidado na arquibancada e o Exame de um par cuida do resto. */
 export function startDuel(g: Game, snap: NinjaSnapshot, mineId = duelist(g)?.id): Result {
   const why = duelBlock(g);
@@ -58,6 +67,7 @@ export function startDuel(g: Game, snap: NinjaSnapshot, mineId = duelist(g)?.id)
   const p = spots.seat(1);
   const foe = unitFromSnapshot(g, snap, p.x, p.y);
   foe.perch = arena.id;
+  foe.facing = Math.PI / 4; // olhando para o chão de luta (frente da tela), como quem senta pelo takeSeat
   fx(g, 'smoke', foe.x, foe.y, { r: 14, life: 0.6, color: '#ddd' });
   for (const u of [mine, foe]) {
     u.arenaSide = 0;
@@ -76,7 +86,17 @@ export function startDuel(g: Game, snap: NinjaSnapshot, mineId = duelist(g)?.id)
     match: 0,
     timer: 12,
     duel: true,
+    // o resto da equipe do campeão (que o seguiria até o chão de luta) assiste da arquibancada
+    watchers: teamWatchers(g, mine),
   };
+  for (const id of exam.watchers!) {
+    const u = g.unit(id)!;
+    u.arenaSide = 0;
+    u.command = null;
+    u.targetId = null;
+    u.state = 'exam';
+    u.hasGoal = false;
+  }
   g.state.exam = exam;
   g.toast(`{arena} Duelo: ${mine.name} × ${snap.name}${snap.from ? ` (${snap.from})` : ''}.`, 'good', spots.center);
   return { ok: true };

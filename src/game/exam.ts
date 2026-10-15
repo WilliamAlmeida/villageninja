@@ -258,6 +258,13 @@ function finishDuel(g: Game, exam: Exam) {
     u.state = 'idle';
     u.hp = Math.max(u.hp, u.maxHp * 0.5);
   }
+  for (const id of exam.watchers ?? []) {
+    const u = g.unit(id);
+    if (!u || u.dead) continue;
+    u.arenaSide = undefined;
+    if (u.perch != null) leaveSeat(g, u);
+    u.state = 'idle';
+  }
   if (won) s.stats.duelsWon++;
   else s.stats.duelsLost++;
   if (mine && !mine.dead) gainXp(g, mine, won ? 40 : 15);

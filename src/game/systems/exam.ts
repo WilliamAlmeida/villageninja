@@ -26,8 +26,9 @@ export function examSystem(g: Game, dt: number) {
   const [a, b] = fighters(g, exam);
 
   // quem não está lutando assiste da arquibancada: anda até o chão logo abaixo do lugar e salta para ele
-  exam.entrants.forEach((e, i) => {
-    const u = g.unit(e.id);
+  const seated = [...exam.entrants.map((e) => e.id), ...(exam.watchers ?? [])];
+  seated.forEach((id, i) => {
+    const u = g.unit(id);
     if (!u || u.dead || u.away != null || u === a || u === b) return;
     const seat = spots.seat(i);
     if (u.perch != null) {
@@ -118,8 +119,8 @@ function walkTo(g: Game, u: Unit, p: { x: number; y: number }, dt: number) {
 }
 
 function everyoneSeated(g: Game, exam: Exam) {
-  return exam.entrants.every((e) => {
-    const u = g.unit(e.id);
+  return [...exam.entrants.map((e) => e.id), ...(exam.watchers ?? [])].every((id) => {
+    const u = g.unit(id);
     return !u || u.dead || u.away != null || u.perch != null;
   });
 }

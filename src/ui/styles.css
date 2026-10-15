@@ -1333,6 +1333,7 @@ h4 { color: #dcc5a3; font-weight: 900; font-size: 0.82rem; letter-spacing: 0.05e
 .btn.primary { background: linear-gradient(180deg, var(--accent-hi) 0%, var(--accent) 52%, var(--accent-low) 100%); border: 1px solid #ffc45d; color: #1f1208; font-weight: 900; text-shadow: 0 1px 0 rgba(255, 231, 160, 0.45); box-shadow: var(--shadow-btn); }
 .btn.primary:active { transform: translateY(2px); box-shadow: 0 1px 0 #9f4f13, 0 3px 6px rgba(0, 0, 0, 0.28); }
 .btn.danger { background: linear-gradient(180deg, #a8352c, #6d1f19); border: 1px solid #ff7770; color: #fff; box-shadow: 0 3px 0 #4a1310, 0 6px 12px rgba(0, 0, 0, 0.3); }
+.btn.warn { background: linear-gradient(180deg, #d9772a, #9a4a14); border: 1px solid #ffae62; color: #fff; box-shadow: 0 3px 0 #5e2b0a, 0 6px 12px rgba(0, 0, 0, 0.3); }
 .btn.ghost { background: linear-gradient(180deg, rgba(74, 51, 32, 0.7), rgba(46, 30, 18, 0.7)); border: 1px solid var(--line); box-shadow: none; }
 .btn.mini { padding: 0.28rem 0.6rem; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
 .btn.tog { background: linear-gradient(180deg, rgba(62, 42, 26, 0.96), rgba(38, 25, 16, 0.96)); border: 1px solid var(--line); }
@@ -2881,7 +2882,7 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 #alertbox .dl-field input { font: inherit; font-size: 1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 0.45rem 0.55rem; }
 @media (max-width: 760px) { .dl-grid { grid-template-columns: minmax(0, 1fr); } }
 /* passada visual da janela Duelos: faixa da arena, cartão do adversário com fundo, ligas, VS e resultado */
-.dl-banner { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 0.8rem; min-height: 8.5rem; margin-top: 0.55rem; padding: 0.7rem 0.9rem; border-radius: var(--r); border: 1px solid rgba(255, 211, 77, 0.35); background: #2a1a10 center 68% / cover no-repeat; image-rendering: pixelated; overflow: hidden; }
+.dl-banner { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 0.8rem; min-height: 8.5rem; margin: 0.55rem 0 0.6rem; padding: 0.7rem 0.9rem; border-radius: var(--r); border: 1px solid rgba(255, 211, 77, 0.35); background: #2a1a10 center 68% / cover no-repeat; image-rendering: pixelated; overflow: hidden; }
 .dl-banner::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 12, 6, 0.1), rgba(20, 12, 6, 0.75)); }
 .dl-banner > * { position: relative; }
 .dl-banner-t { display: flex; flex-direction: column; text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,0,0,0.8); }

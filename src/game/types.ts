@@ -750,6 +750,8 @@ export interface Exam {
   timer: number;
   /** Duelo por retrato (game/duel.ts): um só par, sem promoção, sem cooldown do Exame. */
   duel?: boolean;
+  /** Só assistem da arquibancada (equipe do campeão no duelo); não entram no chaveamento. */
+  watchers?: number[];
 }
 
 /** Último duelo por retrato na arena. */

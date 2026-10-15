@@ -31,7 +31,10 @@
   Exame de um par com `Exam.duel`: a máquina de systems/exam.ts faz caminhada, "VS", luta, ring-out e tempo; `finishExam`
   desvia para `finishDuel` (XP 40/15, `stats.duelsWon/duelsLost`, `state.lastDuel`; sem promoção, sem `examNextDay`,
   sem `lastExam`). Campeão escolhido em `flags.duelistId` (`setDuelist`; padrão o mais forte livre, `duelist`). Exame e
-  duelo se excluem na arena (`examStatus`/`duelBlock`). Save v47. Testes em tests/duel.test.ts.
+  duelo se excluem na arena (`examStatus`/`duelBlock`). O convidado senta olhando para a frente da tela (`facing` π/4); o
+  sensei e os colegas de equipe do campeão (que o seguiriam até o chão de luta) vão para `Exam.watchers` e assistem da
+  arquibancada (`arenaSide` 0, lugares depois dos dois duelistas) até `finishDuel` soltá-los. Ao começar o duelo a janela
+  fecha e a câmera vai para a arena (`watchDuel`); "Abrir Duelos" no drawer da Arena fecha o drawer. Save v47. Testes em tests/duel.test.ts.
   **Janela Duelos** (dock "Duelos", tecla D; `ui/panel.ts` `duelsWindow`, abas Duelo/Ranking/Defesas/Conta; o drawer da
   Arena só tem o botão "Abrir Duelos"): `ui/arenaClient.ts` fala com o servidor em `server/` (README lá) pela mesma
   origem (`/api/*`, proxy em `scripts/apiProxy.ts`): convidado automático (token no localStorage, nunca no save),

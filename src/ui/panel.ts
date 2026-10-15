@@ -2635,13 +2635,13 @@ export class Panel {
     const a = arena.account;
     let html = `<div class="bsec"><h4>Sua conta ${infoTip('Conta', 'A conta só serve para os duelos e o ranking: o jogo continua salvo neste aparelho. Com apelido e senha você entra na mesma conta em outro aparelho.')}</h4>`;
     if (!a) return html + `<p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Conectando...'}</p></div>`;
-    html += `<div class="dl-acc"><div><small>Nome na arena</small><b>${esc(a.displayName)}</b></div><button class="btn" data-act="arena-rename">{edit} Trocar nome</button></div>`;
+    html += `<div class="dl-acc"><div><small>Nome na arena</small><b>${esc(a.displayName)}</b></div><button class="btn warn" data-act="arena-rename">{edit} Trocar nome</button></div>`;
     if (a.isGuest) {
       html += `<p class="hint">Você está como <b>convidado</b>: a conta vale só neste navegador. Crie um apelido e uma senha para não perder o ranking e para entrar em outro aparelho.</p>
         <div class="actions"><button class="btn primary" data-act="arena-register">{userplus} Criar apelido e senha</button><button class="btn" data-act="arena-login">{key} Entrar com uma conta</button></div>`;
     } else {
       html += `<div class="dl-acc"><div><small>Apelido</small><b>${esc(a.username ?? '')}</b></div>${a.email ? `<div><small>E-mail</small><b>${esc(a.email)}</b></div>` : ''}</div>
-        <div class="actions"><button class="btn" data-act="arena-login">{key} Entrar com outra conta</button><button class="btn ghost" data-act="arena-logout">{x} Sair</button></div>`;
+        <div class="actions"><button class="btn danger" data-act="arena-logout">{x} Sair da conta</button></div>`;
     }
     html += `</div><div class="bsec"><h4>Servidor</h4><p class="hint">${arena.base ? esc(arena.base) : 'Mesma origem do jogo (/api)'} · ${arena.offline ? 'sem conexão' : `${arena.online} jogador(es) on-line`}</p></div>`;
     return html;
@@ -2668,13 +2668,18 @@ export class Panel {
     }).then((r) => {
       if (!r) return;
       this.report({ ok: true });
-      const a = g.findBuilt('arena');
-      if (a) {
-        const c = arenaSpots(a).center;
-        this.app.camera.focus(c.x, c.y);
-      }
-      this.onWindow({ kind: 'duels' });
+      this.watchDuel();
     });
+  }
+
+  /** Duelo começou: fecha a janela/drawer e leva a câmera para a arena. */
+  private watchDuel() {
+    const a = this.app.game.findBuilt('arena');
+    if (a) {
+      const c = arenaSpots(a).center;
+      this.app.camera.focus(c.x, c.y);
+    }
+    this.show(null);
   }
 
   /** Formulários da conta em avisos (os campos não se perdem quando a janela remonta). */
@@ -2732,12 +2737,9 @@ export class Panel {
             g.toast('Isso não é um retrato válido. Cole o texto inteiro, começando com VN1.', 'warn');
             return;
           }
-          this.report(startDuel(g, snap));
-          const a = g.findBuilt('arena');
-          if (a) {
-            const c = arenaSpots(a).center;
-            this.app.camera.focus(c.x, c.y);
-          }
+          const r = startDuel(g, snap);
+          this.report(r);
+          if (r.ok) this.watchDuel();
         },
       },
     });
@@ -3301,6 +3303,7 @@ export class Panel {
         this.show({ kind: arg as 'roster' });
         return;
       case 'win':
+        if (this.mode === 'drawer') g.select(null); // abriu a janela pelo drawer (ex.: Abrir Duelos na Arena): o drawer sai
         this.onWindow({ kind: arg as 'village' });
         return;
       // duelos (janela Duelos e drawer da Arena)
@@ -3333,15 +3336,8 @@ export class Panel {
       case 'arena-logout':
         void arena.logout();
         return;
-      case 'arena-watch': {
-        const a = g.findBuilt('arena');
-        if (a) {
-          const c = arenaSpots(a).center;
-          this.app.camera.focus(c.x, c.y);
-        }
-        this.show(null);
-        return;
-      }
+      case 'arena-watch':
+        return this.watchDuel();
       case 'btab':
         this.buildingTab = arg as BuildingTab;
         return this.report({ ok: true });

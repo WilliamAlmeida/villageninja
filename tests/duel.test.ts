@@ -5,6 +5,7 @@ import { layout, setLayout } from '../src/data/layout';
 import { RANKS } from '../src/data/ninja';
 import { duelBlock, duelCandidates, duelist, setDuelist, startDuel } from '../src/game/duel';
 import { createNinja } from '../src/game/entities';
+import { createTeam } from '../src/game/teams';
 import { examStatus, startExam } from '../src/game/exam';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
@@ -146,6 +147,34 @@ describe('duelo por retrato', () => {
     expect(s.lastDuel?.won).toBe(s.stats.duelsWon === 1);
     expect(mine.ninja!.level * 1000 + mine.ninja!.xp).toBeGreaterThan(xp0);
     expect(duelBlock(g)).toBeNull();
+  });
+
+  test('a equipe do campeão assiste da arquibancada e volta ao normal no fim', () => {
+    const g = setup(26);
+    const s = g.state;
+    const [mine, a] = duelCandidates(g);
+    const b = createNinja(g, mine!.x + 20, mine!.y, 'genin', 0);
+    s.teams = [];
+    createTeam(g).memberIds = [mine!.id, a!.id, b.id];
+    const other = createNewGame(SYSTEMS, 27);
+    const r = startDuel(g, snapshotOf(other, createNinja(other, 10, 10, 'genin', 0)), mine!.id);
+    expect(r.ok).toBe(true);
+    expect(s.exam?.watchers).toEqual([a!.id, b.id]);
+    const guest = s.units.find((u) => u.faction === 'guest')!;
+    expect(Math.sin(guest.facing)).toBeGreaterThan(0.5); // sentado olhando para a frente da tela
+    run(g, 30, () => s.exam?.phase === 'fight');
+    for (const w of [a!, b]) {
+      expect(w.perch).toBeDefined();
+      expect(w.arenaSide).toBe(0);
+    }
+    expect(mine!.arenaSide).toBe(1);
+    run(g, 240, () => !s.exam);
+    expect(s.exam).toBeNull();
+    for (const w of [a!, b]) {
+      expect(w.perch).toBeUndefined();
+      expect(w.arenaSide).toBeUndefined();
+      expect(w.state).not.toBe('exam');
+    }
   });
 
   test('save v46 ganha o placar de duelos', () => {
