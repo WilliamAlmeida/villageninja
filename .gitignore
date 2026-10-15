@@ -9,3 +9,5 @@ docs/arte/*
 .perf/
 __pycache__/
 .tmp
+server/.env
+server/node_modules

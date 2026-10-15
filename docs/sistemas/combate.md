@@ -32,6 +32,15 @@
   desvia para `finishDuel` (XP 40/15, `stats.duelsWon/duelsLost`, `state.lastDuel`; sem promoção, sem `examNextDay`,
   sem `lastExam`). Campeão escolhido em `flags.duelistId` (`setDuelist`; padrão o mais forte livre, `duelist`). Exame e
   duelo se excluem na arena (`examStatus`/`duelBlock`). Save v47. Testes em tests/duel.test.ts.
+  **Janela Duelos** (dock "Duelos", tecla D; `ui/panel.ts` `duelsWindow`, abas Duelo/Ranking/Defesas/Conta; o drawer da
+  Arena só tem o botão "Abrir Duelos"): `ui/arenaClient.ts` fala com o servidor em `server/` (README lá) pela mesma
+  origem (`/api/*`, proxy em `scripts/apiProxy.ts`): convidado automático (token no localStorage, nunca no save),
+  "Publicar retrato", "Procurar adversário" (força parecida) → "Lutar" abre o duelo no servidor e chama `startDuel` com
+  o retrato recebido (`arena.pending`, guardado no localStorage; se `startDuel` falhar, `cancel`); `arena.tick` (laço da
+  interface) vê `state.lastDuel` mudar e manda `finish` (ELO K32/K16, `lastOnline`). Ranking (top 50 + posição),
+  Defesas (quem desafiou o meu retrato; Revanche busca o retrato dele) e Conta (nome, apelido + senha, entrar em outro
+  aparelho; formulários em `showAlert`, porque a janela remonta). Sem servidor: "Sem conexão" e o copiar/colar manual
+  continua. Vitrine: `?demo&tela=duels`.
 - **Estratégia de luta** (`game/tactics.ts`): papel automático pelo atributo (`roleOf`: tanque, atacante, atirador,
   suporte = quem tem cura), com etiqueta no drawer e marca pequena na cabeça durante a luta; **duelos**: `pickFoe` escolhe o
   mais perto penalizando quem já está sendo enfrentado (o bolo vira lutas lado a lado) e o inimigo prefere o tanque

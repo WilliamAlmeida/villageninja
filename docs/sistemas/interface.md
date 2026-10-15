@@ -102,6 +102,14 @@
   um envio a cada 5 s por IP, no máximo 300 arquivos (os mais antigos saem). Mudou o `live.ts`/`perfReport.ts`:
   `pm2 restart villageninja` (o PM2 só refaz o build do jogo sozinho).
 - **Oficinas** (janela, tecla F): uma oficina por aba (`craftTab`), estoque/produção/upgrade à esquerda e receitas à direita.
+- **Duelos** (janela, tecla D, botão "Duelos" no dock; `duelsWindow` em panel.ts, 2026-10-15): abas só com texto Duelo /
+  Ranking / Defesas / Conta. Duelo em duas colunas numeradas: "1. Seu campeão" (retrato, chips para trocar, selo
+  Publicado/Ainda não publicado, botões Publicar e Copiar) e "2. Adversário" (Procurar adversário → cartão com nome,
+  ninja, força e pontos → Lutar / Outro; "Colar retrato de um amigo" como alternativa sem servidor; cartão "Duelo em
+  andamento" com Assistir), e embaixo o último duelo e o histórico. Etiquetas do cabeçalho: pontos, V/D e on-line /
+  Sem conexão. Dados da rede ficam em `ui/arenaClient.ts` (`arena`), pedidos por aba com `arenaWant` (a cada 30 s ou
+  no botão de atualizar) e a janela remonta quando chega resposta (`arena.onChange`). Formulários da Conta em
+  `showAlert` (campos `.dl-field`). Estilos `.dl-*`. Regras em docs/sistemas/combate.md ("Janela Duelos").
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,
   consumível) e o bônus somado; embaixo a grade do estoque com filtro por tipo (`invFilter`), seta verde no que é melhor

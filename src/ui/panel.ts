@@ -29,7 +29,7 @@ import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra } from '../data/jutsus';
 import { NATURES } from '../data/natures';
 import { ROLE_INFO, roleOf, setTeamTactic, TACTIC_INFO, type Role, type Tactic } from '../game/tactics';
 import { isOpen, LIBRARY, LIBRARY_JUTSUS, libraryLevel, openBlock, openScroll, scrollCost, studyable } from '../game/library';
-import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
+import { JUTSU_RANK_LABEL, RANKS, STAT_INFO, STAT_KEYS, xpToNext, type Rank, type StatKey } from '../data/ninja';
 import {
   costLabel, countBlock, demolish, jutsuOptions, ninjaBlock, promote, recruitNinja, RECRUIT_COST, setDesiredWorkers, setFocus, setOrder,
   teachJutsu, type Result,
@@ -63,6 +63,7 @@ import { KEKKEI, KEKKEI_LIST, KEKKEI_STAT, type KekkeiId } from '../data/kekkei'
 import { arenaSpots, EXAM_MIN_LEVEL, examLabel, examSize, examStatus, setExamSize, startExam } from '../game/exam';
 import { duelBlock, duelCandidates, duelist, setDuelist, startDuel } from '../game/duel';
 import { decodeSnapshot, encodeSnapshot, snapshotOf } from '../game/snapshot';
+import { arena, type NinjaBrief, type Opponent } from './arenaClient';
 import { MISSION_RANKS, MISSION_TYPE_LABEL } from '../data/missions';
 import { ITEM_LIST, ITEMS, SLOT_LABEL, type ItemDef, type ItemSlot } from '../data/items';
 import { autoEquip, cancelCraft, carried, carryMax, craftBlock, enqueueCraft, equip, gearBonus, isWorkshop, owned, recipesOf, stock, unequip, autoEquipAll, setAutoGear } from '../game/gear';
@@ -112,7 +113,11 @@ export type View =
   | { kind: 'site'; id: number }
   | { kind: 'expeditions' }
   | { kind: 'region' }
-  | { kind: 'crafts' };
+  | { kind: 'crafts' }
+  | { kind: 'duels' }
+  | { kind: 'duelRank' }
+  | { kind: 'duelDefenses' }
+  | { kind: 'duelAccount' };
 
 /** Para onde o botão "Voltar" do ninja leva (tela da janela de onde ele foi aberto). */
 const BACK_LABEL: Partial<Record<View['kind'], string>> = {
@@ -130,9 +135,11 @@ const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   ninjas: [['roster', '{ninja} Ninjas'], ['teams', '{users} Equipes'], ['clans', '{castle} Clãs']],
   village: [['village', '{castle} Vila'], ['kage', '{kage} Kage'], ['bingo', '{skull} Bingo Book'], ['stats', '{chart} Estatísticas']],
   world: [['region', `${pxIco('map')} Região`], ['expeditions', '{pickaxe} Expedições']],
+  // duelos on-line (ui/arenaClient.ts + server/): abas só com texto (pedido do autor)
+  duels: [['duels', 'Duelo'], ['duelRank', 'Ranking'], ['duelDefenses', 'Defesas'], ['duelAccount', 'Conta']],
 };
-const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: `${pxIco('castle')} Vila`, world: `${pxIco('map')} Mundo` };
-const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', bingo: 'village', stats: 'village', expeditions: 'world', region: 'world' };
+const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: `${pxIco('castle')} Vila`, world: `${pxIco('map')} Mundo`, duels: '{swords} Duelos' };
+const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', bingo: 'village', stats: 'village', expeditions: 'world', region: 'world', duels: 'duels', duelRank: 'duels', duelDefenses: 'duels', duelAccount: 'duels' };
 
 type BuildingTab = 'main' | 'inside';
 
@@ -207,7 +214,7 @@ const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
 /** Telas paradas: só mudam com acontecimentos (nascer, cair, aviso, novo dia); remontam quando o jogo muda ou a cada 3 s. */
 const STATIC_VIEWS = new Set<string>(['bingo', 'stats', 'kage', 'village', 'clans']);
 /** Listas com barras e tempos: 2 vezes por segundo bastam (o drawer segue a 5). */
-const SLOW_VIEWS = new Set<string>(['roster', 'teams', 'team', 'missions', 'expeditions', 'region', 'crafts']);
+const SLOW_VIEWS = new Set<string>(['roster', 'teams', 'team', 'missions', 'expeditions', 'region', 'crafts', 'duels', 'duelRank', 'duelDefenses', 'duelAccount']);
 /**
  * Imagem com esqueleto: sem URL ainda (retrato sendo gerado) ou enquanto o arquivo carrega, mostra um bloco animado
  * no lugar; decodifica fora da thread principal e só carrega quando aparece na tela.
@@ -556,6 +563,7 @@ export class Panel {
     else if (this.view.kind === 'expeditions') built = this.expeditionsView();
     else if (this.view.kind === 'region') built = this.regionView();
     else if (this.view.kind === 'crafts') built = this.craftsView();
+    else if (this.view.kind === 'duels' || this.view.kind === 'duelRank' || this.view.kind === 'duelDefenses' || this.view.kind === 'duelAccount') built = this.duelsWindow(this.view.kind);
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamsList(tm);
@@ -1840,6 +1848,13 @@ export class Panel {
       const exps = s.expeditions.filter((e) => e.status !== 'done' && e.status !== 'lost').length;
       return chip('{star}', `Honra ${s.honor}`, 'gold') + chip('{skull}', `Infâmia ${s.infamy}`, s.infamy ? 'bad' : '') + chip('{flag}', `Expedições ${exps}`);
     }
+    if (group === 'duels') {
+      const st = arena.stats;
+      return (
+        (st ? chip('{trophy}', `${st.rating}`, 'gold') + chip('{swords}', `${st.wins}V ${st.losses}D`) : '') +
+        (arena.offline ? chip('{alert}', 'Sem conexão', 'bad') : arena.status === 'ok' ? chip('{users}', `${arena.online} on-line`, 'good') : chip('{clock}', 'Conectando'))
+      );
+    }
     return '';
   }
 
@@ -2429,27 +2444,216 @@ export class Panel {
         html += `<li class="${r.promoted ? 'ok' : ''}">${r.promoted ? '{medal}' : r.village ? '{leaf}' : '{flag}'} ${esc(r.name)} <b>${r.score}</b></li>`;
       html += `</ul>`;
     }
-    return html + this.duelSection();
+    // duelos contra outros jogadores: janela própria (tecla D)
+    const s = g.state;
+    html += `<div class="bsec"><h4>Duelos ${infoTip('Duelos', 'Seu campeão luta aqui contra o retrato do ninja de outro jogador, com as regras do Exame. Tudo fica na janela Duelos: retrato, adversário, ranking e defesas.')}</h4>
+      <p class="hint">{trophy} ${s.stats.duelsWon} vitória(s) · ${s.stats.duelsLost} derrota(s) na arena</p>
+      <div class="actions"><button class="btn primary" data-act="win" data-arg="duels">{swords} Abrir Duelos</button></div></div>`;
+    return html;
   }
 
-  /** Duelo por retrato: escolher o campeão, copiar o retrato dele e desafiar o retrato de outro jogador. */
-  private duelSection() {
+  // ------------------------------------------------------------------ janela Duelos (ui/arenaClient.ts + server/)
+  /** Quando cada aba pediu os dados pela última vez (não refaz a cada remontagem). */
+  private arenaAsked: Record<string, number> = {};
+  private arenaWant(key: string, load: () => Promise<unknown>, ttlMs = 30_000) {
+    const now = performance.now();
+    if (arena.busy || arena.offline || now - (this.arenaAsked[key] ?? -1e9) < ttlMs) return;
+    this.arenaAsked[key] = now;
+    void load();
+  }
+
+  /** Janela Duelos: abas Duelo, Ranking, Defesas e Conta. Os dados da rede vêm do `arena` (síncrono). */
+  private duelsWindow(kind: 'duels' | 'duelRank' | 'duelDefenses' | 'duelAccount'): Built {
+    // entra como convidado e carrega conta/placar/retrato na primeira abertura (e a cada 30 s)
+    this.arenaWant('me', () => arena.refreshMe());
+    const refresh = `<button class="btn" data-act="arena-refresh" ${tipAttr('Atualizar', 'Busca de novo o placar, o ranking e as defesas.')}>{refresh}</button>`;
+    let body = '';
+    if (kind === 'duels') body = this.duelTab();
+    else if (kind === 'duelRank') body = this.duelRankTab();
+    else if (kind === 'duelDefenses') body = this.duelDefensesTab();
+    else body = this.duelAccountTab();
+    const note = arena.error ? `<div class="warnbox dl-err">{alert} ${esc(arena.error)}</div>` : '';
+    return { html: this.tabs(kind, refresh) + note + body, t: {}, b: {} };
+  }
+
+  private ninjaBrief(n: NinjaBrief | null | undefined) {
+    if (!n) return '<span class="hint">sem retrato</span>';
+    const rank = RANKS[n.rank as Rank]?.name ?? n.rank;
+    return `<b>${esc(n.name)}</b> <small>${esc(rank)} Nv ${n.level}${n.from ? ` · ${esc(n.from)}` : ''}</small>`;
+  }
+
+  private when(iso: string) {
+    const d = new Date(iso);
+    const sameDay = d.toDateString() === new Date().toDateString();
+    return sameDay ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  }
+
+  /** Aba Duelo: 1) o campeão e o retrato publicado, 2) o adversário e a luta. */
+  private duelTab() {
     const g = this.app.game;
-    const s = g.state;
-    const list = duelCandidates(g).slice(0, 9);
+    const list = duelCandidates(g).slice(0, 12);
     const cur = duelist(g);
-    let html = `<h4>Duelo por retrato ${infoTip('Duelo por retrato', 'O retrato é um texto com tudo o que um ninja é (atributos, jutsus, equipamento). Copie o do seu campeão e mande para um amigo; cole o dele aqui e os dois lutam na arena com as regras do Exame. Vencer dá XP; nada de promoção.')}</h4>`;
-    if (list.length) {
-      html += `<div class="chips">`;
-      for (const u of list) html += `<button data-act="duel-pick" data-arg="${u.id}" class="${cur?.id === u.id ? 'on' : ''}" ${tipAttr(u.name, `${RANKS[u.ninja!.rank].name} nível ${u.ninja!.level}`)}>${esc(u.name.split(' ').pop()!)}</button>`;
-      html += `</div>`;
-    } else html += `<p class="hint">Nenhum ninja disponível para duelar.</p>`;
+    const pub = arena.published;
     const why = duelBlock(g);
-    html += `<div class="btnrow"><button class="btn" data-act="duel-copy" ${blocked(g, [!cur && 'Escolha um ninja.'])}>{clipboard} Copiar retrato</button>
-      <button class="btn primary" data-act="duel-paste" ${blocked(g, [why])}>{swords} Desafiar retrato</button></div>`;
-    const ld = s.lastDuel;
-    html += `<p class="hint">{trophy} ${s.stats.duelsWon} vitória(s) · ${s.stats.duelsLost} derrota(s)${ld ? ` · último: ${esc(ld.mine.split(' ').pop()!)} × ${esc(ld.foe)} (${ld.won ? 'venceu' : 'perdeu'}, dia ${ld.day})` : ''}</p>`;
+    // ---- 1. campeão
+    let left = `<div class="bsec"><h4>1. Seu campeão ${infoTip('Campeão', 'O ninja que representa a vila nos duelos. O retrato dele (atributos, jutsus, equipamento) é o que os outros jogadores enfrentam quando você publica.')}</h4>`;
+    if (cur) {
+      const n = cur.ninja!;
+      const nat = NATURES[n.nature];
+      left += `<div class="dl-champ"><span class="dl-face">${pimg(unitPortrait(cur, true))}</span><div class="dl-info"><b>${esc(cur.name)}</b>
+        <span class="nc-badges"><span class="rbadge r-${n.sannin ? 'sannin' : n.rank}">${n.sannin ? 'Sannin' : RANKS[n.rank].name}</span><span class="lvbadge">Nv ${n.level}</span><span class="rbadge nat" style="--c:${nat.color}">${nat.kanji}</span></span>
+        <span class="nc-js">${n.jutsu.map((id) => jutsuChip(id)).join('') || '<small class="hint">sem jutsu</small>'}</span></div></div>`;
+      if (list.length > 1) {
+        left += `<div class="chips dl-chips">`;
+        for (const u of list) left += `<button data-act="duel-pick" data-arg="${u.id}" class="${cur.id === u.id ? 'on' : ''}" ${tipAttr(u.name, `${RANKS[u.ninja!.rank].name} nível ${u.ninja!.level}`)}>${esc(u.name.split(' ').pop()!)}</button>`;
+        left += `</div>`;
+      }
+    } else left += `<p class="hint">Nenhum ninja disponível (todos fora ou em missão).</p>`;
+    const stale = pub && cur && pub.ninja.name !== cur.name;
+    const pubLine = !pub
+      ? `<span class="mpill info">Ainda não publicado</span>`
+      : `<span class="mpill ${stale ? 'risky' : 'safe'}">${stale ? 'Publicado: outro ninja' : 'Publicado'}</span> <small class="hint">${esc(pub.ninja.name)} · força ${pub.power} · ${this.when(pub.updatedAt)}</small>`;
+    left += `<div class="dl-pub">${pubLine}</div>
+      <div class="actions"><button class="btn primary" data-act="arena-publish" ${blocked(g, [!cur && 'Escolha um ninja.', arena.offline && 'Sem conexão com o servidor.'])}>{upload} ${pub && !stale ? 'Atualizar retrato' : 'Publicar retrato'}</button>
+      <button class="btn" data-act="duel-copy" ${blocked(g, [!cur && 'Escolha um ninja.'])} ${tipAttr('Copiar retrato', 'Copia o retrato como texto, para mandar a um amigo sem passar pelo servidor.')}>{clipboard} Copiar</button></div></div>`;
+    // ---- 2. adversário
+    let right = `<div class="bsec"><h4>2. Adversário ${infoTip('Adversário', 'O servidor sorteia o retrato de outro jogador com força parecida com a do seu. A luta é na sua Arena, com as regras do Exame; o resultado vale pontos para os dois (quem defende perde ou ganha menos).')}</h4>`;
+    if (arena.pending) {
+      right += `<div class="lvlcard"><div class="lvlname">{swords} Duelo em andamento</div><div class="hint">contra ${esc(arena.pending.opponent.name)} (${esc(arena.pending.opponent.ninja.name)})</div>
+        <div class="actions"><button class="btn primary" data-act="watch">{pin} Assistir na arena</button></div></div>`;
+    } else if (arena.offline) {
+      right += `<div class="warnbox">{alert} Sem conexão com o servidor de duelos. Dá para lutar contra o retrato de um amigo colando o texto dele.</div>`;
+    } else {
+      const o = arena.opponent;
+      if (o) {
+        right += `<div class="dl-opp"><div class="dl-opp-head"><b>${esc(o.name)}</b><span class="mchip gold">{trophy} ${o.rating}</span><span class="mchip">${o.wins}V ${o.losses}D</span></div>
+          <div class="dl-opp-ninja">${this.ninjaBrief(o.ninja)} <span class="mchip" ${tipAttr('Força', 'Soma dos atributos × nível do retrato. A sua: ' + (pub ? pub.power : '— (publique o retrato)'), true)}>{barbell} ${o.power}</span></div>
+          <div class="actions"><button class="btn primary" data-act="arena-fight" ${blocked(g, [why])}>{swords} Lutar</button><button class="btn" data-act="arena-find">{refresh} Outro</button></div></div>`;
+      } else {
+        right += `<p class="hint">Procure alguém de força parecida com o seu retrato.</p>
+          <div class="actions"><button class="btn primary" data-act="arena-find" ${blocked(g, [arena.busy && 'Procurando...'])}>{search} Procurar adversário</button></div>`;
+      }
+    }
+    right += `<div class="dl-manual"><button class="btn ghost" data-act="duel-paste" ${blocked(g, [why])}>{clipboard} Colar retrato de um amigo</button></div></div>`;
+    // ---- resultado e histórico
+    const lo = arena.lastOnline;
+    const ld = g.state.lastDuel;
+    let hist = '';
+    if (lo || ld) {
+      hist += `<div class="bsec"><h4>Último duelo</h4>`;
+      if (lo) hist += `<p class="dl-last ${lo.won ? 'won' : 'lost'}">${lo.won ? '{trophy} Venceu' : '{skull} Perdeu'} contra <b>${esc(lo.opponent.name)}</b> (${esc(lo.opponent.ninja.name)}) · ${lo.delta >= 0 ? '+' : ''}${lo.delta} pontos</p>`;
+      else if (ld) hist += `<p class="dl-last ${ld.won ? 'won' : 'lost'}">${ld.won ? '{trophy} Venceu' : '{skull} Perdeu'}: ${esc(ld.mine)} × ${esc(ld.foe)} (dia ${ld.day})</p>`;
+      if (arena.history?.length) {
+        hist += `<ul class="dl-hist">`;
+        for (const h of arena.history.slice(0, 6)) hist += `<li><span class="mpill ${h.won == null ? 'info' : h.won ? 'safe' : 'danger'}">${h.won == null ? 'aberto' : h.won ? 'V' : 'D'}</span> ${esc(h.defender)} <small>${esc(h.ninja.name)}</small><span class="dl-delta">${h.delta == null ? '' : `${h.delta >= 0 ? '+' : ''}${h.delta}`}</span><small>${this.when(h.at)}</small></li>`;
+        hist += `</ul>`;
+      }
+      hist += `</div>`;
+    }
+    if (!arena.offline && arena.status === 'ok') this.arenaWant('history', () => arena.loadHistory(), 60_000);
+    return `<div class="vfill vgrid dl-grid"><div class="vcol">${left}</div><div class="vcol">${right}${hist}</div></div>`;
+  }
+
+  private duelRankTab() {
+    if (!arena.offline) this.arenaWant('rank', () => arena.loadRanking());
+    const r = arena.ranking;
+    if (!r) return `<div class="bsec"><p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Carregando o ranking...'}</p></div>`;
+    const me = arena.account?.id;
+    let html = `<div class="bsec"><h4>Ranking de duelos ${infoTip('Ranking', 'Pontos no estilo ELO: 1000 no começo; vencer alguém mais forte vale mais. Quem defende ganha ou perde metade.')}</h4>`;
+    html += `<p class="hint">${r.me.position ? `Sua posição: <b>${r.me.position}º</b> com ${r.me.rating} pontos` : 'Você ainda não duelou on-line.'} · ${r.me.defWins} defesa(s) seguras, ${r.me.defLosses} perdida(s)</p>`;
+    if (!r.top.length) return html + `<p class="hint">Ninguém duelou ainda. Seja o primeiro.</p></div>`;
+    html += `<ol class="dl-rank">`;
+    r.top.forEach((row, i) => {
+      html += `<li class="${row.userId === me ? 'me' : ''}"><span class="dl-pos">${i + 1}</span><span class="dl-name"><b>${esc(row.name)}</b><small>${row.ninja ? `${esc(row.ninja.name)} · ${esc(RANKS[row.ninja.rank as Rank]?.name ?? row.ninja.rank)} Nv ${row.ninja.level}` : 'sem retrato'}</small></span><span class="mchip gold">{trophy} ${row.rating}</span><span class="dl-wl">${row.wins}V ${row.losses}D</span></li>`;
+    });
+    return html + `</ol></div>`;
+  }
+
+  private duelDefensesTab() {
+    if (!arena.offline) this.arenaWant('def', () => arena.loadDefenses(true));
+    const d = arena.defenses;
+    let html = `<div class="bsec"><h4>Defesas do seu retrato ${infoTip('Defesas', 'Quem desafiou o seu retrato enquanto você estava fora, e como foi. Revanche: enfrentar o retrato de quem venceu o seu.')}</h4>`;
+    if (!d) return html + `<p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Carregando...'}</p></div>`;
+    if (!d.defenses.length) return html + `<p class="hint">Ninguém desafiou o seu retrato ainda. Publique-o na aba Duelo para entrar no sorteio.</p></div>`;
+    html += `<ul class="dl-defs">`;
+    for (const x of d.defenses) {
+      const pill = x.left ? `<span class="mpill info">Desistiu</span>` : x.held ? `<span class="mpill safe">Segurou</span>` : `<span class="mpill danger">Perdeu</span>`;
+      html += `<li class="${x.unseen ? 'new' : ''}">${pill}<span class="dl-name"><b>${esc(x.attacker.name)}</b><small>${x.attackerNinja ? `${esc(x.attackerNinja.name)} · ${esc(RANKS[x.attackerNinja.rank as Rank]?.name ?? x.attackerNinja.rank)} Nv ${x.attackerNinja.level}` : ''}</small></span>
+        <span class="dl-delta ${x.defDelta != null && x.defDelta < 0 ? 'bad' : ''}">${x.defDelta == null ? '' : `${x.defDelta >= 0 ? '+' : ''}${x.defDelta}`}</span><small>${this.when(x.at)}</small>
+        ${!x.held && !x.revenged ? `<button class="btn mini" data-act="arena-revenge" data-arg="${x.attacker.id}">{swords} Revanche</button>` : ''}</li>`;
+    }
+    return html + `</ul></div>`;
+  }
+
+  private duelAccountTab() {
+    const a = arena.account;
+    let html = `<div class="bsec"><h4>Sua conta ${infoTip('Conta', 'A conta só serve para os duelos e o ranking: o jogo continua salvo neste aparelho. Com apelido e senha você entra na mesma conta em outro aparelho.')}</h4>`;
+    if (!a) return html + `<p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Conectando...'}</p></div>`;
+    html += `<div class="dl-acc"><div><small>Nome na arena</small><b>${esc(a.displayName)}</b></div><button class="btn" data-act="arena-rename">{edit} Trocar nome</button></div>`;
+    if (a.isGuest) {
+      html += `<p class="hint">Você está como <b>convidado</b>: a conta vale só neste navegador. Crie um apelido e uma senha para não perder o ranking e para entrar em outro aparelho.</p>
+        <div class="actions"><button class="btn primary" data-act="arena-register">{userplus} Criar apelido e senha</button><button class="btn" data-act="arena-login">{key} Entrar com uma conta</button></div>`;
+    } else {
+      html += `<div class="dl-acc"><div><small>Apelido</small><b>${esc(a.username ?? '')}</b></div>${a.email ? `<div><small>E-mail</small><b>${esc(a.email)}</b></div>` : ''}</div>
+        <div class="actions"><button class="btn" data-act="arena-login">{key} Entrar com outra conta</button><button class="btn ghost" data-act="arena-logout">{x} Sair</button></div>`;
+    }
+    html += `</div><div class="bsec"><h4>Servidor</h4><p class="hint">${arena.base ? esc(arena.base) : 'Mesma origem do jogo (/api)'} · ${arena.offline ? 'sem conexão' : `${arena.online} jogador(es) on-line`}</p></div>`;
     return html;
+  }
+
+  /** Publica o retrato do campeão no servidor. */
+  private arenaPublish() {
+    const g = this.app.game;
+    const u = duelist(g);
+    if (!u) return;
+    void arena.publish(encodeSnapshot(snapshotOf(g, u))).then((r) => {
+      if (r) g.toast(`{upload} Retrato de ${u.name} publicado (força ${r.power}).`, 'good');
+    });
+  }
+
+  /** Abre o duelo on-line contra o adversário sorteado: o servidor registra, o jogo luta. */
+  private arenaFight(o: Opponent | null) {
+    const g = this.app.game;
+    if (!o) return;
+    void arena.startOnline(o, (code) => {
+      const snap = decodeSnapshot(code);
+      if (!snap) return { ok: false, error: 'O retrato recebido não é válido.' };
+      return startDuel(g, snap);
+    }).then((r) => {
+      if (!r) return;
+      this.report({ ok: true });
+      const a = g.findBuilt('arena');
+      if (a) {
+        const c = arenaSpots(a).center;
+        this.app.camera.focus(c.x, c.y);
+      }
+      this.onWindow({ kind: 'duels' });
+    });
+  }
+
+  /** Formulários da conta em avisos (os campos não se perdem quando a janela remonta). */
+  private arenaForm(kind: 'register' | 'login' | 'rename') {
+    const field = (id: string, label: string, type = 'text', ph = '') => `<label class="dl-field"><span>${label}</span><input id="${id}" type="${type}" placeholder="${ph}" autocomplete="off"></label>`;
+    const val = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() ?? '';
+    if (kind === 'rename') {
+      showAlert({ kind: 'info', title: 'Nome na arena', extra: field('dl-name', 'Nome que os outros veem', 'text', arena.account?.displayName ?? ''), action: { label: '{check} Salvar', run: () => void arena.rename(val('dl-name')) } });
+      return;
+    }
+    if (kind === 'register') {
+      showAlert({
+        kind: 'info',
+        title: 'Criar apelido e senha',
+        extra: `<p class="hint">A conta de convidado vira uma conta de verdade: o ranking fica com você e dá para entrar em outro aparelho.</p>${field('dl-user', 'Apelido (3 a 16 letras, números ou _)', 'text', 'kenta_99')}${field('dl-pass', 'Senha (6 ou mais)', 'password')}${field('dl-mail', 'E-mail (opcional)', 'email')}`,
+        action: { label: '{userplus} Criar', run: () => void arena.register(val('dl-user'), val('dl-pass'), val('dl-mail')) },
+      });
+      return;
+    }
+    showAlert({
+      kind: 'info',
+      title: 'Entrar com uma conta',
+      extra: `<p class="hint">Entra na conta criada em outro aparelho. O convidado atual deste navegador é deixado de lado.</p>${field('dl-login', 'Apelido ou e-mail')}${field('dl-pass2', 'Senha', 'password')}`,
+      action: { label: '{key} Entrar', run: () => void arena.login(val('dl-login'), val('dl-pass2')) },
+    });
   }
 
   /** Mostra o retrato do campeão para copiar (área de texto; tenta a área de transferência também). */
@@ -3425,6 +3629,27 @@ export class Panel {
           return this.showSnapshot();
         case 'duel-paste':
           return this.askSnapshot();
+        case 'arena-refresh':
+          this.arenaAsked = {};
+          arena.error = null;
+          return;
+        case 'arena-publish':
+          return this.arenaPublish();
+        case 'arena-find':
+          void arena.findOpponent();
+          return;
+        case 'arena-fight':
+          return this.arenaFight(arena.opponent);
+        case 'arena-revenge':
+          void arena.fetchOpponent(arg!).then(() => this.onWindow({ kind: 'duels' }));
+          return;
+        case 'arena-register':
+        case 'arena-login':
+        case 'arena-rename':
+          return this.arenaForm(act.slice('arena-'.length) as 'register' | 'login' | 'rename');
+        case 'arena-logout':
+          void arena.logout();
+          return;
         case 'watch': {
           const a = g.findBuilt('arena');
           if (a) {

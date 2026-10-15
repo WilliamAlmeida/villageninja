@@ -17,6 +17,7 @@ import { Menu } from './menu';
 import { BattleCam } from './battle';
 import { Panel, type View } from './panel';
 import { applyKit } from './kit';
+import { arena } from './arenaClient';
 import dockBarUrl from '../art/ui/frame/dock-bar.png';
 import windowFrameUrl from '../art/ui/frame/window-frame.png';
 import kitDialog from '../art/ui/frame/dialog.png';
@@ -47,6 +48,7 @@ export function createUI(app: App, root: HTMLElement) {
   const NINJA_VIEWS = ['roster', 'teams', 'clans', 'team'];
   const VILLAGE_VIEWS = ['village', 'kage', 'bingo', 'stats'];
   const WORLD_VIEWS = ['expeditions', 'region'];
+  const DUEL_VIEWS = ['duels', 'duelRank', 'duelDefenses', 'duelAccount'];
   /** Abre (ou fecha, se já estiver nela) uma tela da janela central. */
   function toggleWindow(view: View, group: string[]) {
     build.toggle(false);
@@ -55,6 +57,10 @@ export function createUI(app: App, root: HTMLElement) {
   }
   panel.onWindow = (v) => win.show(v);
   win.onWindow = (v) => win.show(v);
+  // servidor de duelos: quando chega resposta da rede, a janela Duelos remonta na hora
+  arena.onChange = () => {
+    if (DUEL_VIEWS.includes(win.kind ?? '')) win.update(true);
+  };
   const menu = new Menu(app);
   const sceneBar = new SceneBar(app);
   root.appendChild(sceneBar.root);
@@ -71,7 +77,7 @@ export function createUI(app: App, root: HTMLElement) {
     'div',
     { id: 'dock' },
     rich(
-      `<button class="bigbtn" data-act="build" title="Construir (B)">${pxIco('hammer')}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">${pxIco('ninja')}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">${pxIco('castle')}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">${pxIco('scroll')}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">${pxIco('map')}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">${pxIco('anvil')}<span>Oficinas</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">${pxIco('select')}<span>Selecionar</span></button>`,
+      `<button class="bigbtn" data-act="build" title="Construir (B)">${pxIco('hammer')}<span>Construir</span></button><button class="bigbtn" data-act="roster" title="Ninjas, equipes e clãs (N)">${pxIco('ninja')}<span>Ninjas</span></button><button class="bigbtn" data-act="village" title="Vila: nível, Kage e estatísticas (V)">${pxIco('castle')}<span>Vila</span></button><button class="bigbtn" data-act="missions" title="Quadro de missões (M)">${pxIco('scroll')}<span>Missões</span></button><button class="bigbtn" data-act="world" title="Mundo: expedições e região (R)">${pxIco('map')}<span>Mundo</span></button><button class="bigbtn" data-act="crafts" title="Oficinas: forja, farmácia e selos (F)">${pxIco('anvil')}<span>Oficinas</span></button><button class="bigbtn" data-act="duels" title="Duelos contra outros jogadores (D)">{swords}<span>Duelos</span></button><button class="bigbtn" data-act="select" title="Arraste no mapa para selecionar vários ninjas (S ou Shift + arrastar)">${pxIco('select')}<span>Selecionar</span></button>`,
     ),
   );
   const btnBuild = dock.querySelector<HTMLElement>('[data-act="build"]')!;
@@ -80,6 +86,7 @@ export function createUI(app: App, root: HTMLElement) {
   const btnMissions = dock.querySelector<HTMLElement>('[data-act="missions"]')!;
   const btnWorld = dock.querySelector<HTMLElement>('[data-act="world"]')!;
   const btnCrafts = dock.querySelector<HTMLElement>('[data-act="crafts"]')!;
+  const btnDuels = dock.querySelector<HTMLElement>('[data-act="duels"]')!;
   const btnSelect = dock.querySelector<HTMLElement>('[data-act="select"]')!;
   dock.addEventListener('pointerdown', (e) => e.stopPropagation());
   dock.addEventListener('click', (e) => {
@@ -136,6 +143,7 @@ export function createUI(app: App, root: HTMLElement) {
       }
       toggleWindow({ kind: 'crafts' }, ['crafts']);
     }
+    if (a === 'duels') toggleWindow({ kind: 'duels' }, DUEL_VIEWS);
     if (a === 'select') {
       app.selectTool = !app.selectTool;
       if (app.selectTool) {
@@ -171,7 +179,7 @@ export function createUI(app: App, root: HTMLElement) {
       build.rotate();
       return;
     }
-    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', f: 'crafts', s: 'select' };
+    const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', f: 'crafts', d: 'duels', s: 'select' };
     if (map[k]) dockAction(map[k]);
     if (k === ' ') {
       // espaço: pausa/continua
@@ -477,6 +485,8 @@ export function createUI(app: App, root: HTMLElement) {
     btnMissions.classList.toggle('on', win.kind === 'missions');
     btnWorld.classList.toggle('on', WORLD_VIEWS.includes(win.kind ?? ''));
     btnCrafts.classList.toggle('on', win.kind === 'crafts');
+    btnDuels.classList.toggle('on', DUEL_VIEWS.includes(win.kind ?? ''));
+    arena.tick(app.home); // duelo on-line que acabou: manda o resultado ao servidor
     sceneBar.update();
     battle.update(dt);
     // dica do prédio: aparece depois de o mouse ficar parado sobre ele um instante

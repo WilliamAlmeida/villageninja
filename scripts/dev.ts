@@ -3,6 +3,7 @@
 import { networkInterfaces } from 'node:os';
 import index from '../index.html';
 import { perfReport } from './perfReport';
+import { proxyApi } from './apiProxy';
 import { servePublic } from './public';
 
 const port = Number(process.env.PORT ?? 3010);
@@ -14,8 +15,10 @@ Bun.serve({
   // manifesto, ícones e service worker do PWA (public/)
   // 404 com no-store: a Cloudflare guardaria o erro em cache por horas
   // relatório do botão de salvar do Medidor de FPS (.perf/devices/)
+  // /api/* vai para o servidor de duelos (server/, scripts/apiProxy.ts)
   fetch: async (req, server) =>
     (await perfReport(req, server.requestIP(req)?.address)) ??
+    (await proxyApi(req, server.requestIP(req)?.address)) ??
     (await servePublic(new URL(req.url).pathname)) ??
     new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } }),
 });

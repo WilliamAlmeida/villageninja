@@ -32,6 +32,8 @@ const MAP = {
   sun: ['fill', 'sun'], moon: ['fill', 'moon'], snow: ['fill', 'snowflake'], rain: ['fill', 'cloud-rain'], storm: ['fill', 'cloud-lightning'],
   fire: ['fill', 'flame'], coins: ['fill', 'coins'], handshake: ['fill', 'handshake'], fist: ['fill', 'hand-fist'], sparkle: ['fill', 'sparkle'],
   userplus: ['fill', 'user-plus'], lightning: ['fill', 'lightning'], tree: ['fill', 'tree'], barbell: ['fill', 'barbell'],
+  // janela Duelos (publicar retrato, procurar adversário, trocar nome, entrar na conta)
+  upload: ['fill', 'upload-simple'], search: ['fill', 'magnifying-glass'], edit: ['fill', 'pencil-simple'], key: ['fill', 'key'],
   road: ['fill', 'path'], eraser: ['fill', 'eraser'], flower: ['fill', 'flower-lotus'],
 };
 

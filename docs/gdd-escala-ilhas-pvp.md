@@ -208,7 +208,10 @@ Só um mapa é simulado em detalhe por vez (como hoje com as cenas). Medir cada 
 2. **Variantes de arte** das casas e da produção (seção 4), pelo Codex.
 3. [x] parte offline (2026-10-15): `game/snapshot.ts` (retrato "VN1." copiado/colado, conferido e preso aos tetos) e
    `game/duel.ts` (duelo na arena pela máquina do Exame, `Exam.duel`; XP e placar `stats.duelsWon/duelsLost`, save v47).
-   Falta `scripts/arena-server.ts` (troca automática de retratos) — hoje o retrato vai por mensagem entre amigos.
+   [x] servidor (2026-10-15, `server/`, README lá; molde do battlecard-server): contas de convidado/cadastro, retrato
+   publicado, adversário por força parecida, duelo com ELO K32/K16, ranking, relatório de defesas com revanche; no jogo
+   a janela Duelos (tecla D, `ui/arenaClient.ts`). O retrato por texto continua como alternativa sem servidor. Pendente:
+   replay com RNG com semente (hoje o resultado é confiado ao cliente) e painel do dono além dos números gerais.
    **Duelo PvP na arena** (6.2) + `game/snapshot.ts` + `scripts/arena-server.ts`: o serviço mínimo e o ninja
    serializado.
 4. **Colônias** (seção 5): estado, Porto, transferência, resumo por dia, 1 tema primeiro (pesca, que já tem mapa).

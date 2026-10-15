@@ -13,5 +13,5 @@
     "noUnusedLocals": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "tests", "scripts", "tools"]
+  "include": ["src", "tests", "scripts", "tools", "server/src", "server/tests"]
 }

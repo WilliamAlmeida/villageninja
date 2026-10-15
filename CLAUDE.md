@@ -7,6 +7,9 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - `bun install` · `bun run dev` (HMR, mostra IP para abrir no celular) · `bun run build` · `bun run preview`
 - `bun run check` = `tsc --noEmit` + `bun test` — rode sempre antes de commitar.
 - Testes de simulação usam aleatoriedade: rode a suíte várias vezes ao mexer em combate/IA para pegar instabilidade.
+- **Servidor de duelos** (`server/`, Bun + Postgres, README lá): `cd server && bun run dev` (porta 3012); o jogo chega
+  por `/api/*` pelo proxy do `scripts/live.ts`/`dev.ts`. PM2: `villageninja-server`. `bun test` na raiz roda também os
+  testes dele (pulados sem `TEST_DATABASE_URL` em `server/.env`).
 
 ## Arquitetura (ver README e docs/ROADMAP.md)
 - `src/data/` conteúdo declarativo (jutsus, prédios, animais, missões, itens, níveis, kekkei, chefes).

@@ -2840,3 +2840,43 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .k2div::before, .k2div::after { content: ''; position: absolute; top: 8px; height: 2px; width: calc(50% - 93px); background: linear-gradient(90deg, transparent, #b8862e); }
 .k2div::before { left: 0; }
 .k2div::after { right: 0; transform: scaleX(-1); }
+
+/* ---------- janela Duelos (ui/arenaClient.ts + server/) ---------- */
+.dl-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+.dl-err { margin-top: 0.5rem; }
+.dl-champ { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 0.6rem; align-items: center; }
+.dl-face .pim, .dl-face .skel { width: 4.6rem; height: 4.6rem; border-radius: 0.6rem; background: var(--card-hi); object-fit: contain; image-rendering: pixelated; }
+.dl-info { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.dl-info > b { font-size: 1.05rem; }
+.dl-chips { margin-top: 0.55rem; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); }
+.dl-pub { margin-top: 0.6rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.dl-opp { padding: 0.6rem 0.7rem; border-radius: var(--r); background: linear-gradient(135deg, rgba(255,138,43,0.18), rgba(255,211,77,0.06)); border: 1px solid rgba(255,211,77,0.3); }
+.dl-opp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 1.05rem; }
+.dl-opp-head > b { flex: 1 1 auto; }
+.dl-opp-ninja { margin-top: 0.45rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.dl-opp-ninja small, .dl-name small { color: var(--muted); display: block; font-size: 0.8rem; }
+.dl-manual { margin-top: 0.6rem; display: flex; justify-content: flex-end; }
+.dl-last { margin: 0.2rem 0 0.4rem; font-weight: 700; }
+.dl-last.won { color: var(--good); }
+.dl-last.lost { color: var(--bad); }
+.dl-hist, .dl-rank, .dl-defs { list-style: none; margin: 0.3rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.dl-hist li, .dl-rank li, .dl-defs li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.55rem; border-radius: 0.5rem; background: var(--card-hi); font-variant-numeric: tabular-nums; }
+.dl-hist li small:last-child, .dl-defs li > small { margin-left: auto; color: var(--muted); }
+.dl-name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.dl-name b, .dl-name small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-pos { width: 1.8rem; text-align: center; font-weight: 800; color: var(--muted); }
+.dl-rank li.me { outline: 1px solid var(--accent); background: rgba(255, 138, 43, 0.12); }
+.dl-rank li.me .dl-pos { color: var(--accent); }
+.dl-wl { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.dl-delta { font-weight: 800; min-width: 2.4rem; text-align: right; color: var(--good); }
+.dl-delta.bad, .dl-delta:empty { color: var(--bad); }
+.dl-delta:empty { min-width: 0; }
+.dl-defs li.new { outline: 1px solid rgba(255, 211, 77, 0.6); }
+.dl-defs li .btn.mini { margin-left: 0.2rem; }
+.dl-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-bottom: 0.5rem; }
+.dl-acc > div { display: flex; flex-direction: column; }
+.dl-acc small { color: var(--muted); font-size: 0.8rem; }
+.dl-acc > .btn { margin-left: auto; }
+#alertbox .dl-field { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.45rem 0; font-size: 0.85rem; color: var(--muted); }
+#alertbox .dl-field input { font: inherit; font-size: 1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 0.45rem 0.55rem; }
+@media (max-width: 760px) { .dl-grid { grid-template-columns: minmax(0, 1fr); } }

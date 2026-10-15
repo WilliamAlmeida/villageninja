@@ -33,7 +33,7 @@ export interface DemoUI {
 const WINDOWS: [View['kind'], string][] = [
   ['village', 'Vila'], ['kage', 'Kage'], ['bingo', 'Bingo Book'], ['stats', 'Estatísticas'], ['roster', 'Ninjas'],
   ['teams', 'Equipes'], ['clans', 'Clãs'], ['missions', 'Missões'], ['region', 'Região'], ['expeditions', 'Expedições'],
-  ['crafts', 'Oficinas'],
+  ['crafts', 'Oficinas'], ['duels', 'Duelos'], ['duelRank', 'Duelos: ranking'], ['duelDefenses', 'Duelos: defesas'], ['duelAccount', 'Duelos: conta'],
 ];
 
 /** Recursos da vitrine guardados ao "zerar" (para ver os avisos de falta). */

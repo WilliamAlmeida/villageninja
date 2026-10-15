@@ -9,6 +9,7 @@ import { copyFileSync, mkdirSync, readdirSync, rmSync, watch } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { perfReport } from './perfReport';
+import { proxyApi } from './apiProxy';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DIST = `${ROOT}dist/`;
@@ -82,6 +83,9 @@ Bun.serve({
     // botão de salvar do Medidor de FPS: relatório do aparelho em .perf/devices/
     const report = await perfReport(req, server.requestIP(req)?.address);
     if (report) return report;
+    // /api/* vai para o servidor de duelos (server/), pela mesma origem (o túnel expõe os dois)
+    const api = await proxyApi(req, server.requestIP(req)?.address);
+    if (api) return api;
     const path = decodeURIComponent(new URL(req.url).pathname);
     if (path.includes('..')) return new Response('Not found', { status: 404, headers: NO_STORE });
     const name = path === '/' ? 'index.html' : path === '/lab' || path === '/lab/' ? 'tools/jutsu-lab/index.html' : path.slice(1);

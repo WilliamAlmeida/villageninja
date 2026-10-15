@@ -21,6 +21,17 @@ module.exports = {
       windowsHide: true,
     },
     {
+      // Servidor de duelos (contas, retratos, ranking; server/): o jogo chega por /api/* pelo proxy do live.ts.
+      // Precisa do postgres_16 do WSL no ar (banco "villageninja"; conexão em server/.env).
+      name: 'villageninja-server',
+      cwd: path.join(__dirname, 'server'),
+      script: 'src/index.ts',
+      interpreter: bun,
+      env: { PORT: '3012' },
+      exp_backoff_restart_delay: 500,
+      windowsHide: true,
+    },
+    {
       // Editor de sprites (http://localhost:3011): só escuta em 127.0.0.1, fora do túnel; grava em src/art.
       name: 'villageninja-editor',
       cwd: __dirname,
