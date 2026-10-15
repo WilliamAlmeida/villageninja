@@ -18,7 +18,7 @@ import { MISSION_RANKS } from '../data/missions';
 import { territoryCenter, territoryRadius } from '../game/village';
 import type { Building, Effect, GameState, ResourceNode, Site, Unit } from '../game/types';
 import { plainTokens } from '../core/tokens';
-import { artLayout, tileOf } from '../data/layout';
+import { artLayout, layoutVersion, tileOf } from '../data/layout';
 import { pieceCovers, pieceSet, type PieceSet } from './pieces';
 import type { Nature } from '../data/natures';
 import type { Vfx } from '../data/vfx';
@@ -34,8 +34,9 @@ import { art, artFoot, ART_SCALE, drawWhole } from './art';
 import { drawEffect } from './effects';
 import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
-import { drawBuilding, drawNode, drawProjectile, drawUnit, isStump, workImpact, type WorkAction } from './sprites';
+import { drawBuilding, drawNode, drawProjectile, drawUnit, drawUnitSilhouette, isStump, nodeRect, workImpact, type WorkAction } from './sprites';
 import { Terrain } from './terrain';
+import { BAND, COLW, PAD_TOP, Scenery, type SceneNode, type StripTile, stripScale, TILE_H } from './scenery';
 
 export interface Ghost {
   type: BuildingType;
@@ -71,8 +72,12 @@ const TAU = Math.PI * 2;
 /** Prédio na correção de profundidade (tiles): canto com folga, ponta da frente e linha de base. */
 type DepthBlock = { x0: number; y0: number; fx: number; fy: number; y: number };
 
-/** Teto de silhuetas com o zoom afastado. */
-const FAR_SILHOUETTES = 12;
+/** Zoom abaixo do qual o cenário parado vai em blocos (render/scenery.ts). */
+const STRIPS_BELOW = 1;
+/** Segundos que um recurso trabalhado fica fora dos blocos do cenário depois do último trabalho. */
+const LIVE_KEEP = 30;
+/** Teto de silhuetas por quadro (selecionado/grupo primeiro, depois inimigos, depois os mais perto do centro). */
+const MAX_SILHOUETTES = 16;
 
 export type Occlusion = { silhouette: boolean; fade: boolean; cutout: boolean; dither: boolean };
 /** Corpo de um personagem para saber quem o tapa (ponto do peito na cena, índice na lista ordenada). */
@@ -111,7 +116,11 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
   lift?: { x: number; y: number; towerId: number; b: Building };
   /** Camada de cima do prédio (arte `<arte>-top`, ex. telhado e pilastras da torre): desenhada por cima da base e de
    * quem está lá dentro (o vigia). */
-  top?: boolean };
+  top?: boolean;
+  /** Bloco do cenário parado (render/scenery.ts): árvores e rochas já pintadas, coladas no começo da faixa. */
+  tile?: StripTile;
+  /** Recurso dos blocos que este objeto representa (para a silhueta e quem tapa quem). */
+  sn?: SceneNode };
 
 /**
  * Desenho isométrico em duas passadas:
@@ -156,6 +165,31 @@ export class Renderer {
   private layerA: HTMLCanvasElement | null = null;
   private layerB: HTMLCanvasElement | null = null;
   /** Redesenho só para máscara (silhueta): sem efeitos colaterais (fumaça de chaminé). */
+  /**
+   * Silhuetas (ver `prepareSilhouettes`): `silUnits` = quem ganha silhueta neste quadro e a cor; `silEvents` = na ordem
+   * em que foram desenhados, esses personagens (já projetados) e os prédios/árvores que tapam algum deles; M e O são as
+   * camadas da passada adiada (px do aparelho): M acumula quem tapa, O recebe a parte tapada dos personagens tingidos.
+   */
+  private silUnits = new Map<number, string>();
+  /**
+   * Silhueta com os blocos: quem com silhueta já foi desenhado neste quadro, e quantos deles havia quando cada árvore
+   * dos blocos entrou na máscara (ela entra de novo se outro for desenhado depois: também fica por cima dele).
+   */
+  private silDrawn = new Set<number>();
+  private silPushed = new Map<Drawable, number>();
+  /** Recursos dos blocos que tapam alguém com silhueta neste quadro (só esses entram na máscara). */
+  private silTrees = new Set<SceneNode>();
+  /** Cenário parado em blocos, por mapa; `strips` = o do quadro atual (null = recursos um a um). */
+  private sceneries = new WeakMap<GameState, Scenery>();
+  private strips: Scenery | null = null;
+  /** Desliga os blocos do cenário (console: `renderer.stripsOff = true`), para comparar. */
+  stripsOff = false;
+  /** Objeto de desenho estável de cada recurso dos blocos (chave do mapa de quem tapa quem e da silhueta). */
+  private stripDs = new WeakMap<SceneNode, Drawable>();
+  private silEvents: ({ pu: Unit; color: string; action?: WorkAction } | { d: Drawable })[] = [];
+  private silM: HTMLCanvasElement | null = null;
+  private silO: HTMLCanvasElement | null = null;
+  /** Redesenhando quem tapa como máscara da silhueta (sem soltar fumaça de novo). */
   private maskPass = false;
   /** Mapa sendo desenhado agora (o chão do prédio de margem confere onde é água de verdade). */
   private mapState: GameState | null = null;
@@ -283,6 +317,7 @@ export class Renderer {
     this.seasonal.drawWet(ctx);
     this.seasonal.drawGround(ctx, s);
     this.seasonal.drawCloudShadows(ctx, s);
+    this.mark('chão: estação');
     // aterrar (marrom) / cavar (azul) marcados, esperando um morador
     for (const e of s.earthworks ?? []) {
       ctx.fillStyle = e.op === 'fill' ? 'rgba(168,131,85,0.55)' : 'rgba(80,150,225,0.5)';
@@ -294,6 +329,7 @@ export class Renderer {
       ctx.setLineDash([]);
     }
     ctx.drawImage(this.fogTexture(s), -FOG_PAD * TILE, -FOG_PAD * TILE, (s.mapW + FOG_PAD * 2) * TILE, (s.mapH + FOG_PAD * 2) * TILE);
+    this.mark('chão: névoa');
 
     // movendo um prédio: o de origem não é desenhado (só a base marcada, em ghostGround)
     const shown = ghost?.moveId != null ? s.buildings.filter((b) => b.id !== ghost.moveId) : s.buildings;
@@ -310,9 +346,11 @@ export class Renderer {
       ctx.roundRect(b.tx * TILE - 4, b.ty * TILE - 4, d.w * TILE + 8, d.h * TILE + 10, 8);
       ctx.fill();
     }
+    this.mark('chão: batido');
     // campos e áreas abertas ficam deitados no chão
     // (os que têm arte isométrica vão como decalque logo depois desta passada)
     for (const b of shown) if (defOf(b).walkable && !art(b.type)) drawBuilding(ctx, b, time, night, s.level);
+    this.mark('chão: campos');
 
     if (sel?.kind === 'building') {
       const b = g.building(sel.id);
@@ -410,11 +448,27 @@ export class Renderer {
       }
     }
     // na névoa não aparece nada em pé: nem recursos, nem bichos e inimigos, nem locais ainda não achados
-    for (const n of s.nodes) {
-      if (n.cleared || !isExplored(s, n.tx, n.ty)) continue; // arrancado (limpar área): não há o que desenhar
-      const p = project(n.tx * TILE + TILE / 2, n.ty * TILE + TILE / 2);
-      if (seen(p)) list.push({ x: p.x, y: p.y, n });
-    }
+    // cenário parado em blocos (render/scenery.ts): árvores e rochas paradas vêm prontas; as "vivas" (sendo trabalhadas,
+    // caindo, marcadas para limpar) e as de bloco ainda não repintado vão uma a uma
+    const strips = this.stripsOn(cam.zoom, far) ? this.sceneryFor(g, s, shown) : null;
+    this.strips = strips;
+    if (strips) {
+      const live = this.liveNodes(s);
+      const { tiles, single } = strips.frame(
+        s,
+        { x0, y0, x1, y1 },
+        stripScale(z),
+        (n) => live.has(n.id) || !!n.clear || this.treeFall.has(n.id),
+        (c, t) => this.paintStrip(c, t, time),
+      );
+      for (const t of tiles) list.push({ x: t.col * COLW, y: t.band * BAND - 1e-6, tile: t });
+      for (const e of single) if (seen(e)) list.push({ x: e.x, y: e.y, n: e.n });
+    } else
+      for (const n of s.nodes) {
+        if (n.cleared || !isExplored(s, n.tx, n.ty)) continue; // arrancado (limpar área): não há o que desenhar
+        const p = project(n.tx * TILE + TILE / 2, n.ty * TILE + TILE / 2);
+        if (seen(p)) list.push({ x: p.x, y: p.y, n });
+      }
     for (const site of s.sites) {
       if (!site.found || (site.done && site.kind !== 'chest')) continue;
       const p = project(site.tx * TILE + TILE / 2, site.ty * TILE + TILE / 2);
@@ -496,7 +550,7 @@ export class Renderer {
       for (let cx = Math.max(0, Math.floor(r.x0)); cx <= Math.ceil(r.fx + 3); cx++) (cols[cx] ??= []).push(r);
     }
     for (const d of list) {
-      if (d.b) continue;
+      if (d.b || d.tile) continue;
       const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.origin ? d.origin.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
       const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.origin ? d.origin.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       const col = cols[Math.max(0, Math.floor(wx))];
@@ -559,6 +613,7 @@ export class Renderer {
     this.mark('acampamentos');
     const occluded = this.occluders(list);
     this.mark('quem tapa');
+    this.prepareSilhouettes(occluded, teamColor, focus, cam, far);
     const drawBlock = (d: Drawable) => {
       if (d.b && d.top) this.drawTop(d.b, s.level);
       else if (d.b && d.piece != null) this.drawPiece(d.b, d.piece, s.level);
@@ -575,6 +630,10 @@ export class Renderer {
       }
     };
     for (const d of list) {
+      if (d.tile) {
+        this.drawStrip(d.tile, occluded, z);
+        continue;
+      }
       if (d.b || d.n || (d.site && d.piece != null)) {
         // quem tapa uma unidade fica semitransparente (some e volta suavemente), com furo e/ou pontilhado se ligados
         // recursos (são milhares) pelo id num mapa à parte: sem montar uma chave de texto por árvore a cada quadro
@@ -588,6 +647,8 @@ export class Renderer {
           if (cur !== 1) fades.delete(key);
         } else fades.set(key, a);
         const holes = this.occl.cutout && hits ? hits : null;
+        // silhueta: este bloco tapa alguém que ganha silhueta → entra na passada adiada como máscara
+        if (hits && this.silUnits.size > 0 && hits.some((h) => this.silUnits.has(h.u.id))) this.silEvents.push({ d });
         const r = (holes || (this.occl.dither && a < 0.99)) && this.blockRect(d, s.level);
         if (r) this.occludedBlock(r, () => drawBlock(d), a, holes);
         else {
@@ -607,6 +668,7 @@ export class Renderer {
           ctx.stroke();
           ctx.restore();
         }
+        if (strips) this.redrawFront(d, this.blockRect(d, s.level), occluded, time);
         continue;
       }
       if (d.site) this.drawSite(d.site, d.x, d.y, time, sel?.kind === 'site' && sel.id === d.site.id);
@@ -614,6 +676,7 @@ export class Renderer {
       else if (d.cave) drawCaveDeco(ctx, d.cave, d.x, d.y);
       else if (d.theme) drawThemeDeco(ctx, d.theme, d.x, d.y);
       else if (d.wall) drawWall(ctx, d.wall);
+      else if (d.origin) drawJutsuOrigin(ctx, d.origin);
       ctx.globalAlpha = 1;
       if (d.u) {
         // vigia: anda entre os pontos da plataforma (só desenho), a 70%, e esmaece junto com a torre
@@ -627,7 +690,6 @@ export class Renderer {
           ctx.globalAlpha = focus.has(u.id) ? 1 : 0.75;
           ctx.beginPath();
           ctx.ellipse(u.x, u.y + 7, 9, 4, 0, 0, Math.PI * 2);
-      else if (d.origin) drawJutsuOrigin(ctx, d.origin);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
@@ -646,7 +708,13 @@ export class Renderer {
           ctx.ellipse(u.x, u.y + 7, u.animal ? 13 : 9, u.animal ? 5.5 : 4, 0, 0, Math.PI * 2);
           ctx.stroke();
         }
-        drawUnit(ctx, u, time, selected, workAction(g, d.u));
+        const action = workAction(g, d.u);
+        drawUnit(ctx, u, time, selected, action);
+        const silColor = this.silUnits.get(u.id);
+        if (silColor) {
+          this.silEvents.push({ pu: u, color: silColor, action });
+          this.silDrawn.add(u.id);
+        }
         // inverno: bafo de frio de vez em quando
         if (SEASON_VIEW.season === 'winter' && !lightWeatherFx() && !u.animal && u.kind !== 'clone' && Math.random() < dt * 0.35) {
           const dir = Math.cos(u.facing) >= 0 ? 1 : -1;
@@ -654,10 +722,11 @@ export class Renderer {
         }
         if (u.missionId != null && !far) this.missionBadge(u, time);
         if (selected && !group.has(u.id)) this.label(ctx, u.name, u.x, u.y - 34, cam.zoom);
-      }
+        if (strips) this.redrawFront(d, this.unitRect(u), occluded, time);
+      } else if (strips) this.redrawFront(d, null, occluded, time);
     }
     this.mark('em pé');
-    if (this.occl.silhouette) this.silhouettes(list, occluded, drawBlock, teamColor, focus, time, far);
+    this.flushSilhouettes(drawBlock, time);
     this.mark('silhuetas');
     if (ghost) this.ghostSprite(ghost);
 
@@ -768,6 +837,19 @@ export class Renderer {
     const add = (d: Drawable, hit: Body[]) => {
       if (hit.length) out.set(d, hit);
     };
+    // árvores pintadas nos blocos (render/scenery.ts): a mesma conta, só com quem está na frente do corpo
+    const sc = this.strips;
+    if (sc?.drawn.size)
+      for (const b of bodies) {
+        const bk = list[b.i]!.k!;
+        sc.around(b.x, b.y - 20, b.y + 90, (e) => {
+          if (e.n.type !== 'tree' || e.k <= bk || b.x <= e.x - 12 || b.x >= e.x + 12 || b.y <= e.y - 50 || b.y >= e.y - 6) return;
+          const d = this.stripD(e);
+          const hit = out.get(d);
+          if (!hit) out.set(d, [b]);
+          else if (!hit.includes(b)) hit.push(b);
+        });
+      }
     list.forEach((d, i) => {
       let r: { x0: number; x1: number; y0: number; y1: number } | null = null;
       if (d.b && d.piece != null) {
@@ -914,50 +996,281 @@ export class Renderer {
   }
 
   /**
-   * Silhueta de quem está atrás de um prédio/árvore: o desenho do personagem pintado numa cor só, recortado pelos
-   * pixels de quem o tapa, por cima de tudo. Só para quem importa ver (ninjas da vila, inimigos, bicho lutando e o
-   * selecionado/grupo): com 150 moradores a vila não vira um mar de contornos.
+   * Cenário parado em blocos (render/scenery.ts) neste quadro? Só com o zoom abaixo de STRIPS_BELOW: de perto há
+   * poucas árvores na tela e redesenhar as que ficam na frente de cada um custa mais do que poupa (medido). Não com
+   * Furo/Pontilhado (furam/pontilham cada árvore) nem com Esmaecer de perto (a árvore inteira esmaece); afastado o
+   * Esmaecer vira o recorte em volta do personagem.
    */
-  private silhouettes(list: Drawable[], occluded: Map<Drawable, Body[]>, drawBlock: (d: Drawable) => void, teamColor: Map<number, string>, focus: Set<number>, time: number, far: boolean) {
-    const covers = new Map<Unit, Drawable[]>();
-    for (const [d, hits] of occluded) for (const b of hits) (covers.get(b.u) ?? covers.set(b.u, []).get(b.u)!).push(d);
-    let left = far ? FAR_SILHOUETTES : Infinity;
-    for (const [u, blocks] of covers) {
-      const enemy = u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null);
-      // mapa inteiro à vista: os ninjas são miúdos e quase todos estão atrás de alguma árvore; só quem está em foco e os
-      // inimigos ganham silhueta (cada uma são duas camadas fora da tela), e no máximo FAR_SILHOUETTES
-      if (far && !(focus.has(u.id) || enemy)) continue;
-      if (!(focus.has(u.id) || (u.faction === 'village' && u.ninja) || enemy) || (u.cloak && u.faction !== 'village')) continue;
-      if (left-- <= 0) break;
-      const pu = this.projected(u);
-      const big = u.animal ? 70 : 28;
-      const r = { x0: pu.x - big, x1: pu.x + big, y0: pu.y - (u.animal ? 130 : 56), y1: pu.y + 18 };
-      const color = enemy ? '#ff5a4a' : (teamColor.get(u.id) ?? '#8fe3ff');
-      const A = this.toLayer('A', r, () => drawUnit(this.ctx, pu, time, false, undefined, true));
-      if (!A) continue;
-      // só a parte tapada: os pixels de quem tapa (redesenhados numa segunda camada, sem efeitos)
-      this.maskPass = true;
-      const B = this.toLayer('B', r, () => {
-        for (const d of blocks) drawBlock(d);
-      });
-      this.maskPass = false;
-      if (!B) continue;
-      const { c, l, x0, y0, w, h } = A;
+  private stripsOn(zoom: number, far: boolean) {
+    return !this.stripsOff && !this.previewArt && zoom < STRIPS_BELOW && !this.occl.cutout && !this.occl.dither && (far || !this.occl.fade);
+  }
+
+  /** Blocos do mapa, com o índice refeito quando recursos, prédios, layout ou nível mudam. */
+  private sceneryFor(g: Game, s: GameState, shown: Building[]): Scenery {
+    let sc = this.sceneries.get(s);
+    if (!sc) this.sceneries.set(s, (sc = new Scenery()));
+    let h = s.nodes.length;
+    for (const n of s.nodes) h = (Math.imul(h, 31) + n.id) | 0;
+    for (const b of shown) h = (Math.imul(Math.imul(Math.imul(h, 31) + b.id, 31) + b.tx * 4096 + b.ty, 31) + (b.level ?? 1) * 4 + (b.flip ? 2 : 0) + (b.built ? 1 : 0)) | 0;
+    const sig = `${h}|${layoutVersion}|${s.level}|${this.kages}|${this.season}`;
+    if (sc.needsIndex(sig)) sc.setIndex(sig, this.sceneryIndex(g, s, shown));
+    return sc;
+  }
+
+  /**
+   * Todos os recursos do mapa com ponto, linha de base (a mesma do desenho um a um: `baseLine` + a regra das faces dos
+   * prédios) e o retângulo que o desenho ocupa.
+   */
+  private sceneryIndex(g: Game, s: GameState, shown: Building[]): SceneNode[] {
+    const cols: DepthBlock[][] = [];
+    for (const b of shown) {
+      const def = defOf(b);
+      if (def.walkable) continue;
+      const box = this.artBox(b, s.level);
+      if (box && pieceSet(box.artName, box.pic)) continue; // peças: cada uma com a sua âncora (como no quadro)
+      const c = buildingCenter(b);
+      const r: DepthBlock = { x0: b.tx - 3, y0: b.ty - 3, fx: b.tx + def.w, fy: b.ty + def.h, y: project(c.x, c.y).y };
+      for (let cx = Math.max(0, Math.floor(r.x0)); cx <= Math.ceil(r.fx + 3); cx++) (cols[cx] ??= []).push(r);
+    }
+    void g;
+    const out: SceneNode[] = [];
+    for (const n of s.nodes) {
+      const p = project(n.tx * TILE + TILE / 2, n.ty * TILE + TILE / 2);
+      let k = this.baseLine({ x: p.x, y: p.y, n });
+      const wx = n.tx + 0.5;
+      const wy = n.ty + 0.5;
+      for (const o of cols[Math.floor(wx)] ?? []) {
+        if (wx < o.x0 || wy < o.y0 || wx > o.fx + 3 || wy > o.fy + 3) continue;
+        const front = wx >= o.fx || wy >= o.fy;
+        if (front && k <= o.y) k = o.y + 0.01;
+        else if (!front && k >= o.y) k = o.y - 0.01;
+      }
+      // retângulo da arte do estágio (sem arte ainda: o folgado de sempre), do centro do tile para o ponto projetado
+      const cx = n.tx * TILE + TILE / 2;
+      const cy = n.ty * TILE + TILE / 2;
+      const r = nodeRect(n);
+      out.push(
+        r
+          ? { n, x: p.x, y: p.y, k, x0: r.x0 - cx + p.x, x1: r.x1 - cx + p.x, y0: r.y0 - cy + p.y, y1: r.y1 - cy + p.y }
+          : { n, x: p.x, y: p.y, k, x0: p.x - 48, x1: p.x + 48, y0: p.y - 120, y1: p.y + 20 },
+      );
+    }
+    return out;
+  }
+
+  /**
+   * Recursos sendo trabalhados (tremem e a rocha encolhe): ficam fora dos blocos. Continuam fora por LIVE_KEEP s
+   * depois do último trabalho: o lenhador vai e volta entre a árvore e o depósito, e cada ida/volta repintaria o bloco.
+   */
+  private liveNodes(s: GameState) {
+    const now = performance.now() / 1000;
+    for (const u of s.units)
+      if (!u.dead && u.taskId != null && (u.state === 'gather' || u.state === 'toNode' || u.state === 'clearing' || u.state === 'toClear')) this.liveAt.set(u.taskId, now);
+    for (const [id, t] of this.liveAt) if (now - t > LIVE_KEEP) this.liveAt.delete(id);
+    return this.liveAt;
+  }
+  private liveAt = new Map<number, number>();
+
+  private stripD(e: SceneNode): Drawable {
+    let d = this.stripDs.get(e);
+    if (!d) this.stripDs.set(e, (d = { x: e.x, y: e.y, n: e.n, k: e.k, sn: e }));
+    return d;
+  }
+
+  /** Um recurso dos blocos no ponto projetado dele (drawNode desenha no centro do tile em mundo). */
+  private drawStripNode(e: SceneNode, time: number) {
+    const c = this.ctx;
+    const dx = e.x - (e.n.tx * TILE + TILE / 2);
+    const dy = e.y - (e.n.ty * TILE + TILE / 2);
+    c.translate(dx, dy);
+    this.node(e.n, time);
+    c.translate(-dx, -dy);
+  }
+
+  /** Pinta um bloco: os recursos dele, do fundo para a frente, no canvas do bloco. */
+  private paintStrip(c: CanvasRenderingContext2D, t: StripTile, time: number) {
+    const main = this.ctx;
+    this.ctx = c;
+    try {
+      for (const e of t.painted) this.drawStripNode(e, time);
+    } finally {
+      this.ctx = main;
+    }
+  }
+
+  /** Cola um bloco pronto (e anota, para a silhueta, as árvores dele que tapam alguém já desenhado). */
+  private drawStrip(t: StripTile, occluded: Map<Drawable, Body[]>, z: number) {
+    const ctx = this.ctx;
+    // reduzindo: suavização simples; ampliando (zoom bem perto): sem suavizar, pixel art nítida
+    const shrink = z < t.s * 0.98;
+    ctx.imageSmoothingEnabled = shrink;
+    if (shrink) ctx.imageSmoothingQuality = 'low';
+    ctx.drawImage(t.c, t.col * COLW, t.band * BAND - PAD_TOP, COLW, TILE_H);
+    ctx.imageSmoothingEnabled = true;
+    if (this.silTrees.size) for (const e of t.painted) if (this.silTrees.has(e)) this.silBlock(e, occluded);
+  }
+
+  /**
+   * Árvore de um bloco desenhada agora por cima de alguém com silhueta JÁ desenhado: entra na máscara (de novo só se
+   * outro com silhueta foi desenhado desde a última vez).
+   */
+  private silBlock(e: SceneNode, occluded: Map<Drawable, Body[]>) {
+    const d = this.stripD(e);
+    if ((this.silPushed.get(d) ?? -1) >= this.silDrawn.size) return;
+    const hits = occluded.get(d);
+    if (!hits || !hits.some((h) => this.silDrawn.has(h.u.id))) return;
+    this.silPushed.set(d, this.silDrawn.size);
+    this.silEvents.push({ d });
+  }
+
+  /**
+   * Depois de desenhar `d` (personagem, prédio, peça, enfeite...): as árvores dos blocos da mesma faixa que estão NA
+   * FRENTE dele são redesenhadas por cima, recortadas no retângulo dele. Com isso a ordem fica igual à do desenho um a
+   * um. Esmaecer (afastado): a árvore que tapa o personagem vai a 38%, só em volta dele.
+   */
+  private redrawFront(d: Drawable, r: Rect | null, occluded: Map<Drawable, Body[]>, time: number) {
+    const sc = this.strips;
+    if (!sc?.drawn.size || d.k == null) return;
+    const rect = r ?? { x0: d.x - 48, x1: d.x + 48, y0: d.y - 110, y1: d.y + 24 };
+    const front = sc.front(Math.floor(d.k / BAND), rect, d.k);
+    if (!front.length) return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x0, rect.y0, rect.x1 - rect.x0, rect.y1 - rect.y0);
+    ctx.clip();
+    for (const e of front) {
+      const hits = occluded.get(this.stripD(e));
+      ctx.globalAlpha = this.occl.fade && d.u && hits?.some((h) => h.u === d.u) ? 0.38 : 1;
+      this.drawStripNode(e, time);
+      if (this.silTrees.has(e)) this.silBlock(e, occluded);
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Silhueta de quem está atrás de um prédio/árvore: o corpo do personagem numa cor só, visível só onde algo o tapa, por
+   * cima de tudo. Só para quem importa ver (ninjas da vila, inimigos, bicho lutando e o selecionado/grupo), até
+   * MAX_SILHOUETTES por quadro (selecionado/grupo primeiro, depois inimigos, depois os mais perto do centro da tela); com
+   * o zoom afastado, sem os ninjas da vila (miúdos, e quase todos atrás de alguma árvore).
+   *
+   * O que custa numa GPU de celular não é o desenho, é cada TROCA de canvas (cada uma fecha uma passada de render). A
+   * versão antiga trocava 4 vezes por personagem, interrompendo o desenho do mapa (a meia distância, com ~23 ninjas atrás
+   * de árvores, o G100 caía a 40 qps). Agora a passada principal só ANOTA (`silEvents`) quem ganha silhueta e os blocos
+   * que tapam algum deles, e `flushSilhouettes` resolve tudo depois, de trás para a frente, fora da tela: bloco → vai
+   * para a camada M (máscara: tudo que foi desenhado DEPOIS do personagem da vez); personagem → corpo tingido
+   * (`drawUnitSilhouette`, arte de cor única em cache) recortado por M e somado em O. Uma troca por bloco, duas por
+   * personagem (≤ 2×16 + blocos), e a tela principal só é tocada uma vez, no fim, com O a 60%. A máscara é exatamente
+   * "o que foi desenhado por cima", então sai mais fiel que antes.
+   */
+  private prepareSilhouettes(occluded: Map<Drawable, Body[]>, teamColor: Map<number, string>, focus: Set<number>, cam: Camera, far: boolean) {
+    this.silUnits.clear();
+    this.silEvents.length = 0;
+    this.silPushed.clear();
+    this.silDrawn.clear();
+    this.silTrees.clear();
+    if (!this.occl.silhouette || !occluded.size) return;
+    const cx = cam.left + cam.viewW / cam.zoom / 2;
+    const cy = cam.top + cam.viewH / cam.zoom / 2;
+    const cand: { u: Unit; enemy: boolean; rank: number; d: number }[] = [];
+    const seen = new Set<number>();
+    for (const hits of occluded.values())
+      for (const b of hits) {
+        const u = b.u;
+        if (seen.has(u.id)) continue;
+        seen.add(u.id);
+        const enemy = u.faction === 'enemy' || (u.faction === 'wild' && u.targetId != null);
+        const inFocus = focus.has(u.id);
+        if (!(inFocus || (u.faction === 'village' && u.ninja) || enemy) || (u.cloak && u.faction !== 'village')) continue;
+        if (far && !(inFocus || enemy)) continue;
+        cand.push({ u, enemy, rank: inFocus ? 0 : enemy ? 1 : 2, d: Math.hypot(b.x - cx, b.y - cy) });
+      }
+    if (!cand.length) return;
+    cand.sort((a, b) => a.rank - b.rank || a.d - b.d);
+    for (const c of cand.slice(0, MAX_SILHOUETTES)) this.silUnits.set(c.u.id, c.enemy ? '#ff5a4a' : (teamColor.get(c.u.id) ?? '#8fe3ff'));
+    for (const [d, hits] of occluded) if (d.sn && hits.some((h) => this.silUnits.has(h.u.id))) this.silTrees.add(d.sn);
+  }
+
+  /** Retângulo (px da cena) que o corpo de um personagem projetado ocupa, com folga. */
+  private unitRect(pu: Unit): Rect {
+    const big = pu.animal ? 70 : 28;
+    return { x0: pu.x - big, x1: pu.x + big, y0: pu.y - (pu.animal ? 130 : 56), y1: pu.y + 18 };
+  }
+
+  /** A passada adiada das silhuetas (ver `prepareSilhouettes`), de trás para a frente, e O por cima de tudo a 60%. */
+  private flushSilhouettes(drawBlock: (d: Drawable) => void, time: number) {
+    const ev = this.silEvents;
+    if (!ev.length || !ev.some((e) => 'pu' in e)) return;
+    const main = this.ctx;
+    const T = main.getTransform();
+    const W = this.canvas.width;
+    const H = this.canvas.height;
+    if (!this.silM || this.silM.width !== W || this.silM.height !== H) {
+      this.silM = document.createElement('canvas');
+      this.silM.width = W;
+      this.silM.height = H;
+      this.silO = document.createElement('canvas');
+      this.silO.width = W;
+      this.silO.height = H;
+    }
+    const m = this.silM.getContext('2d')!;
+    const o = this.silO!.getContext('2d')!;
+    // só a região dos personagens interessa (a silhueta é um pedaço do corpo deles): limpa e trabalha só nela
+    let bx0 = Infinity;
+    let by0 = Infinity;
+    let bx1 = -Infinity;
+    let by1 = -Infinity;
+    for (const e of ev) {
+      if (!('pu' in e)) continue;
+      const r = this.unitRect(e.pu);
+      bx0 = Math.min(bx0, T.a * r.x0 + T.e);
+      by0 = Math.min(by0, T.d * r.y0 + T.f);
+      bx1 = Math.max(bx1, T.a * r.x1 + T.e);
+      by1 = Math.max(by1, T.d * r.y1 + T.f);
+    }
+    bx0 = Math.max(0, Math.floor(bx0));
+    by0 = Math.max(0, Math.floor(by0));
+    bx1 = Math.min(W, Math.ceil(bx1));
+    by1 = Math.min(H, Math.ceil(by1));
+    const bw = bx1 - bx0;
+    const bh = by1 - by0;
+    if (bw <= 0 || bh <= 0) return;
+    m.setTransform(1, 0, 0, 1, 0, 0);
+    m.clearRect(bx0, by0, bw, bh);
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.clearRect(bx0, by0, bw, bh);
+    // de trás para a frente: quando chega a um personagem, M tem exatamente os blocos desenhados depois dele
+    m.setTransform(T.a, T.b, T.c, T.d, T.e, T.f);
+    m.imageSmoothingEnabled = main.imageSmoothingEnabled;
+    m.globalAlpha = 1;
+    this.maskPass = true;
+    for (let i = ev.length - 1; i >= 0; i--) {
+      const e = ev[i]!;
+      if ('d' in e) {
+        this.ctx = m;
+        try {
+          drawBlock(e.d);
+        } finally {
+          this.ctx = main;
+        }
+        continue;
+      }
+      const L = this.toLayer('A', this.unitRect(e.pu), () => drawUnitSilhouette(this.ctx, e.pu, time, e.color, e.action));
+      if (!L) continue;
+      const { c, l, x0, y0, w, h } = L;
       l.save();
       l.setTransform(1, 0, 0, 1, 0, 0);
-      l.globalCompositeOperation = 'source-in';
-      l.fillStyle = color;
-      l.fillRect(0, 0, w, h);
       l.globalCompositeOperation = 'destination-in';
-      l.drawImage(B.c, 0, 0, w, h, 0, 0, w, h);
+      l.drawImage(this.silM, x0, y0, w, h, 0, 0, w, h);
       l.restore();
-      const main = this.ctx;
-      main.save();
-      main.setTransform(1, 0, 0, 1, 0, 0);
-      main.globalAlpha = 0.6;
-      main.drawImage(c, 0, 0, w, h, x0, y0, w, h);
-      main.restore();
+      o.drawImage(c, 0, 0, w, h, x0, y0, w, h);
     }
+    this.maskPass = false;
+    main.save();
+    main.setTransform(1, 0, 0, 1, 0, 0);
+    main.globalAlpha = 0.6;
+    main.drawImage(this.silO!, bx0, by0, bw, bh, bx0, by0, bw, bh);
+    main.restore();
   }
 
   /**
@@ -2048,6 +2361,7 @@ function hexA(hex: string) {
  * (0,25 s), fica, e no fim afunda se esfarelando. As pontas vêm do mundo e são projetadas (casa com a vista isométrica).
  */
 function drawWall(ctx: CanvasRenderingContext2D, e: Effect) {
+  if (drawEarthWall(ctx, e)) return;
   const [wa, wb] = wallEnds(e);
   const a = project(wa.x, wa.y);
   const b = project(wb.x, wb.y);
@@ -2128,4 +2442,3 @@ function drawWall(ctx: CanvasRenderingContext2D, e: Effect) {
   ctx.restore();
 }
 
-  if (drawEarthWall(ctx, e)) return;

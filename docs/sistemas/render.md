@@ -13,10 +13,16 @@
   recortado pelos pixels de quem o tapa, por cima; só ninjas da vila, inimigos, bicho lutando e o selecionado),
   Esmaecer (o prédio inteiro a 38%, o padrão), Furo (círculo em volta de quem está atrás) e Pontilhado (a transparência
   vira um xadrez de Bayer 4×4 no tamanho do pixel da arte, alinhado ao mundo); combinam. Furo e pontilhado desenham o
-  prédio numa camada fora da tela só do tamanho dele (`toLayer`/`occludedBlock`); a silhueta redesenha quem tapa numa
-  segunda camada como máscara (`maskPass` evita a fumaça repetida). Com o zoom afastado (`far`, < 0,85) a silhueta fica
-  só para o selecionado/grupo e os inimigos, no máximo `FAR_SILHOUETTES` (12): os ninjas são miúdos e quase todos estão
-  atrás de alguma árvore.
+  prédio numa camada fora da tela só do tamanho dele (`toLayer`/`occludedBlock`). **Silhueta em passada adiada**
+  (`prepareSilhouettes`/`flushSilhouettes`): numa GPU de celular o que pesa é cada TROCA de canvas (fecha uma passada de
+  render), e a versão antiga trocava 4 vezes por personagem no meio do desenho do mapa (a meia distância, ~23 ninjas atrás
+  de árvores: o G100 caía a 40 qps). Agora a passada principal só anota, na ordem em que desenhou, quem ganha silhueta e
+  os blocos que tapam algum deles (`silEvents`); no fim, de trás para a frente e fora da tela: bloco → camada M (máscara =
+  tudo desenhado depois do personagem da vez; `maskPass` evita a fumaça repetida); personagem → corpo numa cor só
+  (`drawUnitSilhouette` em sprites.ts, `solidArt` em cache) recortado por M e somado em O; O vai à tela uma vez, a 60%.
+  Até `MAX_SILHOUETTES` (16) por quadro: selecionado/grupo primeiro, depois inimigos, depois os mais perto do centro da
+  tela; com o zoom afastado (`far`, < 0,85), sem os ninjas da vila (miúdos, quase todos atrás de alguma árvore). Medido no
+  PC a zoom 1: 1,3 ms de CPU e ~40 trocas de canvas (eram 2,1 ms e ~92).
 - **Desempenho com o mapa inteiro à vista** (medido 2026-10-13 no save do autor: 2.316 recursos, 169 unidades, PC 1920×863,
   Alta + Silhueta: zoom 0,45 ia a ~24 qps mesmo pausado; agora 57-60 qps de dia e de noite, CPU do desenho 31 → 13 ms):
   - **Suavização**: reduzir arte com `imageSmoothingQuality = 'high'` faz a GPU refazer o mipmap a cada desenho (~2 mil por
@@ -30,11 +36,29 @@
     sua coluna (antes todos × todos: 11 ms por quadro).
   - **Caminho das árvores**: `drawArt` guarda a geometria por imagem (`geoOf`: folha, quadro, layout) e só usa save/restore
     espelhando; `drawNode` só salva com achatamento; esmaecer dos recursos pelo id (`nodeFade`), sem chave de texto.
+  - **Cenário parado em blocos** (`render/scenery.ts`, zoom < `STRIPS_BELOW` = 1): árvores, rochas, veios e ervas
+    pintados uma vez em blocos (faixas de `BAND` = 128 px da cena × colunas de 512, com folga para a copa) e colados
+    prontos; o índice (`sceneryIndex`: ponto, linha de base com a regra das faces dos prédios, retângulo do maior
+    desenho do recurso por `nodeRect`) é refeito quando recursos, prédios, layout ou nível mudam. O bloco entra na
+    ordem no começo da faixa; tudo o que é desenhado na faixa redesenha por cima, recortadas no seu retângulo, as
+    árvores do bloco que estão na frente dele (`redrawFront`): a ordem fica igual à do desenho um a um. Recurso
+    trabalhado (até `LIVE_KEEP` = 30 s depois), caindo ou marcado para limpar sai do bloco e vai sozinho. Bloco cujo
+    conteúdo mudou (estágio, exploração, estação, neve) é repintado em até 3 ms por quadro; sem orçamento, o mesmo
+    conteúdo noutra escala ou os recursos um a um. Escala do bloco: a potência de 2 acima do zoom × resolução, até 2
+    (`stripScale`). Fora com Furo/Pontilhado e com Esmaecer de perto; afastado, o Esmaecer vira o recorte a 38% em
+    volta do personagem. Silhueta: árvore do bloco entra na máscara quando é desenhada (bloco ou redesenho) depois de
+    alguém com silhueta (`silDrawn`/`silPushed`). Medido no PC com o save do autor: zoom 0,45 de 19,7 → 5,6 ms de
+    desenho, 0,6 de 12,3 → 6,4, 0,85 de 9,8 → 7,2; de perto os blocos perdiam (por isso o limite). Comparação pixel a
+    pixel com e sem blocos: só reamostragem nas bordas (Silhueta e "nenhum" iguais). `renderer.stripsOff = true` no
+    console desliga, para comparar.
   - **Pausado** (main.ts): sem toque/tecla e com câmera, seleção e contagens paradas, o quadro não é redesenhado (seria
     idêntico: o relógio das animações para junto); a cada 0,5 s redesenha por garantia.
   - **Medir**: no console, `bench()` devolve `render` (ms de CPU) e `steps` (ms por etapa: terreno, ruas, lista, prof:*,
-    quem tapa, em pé, silhuetas, efeitos, tela). CPU baixa com FPS baixo = GPU: teste forçando
-    `imageSmoothingQuality`/desligando partes (ex.: `renderer.node = () => {}`) e meça com `requestAnimationFrame`.
+    quem tapa, em pé, silhuetas, efeitos, tela; o chão em "chão: estação/névoa/batido/campos") e `simSteps` (ms por
+    sistema num passo: `Game.prof`, nomes em `System.label` de systems/index.ts). No aparelho, sem USB: Configurações → Medidor de FPS → **Detalhado**
+    (`ui/fps.ts`: ms por quadro de desenho, simulação com passos e interface, as 5 etapas mais caras do desenho via
+    `Renderer.prof`, memória do JS). CPU baixa com FPS baixo = GPU: teste forçando `imageSmoothingQuality`/desligando
+    partes (ex.: `renderer.node = () => {}`) e meça com `requestAnimationFrame`.
   A câmera trabalha na cena projetada; fora do render use `camera.focus/jump/screenToWorld/worldToScreen` (mundo).
   Cliques no mapa comparam em coordenadas de tela (`ui/index.ts`).
 - Efeitos visuais extras ficam em `render/particles.ts` (só visual, fora do estado): rastro de projétil e explosão por natureza.
@@ -150,6 +174,7 @@ usa `drawSandCoffin`: formação nos primeiros 0,45 s, fechado durante a prisão
 desmanche nos últimos 0,3 s. O tempo vem de `Unit.stun`; as fases não alteram a mecânica. Base em `u.y + 9` nos dois.
 Todos mantêm fallback procedural se a folha não carregar. Os ajustes de fonte são feitos no JSON; o painel de
 sprite do laboratório continua editando a folha principal.
+
 ## Kirin, Jukai Kōtan, Raikyuu e Chidori Nagashi
 
 Kirin desenha `JutsuFx.impact` também no efeito `thunder` (`drawEffect`), oito fases de formação/descida/descarga,
@@ -161,4 +186,3 @@ acima da âncora da célula). Ambos substituem o anel e a explosão procedural e
 `drawStunned`, estilo `wood`, chama `drawJukaiRoots` ancorado nos pés (`y+9`): cresce em 0,45 s, forma a gaiola,
 ganha folhas, permanece até os últimos 0,45 s da prisão e recua (`earthSandMotion.jukaiFrame`). Fallback procedural
 se a folha não carregar. Raikyuu/Jukai usam `.sprite`; Kirin/Nagashi usam `.impact`, editado pelo JSON.
-

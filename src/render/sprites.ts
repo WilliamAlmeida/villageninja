@@ -136,6 +136,26 @@ const STAGE_H: Record<string, number> = { stump0: 20, stump1: 20, 'rock-cracked'
 /** Estágio sem arte ainda (carregando, save antigo): o desenho que existia antes. */
 const STAGE_FALLBACK: Record<string, string> = { 'ore-empty': 'rock-cracked', 'rock-pebbles': 'rock-cracked' };
 
+/**
+ * Retângulo (px de mundo, em volta do centro do tile) do maior desenho do recurso (`drawNode`), com 2 px de folga;
+ * null se a arte ainda não carregou. Usado pelos blocos do cenário (render/scenery.ts) para saber quem cobre quem.
+ */
+export function nodeRect(n: ResourceNode): { x0: number; y0: number; x1: number; y1: number } | null {
+  // o maior desenho do recurso (a árvore inteira, a rocha cheia): o índice não é refeito quando o estágio muda
+  const name = n.type === 'tree' ? `tree${n.variant % 2}` : n.type;
+  const base = art(name);
+  if (!base || !base.naturalWidth) return null;
+  const L = artLayout(name);
+  const h = NODE_ART_H[n.type] * (L?.scale ?? 1);
+  const x = n.tx * TILE + TILE / 2 + (L?.dx ?? 0);
+  const y = n.ty * TILE + TILE * 0.7 + (L?.dy ?? 0);
+  const r = artRect(base, x, y, h);
+  const sq = L?.squash ?? 1;
+  // espelhado (variant ≥ 2): em volta da origem x
+  const left = n.variant >= 2 ? 2 * x - (r.left + r.w) : r.left;
+  return { x0: left - 2, x1: left + r.w + 2, y0: y - (y - r.top) * sq - 2, y1: y + (r.top + r.h - y) * sq + 2 };
+}
+
 /** `whole`: desenha a árvore inteira mesmo já sendo toco (a queda, no renderer). */
 export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
   const s = 0.65 + 0.35 * (n.amount / n.max);
@@ -522,6 +542,18 @@ function sageWisps(ctx: Ctx, u: Unit, t: number, low = '#ff8a2b', high = '#ffd34
   ctx.restore();
 }
 
+/** Cor da silhueta em curso: `drawUnitArt` desenha só o corpo nessa cor (sem sombra, brilhos, golpe nem marcas). */
+let silColor: string | null = null;
+/** O corpo da unidade (já projetada) numa cor só, no mesmo quadro/pose/lugar em que `drawUnit` a desenha. */
+export function drawUnitSilhouette(ctx: Ctx, u: Unit, t: number, color: string, action?: WorkAction) {
+  silColor = color;
+  try {
+    drawUnitArt(ctx, u, t, action);
+  } finally {
+    silColor = null;
+  }
+}
+
 function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean {
   // golpe com lâmina em andamento: a espada sai das costas (boneco sem ela) e gira na mão
   const slash = !action && u.strike && u.anim > 0 ? bladeOf(u) : null;
@@ -543,9 +575,11 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // salto (coreografia com altura): o corpo sobe e a sombra fica no chão, menor e mais clara quanto mais alto
   const lift = posed ? pz!.h : 0;
   const far = Math.min(0.6, lift / 40);
-  ctx.fillStyle = `rgba(0,0,0,${0.28 * (1 - far * 0.6)})`;
-  const shadow = artLayout(pic.dataset.name ?? '')?.shadow ?? [1, 1]; // ajuste da sombra no editor de sprites
-  ellipse(ctx, u.x, base - 1.5, (u.animal ? size * 1.2 : 8) * shadow[0] * (1 - far * 0.5), (u.animal ? size * 0.4 : 3.5) * shadow[1] * (1 - far * 0.5));
+  if (!silColor) {
+    ctx.fillStyle = `rgba(0,0,0,${0.28 * (1 - far * 0.6)})`;
+    const shadow = artLayout(pic.dataset.name ?? '')?.shadow ?? [1, 1]; // ajuste da sombra no editor de sprites
+    ellipse(ctx, u.x, base - 1.5, (u.animal ? size * 1.2 : 8) * shadow[0] * (1 - far * 0.5), (u.animal ? size * 0.4 : 3.5) * shadow[1] * (1 - far * 0.5));
+  }
   ctx.save();
   if (u.kind === 'clone') ctx.globalAlpha = 0.75;
   // tigre das sombras: quase some no escuro até entrar em combate
@@ -577,6 +611,12 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     ctx.translate(ux, cyy);
     ctx.rotate(t * 22 * (dx < 0 ? -1 : 1));
     ctx.translate(-ux, -cyy);
+  }
+  if (silColor) {
+    // silhueta: só o corpo, numa cor só (o resto desta função são enfeites por cima)
+    drawArt(ctx, solidArt(pic, silColor), ux, uy, height, flip, frame, row);
+    ctx.restore();
+    return true;
   }
   if (slash && row === SHEET_ROWS.back) drawSlash(ctx, u, pic, slash, slashK, ux, uy, height, flip, frame, row);
   if (u.sage) {

@@ -441,15 +441,31 @@ function deposit(g: Game, u: Unit) {
   else u.state = 'idle';
 }
 
+/**
+ * Um dos 4 recursos do tipo mais perto do prédio (dentro do alcance), sorteado. Uma passada só, sem montar listas: com
+ * ~2 mil recursos no mapa e vários trabalhadores, filtrar/ordenar tudo a cada viagem pesava no celular fraco.
+ */
 function findNode(g: Game, b: Building, type: 'tree' | 'rock' | 'ore') {
   const p = doorPos(b);
-  const near = g.state.nodes
-    .filter((n) => n.type === type && n.amount > 0)
-    .map((n) => ({ n, d: Math.hypot(tileCenter(n.tx) - p.x, tileCenter(n.ty) - p.y) }))
-    .filter((e) => e.d < searchTiles(b) * TILE)
-    .sort((a, b) => a.d - b.d)
-    .slice(0, 4);
-  return near.length ? pick(near).n : null;
+  const max = searchTiles(b) * TILE;
+  const best: { n: ResourceNode; d: number }[] = [];
+  for (const n of g.state.nodes) {
+    if (n.type !== type || n.amount <= 0) continue;
+    const dx = tileCenter(n.tx) - p.x;
+    const dy = tileCenter(n.ty) - p.y;
+    if (Math.abs(dx) >= max || Math.abs(dy) >= max) continue;
+    const d = Math.hypot(dx, dy);
+    if (d >= max || (best.length === 4 && d >= best[3]!.d)) continue;
+    // insere mantendo os 4 mais perto em ordem
+    let i = best.length < 4 ? best.length : 3;
+    if (best.length < 4) best.push({ n, d });
+    else best[3] = { n, d };
+    while (i > 0 && best[i - 1]!.d > best[i]!.d) {
+      [best[i - 1], best[i]] = [best[i]!, best[i - 1]!];
+      i--;
+    }
+  }
+  return best.length ? pick(best).n : null;
 }
 
 function nearestEarthwork(g: Game, u: Unit) {

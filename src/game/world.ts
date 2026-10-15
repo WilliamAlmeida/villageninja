@@ -42,6 +42,8 @@ export function doorPos(b: Building) {
   const t = doorTile(b);
   return { x: tileCenter(t.tx), y: t.ty * TILE + 10 };
 }
+/** Código numérico de cada arte de recurso (assinatura de `refreshNodes`). */
+const artCodes = new Map<string, number>();
 const TREES = ['tree0', 'tree1'];
 const STUMPS = ['stump0', 'stump1'];
 /** Arte do recurso no estágio atual: árvore (tree0/tree1) vira toco quase no fim; rocha racha depois da metade. */
@@ -116,7 +118,8 @@ export class World implements MapSize {
   /** Colisão sem os recursos (terreno, prédios, locais): base para refazer só a parte das rochas/árvores. */
   private baseFine: Uint8Array;
   private baseBlocked: Uint8Array;
-  private nodeSig = '';
+  /** Assinatura dos recursos com colisão (quais e em que estágio), para `refreshNodes` saber se algo mudou. */
+  private nodeSig = 0;
   /**
    * Células "macias" (rocha, árvore com terreno no Editor de cenário): o caminho desvia delas sempre que há volta
    * razoável (custo alto no A*), mas atravessa se não houver outra saída — um aglomerado de rochas nunca prende ninguém.
@@ -227,12 +230,10 @@ export class World implements MapSize {
 
   /** Rocha/árvore com terreno no Editor de cenário marca as células dela como macias (pelo estágio: rocha rachada, toco…). */
   private stampNodes() {
-    const sig: string[] = [];
     this.soft.fill(0);
     for (const n of this.state.nodes) {
       const r = nodeTiles(n);
       if (!r) continue;
-      sig.push(`${n.id}:${nodeArt(n)}`);
       for (let y = 0; y < r.rows.length; y++)
         for (let x = 0; x < r.rows[y]!.length; x++) {
           if (r.rows[y]![x] !== '#') continue;
@@ -243,14 +244,32 @@ export class World implements MapSize {
           this.blocked[this.idx(Math.floor(fx / SUB), Math.floor(fy / SUB))] = 1; // ninguém nasce/trabalha em cima
         }
     }
-    this.nodeSig = sig.join(',');
+    this.nodeSig = this.nodeHash();
+  }
+
+  /**
+   * Assinatura numérica dos recursos com colisão: id e estágio (arte) de cada um, misturados num número. Antes era um
+   * texto com "id:arte" de todos (~2 mil pedaços por segundo, lixo para o coletor de memória: no celular fraco virava
+   * um engasgo a cada segundo); agora não cria nada.
+   */
+  private nodeHash(): number {
+    let h = 0;
+    let k = 0;
+    for (const n of this.state.nodes) {
+      const art = nodeArt(n);
+      if (!typeLayout(art)?.tiles) continue;
+      let c = artCodes.get(art);
+      if (c === undefined) artCodes.set(art, (c = artCodes.size + 1));
+      h = (Math.imul(h, 31) + n.id) | 0;
+      h = (Math.imul(h, 31) + c) | 0;
+      k++;
+    }
+    return (Math.imul(h, 31) + k) | 0;
   }
 
   /** Recursos mudaram (esgotou, rebrotou, sumiu, apareceu)? Refaz só a colisão deles. Barato: chame todo passo. */
   refreshNodes() {
-    const sig: string[] = [];
-    for (const n of this.state.nodes) if (typeLayout(nodeArt(n))?.tiles) sig.push(`${n.id}:${nodeArt(n)}`);
-    if (sig.join(',') === this.nodeSig) return;
+    if (this.nodeHash() === this.nodeSig) return;
     this.blocked.set(this.baseBlocked);
     this.stampNodes(); // só as células macias mudam: as ilhas (colisão dura) continuam as mesmas
   }
