@@ -402,31 +402,94 @@ const FRAME_PAD: Record<string, number> = { 'ninja-body': DOLL_FRAME_PAD };
 
 /** Cópias reduzidas de cada arte (½, ¼, ⅛ do tamanho), feitas uma vez: o "mipmap" próprio. */
 const MIP_LEVELS = 3;
-const mips = new WeakMap<Pic, { iw: number; ih: number; levels: HTMLCanvasElement[] }>();
+type Mip = HTMLCanvasElement | ImageBitmap;
+interface MipEntry {
+  iw: number;
+  ih: number;
+  levels: Mip[];
+  /** Até que nível já foi pedido (a cadeia assíncrona vai até ele). */
+  wanted: number;
+  building: boolean;
+}
+const mips = new WeakMap<Pic, MipEntry>();
+const canBitmap = typeof createImageBitmap === 'function';
+
 /**
- * Cópia `level` (1 = metade) da arte, feita na primeira vez com suavização boa a partir da anterior. As artes e os
- * canvas guardados (boneco, estação, peças) não mudam depois de prontos; se o tamanho mudar, refaz.
+ * Cópia `level` (1 = metade) da arte, feita uma vez a partir da anterior. As artes e os canvas guardados (boneco,
+ * estação, peças) não mudam depois de prontos; se o tamanho mudar, refaz. Feita FORA da thread do jogo
+ * (`createImageBitmap` com redução de qualidade): fazer na hora, no quadro em que a arte aparecia, custava 20-40 ms por
+ * arte grande no celular fraco (o primeiro quadro passava de 1 s). Enquanto não está pronta, devolve a melhor que já
+ * existe (ou null = a arte original, com suavização simples por um instante). Sem `createImageBitmap` (testes,
+ * navegador antigo), faz na hora como antes.
  */
-function mipLevel(img: Pic, level: number): HTMLCanvasElement | null {
+function mipLevel(img: Pic, level: number): Mip | null {
   const { w, h } = size(img);
   if (!w || !h) return null;
   let e = mips.get(img);
   if (!e || e.iw !== w || e.ih !== h) {
-    e = { iw: w, ih: h, levels: [] };
+    e = { iw: w, ih: h, levels: [], wanted: 0, building: false };
     mips.set(img, e);
   }
-  for (let l = e.levels.length + 1; l <= level; l++) {
-    const prev = l === 1 ? img : e.levels[l - 2]!;
-    const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(w / 2 ** l));
-    c.height = Math.max(1, Math.round(h / 2 ** l));
-    const x = c.getContext('2d')!;
-    x.imageSmoothingEnabled = true;
-    x.imageSmoothingQuality = 'high';
-    x.drawImage(prev, 0, 0, c.width, c.height);
-    e.levels.push(c);
+  if (e.levels.length >= level) return e.levels[level - 1]!;
+  if (canBitmap) {
+    if (e.wanted < level) e.wanted = level;
+    if (!e.building) void buildMips(img, e);
+    return e.levels[e.levels.length - 1] ?? null;
   }
+  for (let l = e.levels.length + 1; l <= level; l++) e.levels.push(shrinkToCanvas(l === 1 ? img : e.levels[l - 2]!, w, h, l));
   return e.levels[level - 1] ?? null;
+}
+
+function shrinkToCanvas(prev: Pic | Mip, w: number, h: number, level: number): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w / 2 ** level));
+  c.height = Math.max(1, Math.round(h / 2 ** level));
+  const x = c.getContext('2d')!;
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(prev, 0, 0, c.width, c.height);
+  return c;
+}
+
+/** Cadeia assíncrona das cópias de uma arte, até o nível pedido (pode crescer enquanto roda). */
+async function buildMips(img: Pic, e: MipEntry) {
+  e.building = true;
+  try {
+    while (e.levels.length < e.wanted) {
+      const l = e.levels.length + 1;
+      const prev = l === 1 ? img : e.levels[l - 2]!;
+      const tw = Math.max(1, Math.round(e.iw / 2 ** l));
+      const th = Math.max(1, Math.round(e.ih / 2 ** l));
+      let m: Mip;
+      try {
+        m = await createImageBitmap(prev, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' });
+        // navegador que ignora o tamanho pedido (Safari antigo): reduz na hora a partir do bitmap
+        if (m.width !== tw || m.height !== th) {
+          const c = shrinkToCanvas(m, e.iw, e.ih, l);
+          m.close();
+          m = c;
+        }
+      } catch {
+        m = shrinkToCanvas(prev, e.iw, e.ih, l);
+      }
+      // a arte mudou de tamanho enquanto isso (entrada trocada): descarta
+      if (mips.get(img) !== e) {
+        if (m instanceof ImageBitmap) m.close();
+        return;
+      }
+      e.levels.push(m);
+    }
+  } finally {
+    e.building = false;
+  }
+}
+
+/** Pede as cópias reduzidas (até ¼) das artes do cenário em pé, que aparecem aos montes no primeiro quadro. */
+export function warmMips() {
+  for (const name of Object.keys(URLS)) if (/^(tree|stump|rock|ore|herb)/.test(name)) {
+    const img = art(name);
+    if (img && img.naturalWidth) mipLevel(img, 2);
+  }
 }
 
 /** Nível de cópia reduzida para uma escala na tela (px de tela por px da arte): a cópia que fica entre ½ e 1. */

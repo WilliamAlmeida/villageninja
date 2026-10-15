@@ -30,6 +30,15 @@
     `mipFor` escolhe a que fica entre ½ e 1) com suavização `'low'`; ampliando, sem suavização. Nada de `'high'` no
     canvas principal: o `render` começa cada quadro com `'low'` (a "high" que sobrava fazia o chão em blocos, que é canvas,
     refazer o mipmap de cada bloco todo quadro, o maior custo de todos).
+    As cópias são feitas FORA da thread (`createImageBitmap` com redução de qualidade, cadeia ½ → ¼ → ⅛ por arte,
+    `buildMips`): na hora, no quadro em que a arte aparecia, custavam 20-40 ms por arte grande no celular fraco (primeiro
+    quadro de 1,4 s no K12); enquanto não está pronta, sai a melhor cópia que existe ou a original com suavização
+    simples. `warmMips` pede as do cenário em pé logo depois do carregamento. Sem `createImageBitmap` (testes), na hora.
+  - **Chão em blocos**: o orçamento (3 ms) é conferido ANTES de pintar cada bloco, com o custo médio dos últimos
+    (`paintMs`), sempre ao menos um por quadro; o primeiro quadro tem 40 ms (`FIRST_MS`) e o resto entra nos seguintes.
+  - **Qualidade Leve**: sem chão molhado nem respingos da chuva (a textura refeita a cada meio segundo custava até 10 ms
+    no K12; `seasonal.ts`, `light`) e, com uma janela de gestão aberta, o mapa fica parado na última imagem (main.ts;
+    nas outras qualidades segue a 12 qps por baixo da janela).
   - **Ondinhas da água** (`drawWaterAnim`): juntadas em 6 faixas de transparência, um `stroke` por faixa (antes um por tile
     de água, ~2 mil); na névoa não desenha.
   - **Profundidade**: os prédios entram num balde por coluna de tile (`depthCols`) e cada coisa em pé só compara com os da

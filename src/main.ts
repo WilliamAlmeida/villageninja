@@ -9,7 +9,7 @@ import { clearSave, loadGame, saveGame as writeSave } from './game/save';
 import { SYSTEMS } from './game/systems';
 import { sceneGame, sceneTeam } from './game/scene';
 import { doorPos } from './game/world';
-import { preloadArt } from './render/art';
+import { preloadArt, warmMips } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
 import { demoMenu } from './ui/demoMenu';
@@ -294,7 +294,9 @@ function frame(now: number) {
   winEl ??= document.getElementById('win');
   drawWait -= dt;
   idleWait -= dt;
-  let draw = !winEl || winEl.hidden || drawWait <= 0;
+  // Qualidade Leve: com a janela aberta o mapa fica parado na última imagem (no celular fraco, o mapa a 12 quadros por
+  // baixo da janela deixava as abas lentas)
+  let draw = !winEl || winEl.hidden || (drawWait <= 0 && quality() !== 'light');
   if (draw && app.game.state.speed === 0 && home.state.speed === 0) {
     const k = viewKey();
     if (!drawDirty && k === lastView && idleWait > 0) draw = false;
@@ -322,6 +324,7 @@ function frame(now: number) {
 const loading = document.getElementById('loading');
 const bar = loading?.querySelector<HTMLElement>('.lbar i');
 preloadArt((k) => bar && (bar.style.width = `${Math.round(k * 100)}%`)).then(() => {
+  warmMips(); // cópias reduzidas do cenário, fora da thread, antes do primeiro quadro
   last = performance.now();
   requestAnimationFrame(frame);
   warmPortraits(() => app.home); // retratos do Bingo Book e do Kage, aos poucos, com o jogo ocioso

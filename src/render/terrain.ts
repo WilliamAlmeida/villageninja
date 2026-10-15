@@ -19,8 +19,12 @@ const KEEP = 10;
  * Orçamento de pintura por quadro (ms). Pintar um bloco custa uns milissegundos; ao dar zoom entram muitos de uma vez
  * (e ao cruzar `HALF_BELOW` todos os à vista trocavam de resolução no mesmo quadro: o FPS despencava). O que não cabe
  * no orçamento espera o quadro seguinte, mostrando enquanto isso a outra resolução já guardada ou um bloco liso.
+ * Conferido ANTES de pintar, com o custo médio dos últimos blocos (no celular fraco um bloco leva 15 ms: conferir só
+ * depois dava quadros de 100 ms ao mover a câmera); sempre ao menos um por quadro.
  */
 const BUDGET_MS = 3;
+/** Orçamento do primeiro quadro (nada guardado): o máximo de uma vez, para o mapa não abrir liso; o resto nos seguintes. */
+const FIRST_MS = 40;
 
 interface Chunk {
   c: HTMLCanvasElement;
@@ -67,6 +71,8 @@ export class Terrain {
   /** Distância (tiles) de cada tile de água até a margem (0 = terra); também usada pelo gelo. */
   readonly depth: Uint8Array;
   private readonly cols: number;
+  /** Custo médio (ms) de pintar um bloco neste aparelho. */
+  private paintMs = 1;
 
   constructor(private state: GameState) {
     this.depth = waterDepth(state);
@@ -80,16 +86,19 @@ export class Terrain {
     const half = cam.zoom < HALF_BELOW;
     const px = CHUNK * TILE;
     const t0 = performance.now();
-    // primeiro quadro (nada guardado): pinta tudo de uma vez, para o mapa não abrir liso
-    const budget = this.chunks.size ? BUDGET_MS : Infinity;
+    const budget = this.chunks.size ? BUDGET_MS : FIRST_MS;
+    let painted = 0;
     for (let cy = Math.floor(v.y0 / CHUNK); cy <= Math.floor(v.y1 / CHUNK); cy++)
       for (let cx = Math.floor(v.x0 / CHUNK); cx <= Math.floor(v.x1 / CHUNK); cx++) {
         const key = ((cy * this.cols + cx) << 1) | (half ? 1 : 0);
         let e = this.chunks.get(key);
         if (!e || e.flat) {
-          if (performance.now() - t0 < budget) {
+          const now = performance.now();
+          if (painted === 0 || now - t0 + this.paintMs < budget) {
             e = { c: this.paint(cx, cy, half), seen: time };
             this.chunks.set(key, e);
+            painted++;
+            this.paintMs = this.paintMs * 0.7 + (performance.now() - now) * 0.3;
           } else {
             // sem orçamento neste quadro: a outra resolução, se já existe; senão um bloco liso até dar tempo
             const other = this.chunks.get(key ^ 1);

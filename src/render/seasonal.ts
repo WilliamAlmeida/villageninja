@@ -230,7 +230,7 @@ export class Seasonal {
     for (const d of this.drops) {
       d.z -= d.vz * dt;
       if (d.z > 0) kept.push(d);
-      else if (!light || Math.random() < 0.4) {
+      else if (!light) {
         const cx = Math.floor(d.x / CELL);
         const cy = Math.floor(d.y / CELL);
         // na água o respingo também vale (anel); fica só o limite de quantidade
@@ -254,9 +254,10 @@ export class Seasonal {
         this.flash = 1;
       }
     }
-    // chão molhado: sobe embaixo das nuvens, seca devagar (atualizado a cada meio segundo)
+    // chão molhado: sobe embaixo das nuvens, seca devagar (atualizado a cada meio segundo). Clima leve: sem (a textura
+    // refeita a cada meio segundo custava até 10 ms no celular fraco), e sem respingos
     this.wetSince += dt;
-    if (this.wetSince >= REFRESH && (s.clouds.length || this.anyWet)) {
+    if (!light && this.wetSince >= REFRESH && (s.clouds.length || this.anyWet)) {
       const k = this.wetSince;
       this.wetSince = 0;
       let any = false;
@@ -310,7 +311,7 @@ export class Seasonal {
 
   /** (chão, coordenadas de mundo) Chão molhado e poças. */
   drawWet(ctx: Ctx) {
-    if (!this.anyWet || !this.wetCanvas) return;
+    if (light || !this.anyWet || !this.wetCanvas) return;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.wetCanvas, 0, 0, this.GW * CELL, this.GH * CELL);

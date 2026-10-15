@@ -144,7 +144,7 @@ export class Menu {
       <div class="setrow"><span class="sl">{users} Afastar aliados na luta</span>${seg('spread', [['1', 'Sim', s.flags.spread !== false], ['0', 'Não', s.flags.spread === false]])}</div>
       <div class="setrow"><span class="sl">{snow} Clima</span>${seg('wfx', [['full', 'Completo', !weatherFxLight()], ['light', 'Leve', weatherFxLight()]])}</div>
       <div class="setrow"><span class="sl">{gear} Qualidade</span>${seg('quality', QUALITIES.map((q) => [q.id, q.label, q.id === quality()]))}</div>
-      <p class="hint">${quality() === 'light' ? 'Leve: resolução menor, menos partículas, clima leve e até 30 quadros por segundo (para celular fraco).' : quality() === 'balanced' ? 'Equilibrada: resolução um pouco menor e menos partículas.' : 'Alta: resolução máxima da tela.'}</p>
+      <p class="hint">${quality() === 'light' ? 'Leve: resolução menor, menos partículas, clima leve (sem chão molhado), o mapa parado enquanto uma janela está aberta e até 30 quadros por segundo (para celular fraco).' : quality() === 'balanced' ? 'Equilibrada: resolução um pouco menor e menos partículas.' : 'Alta: resolução máxima da tela.'}</p>
       <div class="setrow"><span class="sl">{hourglass} Processamento</span>${seg('sim', [['normal', 'Normal', simRate() === 'normal'], ['reduced', 'Reduzido', simRate() === 'reduced']])}</div>
       <p class="hint">${simRate() === 'reduced' ? 'Reduzido: o jogo calcula 30 vezes por segundo em vez de 60 (metade do trabalho; para celular fraco). Pode deixar golpes e passos um pouco menos precisos.' : 'Normal: o jogo calcula 60 vezes por segundo.'}</p>
       <div class="setrow"><span class="sl">{eye} Atrás de prédios</span><div class="seg">${(
