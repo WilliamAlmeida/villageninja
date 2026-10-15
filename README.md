@@ -1,112 +1,145 @@
-# 🍃 Vila Ninja — protótipo
+# Vila Ninja
 
-Jogo de construção de vila ninja (inspirado em Naruto), visão top-down, **mobile-first em paisagem**.
-Moradores trabalham sozinhos, ninjas defendem a vila de animais e renegados, e você expande a vila,
-recruta ninjas, ensina jutsus e os promove.
+Jogo de construção de vila ninja (inspirado em Naruto), em vista isométrica e pixel art, **mobile-first em paisagem**.
+Os moradores trabalham sozinhos e os ninjas defendem a vila de animais, renegados e organizações. Você expande a vila,
+recruta e treina ninjas, monta equipes, manda missões e expedições e sobe a vila de Aldeia a Grande Vila Oculta.
+
+TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Jogo e textos em português (BR).
 
 ## Rodando
 
-Requer [Bun](https://bun.sh) ≥ 1.2.
+Requer [Bun](https://bun.sh) 1.2 ou mais novo.
 
 ```bash
-bun install        # só dev-deps (TypeScript + tipos do Bun)
-bun run dev        # http://localhost:3010 (com HMR) — também mostra o IP para abrir no celular
-bun run build      # gera dist/ (≈100 KB de JS, zero dependências em runtime)
+bun install        # só dev-deps (TypeScript, tipos do Bun, ícones Phosphor para gerar os glifos)
+bun run dev        # http://localhost:3010 com HMR; mostra o IP para abrir no celular (mesma Wi-Fi)
+bun run build      # gera dist/ (e copia public/: manifesto do PWA, ícones, service worker)
 bun run preview    # build + serve dist/ em http://localhost:4173
-bun run check      # typecheck + testes
+bun run editor     # ferramentas em http://localhost:3011 (editor de sprites, laboratório de jutsus, editor de cenário)
+bun run check      # typecheck + testes (rode antes de commitar)
 ```
 
-Para deixar rodando em segundo plano com PM2 (porta 3010, com HMR):
+Os testes de simulação usam aleatoriedade: ao mexer em combate ou IA, rode a suíte algumas vezes.
+
+### Em segundo plano (PM2)
 
 ```bash
-pm2 start ecosystem.local.config.cjs   # depois: pm2 logs villageninja | pm2 restart villageninja | pm2 save
+pm2 start ecosystem.local.config.cjs                              # jogo na porta 3010 + ferramentas na 3011
+pm2 start ecosystem.local.config.cjs --only villageninja-editor   # só as ferramentas
 ```
 
-No celular: abra o IP mostrado pelo `bun run dev` (mesma Wi-Fi), gire para paisagem e use
-**☰ → Tela cheia**. No console do navegador, `vila.game.state` expõe o estado para depuração.
+O processo `villageninja` roda `scripts/live.ts`: o build de produção em `dist/`, refeito sozinho a cada mudança no
+código (`index.html` sem cache, arquivos com hash em cache longo). É ele que deve ficar exposto para acesso externo.
+Não exponha o `bun run dev`: o HMR mantém os nomes do CSS/JS e um proxy com cache entrega a versão velha.
+As ferramentas só escutam em 127.0.0.1.
+
+### No celular
+
+Abra o IP mostrado pelo `bun run dev`, gire para paisagem e use o botão de tela cheia da barra de cima, ou
+**Menu → Instalar como app** (PWA em tela cheia; no iPhone, "Adicionar à Tela de Início").
+
+### Depuração
+
+- `?demo` na URL (ex.: http://localhost:3010/?demo) abre a **vitrine**: uma vila de fim de jogo gerada na hora, que
+  não lê nem grava o save. O botão "Vitrine" abre qualquer janela, prédio, ninja, equipe ou local, e
+  `?demo&tela=<chave>` abre direto (`crafts`, `b-forge`, `n-kage`, `group`, `cena-mina`…).
+- No console do navegador: `vila` (o `App`: `vila.game.state` é o estado), `renderer` e `bench()` (quanto custa
+  desenhar, um passo da simulação e a interface).
+- **Configurações → Qualidade**: Alta, Equilibrada (padrão no celular) ou Leve.
 
 ## Como jogar
 
-- **Arrastar** move a câmera, **pinça** dá zoom, **toque** seleciona unidade/prédio.
-- **🔨 Construir**: escolha o prédio, toque no mapa para posicionar e confirme.
-  Moradores sem emprego vão até a obra e constroem.
-- **Lenhador** perto de árvores, **Pedreira** perto de rochas, **Fazenda** para comida, **Mercado** para ryo.
-- **Academia Ninja**: recrute moradores como Genin. Alguns nascem com 0, 1 ou 2 jutsus.
-  Selecione um ninja → **Ensinar jutsu** (ele vai até a Academia estudar).
-- **Campo de Treino**: ninjas ganham atributos e XP. Com nível suficiente, promova a Chunin → Jounin → Kage.
-- **Equipes** (🥷 Ninjas → aba Equipes, ou no painel do ninja): até 3 membros + 1 sensei Chunin+.
-  Membros seguem o líder, focam o mesmo alvo, ganham +10% de dano lutando juntos e treinam 50% mais rápido com o sensei.
-- **🏯 Vila**: cumpra os requisitos e evolua de Aldeia → Vila → Vila Oculta → Grande Vila Oculta.
-  Cada nível amplia o território (onde dá para construir), libera prédios (Hospital, Biblioteca), aumenta impostos,
-  permite eleger o Kage (Vila Oculta) e atrai ameaças maiores.
-- **📋 Missões**: construa a Mesa de Missões, escolha uma missão do quadro (renova todo dia) e envie uma equipe.
-  Compare a força da equipe (⚔) com a dificuldade: borda verde = seguro, amarela = arriscado, vermelha = perigoso.
-  Missões rendem ryo, recursos, XP e reputação, e contam para evoluir a vila.
-- **Economia (nível Vila)**: Mina de Ferro 🔩 perto de veios de minério, Horta de Ervas 🌿, Forja (armas e coletes),
-  Farmácia (pílulas) e, em Vila Oculta, Oficina de Selos (papel 🏷️ e papel-bomba). Cada ninja tem arma, colete e
-  um consumível que ele usa sozinho em combate e repõe do estoque ao voltar à vila.
-- **🏟️ Exame Chunin (nível Vila)**: construa a Arena e convoque o exame com 2+ genins de nível 2+. Eles lutam 1×1
-  contra colegas e convidados de outras vilas (ninguém morre). O campeão e quem lutar bem viram Chunin de graça.
-- **🏯 Clãs e kekkei genkai**: filhos nascem de casais e herdam talentos. Um Chunin+ de nível 5+ funda um clã com
-  o próprio sobrenome; em Vila Oculta, um clã com ninjas de duas naturezas compatíveis desperta uma kekkei genkai
-  (Gelo, Madeira, Lava, Tempestade, Calor) com jutsu exclusivo. Veja em 🥷 Ninjas → Clãs.
-- **👑 Kage e ameaças chefes**: em Vila Oculta, eleja um Jounin de nível 10+ como Kage (cerimônia na praça,
-  +10% de dano para os ninjas e Monte dos Kages). A partir de Vila surgem ameaças chefes com aviso prévio:
-  Fera Colossal, Ordem da Lua Vermelha e, em Grande Vila Oculta, invasão de outra vila.
-- **Ordens**: selecione um ninja ou equipe → 📍 Ordem → toque no chão (mover e defender o ponto por 90 s)
-  ou num inimigo (atacar). 🏃 Recuar leva ao hospital/residência até curar. Fora isso, a IA age sozinha.
-- Animais surgem nas florestas; a partir do dia 3, ninjas renegados invadem e tentam roubar ryo.
-- À noite, todos vão para casa (as janelas acendem). Em perigo, os moradores correm para se abrigar.
-- O jogo salva sozinho a cada 20 s (localStorage).
+**Controles.** Arrastar move a câmera, pinça ou roda do mouse dá zoom, toque seleciona ninja, prédio ou local. No
+desktop: Shift+arrastar marca vários ninjas, botão direito dá ordem e as teclas abrem as telas: **B** Construir,
+**N** Ninjas, **V** Vila, **M** Missões, **R** Mundo, **F** Oficinas, **S** Selecionar, **Espaço** pausa, **Esc** fecha.
+O jogo salva sozinho a cada 20 s.
 
-### Ninjas
+- **Construir**: escolha o prédio, posicione no mapa (Girar espelha) e confirme; moradores sem emprego vão até a obra.
+  Prédios sobem até o nível 3 pelo painel deles e dá para mudar um prédio de lugar. Na seção Decoração: enfeites que
+  dão felicidade, **rua calçada** (pintada arrastando, só vale no "Pronto"), **limpar área** (árvores, tocos e pedras),
+  **aterrar** e **cavar** (o terreno muda tile a tile pelo trabalho dos moradores).
+- **Recursos**: Lenhador, Pedreira e Mina perto das árvores, rochas e veios; Fazenda, Horta, Mercado. Árvores e
+  rochas esgotadas viram toco e voltam com o tempo.
+- **Ninjas**: a Academia recruta moradores como Genin; a Biblioteca ensina jutsus; o Campo de Treino dá atributos e
+  XP. Promoção Genin → Chunin → Jounin, com ANBU, Sannin e Kage mais adiante. Cada ninja tem arma, colete e um
+  consumível, que usa sozinho e repõe ao voltar à vila. Cuidado: ninjas se cansam, se ferem e precisam descansar.
+- **Equipes e ordens**: até 3 membros e um sensei. Selecione um ninja ou equipe e dê a ordem no chão (mover e
+  defender) ou num inimigo (atacar); fora isso, a IA luta sozinha, com táticas da equipe, Shunshin, Kawarimi, selos e
+  Hiraishin.
+- **Vila**: cumpra os requisitos para evoluir (Aldeia, Vila, Vila Oculta, Grande Vila Oculta). Cada nível amplia o
+  território, o mapa e o teto de população, libera prédios e atrai ameaças maiores.
+- **Missões**: o quadro da Mesa de Missões renova todo dia; envie uma equipe comparando a força dela com a dificuldade.
+  Algumas viram mapas jogáveis (invasão de vilarejo, mina, ilhas, provas, covil).
+- **Mundo**: com o Porto, expedições às minas, exploração com névoa e o mapa da região com vilarejos e locais.
+- **Oficinas**: Forja, Farmácia e Oficina de Selos, com fila de produção e "Manter" estoque.
+- **Exame Chunin**: na Arena, genins lutam 1×1 contra colegas e convidados de outras vilas (ninguém morre).
+- **Clãs e kekkei genkai**: casais têm filhos que herdam talentos; um Chunin+ funda um clã, e naturezas compatíveis
+  despertam kekkei genkai (Gelo, Madeira, Lava, Tempestade, Calor). Também há Dōjutsu, Bijuu e lâminas lendárias.
+- **Ameaças**: animais nas florestas (alguns roubam, outros só saem à noite), invasões de renegados e chefes com
+  aviso prévio. As organizações (Espadachins da Névoa, Quinteto do Som, Ordem do Eclipse) entram ao longo da história.
+- **Vida na vila**: estações com clima e neve, felicidade, profissões, invocações, cães ninja (Canil) e automação.
+  À noite todos vão para casa; em perigo, os moradores se abrigam.
+
+### Combate em números
 
 | Conceito | Detalhe |
 | --- | --- |
-| Atributos | Ninjutsu, Taijutsu, Genjutsu, Inteligência, Força, Velocidade, Stamina, Selos (0–10, teto por rank) |
-| Jutsus | 2 slots por ninja. Só aprende jutsus da sua natureza ou neutros, respeitando rank e atributos |
-| Natureza | 火 Fogo › 風 Vento › 雷 Raio › 土 Terra › 水 Água › 火 Fogo (1,5× de dano; 0,75× ao contrário) |
-| Ataques básicos | Taijutsu corpo a corpo + kunai à distância |
-| Efeitos de jutsu | projétil, leque, área com empurrão, investida, golpe, paralisia (genjutsu), clones, cura, escudo |
+| Atributos | Ninjutsu, Taijutsu, Genjutsu, Inteligência, Força, Velocidade, Stamina, Selos (0–10, teto por patente) |
+| Jutsus | 2 slots por ninja; aprende os da sua natureza ou neutros, respeitando patente e atributos |
+| Natureza | Fogo › Vento › Raio › Terra › Água › Fogo (1,5× de dano; 0,75× ao contrário) |
+| Ataques básicos | golpe corpo a corpo (arma e lâmina) + kunai à distância |
+| Ameaças | crescem com a força militar da vila (vida ×k e dano ×√k a partir de 1.500, até 3×) |
 
 ## Arquitetura
 
 ```
 src/
-  config.ts            constantes de balanceamento
-  core/                infraestrutura sem regra de jogo (eventos, câmera, input, rng)
-  data/                conteúdo declarativo: jutsus, prédios, animais, naturezas, ranks
-  game/                simulação pura — sem DOM, roda nos testes
-    types.ts           estado = dados JSON serializáveis
-    game.ts            fachada: estado + índices + consultas
-    systems/           um arquivo por mecânica, executados em ordem a cada tick
-    commands.ts        ações do jogador (a UI só mexe no jogo por aqui)
-    combat.ts, movement.ts, pathfinding.ts, entities.ts, progression.ts, world.ts
-  render/              Canvas 2D procedural (terreno pré-renderizado, sprites, efeitos)
-  ui/                  HUD/painéis em DOM sobre o canvas
-tests/                 testes headless da simulação (bun test)
+  config.ts       constantes (passo da simulação, versão do save, autosave…)
+  core/           infraestrutura sem regra de jogo: eventos, câmera, input, projeção isométrica (iso.ts), rng, tokens
+  data/           conteúdo declarativo: jutsus, prédios, animais, missões, itens, níveis, kekkei, chefes, layout das artes
+  game/           simulação pura, sem DOM (roda nos testes); estado = GameState JSON serializável
+    systems/      uma função (game, dt) por mecânica, registradas em ordem em systems/index.ts
+    commands.ts…  ações do jogador (commands, teams, missions, gear, exam, clans, kage, village) → { ok } | { ok: false, error }
+    save.ts       save versionado com migrações (MIGRATIONS[n]: vN → vN+1)
+  render/         Canvas 2D em vista isométrica: chão em blocos, depois o que fica em pé ordenado por profundidade
+  ui/             HUD em DOM sobre o canvas: drawer lateral (o que foi tocado) e janela central com abas (gestão)
+  art/            PNGs em pixel art, cada um na pasta do seu tipo
+tools/            editor de sprites, laboratório de jutsus e editor de cenário (localhost:3011)
+scripts/          servidores (dev, live, editor), geração e preparo das artes
+public/           PWA: manifesto, ícones, service worker
+tests/            testes headless da simulação (bun test)
+docs/             roadmap, pendências, requisitos, guia de design e um arquivo por sistema (docs/sistemas/)
 ```
 
 Princípios:
-- **Estado é dado puro** (`GameState`): salvar/carregar é `JSON.stringify`, e no futuro dá para
-  sincronizar em rede ou rodar a simulação num Worker/servidor.
-- **Sistemas são funções** `(game, dt) => void` registradas em `game/systems/index.ts`.
-  Nova mecânica = novo arquivo + uma linha na lista.
-- **Conteúdo é dado**: novo jutsu/prédio/animal = um objeto em `data/`.
-- **Render só lê o estado**. Trocar os desenhos procedurais por spritesheets é reimplementar
-  `render/sprites.ts` mantendo as assinaturas.
-- Simulação em **passo fixo (60 Hz)** com velocidades 1×/2×/3× e pausa.
+- **Estado é dado puro** (`GameState`): salvar é `JSON.stringify` no localStorage. Campo novo no estado = subir
+  `SAVE_VERSION` e escrever a migração com teste.
+- **Sistemas são funções** `(game, dt) => void`; nova mecânica = arquivo em `game/systems/` + uma linha no índice + testes.
+- **Conteúdo é dado**: novo jutsu, prédio ou animal = um objeto em `data/`.
+- **A simulação é ortogonal** (px de mundo); só o render projeta em isométrico. Fora do render, use
+  `camera.focus/jump/screenToWorld/worldToScreen`.
+- **Arte gerada pelo Codex CLI** (`scripts/codex-image.mjs`) e ajustada nas ferramentas; personagens e bichos sempre
+  como folha 4×3 (`--sheet biped|quadruped`). Ver `docs/sistemas/arte.md`.
+- **Desempenho**: passo fixo de 60 Hz com orçamento de 8 ms por quadro (o jogo fica mais lento em vez de o FPS
+  despencar); nada de varrer todas as unidades por unidade a cada passo.
 
-### Por que não Phaser?
+### Por que sem engine?
 
-O jogo é quase todo simulação (IA, economia, combate). Render top-down com câmera,
-pinça e ordenação por profundidade cabe em poucas centenas de linhas de Canvas 2D.
-Sem engine, o bundle fica em ~100 KB, não há API de engine misturada à regra de jogo, e a lógica
-roda nos testes sem browser. Se no futuro precisar de tilemaps do Tiled, partículas pesadas ou WebGL,
-o Phaser pode entrar só na camada `render/`, sem tocar em `game/`.
+O jogo é quase todo simulação (IA, economia, combate). Render isométrico com câmera, pinça e ordenação por
+profundidade cabe em Canvas 2D, sem API de engine misturada à regra de jogo, e a lógica roda nos testes sem
+navegador. Se um dia precisar de WebGL, a troca fica só na camada `render/`.
 
-## Próximos passos
+## Documentação
 
-As fases 1 e 3–8 do [roadmap](docs/ROADMAP.md) estão prontas. Pendente: **Fase 2 (sprites e animações)**,
-adiada até haver arte. Ideias para depois: sons e música, mais tipos de missão e chefes, balanceamento com
-playtest real, PWA instalável, e trocar nomes do anime por nomes originais caso o jogo seja publicado.
+- [CLAUDE.md](CLAUDE.md): guia de trabalho no código (convenções, desempenho, balanceamento) e índice dos sistemas.
+- [docs/sistemas/](docs/sistemas/): detalhe de cada sistema (render, arte, combate, interface, prédios e mapa,
+  mundo, organizações, vila e ninjas, ferramentas, ninja em camadas).
+- [docs/ROADMAP.md](docs/ROADMAP.md), [docs/PENDENCIAS.md](docs/PENDENCIAS.md) (lista viva do que falta),
+  [docs/REQUISITOS.md](docs/REQUISITOS.md) (aparelhos medidos), [docs/design-ui.md](docs/design-ui.md).
+
+## Estado
+
+As fases 1 e 3–8 do [roadmap](docs/ROADMAP.md) estão prontas, e a arte em pixel art já substituiu os desenhos
+procedurais na maior parte do jogo (prédios, cenário, ninjas em camadas, bichos, jutsus e interface). Próximos passos
+possíveis: sons e música, playtest e balanceamento, e trocar os nomes do anime (Chidori, Kage Bunshin, Hyōton…) por
+nomes originais caso o jogo seja publicado.
