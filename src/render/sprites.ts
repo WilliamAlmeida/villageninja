@@ -1329,8 +1329,14 @@ function drawRoleMark(ctx: Ctx, u: Unit) {
   ctx.restore();
 }
 
-/** `bare`: só o corpo (vulto do Shunshin), sem barras, marcas nem status. */
-export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction, bare = false) {
+/** Vida a partir da qual a barra conta como cheia (não aparece por um arranhão já quase curado). */
+const BAR_FULL = 0.98;
+
+/**
+ * `bare`: só o corpo (vulto do Shunshin), sem barras, marcas nem status. `hurt`: 1 = levou dano agora há pouco, caindo
+ * até 0 no fim do tempo da barra (o renderer acompanha); com ele a barra aparece se a vida não estiver quase cheia.
+ */
+export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action?: WorkAction, bare = false, hurt = 0) {
   if (drawUnitArt(ctx, u, t, action)) {
     /* desenhado com a arte em pixel art */
   } else if (u.animal) drawAnimal(ctx, u, t);
@@ -1351,8 +1357,15 @@ export function drawUnit(ctx: Ctx, u: Unit, t: number, selected: boolean, action
   if (u.stun > 0) drawStunned(ctx, u, t);
   if (u.shield > 0) drawShield(ctx, u, t);
   if (u.cloak && u.faction !== 'village') return; // invisível: sem barra nem marca
-  // barra só de quem está ferido (ou selecionado, ou chefe): na luta grande não vira um mar de barras
-  if (selected || u.hp < u.maxHp || u.boss) drawBars(ctx, u, selected);
+  // barra: selecionado e chefe sempre; os outros só por uns segundos depois de levar dano (e não se a vida está quase
+  // cheia). Ferido parado (vida voltando devagar, fome) fica sem barra: na vila não vira um mar de barras
+  const bar = selected || u.boss ? 1 : u.hp < u.maxHp * BAR_FULL ? hurt : 0;
+  if (bar > 0) {
+    const a = ctx.globalAlpha;
+    ctx.globalAlpha = a * bar;
+    drawBars(ctx, u, selected);
+    ctx.globalAlpha = a;
+  }
   if (u.faction === 'village' && u.ninja && u.combatTimer > 0 && u.kind !== 'clone') drawRoleMark(ctx, u);
   if (u.role || u.loot) drawMark(ctx, u, t);
 }

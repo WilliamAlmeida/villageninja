@@ -112,7 +112,7 @@ export function drawInterior(ctx: Ctx, w: number, h: number, def: BuildingDef, o
     const i = Math.max(0, free.findIndex((s) => !!s.bed === lying));
     const s = free.splice(i, 1)[0] ?? { x: ROOM_W / 2, y: FLOOR_Y + 50 };
     const ghost: Unit = { ...u, x: s.x, y: s.y, moving: false, facing: Math.PI / 2, hitFlash: 0, stun: 0, shield: 0, carry: null, hidden: false };
-    drawUnit(ctx, ghost, time, false);
+    drawUnit(ctx, ghost, time, false, undefined, false, 1); // dentro do prédio: mostra quem ainda está se recuperando
     if (s.bed) {
       // cobertor por cima do corpo e "z" subindo
       rect(ctx, kind === 'ward' ? '#7fb6d9' : def.roof, s.x - 7, s.y + 3, 14, 15, 2);

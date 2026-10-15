@@ -87,6 +87,11 @@ const STRIPS_BELOW = 1;
 const LIVE_KEEP = 30;
 /** Teto de silhuetas por quadro (selecionado/grupo primeiro, depois inimigos, depois os mais perto do centro). */
 const MAX_SILHOUETTES = 16;
+/** Segundos que a barra de vida fica depois do último dano (os últimos `HURT_FADE` esmaecendo). */
+const HURT_BAR = 4;
+const HURT_FADE = 0.6;
+/** Queda mínima de vida num quadro que conta como dano: fome e dreno dos modos (aos poucos) não mostram a barra. */
+const HURT_MIN = 0.5;
 
 export type Occlusion = { silhouette: boolean; fade: boolean; cutout: boolean; dither: boolean };
 /** Corpo de um personagem para saber quem o tapa (ponto do peito na cena, índice na lista ordenada). */
@@ -185,6 +190,8 @@ export class Renderer {
    * dos blocos entrou na máscara (ela entra de novo se outro for desenhado depois: também fica por cima dele).
    */
   private silDrawn = new Set<number>();
+  /** Barra de vida (só desenho): vida no quadro anterior e até quando a barra fica depois do último dano. */
+  private hurt = new WeakMap<Unit, { hp: number; until: number }>();
   private silPushed = new Map<Drawable, number>();
   /** Recursos dos blocos que tapam alguém com silhueta neste quadro (só esses entram na máscara). */
   private silTrees = new Set<SceneNode>();
@@ -533,6 +540,13 @@ export class Renderer {
       if (seen(p)) list.push({ x: p.x, y: p.y, theme });
     }
     for (const u of s.units) {
+      // dano recente: conferido de todos (também fora da tela), para a barra não surgir ao voltar a câmera
+      const h = this.hurt.get(u);
+      if (!h) this.hurt.set(u, { hp: u.hp, until: 0 });
+      else {
+        if (u.hp < h.hp - HURT_MIN) h.until = time + HURT_BAR;
+        h.hp = u.hp;
+      }
       if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
       // vigia da torre: desenhado na plataforma (entre as peças da arte, ver abaixo)
       const tw = u.state === 'towerWatch' && u.onTower != null ? g.building(u.onTower) : undefined;
@@ -734,7 +748,8 @@ export class Renderer {
           ctx.stroke();
         }
         const action = workAction(g, d.u);
-        drawUnit(ctx, u, time, selected, action);
+        const left = (this.hurt.get(d.u)?.until ?? 0) - time;
+        drawUnit(ctx, u, time, selected, action, false, left > 0 ? Math.min(1, left / HURT_FADE) : 0);
         const silColor = this.silUnits.get(u.id);
         if (silColor) {
           this.silEvents.push({ pu: u, color: silColor, action });

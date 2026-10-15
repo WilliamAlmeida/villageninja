@@ -97,6 +97,15 @@
   padrão); arrastar o chão move a câmera. No console,
   `lab.pause()`, `lab.step(s)`, `lab.act('Chidori')`.
 
+## Barra de vida sobre a unidade (2026-10-15)
+`drawBars` (sprites.ts), chamada por `drawUnit`. Selecionado (ou no grupo) e chefe: sempre. Os outros: só nos
+`HURT_BAR` = 4 s depois de levar dano (os últimos 0,6 s esmaecendo) e só se a vida estiver abaixo de 98% (`BAR_FULL`).
+O dano é visto pelo renderer comparando a vida de cada unidade com a do quadro anterior (`hurt`, WeakMap só de desenho,
+conferido também fora da tela); queda menor que `HURT_MIN` = 0,5 num quadro não conta, então a fome e o dreno dos modos
+não acendem a barra. Ferido parado (a vida volta a 0,5/s) fica sem barra. No interior dos prédios a barra aparece em
+quem está abaixo de 98%. Invisível de fora da vila (`cloak`) e o vulto do Shunshin (`bare`) não têm barra. Chakra (azul):
+ninja que não é clone, selecionado ou em combate, só quando a barra de vida aparece.
+
 ## Projéteis Katon animados
 
 `sprites.ts`, `drawProjectile`: tipos `housenka` e `goukakyuu`, escolhidos por `JutsuDef.projKind`.
