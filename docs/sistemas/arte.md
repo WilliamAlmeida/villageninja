@@ -85,3 +85,27 @@ Cratera reaproveitada do Rasengan, largura 164 px. ImageGen integrado; fontes, p
 `docs/arte/jutsus/rasenshuriken/`. Preparo técnico: `scripts/prepare-rasenshuriken.ps1`, com limpeza de ruído
 solto, alpha mínimo 32, nearest-neighbor, escala comum e alinhamento da base do domo entre as fases.
 Prévia autocontida: `bun scripts/preview-rasenshuriken.ts`. Configuração do lote: `scripts/configure-rasenshuriken.ts`.
+
+## Doryuuheki, Doryuudan, Suna no Tate e Sabaku Kyū: artes v1
+
+Lote integrado no renderer, aguardando avaliação no jogo. PNGs em `src/art/effects/`: `effect-doryuuheki-v1`,
+`effect-doryuudan-origin-v1`, `effect-sunanotate-v1` e `effect-sabakukyu-v1` têm 384x192, células de 96x96;
+`projectile-doryuudan-v1` tem 256x128, células de 64x64. Todas são RGBA, grade 4x2 com oito quadros.
+Base das peças de chão em (0,5; 0,78); projétil centrado em (0,5; 0,5). Escala comum preserva a subida da muralha
+e formação/compressão do casulo; folhas de Suna no Tate, cabeça e projétil são loops.
+Fontes ImageGen integrado, prompts, metadados (`sheets.json`) e `preview.html` em `docs/arte/jutsus/doton-suna/`.
+Preparo: `scripts/prepare-doton-suna.ps1` (alpha mínimo 32, remoção de ruído solto, nearest-neighbor, base alinhada,
+conferência de bordas). Prévia: `bun scripts/preview-doton-suna.ts`.
+Configuração de runtime: `scripts/configure-doton-suna.ts` → `jutsu-fx.json`: muralha 64 px, cabeça 68 px,
+lama 22 px, escudo 64 px (opacidade 0,9), casulo 56 px. Na folha preparada, boca da cabeça em (0,76; 0,52).
+
+Correção de perfil do Doryuuheki (2026-10-14): `effect-doryuuheki-profile-v1.png`, RGBA 384x192, oito células 96x96,
+variação da frontal com face lateral e topo espesso, mesma paleta e fases. Gerada com ImageGen integrado usando
+a folha original como referência; fonte e prompt em `docs/arte/jutsus/doton-suna/`. Preparo isolado:
+`scripts/prepare-doton-suna.ps1 -Only doryuuhekiProfile` (base centralizada na profundidade, inset 0,20).
+Galeria das oito direções: `bun scripts/preview-doryuuheki.ts` → `preview-doryuuheki.html`.
+
+Complemento da correção: `effect-doryuuheki-oblique-v1.png`, RGBA 384x192, oito quadros, vista diagonal 2:1
+com topo e face lateral. Fonte e prompt em `doryuuhekiOblique-source.png`/`doryuuheki-oblique-prompt.json` na mesma
+pasta; ImageGen integrado usando a frontal como referência. Preparo com `-Only doryuuhekiOblique`.
+Runtime usa três folhas sem deformação, tamanhos 64/58/58 (frontal/diagonal/perfil); galeria atualizada para 16 direções.

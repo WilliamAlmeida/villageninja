@@ -298,6 +298,7 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
     }
     case 'tether':
     case 'crater':
+    case 'jutsuOrigin':
       return; // sombra do Kage Mane: no chão (renderer.drawTethers)
     case 'hit': {
       // estrela de impacto: 4 pontas que se abrem e somem rápido

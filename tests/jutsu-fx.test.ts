@@ -51,6 +51,11 @@ describe('visual dos jutsus (jutsu-fx.json)', () => {
       j.trail?.forEach((e, i) => checkEmitter(e, `${k}.trail[${i}]`));
       j.burst?.forEach((e, i) => checkEmitter(e, `${k}.burst[${i}]`));
       if (j.sprite) checkSprite(j.sprite, k);
+      if (j.profile) checkSprite(j.profile, `${k}.profile`);
+      if (j.oblique) checkSprite(j.oblique, `${k}.oblique`);
+      if (j.origin) checkSprite(j.origin, `${k}.origin`);
+      if (j.impact) checkSprite(j.impact, `${k}.impact`);
+      if (j.crater) checkSprite(j.crater, `${k}.crater`);
       if (j.vfx) expect(FX.styles[j.vfx], `${k}: estilo ${j.vfx}`).toBeDefined();
     }
     for (const [k, s] of Object.entries(FX.status)) checkSprite(s, `status.${k}`);

@@ -290,6 +290,13 @@ import rasenganImpact from '../art/effects/effect-rasengan-impact-v1.png';
 import rasenganCrater from '../art/effects/effect-rasengan-crater-v1.png';
 import rasenshuriken from '../art/effects/projectile-rasenshuriken-v1.png';
 import rasenshurikenImpact from '../art/effects/effect-rasenshuriken-impact-v1.png';
+import doryuuhekiWall from '../art/effects/effect-doryuuheki-v1.png';
+import doryuuhekiProfile from '../art/effects/effect-doryuuheki-profile-v1.png';
+import doryuuhekiOblique from '../art/effects/effect-doryuuheki-oblique-v1.png';
+import doryuudanOrigin from '../art/effects/effect-doryuudan-origin-v1.png';
+import doryuudanMud from '../art/effects/projectile-doryuudan-v1.png';
+import sandShield from '../art/effects/effect-sunanotate-v1.png';
+import sandCoffin from '../art/effects/effect-sabakukyu-v1.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'projectile-housenka': projectileHousenka, 'projectile-goukakyuu': projectileGoukakyuu,
@@ -297,6 +304,10 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'effect-suiryuudan-head': dragonHead, 'effect-suiryuudan-body': dragonBody, 'effect-suiryuudan-origin': dragonOrigin,
   'effect-rasengan-v1': rasenganSphere, 'effect-rasengan-impact-v1': rasenganImpact, 'effect-rasengan-crater-v1': rasenganCrater,
   'projectile-rasenshuriken-v1': rasenshuriken, 'effect-rasenshuriken-impact-v1': rasenshurikenImpact,
+  'effect-doryuuheki-v1': doryuuhekiWall, 'effect-doryuudan-origin-v1': doryuudanOrigin,
+  'effect-doryuuheki-profile-v1': doryuuhekiProfile,
+  'effect-doryuuheki-oblique-v1': doryuuhekiOblique,
+  'projectile-doryuudan-v1': doryuudanMud, 'effect-sunanotate-v1': sandShield, 'effect-sabakukyu-v1': sandCoffin,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-top': towerTop, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3,

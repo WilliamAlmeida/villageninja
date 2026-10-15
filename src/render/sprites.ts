@@ -1,7 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
-import { drawHandJutsu, drawJutsuProjectile, drawWaterPrison } from './jutsuSprites';
+import { drawHandJutsu, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -990,6 +990,7 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       }
       break;
     }
+      if (drawSandCoffin(ctx, u.x, u.y, u.stun)) break;
     case 'water': {
       if (drawWaterPrison(ctx, u.x, u.y, t, u.id)) break;
       // Prisão d'Água: bolha que ondula em volta do corpo
@@ -1194,6 +1195,7 @@ function drawShield(ctx: Ctx, u: Unit, t: number) {
         ctx.beginPath();
         ctx.arc(u.x, y, 13 - Math.abs(i - 1.5) * 1.5, Math.PI * 1.15, Math.PI * 1.85);
         ctx.stroke();
+      if (drawSandShield(ctx, u.x, u.y, u.facing, t, u.id)) break;
       }
       break;
     case 'metal':

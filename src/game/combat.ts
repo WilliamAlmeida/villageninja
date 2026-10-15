@@ -308,6 +308,10 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
 
   switch (def.effect) {
     case 'projectile':
+      if (FX.jutsus[def.id]?.origin) {
+        fx(g, 'jutsuOrigin', u.x, u.y - 4, { fx: def.id, uid: u.id, facing: u.facing,
+          color: def.color, life: FX.jutsus[def.id]!.origin!.life });
+      }
       spawnProjectile(g, u, u.faction, u.x, u.y - 4, t.x, t.y, {
         damage: power, radius: def.radius ?? 0, nature: def.nature, color: def.color,
         size: def.projSize ?? (def.radius ? 9 : 6), speed: def.projSpeed ?? 250, kind: def.projKind ?? 'orb', stun: def.stun ?? 0, range: def.range, vfx, fx: def.id,
@@ -378,7 +382,8 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     }
     case 'bind':
       // raízes prendem o alvo e causam dano
-      fx(g, 'burst', t.x, t.y, { r: 22, color: def.color, life: 0.5, vfx: vfx ?? 'wood', fx: def.id });
+      if (def.id !== 'sabakukyu' || !FX.jutsus.sabakukyu?.sprite)
+        fx(g, 'burst', t.x, t.y, { r: 22, color: def.color, life: 0.5, vfx: vfx ?? 'wood', fx: def.id });
       applyDamage(g, u, t, power, null, { stun: def.duration ?? 2, stunVfx: vfx ?? 'wood' });
       break;
     case 'shield':
@@ -386,7 +391,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       u.shieldVfx = vfx;
       // terra (Doryuuheki): a muralha brota do chão e fica parada ali, entre ele e o inimigo
       if (vfx === 'earth') raiseWall(g, u, def.duration ?? 6, def.color);
-      else {
+      else if (def.id !== 'sunanotate' || !FX.jutsus.sunanotate?.sprite) {
         fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx, fx: def.id });
         fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });
       }

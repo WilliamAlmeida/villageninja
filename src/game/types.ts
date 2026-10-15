@@ -536,6 +536,8 @@ export type EffectKind =
   | 'wall' | 'bones'
   /** Marca temporária de impacto no chão, desenhada antes das unidades. */
   | 'crater'
+  /** Cabeça/fonte fixa e temporária de um disparo de jutsu. */
+  | 'jutsuOrigin'
   /** Momento especial (Kage, Sannin, chefe, proibido): câmera lenta curta, fundo escuro e o nome no centro (main.ts). */
   | 'moment';
 

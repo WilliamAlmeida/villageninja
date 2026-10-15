@@ -6,7 +6,9 @@ import { JUTSUS } from '../data/jutsus';
 import { FX, PARTS_DEFAULT, spriteFx, type SpriteFx } from '../data/jutsuFx';
 import { suiryuudanPose } from './projectileMotion';
 import { dragonPoint } from '../game/dragonFlight';
-import { project } from '../core/iso';
+import { project, projectAngle } from '../core/iso';
+import { wallEnds } from '../game/walls';
+import { sandCoffinFrame, wallFrame, wallView } from './earthSandMotion';
 
 /** Peças modulares: fonte fixa no chão, corpo com juntas sobrepostas e cabeça na tangente da curva. */
 function drawDragonChain(ctx: CanvasRenderingContext2D, p: Projectile, s: SpriteFx, t: number): boolean {
@@ -163,6 +165,55 @@ export function drawJutsuProjectile(ctx: CanvasRenderingContext2D, p: Projectile
 export function drawWaterPrison(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, id: number): boolean {
   const s = FX.status.water;
   return !!s && drawSpriteFx(ctx, s, x, y, 0, t, id);
+}
+
+/** Folhas direcionais com volume próprio; nenhuma face é comprimida ou inclinada por código. */
+export function drawEarthWall(ctx: CanvasRenderingContext2D, e: Effect): boolean {
+  const s = spriteFx('doryuuheki');
+  if (!s || !art(s.sheet)) return false;
+  const [wa, wb] = wallEnds(e);
+  let a = project(wa.x, wa.y), b = project(wb.x, wb.y);
+  if (a.x > b.x) [a, b] = [b, a];
+  const config = FX.jutsus.doryuuheki;
+  const view = wallView(b.x - a.x, b.y - a.y);
+  const directional = view === 'profile' ? config?.profile : view === 'oblique' ? config?.oblique : s;
+  const frame = wallFrame(e.t, e.life - e.t);
+  if (!directional || !art(directional.sheet)) return false;
+  // A diagonal desenhada sobe para a direita. Espelhar pela inclinação da base,
+  // não pelo lado do atacante, mantém a orientação mesmo ao inverter o dono.
+  const angle = b.y > a.y ? Math.PI : 0;
+  return drawSpriteFx(ctx, directional, (a.x + b.x) / 2, (a.y + b.y) / 2,
+    angle, 0, 0, undefined, frame);
+}
+
+/** Posição projetada da base para ordenar a fonte fixa com os personagens. */
+export function jutsuOriginBase(e: Effect) {
+  const p = project(e.x, e.y), s = e.fx ? FX.jutsus[e.fx]?.origin : undefined;
+  if (!s) return p;
+  const side = Math.cos(projectAngle(e.facing ?? 0)) < 0 ? -1 : 1;
+  return { x: p.x + side * (s.anchorX - s.mouthX) * s.size,
+    y: p.y + s.dy + (s.anchorY - s.mouthY) * s.size };
+}
+
+/** A âncora da boca coincide com o início do projétil, inclusive ao espelhar. */
+export function drawJutsuOrigin(ctx: CanvasRenderingContext2D, e: Effect): boolean {
+  const s = e.fx ? FX.jutsus[e.fx]?.origin : undefined;
+  if (!s) return false;
+  const p = project(e.x, e.y), fade = Math.min(1, Math.max(0, (e.life - e.t) / 0.15));
+  return drawSpriteFx(ctx, { ...s, anchorX: s.mouthX, anchorY: s.mouthY, opacity: s.opacity * fade },
+    p.x, p.y, projectAngle(e.facing ?? 0), 0, 0, undefined, Math.min(7, 3 + Math.floor(e.t * s.fps)));
+}
+
+export function drawSandShield(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, t: number, id: number): boolean {
+  const s = spriteFx('sunanotate');
+  return !!s && drawSpriteFx(ctx, s, x, y + 9, angle + Math.PI, t, id);
+}
+
+export function drawSandCoffin(ctx: CanvasRenderingContext2D, x: number, y: number, remaining: number): boolean {
+  const s = spriteFx('sabakukyu');
+  if (!s) return false;
+  const frame = sandCoffinFrame(remaining, JUTSUS.sabakukyu!.duration ?? 2.4);
+  return drawSpriteFx(ctx, s, x, y + 9, 0, 0, 0, undefined, frame);
 }
 
 /** Formação na mão: folha e tamanho definidos na configuração do jutsu. */

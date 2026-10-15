@@ -131,3 +131,22 @@ Rasenshuriken usa esse mesmo caminho: nos últimos 0,3 s dos selos, `drawUnitArt
 na mão; no voo, `drawJutsuProjectile` anima a mesma folha em 24 qps, sem giro adicional pela direção do voo.
 `drawJutsuImpact` mostra o domo em oito fases a 10 qps, opacidade 0,75, com fade nos últimos 0,16 s; cratera de
 164 px na passada do chão, por 20 s. O domo recebe +8 px no eixo Y para assentar melhor no chão. Rastro e partículas de explosão ficam vazios para preservar a leitura das sprites.
+
+## Sprites de Doton e areia
+
+`jutsuSprites.ts`: `drawEarthWall` usa três folhas direcionais, sem comprimir ou cisalhar a face.
+`earthSandMotion.wallView` escolhe frontal para base quase horizontal (`abs(dy) <= 0,25 * abs(dx)`), perfil
+para base quase vertical (`abs(dx) < 0,8 * abs(dy)`) e diagonal nos demais ângulos. `JutsuFx.oblique` e `.profile`
+têm volume desenhado, topo e lateral visíveis; espelham pelo sinal da inclinação da base projetada, e não pelo
+lado do atacante. Frontal usa tamanho 64; diagonal e perfil usam 58 para manter altura próxima entre as folhas.
+As três compartilham as fases; não aplicar novamente a inclinação da base às imagens que já estão em perspectiva.
+`earthSandMotion.wallFrame` controla subida (0,25 s), quadro estável, rachaduras e desmoronamento (últimos 0,45 s).
+Doryuudan usa `JutsuFx.origin` (também preservado por `formatFx`): folha, duração, boca e aparência da cabeça.
+O efeito `jutsuOrigin` é ordenado com os objetos pela base (`jutsuOriginBase`), fica parado onde foi disparado,
+espelha conforme a direção projetada e alinha a boca ao início do projétil, na altura de voo de 8 px. Cabeça dura
+0,65 s e desvanece nos últimos 0,15 s. O projétil tem folha própria girando com a trajetória, sem rastro de partículas.
+`drawShield` usa `drawSandShield` para areia: loop em 12 qps, abertura transparente e opacidade 0,9. `drawStunned`
+usa `drawSandCoffin`: formação nos primeiros 0,45 s, fechado durante a prisão, compressão nos últimos 0,65 s e
+desmanche nos últimos 0,3 s. O tempo vem de `Unit.stun`; as fases não alteram a mecânica. Base em `u.y + 9` nos dois.
+Todos mantêm fallback procedural se a folha não carregar. Os ajustes de fonte são feitos no JSON; o painel de
+sprite do laboratório continua editando a folha principal.

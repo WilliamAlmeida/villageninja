@@ -89,3 +89,13 @@ Rasenshuriken também usa `rasenganHitFx`, chamado por `projectileSystem.explode
 de 0,8 s, seguido visualmente pela cratera de 20 s. Mantém a resolução imediata de dano em área (raio 70),
 velocidade 200 e colisões existentes; não aplica dano a cada quadro do domo. Muralha continua bloqueando o golpe
 com o impacto de terra existente, sem domo nem cratera de Rasenshuriken. A formação na mão é somente desenho.
+
+## Integração visual de Doton e areia
+
+Doryuuheki mantém `raiseWall`/`wallHit`/`wallCovers`; apenas o desenho passou à folha com fases. Doryuudan mantém
+um único projétil, dano, raio e velocidade: `releaseJutsu` cria adicionalmente `jutsuOrigin` fixo por 0,65 s
+na mesma posição de lançamento, usando `JutsuFx.origin`. A cabeça não segue o ninja nem causa dano adicional.
+Suna no Tate continua usando `Unit.shield`/`shieldVfx`; Sabaku Kyū continua usando `Unit.stun`/`stunVfx` com o
+dano existente. Os dois mostram a folha de areia no lugar da explosão inicial de partículas. Fases em
+`render/earthSandMotion.ts`, sem timers adicionais. Fonte é efeito transitório eliminado do save; não há novos
+campos persistentes, mantendo save v44.

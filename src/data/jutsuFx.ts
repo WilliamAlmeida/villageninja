@@ -130,6 +130,12 @@ export const PROJ_KEYS: (keyof ProjFx)[] = ['projSpeed', 'projSize', 'radius', '
 
 export interface JutsuFx {
   sprite?: SpriteFx;
+  /** Muralha vista ao longo do comprimento: arte com espessura própria. */
+  profile?: SpriteFx;
+  /** Muralha diagonal com topo e face lateral já desenhados. */
+  oblique?: SpriteFx;
+  /** Fonte fixa do disparo; a boca coincide com o ponto inicial do projétil. */
+  origin?: SpriteFx & { life: number; mouthX: number; mouthY: number };
   /** Descarga curta no contato e marca temporária no chão. */
   impact?: SpriteFx;
   crater?: SpriteFx & { life: number };
@@ -196,6 +202,9 @@ export function formatFx(data: FxData): string {
       .map(([k, j]) => {
         const parts: string[] = [];
         if (j.sprite) parts.push(`   "sprite": ${line(j.sprite)}`);
+        if (j.profile) parts.push(`   "profile": ${line(j.profile)}`);
+        if (j.oblique) parts.push(`   "oblique": ${line(j.oblique)}`);
+        if (j.origin) parts.push(`   "origin": ${line(j.origin)}`);
         if (j.impact) parts.push(`   "impact": ${line(j.impact)}`);
         if (j.crater) parts.push(`   "crater": ${line(j.crater)}`);
         if (j.vfx) parts.push(`   "vfx": ${line(j.vfx)}`);

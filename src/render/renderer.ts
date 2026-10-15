@@ -3,7 +3,7 @@ import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
-import { drawJutsuCrater } from './jutsuSprites';
+import { drawEarthWall, drawJutsuCrater, drawJutsuOrigin, jutsuOriginBase } from './jutsuSprites';
 import { dragonPoint } from '../game/dragonFlight';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
@@ -100,6 +100,8 @@ function bayer(k: number): HTMLCanvasElement {
 type Drawable = { y: number; x: number; /** chave de profundidade (começa em y) */ k?: number; b?: Building; n?: ResourceNode; u?: Unit; site?: Site; deco?: Deco;
   /** Muralha de terra (Doryuuheki) parada no chão: entra na ordem de profundidade como um objeto. */
   wall?: Effect;
+  /** Fonte fixa de um jutsu, ordenada pela base no chão. */
+  origin?: Effect;
   /** Enfeite da mina (render/cave.ts). */
   cave?: CaveDeco;
   theme?: ThemeDeco;
@@ -465,9 +467,13 @@ export class Renderer {
       if (seen(p)) list.push({ x: p.x, y: p.y, u });
     }
     for (const e of s.effects) {
-      if (e.kind !== 'wall') continue;
-      const p = project(e.x, e.y);
-      if (seen(p)) list.push({ x: p.x, y: p.y + 3, wall: e });
+      if (e.kind === 'wall') {
+        const p = project(e.x, e.y);
+        if (seen(p)) list.push({ x: p.x, y: p.y + 3, wall: e });
+      } else if (e.kind === 'jutsuOrigin') {
+        const p = jutsuOriginBase(e);
+        if (seen(p)) list.push({ ...p, origin: e });
+      }
     }
     // Prédios ocupam vários tiles: o centro não basta para saber quem fica na frente. Uma unidade (ou árvore)
     // diante de uma face frontal do prédio (x além da direita ou y além do fundo do retângulo) vem depois dele;
@@ -491,8 +497,8 @@ export class Renderer {
     }
     for (const d of list) {
       if (d.b) continue;
-      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
+      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.origin ? d.origin.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.origin ? d.origin.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       const col = cols[Math.max(0, Math.floor(wx))];
       if (!col) continue;
       for (const o of col) {
@@ -621,6 +627,7 @@ export class Renderer {
           ctx.globalAlpha = focus.has(u.id) ? 1 : 0.75;
           ctx.beginPath();
           ctx.ellipse(u.x, u.y + 7, 9, 4, 0, 0, Math.PI * 2);
+      else if (d.origin) drawJutsuOrigin(ctx, d.origin);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
@@ -673,7 +680,7 @@ export class Renderer {
     this.particles.draw(ctx, 'trail');
     for (const p of flying) drawProjectile(ctx, p, time);
     for (const e of s.effects) {
-      if (e.kind === 'wall' || e.kind === 'crater') continue; // muralha em pé; cratera já desenhada no chão
+      if (e.kind === 'wall' || e.kind === 'crater' || e.kind === 'jutsuOrigin') continue; // peças fixas já desenhadas
       if (e.kind === 'afterimage') {
         this.afterimage(g, e, time);
         continue;
@@ -2121,3 +2128,4 @@ function drawWall(ctx: CanvasRenderingContext2D, e: Effect) {
   ctx.restore();
 }
 
+  if (drawEarthWall(ctx, e)) return;
