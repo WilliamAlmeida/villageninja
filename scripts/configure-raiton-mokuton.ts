@@ -12,6 +12,6 @@ FX.jutsus.raikyuu = { ...FX.jutsus.raikyuu,
     size: [1, 2], speed: [20, 60], opacity: .85, glow: false }],
 };
 FX.jutsus.chidorinagashi = { ...FX.jutsus.chidorinagashi,
-  impact: { ...sheet('effect-chidorinagashi-v1', 142), dy: 18, opacity: .95 }, burst: [],
+  impact: { ...sheet('effect-chidorinagashi-v1', 142), dy: 9, opacity: .95 }, burst: [],
 };
 await Bun.write('src/data/jutsu-fx.json', formatFx(FX));

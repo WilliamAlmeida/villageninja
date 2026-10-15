@@ -339,7 +339,7 @@
    ]
   },
   "chidorinagashi": {
-   "impact": {"sheet":"effect-chidorinagashi-v1","cols":4,"rows":2,"frames":8,"fps":10,"size":142,"anchorX":0.5,"anchorY":0.78,"dy":18,"opacity":0.95,"blend":"normal","rotate":false,"flip":false},
+   "impact": {"sheet":"effect-chidorinagashi-v1","cols":4,"rows":2,"frames":8,"fps":10,"size":142,"anchorX":0.5,"anchorY":0.78,"dy":-9,"opacity":0.95,"blend":"normal","rotate":false,"flip":false},
    "burst": [
 
    ]

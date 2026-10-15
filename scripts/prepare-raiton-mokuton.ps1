@@ -40,6 +40,11 @@ public static class RaitonWoodSheets {
     var b=bounds[i];float ax=ground?cw/2f:(b.Left+b.Right)/2f;
     // Cabeça desce entre os quatro primeiros quadros; impacto mantém referência fixa do chão.
     float ay=ground?(input.EndsWith("kirin-source.png")?(i<4?b.Bottom+(3-i)*ch*.12f:ch*.78f):b.Bottom-widest*baseInset):(b.Top+b.Bottom)/2f;
+    // Fundo da abertura do ninja; a borda externa dos raios muda de altura.
+    if(input.EndsWith("chidorinagashi-source.png")) {
+     float[] innerGround={-1,-1,346,333,293,302,316,-1};
+     ay=innerGround[i]<0?b.Bottom:innerGround[i];
+    }
     for(int y=0;y<cell;y++)for(int x=0;x<cell;x++) {
      int sx=(int)Math.Floor((x+.5f-cell*.5f)/scale+ax);
      int sy=(int)Math.Floor((y+.5f-cell*(ground?.78f:.5f))/scale+ay);

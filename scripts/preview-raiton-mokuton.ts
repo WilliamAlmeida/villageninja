@@ -4,7 +4,7 @@ const sheets = {
   kirin: { name: 'effect-kirin-v1', size: 180, anchorY: .78 },
   jukai: { name: 'effect-jukai-v1', size: 76, anchorY: .78 },
   raikyuu: { name: 'projectile-raikyuu-v1', size: 30, anchorY: .5 },
-  chidorinagashi: { name: 'effect-chidorinagashi-v1', size: 142, anchorY: .78, dy: 18 },
+  chidorinagashi: { name: 'effect-chidorinagashi-v1', size: 142, anchorY: .78, dy: 9 },
 };
 const images = Object.fromEntries(await Promise.all(Object.entries(sheets).map(async ([id, s]) => [id,
   `data:image/png;base64,${Buffer.from(await Bun.file(`src/art/effects/${s.name}.png`).arrayBuffer()).toString('base64')}`])));
