@@ -8,9 +8,11 @@ import { createNewGame } from './game/newGame';
 import { clearSave, loadGame, saveGame as writeSave } from './game/save';
 import { SYSTEMS } from './game/systems';
 import { sceneGame, sceneTeam } from './game/scene';
+import { darkness, hourOf } from './game/time';
 import { doorPos } from './game/world';
 import { preloadArt, warmMips } from './render/art';
 import { Renderer } from './render/renderer';
+import { SEASON_VIEW } from './render/seasonal';
 import { createUI } from './ui';
 import { demoMenu } from './ui/demoMenu';
 import { applySettings, followCam, occlusion, quality, QUALITY_CFG, simRate } from './ui/settings';
@@ -224,6 +226,8 @@ fps.info = () => {
     population: home.population(),
     exploredPct: Math.round((100 * seen) / (s.mapW * s.mapH)),
     map: `${s.mapW}x${s.mapH}`,
+    // clima e hora: neve e chuva mudam o custo do desenho
+    weather: { season: SEASON_VIEW.season, snow: +s.snow.toFixed(2), clouds: s.clouds.length, hour: +hourOf(s).toFixed(1), dark: +darkness(s).toFixed(2) },
     canvas: { w: renderer['canvas'].width, h: renderer['canvas'].height, dpr: renderer['dpr'] },
     windowOpen: !!winEl && !winEl.hidden,
     bench: (window as unknown as { bench: (n?: number) => object }).bench(10),

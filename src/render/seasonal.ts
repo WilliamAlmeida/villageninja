@@ -749,8 +749,47 @@ export function snowCap(pic: Pic, key: string, roof = false): HTMLCanvasElement 
     }
   ctx.clearRect(0, 0, w, h);
   ctx.putImageData(out, 0, 0);
-  c.dataset.name = `${key}-snow`;
-  caps.set(key, c);
+  const g = settle(c, `${key}-snow`);
+  caps.set(key, g);
+  return g;
+}
+
+/**
+ * Cópia num canvas comum (na GPU). Os de `pixels` são `willReadFrequently` (ficam na memória da CPU, para ler os
+ * pixels uma vez); desenhados no mapa a cada quadro, centenas de vezes, o navegador tinha de mandá-los à placa de novo.
+ */
+function settle(c: HTMLCanvasElement, name: string) {
+  const g = document.createElement('canvas');
+  g.width = c.width;
+  g.height = c.height;
+  g.getContext('2d')!.drawImage(c, 0, 0);
+  g.dataset.name = name;
+  return g;
+}
+
+/** Arte + neve já juntas, por arte, na quantidade de neve atual (em degraus de 1/16; guarda só o degrau em uso). */
+const snowy = new Map<string, { q: number; c: HTMLCanvasElement }>();
+
+/**
+ * O desenho com a camada de neve por cima (`snowCap`) numa imagem só: no inverno cada árvore e rocha era desenhada duas
+ * vezes (arte + neve com transparência), ~2 mil desenhos a mais por quadro com o mapa à vista. `amount` 0..1 = força
+ * da neve na camada; 0 devolve a própria arte.
+ */
+export function withSnow(pic: Pic, key: string, amount: number): Pic {
+  const q = Math.round(Math.min(1, amount) * 16);
+  if (q <= 0) return pic;
+  const hit = snowy.get(key);
+  if (hit && hit.q === q) return hit.c;
+  const cap = snowCap(pic, key);
+  const c = document.createElement('canvas');
+  c.width = cap.width;
+  c.height = cap.height;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(pic, 0, 0);
+  ctx.globalAlpha = q / 16;
+  ctx.drawImage(cap, 0, 0);
+  c.dataset.name = `${key}-snowy`;
+  snowy.set(key, { q, c });
   return c;
 }
 
@@ -795,9 +834,9 @@ export function snowField(pic: Pic, key: string): HTMLCanvasElement {
     }
   ctx.clearRect(0, 0, w, h);
   ctx.putImageData(out, 0, 0);
-  c.dataset.name = `${key}-field`;
-  fields.set(key, c);
-  return c;
+  const g = settle(c, `${key}-field`);
+  fields.set(key, g);
+  return g;
 }
 
 /**
@@ -835,7 +874,7 @@ export function seasonalTree(pic: Pic, key: string, season: Season): Pic {
       }
     }
   ctx.putImageData(data, 0, 0);
-  c.dataset.name = k;
-  trees.set(k, c);
-  return c;
+  const g = settle(c, k);
+  trees.set(k, g);
+  return g;
 }

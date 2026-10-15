@@ -18,7 +18,7 @@ import { eyeOf } from '../game/dojutsu';
 import { MOVE_SEQS, type MoveFx, moveAt, movesTime, SEAL_REHEARSAL } from '../data/moves';
 import { NATURES } from '../data/natures';
 import { BREEDS, breedArt } from '../data/breeds';
-import { SEASON_VIEW, seasonalTree, snowCap } from './seasonal';
+import { SEASON_VIEW, seasonalTree, withSnow } from './seasonal';
 import { type BuildingDef, defOf } from '../data/buildings';
 import { RANKS } from '../data/ninja';
 import type { Building, Projectile, ResourceNode, Unit } from '../game/types';
@@ -181,13 +181,9 @@ export function drawNode(ctx: Ctx, n: ResourceNode, whole = false) {
       ctx.scale(1, sq);
       ctx.translate(-x, -y);
     }
-    drawArt(ctx, pic, x, y, h, n.variant >= 2);
-    if (SEASON_VIEW.snow > 0.03 && n.type !== 'herb') {
-      const a = ctx.globalAlpha;
-      ctx.globalAlpha = a * Math.min(1, SEASON_VIEW.snow * 1.4);
-      drawArt(ctx, snowCap(pic, leafy ? `${name}|${SEASON_VIEW.season}` : name), x, y, h, n.variant >= 2);
-      ctx.globalAlpha = a;
-    }
+    // neve: já junta na arte (um desenho só por recurso)
+    const snow = SEASON_VIEW.snow > 0.03 && n.type !== 'herb' ? SEASON_VIEW.snow * 1.4 : 0;
+    drawArt(ctx, withSnow(pic, leafy ? `${name}|${SEASON_VIEW.season}` : name, snow), x, y, h, n.variant >= 2);
     if (sq !== 1) ctx.restore();
     return;
   }

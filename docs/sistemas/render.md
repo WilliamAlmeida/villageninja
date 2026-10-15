@@ -60,6 +60,10 @@
     desenho, 0,6 de 12,3 → 6,4, 0,85 de 9,8 → 7,2; de perto os blocos perdiam (por isso o limite). Comparação pixel a
     pixel com e sem blocos: só reamostragem nas bordas (Silhueta e "nenhum" iguais). `renderer.stripsOff = true` no
     console desliga, para comparar.
+  - **Estação e neve** (`seasonal.ts`): as artes refeitas pixel a pixel (`seasonalTree`, `snowCap`, `snowField`) saem
+    num canvas comum (`settle`), não no `willReadFrequently` usado para ler os pixels (memória da CPU, reenviado à
+    placa a cada desenho). Recurso com neve é uma imagem só, arte + camada juntas (`withSnow`, em degraus de 1/16 da
+    neve): antes eram dois desenhos por árvore/rocha (PC, inverno, zoom 1,18: "em pé" 7-8 ms e 46-48 qps).
   - **Pausado** (main.ts): sem toque/tecla e com câmera, seleção e contagens paradas, o quadro não é redesenhado (seria
     idêntico: o relógio das animações para junto); a cada 0,5 s redesenha por garantia.
   - **Medir**: no console, `bench()` devolve `render` (ms de CPU) e `steps` (ms por etapa: terreno, ruas, lista, prof:*,
