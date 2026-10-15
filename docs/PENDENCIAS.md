@@ -62,10 +62,13 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [x] Rasengan e Ōdama Rasengan — esfera compartilhada na mão, formação por escala, impacto animado e cratera temporária no chão (12/18 s). Ōdama usa as mesmas três imagens em 2×. Aprovado visualmente pelo autor em 2026-10-13 (73c11ca); prévia em `docs/arte/jutsus/rasengan/preview-impacto.html`.
 - [x] Rasenshuriken — formação na mão, projétil com quatro lâminas giratórias, domo expansivo de 0,8 s (baixado +8 px no eixo Y) e cratera compartilhada ampliada (20 s). Aprovado visualmente pelo autor em 2026-10-13; prévia em `docs/arte/jutsus/rasenshuriken/preview.html`.
 - [ ] Chidori — chakra elétrico na mão, investida e impacto.
-- [ ] Doryuuheki — surgimento, permanência e desmoronamento da muralha.
+- [ ] Doryuuheki — integrado: subida, permanência, rachaduras e desmoronamento; três folhas (frontal, diagonal e perfil) com volume próprio, sem deformar a face por código (correção de 2026-10-14). Implementado no commit 3a50dcf; avaliação da correção no jogo pendente; galeria com 16 direções em `docs/arte/jutsus/doton-suna/preview-doryuuheki.html`.
+- [ ] Doryuudan — integrado: cabeça fixa na origem, boca alinhada ao projétil de lama, espelhamento pela direção. Implementado no commit 3a50dcf; avaliação no jogo pendente.
+- [ ] Suna no Tate — integrado: barreira curva de areia acompanhando o ninja enquanto o escudo estiver ativo. Implementado no commit 3a50dcf; avaliação no jogo pendente.
+- [ ] Sabaku Kyū — integrado: envolver, fechar, manter, comprimir e desfazer o casulo conforme o tempo restante da prisão. Implementado no commit 3a50dcf; avaliação no jogo pendente. Prévia das artes em `docs/arte/jutsus/doton-suna/preview.html`.
 - [ ] Kirin — formação no céu, dragão elétrico e queda; avaliar peças separadas.
 - [ ] Amaterasu e Susano'o — chamas negras e armadura de chakra em camadas.
-- [ ] Jukai Kōtan e Sabaku Kyū — crescimento de raízes e aprisionamento por areia.
+- [ ] Jukai Kōtan — crescimento de raízes e aprisionamento.
 - [ ] Raikyuu e Chidori Nagashi — esfera elétrica e descarga ao redor do corpo.
 - [ ] Yōkai — substituir a arte reaproveitada do Housenka por lava própria.
 - [ ] Daitoppa, Shinkuu Ha e Sekizō — rajadas, lâminas e colunas de ar.

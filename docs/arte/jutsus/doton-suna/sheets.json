@@ -1,0 +1,112 @@
+{
+    "status":  "Integrado no jogo; avaliação visual e commit pendentes",
+    "tool":  "ImageGen integrado",
+    "sheets":  [
+                   {
+                       "id":  "doryuuheki",
+                       "file":  "effect-doryuuheki-v1.png",
+                       "cell":  96,
+                       "mode":  "phases",
+                       "size":  64,
+                       "anchorY":  0.78,
+                       "phases":  {
+                                      "rise":  [
+                                                   0,
+                                                   1,
+                                                   2
+                                               ],
+                                      "hold":  [
+                                                   3,
+                                                   4
+                                               ],
+                                      "collapse":  [
+                                                       5,
+                                                       6,
+                                                       7
+                                                   ]
+                                  },
+                       "path":  "src/art/effects/effect-doryuuheki-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "doryuudanOrigin",
+                       "file":  "effect-doryuudan-origin-v1.png",
+                       "cell":  96,
+                       "mode":  "loop",
+                       "size":  68,
+                       "anchorY":  0.78,
+                       "fps":  12,
+                       "mouth":  {
+                                     "x":  0.76,
+                                     "y":  0.52
+                                 },
+                       "path":  "src/art/effects/effect-doryuudan-origin-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "doryuudanProjectile",
+                       "file":  "projectile-doryuudan-v1.png",
+                       "cell":  64,
+                       "mode":  "loop",
+                       "size":  22,
+                       "anchorY":  0.5,
+                       "fps":  16,
+                       "path":  "src/art/effects/projectile-doryuudan-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "sunanotate",
+                       "file":  "effect-sunanotate-v1.png",
+                       "cell":  96,
+                       "mode":  "loop",
+                       "size":  64,
+                       "anchorY":  0.78,
+                       "fps":  12,
+                       "path":  "src/art/effects/effect-sunanotate-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   },
+                   {
+                       "id":  "sabakukyu",
+                       "file":  "effect-sabakukyu-v1.png",
+                       "cell":  96,
+                       "mode":  "phases",
+                       "size":  56,
+                       "anchorY":  0.78,
+                       "phases":  {
+                                      "wrap":  [
+                                                   0,
+                                                   1,
+                                                   2
+                                               ],
+                                      "closed":  [
+                                                     3
+                                                 ],
+                                      "compress":  [
+                                                       4,
+                                                       5
+                                                   ],
+                                      "release":  [
+                                                      6,
+                                                      7
+                                                  ]
+                                  },
+                       "path":  "src/art/effects/effect-sabakukyu-v1.png",
+                       "cols":  4,
+                       "rows":  2,
+                       "frames":  8,
+                       "anchorX":  0.5
+                   }
+               ]
+}

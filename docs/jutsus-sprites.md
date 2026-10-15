@@ -44,10 +44,10 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Concluído; aprovado pelo autor | Rasengan e Ōdama Rasengan | Esfera compartilhada ligada à mão, formação por escala, impacto e cratera temporária; Ōdama usa tudo em 2× (73c11ca). |
 | Concluído; aprovado pelo autor | Rasenshuriken | Formação na mão, quatro lâminas giratórias, voo, domo expansivo e cratera ampliada. |
 | Muito alta | Chidori | Chakra elétrico na mão, descarga durante a investida e impacto. |
-| Muito alta | Doryuuheki | Muralha surgindo, permanecendo e desmoronando. |
+| Integrado; avaliação no jogo pendente | Doryuuheki; Doryuudan; Suna no Tate; Sabaku Kyū | Muralha, cabeça de terra e projétil de lama separados, barreira curva de areia e casulo com compressão. |
 | Muito alta | Kirin | Formação no céu, dragão elétrico e queda; avaliar peças separadas. |
 | Alta | Amaterasu e Susano'o | Chamas negras presas ao alvo; armadura de chakra em camadas ao redor do ninja. |
-| Alta | Jukai Kōtan e Sabaku Kyū | Raízes crescendo e envolvendo; areia fechando sobre o alvo. |
+| Alta | Jukai Kōtan | Raízes crescendo e envolvendo. |
 | Alta | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo. |
 | Alta | Yōkai | Massa de lava e explosão viscosa próprias. |
 | Média | Daitoppa, Shinkuu Ha e Sekizō | Rajadas, lâminas e colunas de ar. |
@@ -85,3 +85,20 @@ Este lote usa uma descarga curta; o domo expansivo fica no planejamento do Rasen
 - Mantém velocidade, dano, alcance, colisão e raio de área do catálogo. A explosão visual não causa dano adicional.
 - Fontes, prompts do ImageGen integrado e prévia: `docs/arte/jutsus/rasenshuriken/`.
 - Aprovado visualmente pelo autor em 2026-10-13; integrado no jogo e pronto para commit.
+
+## Terceiro lote: Doton e areia
+
+Cinco folhas RGBA, oito quadros cada, grade 4x2, geradas pelo ImageGen integrado em 2026-10-13:
+
+| Jutsu | Folhas em `src/art/effects/` | Uso previsto |
+|---|---|---|
+| Doryuuheki | `effect-doryuuheki-v1.png` | Subir (0–2), permanecer (3–4), desmoronar (5–7). |
+| Doryuudan | `effect-doryuudan-origin-v1.png`; `projectile-doryuudan-v1.png` | Cabeça fixa cuspindo lama e projétil em loop, separados. |
+| Suna no Tate | `effect-sunanotate-v1.png` | Fluxo de areia em barreira curva com abertura transparente, loop. |
+| Sabaku Kyū | `effect-sabakukyu-v1.png` | Envolver (0–2), fechar (3), comprimir (4–5), desmanchar (6–7). |
+
+Preparo em `scripts/prepare-doton-suna.ps1`: escala comum por folha, alpha limpo, nearest-neighbor,
+alinhamento da base e conferência de margens. Prévia autocontida: `bun scripts/preview-doton-suna.ts`.
+Fontes, prompts, metadados e prévia em `docs/arte/jutsus/doton-suna/`. Integrado no jogo (3a50dcf); avaliação visual pendente.
+Doryuudan mantém um projétil de dano e acrescenta a origem visual fixa; muralha e casulo usam fases pela duração,
+e o escudo acompanha o ninja. Dados em `jutsu-fx.json`; configuração reproduzível em `scripts/configure-doton-suna.ts`.
