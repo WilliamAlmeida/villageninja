@@ -286,9 +286,11 @@ export class ArenaClient {
       const r = await this.call<{ rating: number; delta: number; defDelta: number }>('POST', '/api/duel/finish', { duelId: p.duelId, won, summary });
       this.lastOnline = { won, delta: r.delta, opponent: p.opponent };
       if (this.stats) this.stats = { ...this.stats, rating: r.rating, wins: this.stats.wins + (won ? 1 : 0), losses: this.stats.losses + (won ? 0 : 1) };
-      this.history = null;
       return r;
     });
+    // histórico e ranking mudaram: busca de novo (a janela pede os dois só de 30 em 30 s)
+    void this.loadHistory();
+    this.ranking = null;
   }
 
   /** Chamado a cada ciclo da interface: quando o duelo on-line acaba no jogo, manda o resultado. */

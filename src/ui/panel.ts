@@ -2505,7 +2505,7 @@ export class Panel {
         <span class="nc-js">${n.jutsu.map((id) => jutsuChip(id)).join('') || '<small class="hint">sem jutsu</small>'}</span></div></div>`;
       if (list.length > 1) {
         left += `<div class="chips dl-chips">`;
-        for (const u of list) left += `<button data-act="duel-pick" data-arg="${u.id}" class="${cur.id === u.id ? 'on' : ''}" ${tipAttr(u.name, `${RANKS[u.ninja!.rank].name} nível ${u.ninja!.level}`)}>${esc(u.name.split(' ').pop()!)}</button>`;
+        for (const u of list) left += `<button data-act="duel-pick" data-arg="${u.id}" class="${cur.id === u.id ? 'on' : ''}" ${tipAttr(u.name, `${RANKS[u.ninja!.rank].name} nível ${u.ninja!.level}`)}>${esc(u.name.split(' ').pop()!)} <small>Nv ${u.ninja!.level}</small></button>`;
         left += `</div>`;
       }
     } else left += `<p class="hint">Nenhum ninja disponível (todos fora ou em missão).</p>`;
@@ -2520,7 +2520,7 @@ export class Panel {
     let right = `<div class="bsec"><h4>2. Adversário ${infoTip('Adversário', 'O servidor sorteia o retrato de outro jogador com força parecida com a do seu. A luta é na sua Arena, com as regras do Exame; o resultado vale pontos para os dois (quem defende perde ou ganha menos).')}</h4>`;
     if (arena.pending) {
       right += `<div class="lvlcard"><div class="lvlname">{swords} Duelo em andamento</div><div class="hint">contra ${esc(arena.pending.opponent.name)} (${esc(arena.pending.opponent.ninja.name)})</div>
-        <div class="actions"><button class="btn primary" data-act="watch">{pin} Assistir na arena</button></div></div>`;
+        <div class="actions"><button class="btn primary" data-act="arena-watch">{pin} Assistir na arena</button></div></div>`;
     } else if (arena.offline) {
       right += `<div class="warnbox">{alert} Sem conexão com o servidor de duelos. Dá para lutar contra o retrato de um amigo colando o texto dele.</div>`;
     } else {
@@ -2633,10 +2633,10 @@ export class Panel {
 
   /** Formulários da conta em avisos (os campos não se perdem quando a janela remonta). */
   private arenaForm(kind: 'register' | 'login' | 'rename') {
-    const field = (id: string, label: string, type = 'text', ph = '') => `<label class="dl-field"><span>${label}</span><input id="${id}" type="${type}" placeholder="${ph}" autocomplete="off"></label>`;
+    const field = (id: string, label: string, type = 'text', ph = '', value = '') => `<label class="dl-field"><span>${label}</span><input id="${id}" type="${type}" placeholder="${esc(ph)}" value="${esc(value)}" autocomplete="off"></label>`;
     const val = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() ?? '';
     if (kind === 'rename') {
-      showAlert({ kind: 'info', title: 'Nome na arena', extra: field('dl-name', 'Nome que os outros veem', 'text', arena.account?.displayName ?? ''), action: { label: '{check} Salvar', run: () => void arena.rename(val('dl-name')) } });
+      showAlert({ kind: 'info', title: 'Nome na arena', extra: field('dl-name', 'Nome que os outros veem', 'text', '', arena.account?.displayName ?? ''), action: { label: '{check} Salvar', run: () => void arena.rename(val('dl-name')) } });
       return;
     }
     if (kind === 'register') {
@@ -3257,6 +3257,43 @@ export class Panel {
       case 'win':
         this.onWindow({ kind: arg as 'village' });
         return;
+      // duelos (janela Duelos e drawer da Arena)
+      case 'duel-pick':
+        return this.report(setDuelist(g, Number(arg)));
+      case 'duel-copy':
+        return this.showSnapshot();
+      case 'duel-paste':
+        return this.askSnapshot();
+      case 'arena-refresh':
+        this.arenaAsked = {};
+        arena.error = null;
+        return this.report({ ok: true });
+      case 'arena-publish':
+        return this.arenaPublish();
+      case 'arena-find':
+        void arena.findOpponent();
+        return;
+      case 'arena-fight':
+        return this.arenaFight(arena.opponent);
+      case 'arena-revenge':
+        void arena.fetchOpponent(arg).then(() => this.onWindow({ kind: 'duels' }));
+        return;
+      case 'arena-register':
+      case 'arena-login':
+      case 'arena-rename':
+        return this.arenaForm(act.slice('arena-'.length) as 'register' | 'login' | 'rename');
+      case 'arena-logout':
+        void arena.logout();
+        return;
+      case 'arena-watch': {
+        const a = g.findBuilt('arena');
+        if (a) {
+          const c = arenaSpots(a).center;
+          this.app.camera.focus(c.x, c.y);
+        }
+        this.show(null);
+        return;
+      }
       case 'btab':
         this.buildingTab = arg as BuildingTab;
         return this.report({ ok: true });
@@ -3623,33 +3660,6 @@ export class Panel {
           return this.report(startExam(g));
         case 'exam-size':
           return this.report(setExamSize(g, Number(arg)));
-        case 'duel-pick':
-          return this.report(setDuelist(g, Number(arg)));
-        case 'duel-copy':
-          return this.showSnapshot();
-        case 'duel-paste':
-          return this.askSnapshot();
-        case 'arena-refresh':
-          this.arenaAsked = {};
-          arena.error = null;
-          return;
-        case 'arena-publish':
-          return this.arenaPublish();
-        case 'arena-find':
-          void arena.findOpponent();
-          return;
-        case 'arena-fight':
-          return this.arenaFight(arena.opponent);
-        case 'arena-revenge':
-          void arena.fetchOpponent(arg!).then(() => this.onWindow({ kind: 'duels' }));
-          return;
-        case 'arena-register':
-        case 'arena-login':
-        case 'arena-rename':
-          return this.arenaForm(act.slice('arena-'.length) as 'register' | 'login' | 'rename');
-        case 'arena-logout':
-          void arena.logout();
-          return;
         case 'watch': {
           const a = g.findBuilt('arena');
           if (a) {
