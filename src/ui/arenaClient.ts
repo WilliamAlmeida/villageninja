@@ -92,6 +92,7 @@ const ERROR_TEXT: Record<string, string> = {
   DUEL_SELF: 'Não dá para duelar contra o próprio retrato.',
   DUEL_NOT_FOUND: 'Duelo não encontrado.',
   DUEL_ALREADY_FINISHED: 'Esse duelo já foi encerrado.',
+  TOO_MANY_DUELS: 'Muitos duelos na última hora. Descanse um pouco.',
   SERVER_ERROR: 'O servidor deu erro. Tente de novo.',
   NOT_FOUND: 'Rota não encontrada no servidor.',
   OFFLINE: 'Sem conexão com o servidor de duelos.',

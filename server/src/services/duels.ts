@@ -18,6 +18,12 @@ export const DUEL = {
   REPORT_LIMIT: 30,
   /** Tamanho máximo do texto do retrato. */
   CODE_MAX: 8 * 1024,
+  /** Duelos abertos por hora por jogador. */
+  PER_HOUR: 30,
+  /** Resultado que chega antes disso (segundos reais) é suspeito: a luta tem caminhada, "VS" e o Hajime. */
+  MIN_SECONDS: 4,
+  /** Vitória com força abaixo desta fração da do defensor é suspeita (fica sinalizada, não recusada). */
+  WEAK_WIN: 0.5,
 } as const;
 
 /** Força do retrato: soma dos atributos × (nível + 5), para o nível 1 não valer quase nada. */
@@ -160,6 +166,8 @@ export const duels = {
   async start(userId: string, opponentId: unknown): Promise<{ duelId: string; code: string }> {
     if (typeof opponentId !== 'string' || !/^[0-9a-f-]{36}$/.test(opponentId)) throw new ApiError(400, 'INVALID_OPPONENT');
     await this.settleAbandoned(userId);
+    const [n] = await sql<Array<{ n: number }>>`SELECT count(*)::int as n FROM duels WHERE attacker_id = ${userId} AND started_at > NOW() - interval '1 hour'`;
+    if ((n?.n ?? 0) >= DUEL.PER_HOUR) throw new ApiError(429, 'TOO_MANY_DUELS');
     const foe = await this.opponent(userId, opponentId);
     const mine = await this.mine(userId);
     const [snapRow] = await sql<Array<{ data: NinjaSnapshot }>>`SELECT data FROM snapshots WHERE user_id = ${opponentId} AND kind = 'ninja'`;
@@ -175,25 +183,33 @@ export const duels = {
   },
 
   /** Resultado do duelo (confiado ao cliente por enquanto; o replay com semente é o próximo passo). */
-  async finish(userId: string, input: { duelId?: unknown; won?: unknown; summary?: unknown; reason?: unknown }): Promise<{ rating: number; delta: number; defDelta: number }> {
+  async finish(userId: string, input: { duelId?: unknown; won?: unknown; summary?: unknown; reason?: unknown }): Promise<{ rating: number; delta: number; defDelta: number; flags: string[] }> {
     const duelId = typeof input.duelId === 'string' ? input.duelId : '';
     if (!/^[0-9a-f-]{36}$/.test(duelId)) throw new ApiError(400, 'INVALID_DUEL');
     const won = input.won === true;
     const reason = typeof input.reason === 'string' && /^[a-z]{1,12}$/.test(input.reason) ? input.reason : won ? 'win' : 'loss';
     const summary = input.summary && typeof input.summary === 'object' ? (input.summary as Summary) : null;
     return sql.begin(async (tx) => {
-      const [duel] = await tx<Array<{ defenderId: string; finished: Date | null }>>`
-        SELECT defender_id as "defenderId", finished_at as finished FROM duels WHERE id = ${duelId} AND attacker_id = ${userId} FOR UPDATE
+      const [duel] = await tx<Array<{ defenderId: string; finished: Date | null; seconds: number; snapshot: NinjaSnapshot; mine: NinjaSnapshot | null }>>`
+        SELECT defender_id as "defenderId", finished_at as finished, EXTRACT(EPOCH FROM (NOW() - started_at))::float as seconds,
+          snapshot, attacker_snapshot as mine
+        FROM duels WHERE id = ${duelId} AND attacker_id = ${userId} FOR UPDATE
       `;
       if (!duel) throw new ApiError(404, 'DUEL_NOT_FOUND');
       if (duel.finished) throw new ApiError(409, 'DUEL_ALREADY_FINISHED');
+      // o resultado é do cliente (o jogo não tem replay determinístico entre motores JS): sinais de trapaça ficam
+      // gravados para o painel do dono, sem recusar o resultado
+      const flags: string[] = [];
+      if (duel.seconds < DUEL.MIN_SECONDS) flags.push('fast');
+      if (won && duel.mine && powerOf(duel.mine) < powerOf(duel.snapshot) * DUEL.WEAK_WIN) flags.push('weak-win');
+      if (won && !duel.mine) flags.push('no-snapshot');
       const r = await this.applyResult(tx as unknown as typeof sql, userId, duel.defenderId, won);
       await tx`
         UPDATE duels SET won = ${won}, end_reason = ${reason}, finished_at = NOW(),
-          summary = ${sql.json({ ...(summary ?? {}), defDelta: r.defDelta, delta: r.delta } as never)}
+          summary = ${sql.json({ ...(summary ?? {}), defDelta: r.defDelta, delta: r.delta, seconds: Math.round(duel.seconds), flags } as never)}
         WHERE id = ${duelId}
       `;
-      return r;
+      return { ...r, flags };
     });
   },
 
@@ -281,6 +297,21 @@ export const duels = {
   async markSeen(userId: string): Promise<void> {
     await ensureStats(sql, userId);
     await sql`UPDATE duel_stats SET report_seen_at = NOW() WHERE user_id = ${userId}`;
+  },
+
+  /** Duelos com sinal de trapaça nos últimos 7 dias (painel do dono): quem, contra quem, sinais, pontos. */
+  async suspicious(): Promise<Array<{ id: string; at: string; attacker: string; attackerId: string; defender: string; won: boolean | null; flags: string[]; seconds: number | null; delta: number | null }>> {
+    const rows = await sql<Array<{ id: string; at: Date; attacker: string; attackerId: string; defender: string; won: boolean | null; summary: Record<string, unknown> | null }>>`
+      SELECT d.id, d.finished_at as at, a.display_name as attacker, a.id as "attackerId", b.display_name as defender, d.won, d.summary
+      FROM duels d JOIN users a ON a.id = d.attacker_id JOIN users b ON b.id = d.defender_id
+      WHERE d.finished_at > NOW() - interval '7 days' AND jsonb_array_length(COALESCE(d.summary->'flags', '[]'::jsonb)) > 0
+      ORDER BY d.finished_at DESC LIMIT 50
+    `;
+    return rows.map((r) => ({
+      id: r.id, at: new Date(r.at).toISOString(), attacker: r.attacker, attackerId: r.attackerId, defender: r.defender, won: r.won,
+      flags: (r.summary?.flags as string[] | undefined) ?? [], seconds: typeof r.summary?.seconds === 'number' ? (r.summary.seconds as number) : null,
+      delta: typeof r.summary?.delta === 'number' ? (r.summary.delta as number) : null,
+    }));
   },
 
   /** Últimos duelos que eu ataquei (histórico curto). */

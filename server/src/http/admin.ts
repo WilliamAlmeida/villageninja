@@ -1,6 +1,7 @@
 // Painel do dono (/api/admin/*, header X-Dev-Key = DEV_PASSWORD): só números gerais por enquanto.
 import { sql } from '../db';
 import { ApiError } from '../errors';
+import { duels } from '../services/duels';
 
 type Json = Record<string, unknown>;
 
@@ -21,7 +22,9 @@ export async function routeAdmin(method: string, path: string, _body: Json, json
       SELECT to_char(started_at AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') as day, count(*)::int as duels
       FROM duels WHERE started_at > NOW() - interval '14 days' GROUP BY 1 ORDER BY 1
     `;
-    return json({ users, snapshots: snaps!.n, duels: d, perDay });
+    const [flagged] = await sql<Array<{ n: number }>>`SELECT count(*)::int as n FROM duels WHERE finished_at > NOW() - interval '7 days' AND jsonb_array_length(COALESCE(summary->'flags', '[]'::jsonb)) > 0`;
+    return json({ users, snapshots: snaps!.n, duels: { ...d!, flagged7d: flagged!.n }, perDay });
   }
+  if (method === 'GET' && path === '/api/admin/suspicious') return json({ duels: await duels.suspicious() });
   throw new ApiError(404, 'NOT_FOUND');
 }

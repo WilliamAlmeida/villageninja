@@ -34,5 +34,7 @@ bun run dev                                         # http://localhost:3012/api/
 | `GET /duel/defenses` · `POST /duel/defenses/seen` | Quem desafiou o meu retrato (e revanche pendente) / marca como visto |
 | `GET /admin/overview` (header `X-Dev-Key`) | Números gerais para o dono |
 
-Duelo aberto e largado (fechou o jogo) conta como derrota ao abrir o próximo. O resultado é confiado ao cliente por
-enquanto; o próximo passo é o replay com RNG com semente, como o `replayPveMatch` do battlecard.
+Duelo aberto e largado (fechou o jogo) conta como derrota ao abrir o próximo. O resultado é do cliente (não há replay
+determinístico entre motores JS, ver o GDD seção 8 item 3): o servidor só **sinaliza** o que é suspeito em
+`summary.flags` (`fast` < 4 s, `weak-win`, `no-snapshot`), limita 30 duelos por hora por jogador (`TOO_MANY_DUELS`) e
+lista os suspeitos para o dono em `GET /admin/suspicious` (e `duels.flagged7d` na visão geral).

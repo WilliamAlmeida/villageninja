@@ -210,8 +210,15 @@ Só um mapa é simulado em detalhe por vez (como hoje com as cenas). Medir cada 
    `game/duel.ts` (duelo na arena pela máquina do Exame, `Exam.duel`; XP e placar `stats.duelsWon/duelsLost`, save v47).
    [x] servidor (2026-10-15, `server/`, README lá; molde do battlecard-server): contas de convidado/cadastro, retrato
    publicado, adversário por força parecida, duelo com ELO K32/K16, ranking, relatório de defesas com revanche; no jogo
-   a janela Duelos (tecla D, `ui/arenaClient.ts`). O retrato por texto continua como alternativa sem servidor. Pendente:
-   replay com RNG com semente (hoje o resultado é confiado ao cliente) e painel do dono além dos números gerais.
+   a janela Duelos (tecla D, `ui/arenaClient.ts`). O retrato por texto continua como alternativa sem servidor.
+   **Replay com semente: descartado por ora** (2026-10-15). A simulação usa `Math.random` em dezenas de pontos e, pior,
+   `Math.sin/cos/hypot/atan2` em toda parte: o servidor (Bun, JavaScriptCore) e o navegador (V8) não garantem os mesmos
+   bits nessas funções, então uma luta refeita no servidor poderia divergir da que o jogador viu. No lugar, o servidor
+   **sinaliza** resultados suspeitos sem recusá-los (`duels.finish`: `fast` = chegou em menos de 4 s reais, `weak-win` =
+   venceu com força abaixo de metade da do defensor, `no-snapshot` = venceu sem retrato publicado), guarda os sinais em
+   `duels.summary.flags`, limita a 30 duelos abertos por hora (`TOO_MANY_DUELS`) e o painel do dono lista os suspeitos
+   (`GET /api/admin/suspicious`, `flagged7d` na visão geral). Se um dia valer a pena: a luta teria que virar uma cena
+   própria com dois lutadores, RNG único com semente e matemática inteira (ou tabelas) no combate.
    **Duelo PvP na arena** (6.2) + `game/snapshot.ts` + `scripts/arena-server.ts`: o serviço mínimo e o ninja
    serializado.
 4. **Colônias** (seção 5): estado, Porto, transferência, resumo por dia, 1 tema primeiro (pesca, que já tem mapa).

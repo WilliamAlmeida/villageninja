@@ -153,6 +153,32 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     expect((await api('POST', '/api/duel/start', { opponentId: idB }, b)).data.error).toBe('DUEL_SELF');
   });
 
+  test('sinais de trapaça: resultado rápido demais e vitória do fraco ficam marcados; limite de duelos por hora', async () => {
+    await db!.truncateAll();
+    const weak = await guest();
+    const strong = await guest();
+    await api('PUT', '/api/snapshot', { code: makeCode('genin', 2, 51) }, weak);
+    await api('PUT', '/api/snapshot', { code: makeCode('jounin', 30, 52) }, strong);
+    const idStrong = (await api('GET', '/api/me', undefined, strong)).data.account.id;
+    const st = await api('POST', '/api/duel/start', { opponentId: idStrong }, weak);
+    const fin = await api('POST', '/api/duel/finish', { duelId: st.data.duelId, won: true }, weak);
+    expect(fin.status).toBe(200); // o resultado vale, mas fica sinalizado
+    expect(fin.data.flags).toEqual(['fast', 'weak-win']);
+    if (config.devPassword) {
+      const sus = await api('GET', '/api/admin/suspicious', undefined, undefined, { 'X-Dev-Key': config.devPassword });
+      expect(sus.data.duels.length).toBe(1);
+      expect(sus.data.duels[0].flags).toContain('weak-win');
+      const ov = await api('GET', '/api/admin/overview', undefined, undefined, { 'X-Dev-Key': config.devPassword });
+      expect(ov.data.duels.flagged7d).toBe(1);
+    }
+    // 30 duelos abertos na hora: o 31º é recusado
+    const idWeak = (await api('GET', '/api/me', undefined, weak)).data.account.id;
+    let last = { status: 0, data: {} as Record<string, any> };
+    for (let i = 0; i < 31; i++) last = await api('POST', '/api/duel/start', { opponentId: idWeak }, strong);
+    expect(last.status).toBe(429);
+    expect(last.data.error).toBe('TOO_MANY_DUELS');
+  });
+
   test('painel do dono só com a senha', async () => {
     expect((await api('GET', '/api/admin/overview')).status).toBe(403);
     if (!config.devPassword) return;
