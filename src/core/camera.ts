@@ -64,9 +64,25 @@ export class Camera {
     this.clamp();
   }
 
+  /** Zoom imediato (pinça: o dedo já é contínuo), mantendo parado o ponto (sx, sy) da tela. */
   zoomAt(factor: number, sx: number, sy: number) {
+    this.zoomGoal = null;
+    this.setZoom(this.zoom * factor, sx, sy);
+  }
+
+  /**
+   * Zoom suave (roda do mouse): cada passo da roda soma ao alvo e o `update` chega nele aos poucos, mantendo parado o
+   * ponto (sx, sy) sob o cursor. Direto, a roda pulava ~15% de uma vez e o mapa dava trancos.
+   */
+  zoomSmooth(factor: number, sx: number, sy: number) {
+    const base = this.zoomGoal?.z ?? this.zoom;
+    this.zoomGoal = { z: clamp(base * factor, MIN_ZOOM, this.maxZoom), sx, sy };
+  }
+  private zoomGoal: { z: number; sx: number; sy: number } | null = null;
+
+  private setZoom(z: number, sx: number, sy: number) {
     const before = this.screenToScene(sx, sy);
-    this.zoom = clamp(this.zoom * factor, MIN_ZOOM, this.maxZoom);
+    this.zoom = clamp(z, MIN_ZOOM, this.maxZoom);
     const after = this.screenToScene(sx, sy);
     this.x += before.x - after.x;
     this.y += before.y - after.y;
@@ -95,6 +111,14 @@ export class Camera {
   private trackSpeed = 8;
 
   update(dt: number) {
+    const g = this.zoomGoal;
+    if (g) {
+      // aproxima em escala logarítmica (cada quadro vence a mesma fração do caminho, perto ou longe)
+      const r = g.z / this.zoom;
+      const z = Math.abs(Math.log(r)) < 0.002 ? g.z : this.zoom * r ** (1 - Math.exp(-dt * 14));
+      this.setZoom(z, g.sx, g.sy);
+      if (z === g.z) this.zoomGoal = null;
+    }
     if (!this.follow) return;
     const k = 1 - Math.exp(-dt * this.trackSpeed);
     this.trackSpeed = 8;

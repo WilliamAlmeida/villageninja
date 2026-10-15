@@ -83,6 +83,8 @@
   bilinear no CSS.
 - **Câmera segue o selecionado** (`followSelected` em main.ts, `Camera.track`/`trackId`): lerp suave; arrastar solta; se a
   unidade se perder (caiu, saiu do mapa) volta suave para a Residência. Menu "Câmera segue o ninja" (`followCam`, padrão sim).
+- **Zoom**: a roda do mouse é suave (`Camera.zoomSmooth`: cada passo soma ao alvo e `Camera.update` chega nele em escala
+  logarítmica, com o ponto sob o cursor parado); a pinça segue imediata (`zoomAt`), porque o dedo já é contínuo.
   Menu de pausa numa coluna (ações, configurações, novo jogo) com botão "Guia" para as dicas. **Processamento**
   (`simRate` em ui/settings.ts, por aparelho): Normal = 60 passos de simulação por segundo de jogo; Reduzido = 30, cada
   um com o dobro do tempo (main.ts, `simStep`): metade da conta para celular fraco, onde a simulação comia ~11 ms por

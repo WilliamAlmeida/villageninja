@@ -135,7 +135,9 @@ export class Input {
   private wheel = (e: WheelEvent) => {
     e.preventDefault();
     const r = this.el.getBoundingClientRect();
-    this.cam.zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+    // roda em linhas (Firefox) vira px; o zoom vai suave até o alvo (Camera.update)
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    this.cam.zoomSmooth(Math.exp(-dy * 0.0015), e.clientX - r.left, e.clientY - r.top);
   };
 
   private center() {
