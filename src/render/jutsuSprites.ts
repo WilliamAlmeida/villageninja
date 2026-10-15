@@ -8,7 +8,7 @@ import { suiryuudanPose } from './projectileMotion';
 import { dragonPoint } from '../game/dragonFlight';
 import { project, projectAngle } from '../core/iso';
 import { wallEnds } from '../game/walls';
-import { sandCoffinFrame, wallFrame, wallView } from './earthSandMotion';
+import { jukaiFrame, sandCoffinFrame, wallFrame, wallView } from './earthSandMotion';
 
 /** Peças modulares: fonte fixa no chão, corpo com juntas sobrepostas e cabeça na tangente da curva. */
 function drawDragonChain(ctx: CanvasRenderingContext2D, p: Projectile, s: SpriteFx, t: number): boolean {
@@ -216,6 +216,12 @@ export function drawSandCoffin(ctx: CanvasRenderingContext2D, x: number, y: numb
   return drawSpriteFx(ctx, s, x, y + 9, 0, 0, 0, undefined, frame);
 }
 
+export function drawJukaiRoots(ctx: CanvasRenderingContext2D, x: number, y: number, remaining: number): boolean {
+  const s = spriteFx('jukai');
+  return !!s && drawSpriteFx(ctx, s, x, y + 9, 0, 0, 0, undefined,
+    jukaiFrame(remaining, JUTSUS.jukai!.duration ?? 2.5));
+}
+
 /** Formação na mão: folha e tamanho definidos na configuração do jutsu. */
 export function drawHandJutsu(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, t: number, uid: number, growth = 1): boolean {
   const s = spriteFx(id);
@@ -227,7 +233,8 @@ export function drawJutsuImpact(ctx: CanvasRenderingContext2D, e: Effect): boole
   if (!s) return false;
   ctx.save();
   ctx.globalAlpha = 1;
-  const fade = e.fx === 'rasenshuriken' ? Math.max(0, Math.min(1, (e.life - e.t) / 0.16)) : 1;
+  const fade = ['rasenshuriken', 'kirin', 'chidorinagashi'].includes(e.fx ?? '')
+    ? Math.max(0, Math.min(1, (e.life - e.t) / 0.16)) : 1;
   const drawn = drawSpriteFx(ctx, { ...s, opacity: s.opacity * fade }, e.x, e.y, 0, e.t, 0, undefined, Math.floor(e.t * s.fps));
   ctx.restore();
   return drawn;

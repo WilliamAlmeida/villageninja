@@ -1,7 +1,7 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { TILE } from '../config';
-import { drawHandJutsu, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
+import { drawHandJutsu, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -938,6 +938,7 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       break;
     }
     case 'wood':
+      if (drawJukaiRoots(ctx, u.x, u.y, u.stun)) break;
       // raízes enroladas subindo pelas pernas
       // raízes grossas (contorno escuro + madeira clara) enroladas do chão até o peito
       for (const [w, c] of [[5.5, '#3a2410'], [3.5, '#a8743d']] as const) {
@@ -970,6 +971,7 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       break;
     case 'sand': {
       // Sabaku Kyū: a areia envolve o corpo como um casulo, grãos girando
+      if (drawSandCoffin(ctx, u.x, u.y, u.stun)) break;
       const g = ctx.createLinearGradient(u.x, u.y - 22, u.x, u.y + 9);
       g.addColorStop(0, 'rgba(232,206,140,0.55)');
       g.addColorStop(1, 'rgba(184,146,82,0.95)');
@@ -990,7 +992,6 @@ function drawStunned(ctx: Ctx, u: Unit, t: number) {
       }
       break;
     }
-      if (drawSandCoffin(ctx, u.x, u.y, u.stun)) break;
     case 'water': {
       if (drawWaterPrison(ctx, u.x, u.y, t, u.id)) break;
       // Prisão d'Água: bolha que ondula em volta do corpo
@@ -1175,6 +1176,7 @@ function drawShield(ctx: Ctx, u: Unit, t: number) {
       break;
     case 'sand': {
       // Suna no Tate: parede de areia girando em volta, mais densa do lado de fora
+      if (drawSandShield(ctx, u.x, u.y, u.facing, t, u.id)) break;
       for (let i = 0; i < 26; i++) {
         const a = t * 2.6 + (i / 26) * TAU;
         const rr = 15 + Math.sin(i * 1.7 + t * 4) * 1.5;
@@ -1195,7 +1197,6 @@ function drawShield(ctx: Ctx, u: Unit, t: number) {
         ctx.beginPath();
         ctx.arc(u.x, y, 13 - Math.abs(i - 1.5) * 1.5, Math.PI * 1.15, Math.PI * 1.85);
         ctx.stroke();
-      if (drawSandShield(ctx, u.x, u.y, u.facing, t, u.id)) break;
       }
       break;
     case 'metal':

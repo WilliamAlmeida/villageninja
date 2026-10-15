@@ -150,3 +150,15 @@ usa `drawSandCoffin`: formação nos primeiros 0,45 s, fechado durante a prisão
 desmanche nos últimos 0,3 s. O tempo vem de `Unit.stun`; as fases não alteram a mecânica. Base em `u.y + 9` nos dois.
 Todos mantêm fallback procedural se a folha não carregar. Os ajustes de fonte são feitos no JSON; o painel de
 sprite do laboratório continua editando a folha principal.
+## Kirin, Jukai Kōtan, Raikyuu e Chidori Nagashi
+
+Kirin desenha `JutsuFx.impact` também no efeito `thunder` (`drawEffect`), oito fases de formação/descida/descarga,
+em execução única de 0,8 s. Nagashi usa `burst` com sua folha, centro transparente e a mesma duração, acompanhando
+o lançador por `uid` no `effectSystem`; `dy: 18` alinha a base da descarga aos pés (o centro do anel na arte fica
+acima da âncora da célula). Ambos substituem o anel e a explosão procedural e desvanecem nos últimos
+0,16 s. Kirin fica no ponto original atingido, mesmo que o alvo seja empurrado. Raikyuu usa a folha em loop de
+16 qps, com giro pela direção projetada, sem rastro adicional; impacto usa pequenas faíscas azul-brancas.
+`drawStunned`, estilo `wood`, chama `drawJukaiRoots` ancorado nos pés (`y+9`): cresce em 0,45 s, forma a gaiola,
+ganha folhas, permanece até os últimos 0,45 s da prisão e recua (`earthSandMotion.jukaiFrame`). Fallback procedural
+se a folha não carregar. Raikyuu/Jukai usam `.sprite`; Kirin/Nagashi usam `.impact`, editado pelo JSON.
+

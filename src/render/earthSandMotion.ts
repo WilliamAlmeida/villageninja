@@ -22,3 +22,10 @@ export function sandCoffinFrame(remaining: number, duration: number) {
   if (age < 0.45) return Math.min(2, Math.floor(age / 0.15));
   return 3;
 }
+
+export function jukaiFrame(remaining: number, duration: number) {
+  const age = Math.max(0, duration - remaining);
+  if (remaining <= .45) return Math.min(7, 5 + Math.floor(Math.max(0, .45 - remaining) / .15));
+  if (age < .45) return Math.min(2, Math.floor(age / .15));
+  return age < .8 ? 3 : 4;
+}

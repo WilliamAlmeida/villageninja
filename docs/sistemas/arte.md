@@ -109,3 +109,16 @@ Complemento da correção: `effect-doryuuheki-oblique-v1.png`, RGBA 384x192, oit
 com topo e face lateral. Fonte e prompt em `doryuuhekiOblique-source.png`/`doryuuheki-oblique-prompt.json` na mesma
 pasta; ImageGen integrado usando a frontal como referência. Preparo com `-Only doryuuhekiOblique`.
 Runtime usa três folhas sem deformação, tamanhos 64/58/58 (frontal/diagonal/perfil); galeria atualizada para 16 direções.
+
+## Kirin, Jukai Kōtan, Raikyuu e Chidori Nagashi
+
+Iniciado em 2026-10-14. Quatro folhas RGBA, grade 4x2, oito quadros: `effect-kirin-v1` e
+`effect-chidorinagashi-v1` (512x256, células128), `effect-jukai-v1` (384x192, células96) e
+`projectile-raikyuu-v1` (256x128, células64). Fontes, prompts ImageGen integrado e prévia em
+`docs/arte/jutsus/raiton-mokuton/`. Preparo: `scripts/prepare-raiton-mokuton.ps1`; prévia:
+`bun scripts/preview-raiton-mokuton.ts`. No Kirin, manter o registro vertical da célula ao preparar,
+e registrar a ponta da cabeça descendo nos quatro primeiros quadros antes do impacto. Demais efeitos de chão usam base alinhada;
+Raikyuu tem centro fixo. Integradas em 2026-10-15; Amaterasu e Susano'o adiados pelo autor.
+Dados de runtime em `jutsu-fx.json`: `kirin.impact` tamanho180, 10 qps; `jukai.sprite` tamanho76;
+`raikyuu.sprite` tamanho30, 16 qps, gira com o voo; `chidorinagashi.impact` tamanho142, 10 qps, opacidade0,95.
+Configuração reproduzível: `scripts/configure-raiton-mokuton.ts`.

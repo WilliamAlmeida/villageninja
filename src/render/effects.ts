@@ -267,6 +267,7 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       break;
     }
     case 'thunder': {
+      if (drawJutsuImpact(ctx, e)) break;
       // Kirin: o raio cai do céu (vertical na tela), clarão no chão e o anel da área
       const top = e.y - 190;
       const fade = k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75;

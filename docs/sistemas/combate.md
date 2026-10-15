@@ -99,3 +99,12 @@ Suna no Tate continua usando `Unit.shield`/`shieldVfx`; Sabaku Kyū continua usa
 dano existente. Os dois mostram a folha de areia no lugar da explosão inicial de partículas. Fases em
 `render/earthSandMotion.ts`, sem timers adicionais. Fonte é efeito transitório eliminado do save; não há novos
 campos persistentes, mantendo save v44.
+
+## Integração de Raiton e Mokuton
+
+`releaseJutsu`: jutsu de área com `.impact` usa duração `frames/fps` e dispensa anel/partículas duplicadas.
+Kirin mantém o efeito `thunder` com `fx: kirin`, força reduzida a 60% sob céu limpo e o dano em área original.
+Nagashi mantém um único dano em área no momento do uso; o `burst` de 0,8 s leva `uid`, acompanha o corpo pelo
+`effectSystem` e termina se o lançador morrer, sumir ou ficar oculto. Seguir visualmente não aplica dano novamente.
+Jukai mantém dano e 2,5 s de prisão com estilo `wood`, substituindo a explosão inicial pelas fases de raízes.
+Raikyuu mantém o projétil e o atordoamento existentes. Nenhum campo persistente novo; save continua v44.

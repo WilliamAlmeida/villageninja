@@ -333,14 +333,17 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       // em volta de si (Chidori Nagashi) ou no alvo; vento: rajada em leque até o alvo; calor (Shakuton): esferas
       // incandescentes estourando em volta; do céu (Kirin): o raio cai, fraco sem nuvem de tempestade sobre o alvo
       const c = def.self ? u : t;
+      const impact = FX.jutsus[def.id]?.impact;
+      const impactLife = impact ? impact.frames / Math.max(1, impact.fps) : 0.55;
       let p = power;
       if (def.sky) {
-        fx(g, 'thunder', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.7 });
+        fx(g, 'thunder', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: impact ? impactLife : 0.7, fx: def.id });
         if (weatherAt(g.state, seasonOf(g.state), c.x, c.y) === 'clear') p *= 0.6;
       }
       if (vfx === 'wind' && !def.self) fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.55, r: def.radius ?? 50 });
-      fx(g, 'burst', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.55, vfx, fx: def.id });
-      fx(g, 'ring', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
+      if (!def.sky || !impact)
+        fx(g, 'burst', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: impactLife, vfx, fx: def.id, uid: def.self ? u.id : undefined });
+      if (!impact) fx(g, 'ring', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
       areaDamage(g, u, u.faction, c.x, c.y, def.radius ?? 50, p, def.nature, 45, def.stun ?? 0);
       break;
     }
@@ -382,7 +385,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
     }
     case 'bind':
       // raízes prendem o alvo e causam dano
-      if (def.id !== 'sabakukyu' || !FX.jutsus.sabakukyu?.sprite)
+      if (!((def.id === 'sabakukyu' || def.id === 'jukai') && FX.jutsus[def.id]?.sprite))
         fx(g, 'burst', t.x, t.y, { r: 22, color: def.color, life: 0.5, vfx: vfx ?? 'wood', fx: def.id });
       applyDamage(g, u, t, power, null, { stun: def.duration ?? 2, stunVfx: vfx ?? 'wood' });
       break;

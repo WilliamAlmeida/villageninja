@@ -297,6 +297,10 @@ import doryuudanOrigin from '../art/effects/effect-doryuudan-origin-v1.png';
 import doryuudanMud from '../art/effects/projectile-doryuudan-v1.png';
 import sandShield from '../art/effects/effect-sunanotate-v1.png';
 import sandCoffin from '../art/effects/effect-sabakukyu-v1.png';
+import kirinStrike from '../art/effects/effect-kirin-v1.png';
+import jukaiRoots from '../art/effects/effect-jukai-v1.png';
+import raikyuuSphere from '../art/effects/projectile-raikyuu-v1.png';
+import nagashiDischarge from '../art/effects/effect-chidorinagashi-v1.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'projectile-housenka': projectileHousenka, 'projectile-goukakyuu': projectileGoukakyuu,
@@ -308,6 +312,8 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'effect-doryuuheki-profile-v1': doryuuhekiProfile,
   'effect-doryuuheki-oblique-v1': doryuuhekiOblique,
   'projectile-doryuudan-v1': doryuudanMud, 'effect-sunanotate-v1': sandShield, 'effect-sabakukyu-v1': sandCoffin,
+  'effect-kirin-v1': kirinStrike, 'effect-jukai-v1': jukaiRoots,
+  'projectile-raikyuu-v1': raikyuuSphere, 'effect-chidorinagashi-v1': nagashiDischarge,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-top': towerTop, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3,
