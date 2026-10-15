@@ -13,7 +13,7 @@ import { preloadArt } from './render/art';
 import { Renderer } from './render/renderer';
 import { createUI } from './ui';
 import { demoMenu } from './ui/demoMenu';
-import { applySettings, followCam, occlusion, quality, QUALITY_CFG } from './ui/settings';
+import { applySettings, followCam, occlusion, quality, QUALITY_CFG, simRate } from './ui/settings';
 import { warmPortraits } from './ui/warm';
 import { FpsMeter } from './ui/fps';
 
@@ -203,8 +203,32 @@ bus.on('occlusion', () => {
   drawDirty = true;
 });
 let lastDraw = 0;
+/** Tempo de jogo de cada passo da simulação: SIM_DT, ou o dobro no Processamento Reduzido (Configurações). */
+let simStep = simRate() === 'reduced' ? SIM_DT * 2 : SIM_DT;
+bus.on('simRate', () => (simStep = simRate() === 'reduced' ? SIM_DT * 2 : SIM_DT));
 
 const fps = new FpsMeter();
+// relatório do botão de salvar do medidor: como o jogo e o desenho estão agora
+fps.info = () => {
+  const s = home.state;
+  let seen = 0;
+  for (const w of s.explored ?? []) for (let b = w >>> 0; b; b &= b - 1) seen++;
+  return {
+    day: s.day,
+    speed: s.speed,
+    view: app.viewScene ? 'cena' : 'vila',
+    zoom: +camera.zoom.toFixed(2),
+    units: s.units.filter((u) => !u.dead).length,
+    nodes: s.nodes.length,
+    buildings: s.buildings.length,
+    population: home.population(),
+    exploredPct: Math.round((100 * seen) / (s.mapW * s.mapH)),
+    map: `${s.mapW}x${s.mapH}`,
+    canvas: { w: renderer['canvas'].width, h: renderer['canvas'].height, dpr: renderer['dpr'] },
+    windowOpen: !!winEl && !winEl.hidden,
+    bench: (window as unknown as { bench: (n?: number) => object }).bench(10),
+  };
+};
 fps.sync();
 bus.on('fps', () => fps.sync());
 
@@ -234,15 +258,20 @@ function frame(now: number) {
   // orçamento de tempo para a simulação neste quadro: se o aparelho não dá conta (3x num celular fraco, batalha
   // grande), o jogo anda um pouco mais devagar em vez de tentar alcançar o atraso — que fazia cada quadro rodar
   // ainda mais passos e o FPS despencar (bola de neve)
-  const budget = performance.now() + SIM_BUDGET_MS;
+  g.prof = fps.detail ? fps.simProf : null; // medidor detalhado: ms por sistema
+  const tSim = performance.now();
+  const budget = tSim + SIM_BUDGET_MS;
   let steps = 0;
-  while (acc >= SIM_DT && steps < 12) {
-    g.step(SIM_DT);
-    acc -= SIM_DT;
+  // Processamento Reduzido (Configurações): passos com o dobro do tempo, metade das contas
+  const stepDt = simStep;
+  while (acc >= stepDt && steps < 12) {
+    g.step(stepDt);
+    acc -= stepDt;
     steps++;
     if (performance.now() > budget) break;
   }
-  if (acc >= SIM_DT) acc = Math.min(acc, SIM_DT); // o que não coube fica para trás (não acumula)
+  if (acc >= stepDt) acc = Math.min(acc, stepDt); // o que não coube fica para trás (não acumula)
+  const simMs = performance.now() - tSim;
 
   saveTimer += dt;
   if (saveTimer >= AUTOSAVE_INTERVAL) {
@@ -275,11 +304,17 @@ function frame(now: number) {
       idleWait = 0.5;
     }
   }
+  let drawMs = 0;
   if (draw) {
     drawWait = 1 / 12;
+    const t = performance.now();
+    renderer.prof = fps.detail ? fps.prof : null; // medidor detalhado: etapas do desenho
     renderer.render(app.game, camera, app.ghost, clock, app);
+    drawMs = performance.now() - t;
   }
+  const tUi = performance.now();
   ui.update(dt, clock);
+  fps.times(simMs, steps, drawMs, performance.now() - tUi);
   requestAnimationFrame(frame);
 }
 
@@ -325,6 +360,15 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw-v1.js').
   const steps = Object.fromEntries(Object.entries(prof).map(([k, v]) => [k, +(v / n).toFixed(2)]));
   const ui1 = time(() => ui.update(1 / 60, clock));
   const copy = new (home.constructor as new (s: unknown, sys: unknown) => typeof home)(JSON.parse(JSON.stringify(home.state)), SYSTEMS);
+  const simProf: Record<string, number> = {};
+  copy.prof = simProf;
   const sim = time(() => copy.step(SIM_DT));
-  return { render, steps, sim, ui: ui1, frameAt3x: +(render + sim * 3 + ui1).toFixed(2), units: home.state.units.length, nodes: home.state.nodes.length, zoom: camera.zoom };
+  // ms por sistema num passo (média dos n), só os que pesam
+  const simSteps = Object.fromEntries(
+    Object.entries(simProf)
+      .map(([k, v]) => [k, +(v / n).toFixed(3)] as const)
+      .filter(([, v]) => v >= 0.005)
+      .sort((a, b) => b[1] - a[1]),
+  );
+  return { render, steps, sim, simSteps, ui: ui1, frameAt3x: +(render + sim * 3 + ui1).toFixed(2), units: home.state.units.length, nodes: home.state.nodes.length, zoom: camera.zoom };
 };

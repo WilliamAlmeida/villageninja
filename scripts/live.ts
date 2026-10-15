@@ -8,6 +8,7 @@
 import { copyFileSync, mkdirSync, readdirSync, rmSync, watch } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { perfReport } from './perfReport';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DIST = `${ROOT}dist/`;
@@ -77,7 +78,10 @@ const TYPES: Record<string, string> = { webmanifest: 'application/manifest+json'
 Bun.serve({
   port,
   hostname: '0.0.0.0',
-  async fetch(req) {
+  async fetch(req, server) {
+    // botão de salvar do Medidor de FPS: relatório do aparelho em .perf/devices/
+    const report = await perfReport(req, server.requestIP(req)?.address);
+    if (report) return report;
     const path = decodeURIComponent(new URL(req.url).pathname);
     if (path.includes('..')) return new Response('Not found', { status: 404, headers: NO_STORE });
     const name = path === '/' ? 'index.html' : path === '/lab' || path === '/lab/' ? 'tools/jutsu-lab/index.html' : path.slice(1);

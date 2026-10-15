@@ -11,7 +11,7 @@ export const FONT_SIZES: { id: FontSize; label: string }[] = [
 ];
 
 /** Desktop (mouse + tela larga) começa no médio; celular, no pequeno. */
-function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown; fps?: unknown; fpsPos?: unknown; quality?: unknown; occl?: unknown } {
+function load(): { fontSize?: unknown; weatherFx?: unknown; follow?: unknown; fps?: unknown; fpsPos?: unknown; quality?: unknown; occl?: unknown; sim?: unknown } {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? '{}') ?? {};
   } catch {
@@ -81,9 +81,25 @@ export function setOcclusion(key: keyof OcclusionCfg, on: boolean) {
   store({ occl });
 }
 
-/** Medidor de FPS flutuante (ui/fps.ts), desligado por padrão; e onde ele fica na tela. */
-export const showFps = () => load().fps === true;
-export const setShowFps = (v: boolean) => store({ fps: v });
+/**
+ * Processamento (Configurações): Normal = a simulação dá 60 passos por segundo de jogo; Reduzido = 30, cada um com o
+ * dobro do tempo (metade da conta: para celular fraco, onde a simulação come o quadro). Por aparelho, fora do save.
+ */
+export type SimRate = 'normal' | 'reduced';
+export const simRate = (): SimRate => (load().sim === 'reduced' ? 'reduced' : 'normal');
+export const setSimRate = (v: SimRate) => store({ sim: v });
+
+/**
+ * Medidor de FPS flutuante (ui/fps.ts), desligado por padrão; "detail" mostra também os ms por quadro de desenho,
+ * simulação e interface e as etapas do desenho (para achar o que pesa num aparelho). E onde ele fica na tela.
+ */
+export type FpsMode = 'off' | 'on' | 'detail';
+export function fpsMode(): FpsMode {
+  const v = load().fps;
+  return v === true || v === 'on' ? 'on' : v === 'detail' ? 'detail' : 'off';
+}
+export const showFps = () => fpsMode() !== 'off';
+export const setFpsMode = (v: FpsMode) => store({ fps: v });
 export function fpsPos(): { x: number; y: number } {
   const p = load().fpsPos as { x?: unknown; y?: unknown } | undefined;
   return typeof p?.x === 'number' && typeof p?.y === 'number' ? { x: p.x, y: p.y } : { x: 12, y: 64 };

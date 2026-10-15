@@ -13,6 +13,8 @@ export interface GameEvents {
   /** Trocou a qualidade do desenho (Configurações). */
   quality: void;
   occlusion: void;
+  /** Trocou o Processamento (Configurações): 60 ou 30 passos de simulação por segundo. */
+  simRate: void;
 }
 
 type Handler<T> = (payload: T) => void;

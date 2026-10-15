@@ -49,9 +49,24 @@ export class Game {
   step(dt: number) {
     this.foes.clear(); // listas de alvos refeitas a cada passo (unidades nascem, morrem, mudam de lado)
     this.engaged = null;
-    for (const s of this.systems) s(this, dt);
+    const prof = this.prof;
+    if (!prof) for (const s of this.systems) s(this, dt);
+    else {
+      // medição (Medidor de FPS detalhado / bench): ms somados por sistema
+      let t = performance.now();
+      for (const s of this.systems) {
+        s(this, dt);
+        const now = performance.now();
+        const k = (s as System & { label?: string }).label ?? '?';
+        prof[k] = (prof[k] ?? 0) + now - t;
+        t = now;
+      }
+    }
     this.cleanup();
   }
+
+  /** Medição: ms somados por sistema (nome em `System.label`, ver systems/index.ts); null = desligada. */
+  prof: Record<string, number> | null = null;
 
   private foes = new Map<Faction, Unit[]>();
   private engaged: Map<string, number> | null = null;

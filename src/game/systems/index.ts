@@ -63,6 +63,42 @@ export const SYSTEMS: System[] = [
   sceneRunSystem,
 ];
 
+/**
+ * Nome de cada sistema para a medição (`Game.prof`): o build minificado troca os nomes das funções, então vão à parte.
+ */
+const LABELS: [System, string][] = [
+  [timeSystem, 'tempo'],
+  [statusSystem, 'status'],
+  [spawnerSystem, 'surgimento'],
+  [populationSystem, 'população'],
+  [teamSystem, 'equipes'],
+  [missionSystem, 'missões'],
+  [examSystem, 'exame'],
+  [kageSystem, 'kage'],
+  [bossSystem, 'chefes'],
+  [villagerSystem, 'moradores'],
+  [ninjaSystem, 'ninjas'],
+  [hostileSystem, 'inimigos'],
+  [towerSystem, 'torres'],
+  [techniqueSystem, 'técnicas'],
+  [spreadSystem, 'espalhar'],
+  [projectileSystem, 'projéteis'],
+  [effectSystem, 'efeitos'],
+  [villageSystem, 'vila'],
+  [exploreSystem, 'exploração'],
+  [expeditionSystem, 'expedições'],
+  [regionSystem, 'região'],
+  [seasonSystem, 'estações'],
+  [natureSystem, 'natureza'],
+  [gearSystem, 'equipamento'],
+  [automationSystem, 'automação'],
+  [orgSystem, 'organizações'],
+  [legendsSystem, 'lendas'],
+  [sceneRunSystem, 'cena (vila)'],
+  [sceneSystem, 'cena'],
+];
+for (const [s, label] of LABELS) (s as System & { label?: string }).label = label;
+
 /** Mapa de missão (vilarejo invadido…): só luta, IA, torres do inimigo e névoa; a vida da vila fica na vila. */
 export const SCENE_SYSTEMS: System[] = [
   statusSystem,

@@ -83,9 +83,22 @@
   bilinear no CSS.
 - **Câmera segue o selecionado** (`followSelected` em main.ts, `Camera.track`/`trackId`): lerp suave; arrastar solta; se a
   unidade se perder (caiu, saiu do mapa) volta suave para a Residência. Menu "Câmera segue o ninja" (`followCam`, padrão sim).
-  Menu de pausa numa coluna (ações, configurações, novo jogo) com botão "Guia" para as dicas. **Medidor de FPS**
-  (`ui/fps.ts`, Configurações → "Medidor de FPS", preferência por dispositivo): atual, média de 10 s e pior quadro,
-  arrastável (posição guardada), duplo clique zera; `window.fps()` no console dá os mesmos números.
+  Menu de pausa numa coluna (ações, configurações, novo jogo) com botão "Guia" para as dicas. **Processamento**
+  (`simRate` em ui/settings.ts, por aparelho): Normal = 60 passos de simulação por segundo de jogo; Reduzido = 30, cada
+  um com o dobro do tempo (main.ts, `simStep`): metade da conta para celular fraco, onde a simulação comia ~11 ms por
+  quadro. O projétil mais rápido (420 px/s) anda 14 px por passo, menos que a caixa de acerto: não atravessa ninguém
+  (`tests/sim-rate.test.ts` confere obra, coleta e luta nos dois passos). Vai no relatório do medidor. **Medidor de FPS**
+  (`ui/fps.ts`, Configurações → "Medidor de FPS": Mostrar/Detalhado/Esconder, `fpsMode`, preferência por dispositivo):
+  atual, média de 10 s e pior quadro, arrastável (posição guardada), duplo clique zera; `window.fps()` no console dá os
+  mesmos números. **Detalhado** soma por meio segundo os ms de desenho, simulação (e passos por quadro) e interface
+  (`FpsMeter.times`, medidos em main.ts), as 5 etapas mais caras do desenho (`Renderer.prof`) e a memória do JS: para o
+  autor achar o que pesa num celular sem ligar o USB. **Botão de salvar** (canto do medidor, `.fpssave`): manda um
+  relatório (`FpsMeter.report`: modelo pelos client hints do Chrome, GPU pelo WebGL, núcleos, memória, tela, PWA;
+  qualidade e oclusão; FPS com p50/p95/p99 e faixas de ms; últimos 30 s do modo detalhado; memória do JS; situação do
+  jogo e um `bench()` em `fps.info`, posto pelo main.ts) para `POST /api/perf-report`, que os dois servidores tratam em
+  `scripts/perfReport.ts` e gravam em `.perf/devices/<data>_<modelo>.json` (fora do git). Endereço público: até 256 KB,
+  um envio a cada 5 s por IP, no máximo 300 arquivos (os mais antigos saem). Mudou o `live.ts`/`perfReport.ts`:
+  `pm2 restart villageninja` (o PM2 só refaz o build do jogo sozinho).
 - **Oficinas** (janela, tecla F): uma oficina por aba (`craftTab`), estoque/produção/upgrade à esquerda e receitas à direita.
 - Painel de inimigo/animal tem a seção "Atacar" (mais próximos / equipe / todos) — `availableFighters` em teams.ts.
 - **Inventário do ninja** (aba "Inventário" do drawer, `equipSection`): boneco no meio com os espaços em volta (arma, colete,

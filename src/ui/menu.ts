@@ -2,7 +2,7 @@ import type { App } from '../app';
 import { el } from './dom';
 import { canFullscreen, canInstall, install, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen } from './fullscreen';
 import { rich } from './icons';
-import { FONT_SIZES, followCam, fontSize, occlusion, QUALITIES, quality, setFollowCam, setFontSize, setOcclusion, setQuality, setShowFps, setWeatherFxLight, showFps, weatherFxLight, type FontSize, type OcclusionCfg, type Quality } from './settings';
+import { FONT_SIZES, followCam, fontSize, occlusion, QUALITIES, quality, setFollowCam, setFontSize, setOcclusion, setQuality, setFpsMode, setSimRate, setWeatherFxLight, fpsMode, simRate, weatherFxLight, type FontSize, type FpsMode, type OcclusionCfg, type Quality } from './settings';
 import { bus } from '../core/events';
 import { setShown } from './anim';
 
@@ -45,8 +45,13 @@ export class Menu {
         bus.emit('occlusion', undefined);
         this.render();
       }
+      if (a === 'sim') {
+        setSimRate((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === 'reduced' ? 'reduced' : 'normal');
+        bus.emit('simRate', undefined);
+        this.render();
+      }
       if (a === 'fps') {
-        setShowFps((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg === '1');
+        setFpsMode((e.target as HTMLElement).closest<HTMLElement>('[data-arg]')!.dataset.arg as FpsMode);
         bus.emit('fps', undefined);
         this.render();
       }
@@ -140,12 +145,15 @@ export class Menu {
       <div class="setrow"><span class="sl">{snow} Clima</span>${seg('wfx', [['full', 'Completo', !weatherFxLight()], ['light', 'Leve', weatherFxLight()]])}</div>
       <div class="setrow"><span class="sl">{gear} Qualidade</span>${seg('quality', QUALITIES.map((q) => [q.id, q.label, q.id === quality()]))}</div>
       <p class="hint">${quality() === 'light' ? 'Leve: resolução menor, menos partículas, clima leve e até 30 quadros por segundo (para celular fraco).' : quality() === 'balanced' ? 'Equilibrada: resolução um pouco menor e menos partículas.' : 'Alta: resolução máxima da tela.'}</p>
+      <div class="setrow"><span class="sl">{hourglass} Processamento</span>${seg('sim', [['normal', 'Normal', simRate() === 'normal'], ['reduced', 'Reduzido', simRate() === 'reduced']])}</div>
+      <p class="hint">${simRate() === 'reduced' ? 'Reduzido: o jogo calcula 30 vezes por segundo em vez de 60 (metade do trabalho; para celular fraco). Pode deixar golpes e passos um pouco menos precisos.' : 'Normal: o jogo calcula 60 vezes por segundo.'}</p>
       <div class="setrow"><span class="sl">{eye} Atrás de prédios</span><div class="seg">${(
         [['silhouette', 'Silhueta'], ['fade', 'Esmaecer'], ['cutout', 'Furo'], ['dither', 'Pontilhado']] as [keyof OcclusionCfg, string][]
       )
         .map(([k, label]) => `<button data-act="occl" data-arg="${k}" class="${occlusion()[k] ? 'on' : ''}">${label}</button>`)
         .join('')}</div></div>
-      <div class="setrow"><span class="sl">{chart} Medidor de FPS</span>${seg('fps', [['1', 'Mostrar', showFps()], ['0', 'Esconder', !showFps()]])}</div>
+      <div class="setrow"><span class="sl">{chart} Medidor de FPS</span>${seg('fps', [['on', 'Mostrar', fpsMode() === 'on'], ['detail', 'Detalhado', fpsMode() === 'detail'], ['off', 'Esconder', fpsMode() === 'off']])}</div>
+      ${fpsMode() === 'detail' ? '<p class="hint">Detalhado: ms por quadro de desenho, simulação (e passos) e interface, as etapas mais caras do desenho e a memória. Para descobrir o que pesa num aparelho.</p>' : ''}
       <button class="btn danger" data-act="new">${this.armedNew ? 'Toque de novo: apagar e recomeçar' : '{refresh} Novo jogo'}</button>
     </div>`);
   }
