@@ -57,7 +57,7 @@ Solicitada pelo autor para avaliação no jogo. As duas folhas estão registrada
 - Custo, poder, recarga, requisitos e empurrão preservados. Sem nova exigência de Sharingan. Interrupção da investida encerra o efeito ligado à mão.
 - Laboratório: escolha Chidori, ajuste Principal/projétil (mão) ou Impacto. Ambas as peças oferecem pontos, tamanho/aparência e grade.
 
-Typecheck e build do jogo/laboratório concluídos. Capturas em output/playwright/chidori-investida.png e chidori-impacto.png. Integração aguardando avaliação visual do autor.
+Typecheck e build do jogo/laboratório concluídos. As capturas iniciais foram substituídas pelas capturas da revisão v2. Integração aguardando avaliação visual do autor.
 
 Links reproduzíveis: http://localhost:3011/lab?jutsu=chidori&at=0.25 (investida) e http://localhost:3011/lab?jutsu=chidori&at=0.43 (impacto). Use Continuar ou Reiniciar para observar a sequência.
 
@@ -71,7 +71,7 @@ A versão anterior não representava a preparação baixa e a corrida mostradas 
 - Simulação: formação0.65s + até1s de investida, contato14.1px entre centros e parada14px. Sem empurrão (knock0). Dano e custo atuais preservados; teste verifica alvo sem deslocamento e golpe único.
 - Aprovação visual ainda pendente. Capturas: output/playwright/chidori-formacao-v2.png, chidori-corrida-v2.png e chidori-contato-v2.png.
 
-Prévia real no laboratório: http://localhost:3011/lab?jutsu=chidori&at=0.40 (formação), at=0.73 (corrida), at=0.91 (contato). Use Continuar para observar a sequência completa. A preview.html original é apenas o estudo v1; o laboratório representa a integração atual.
+Prévia real no laboratório: http://localhost:3011/lab?jutsu=chidori&at=0.40 (formação), at=0.73 (corrida), at=0.91 (contato). Use Continuar para observar a sequência completa. A preview.html aponta para as folhas atuais e os instantes da versão integrada no laboratório.
 
 Nagashi: configuração do jogo estava em dy−9, divergindo do script/prévia em+9. Agora dy+9 nos dados; o configurador preserva o dy existente em futuros usos, e a prévia de alinhamento lê tamanho/âncora/dy diretamente do JSON. Captura: output/playwright/nagashi-altura-corrigida.png. Folha e alinhamento interno dos oito quadros preservados.
 
@@ -79,3 +79,5 @@ Correção do impacto: vfx explicitamente lightning e burst de partículas vazio
 
 
 Aprovação do autor em 2026-10-15: após corrigir o impacto sem gotas, confirmou que ficou melhor e solicitou o commit. Chidori marcado como concluído nos documentos principais. Inventário das imagens candidatas à limpeza em docs/jutsus-imagens-sem-uso.md; nenhuma exclusão feita nesta etapa.
+
+Limpeza autorizada: removidas somente folhas derivadas/capturas antigas; todas as fontes originais, inclusive tentativas anteriores, foram preservadas conforme orientação do autor. A prévia local agora usa as folhas atuais.

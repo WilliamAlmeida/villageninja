@@ -1,49 +1,33 @@
-# Imagens de jutsus candidatas à limpeza
+# Limpeza de imagens de jutsus — 2026-10-15
 
-Inventário em 2026-10-15, solicitado pelo autor antes da exclusão. Nenhum arquivo foi apagado. Escopo: imagens do projeto em src/art/effects, docs/arte/jutsus e capturas desta integração; não inclui cópias externas no computador.
+Limpeza autorizada pelo autor após o inventário inicial. Foram removidas oito imagens derivadas ou capturas obsoletas (1.525.354 bytes, aproximadamente1.45MiB). Nenhum arquivo source foi removido. Escopo restrito ao projeto; não inclui cópias externas no computador.
 
-A identificação compara o registro em src/render/art.ts com as configurações em src/data/jutsu-fx.json e referências no restante de src, além dos scripts de preparo e prévias locais. Uma fonte não carregada pelo jogo pode continuar necessária para regenerar a arte ativa.
+## Arquivos removidos
 
-## Folhas sem uso no jogo
-
-| Arquivo | Situação |
+| Arquivo | Motivo |
 |---|---|
-| `src/art/effects/effect-chidori-hand-v1.png` | Sem registro/referência atual; substituída por effect-chidori-hand-v2. Ainda não versionada. |
-| `src/art/effects/effect-sekizo-impact-v1.png` | Registrada no catálogo/editor, mas sem peça configurada no Sekizō. O efeito atual usa canhões desenhados por pressureCannon.ts. A exclusão precisa retirar import/registro e revisar o preparo antigo. |
+| `src/art/effects/effect-chidori-hand-v1.png` | Folha substituída pela mão v2. |
+| `src/art/effects/effect-sekizo-impact-v1.png` | Efeito substituído pelos canhões de pressão desenhados em pressureCannon.ts. |
+| `docs/arte/jutsus/chidori/effect-chidori-hand-v1.png` | Cópia preparada da versão antiga. |
+| `docs/arte/jutsus/chidori/preview-v1.png` | Captura do estudo inicial. |
+| `docs/arte/jutsus/taijutsu/effect-nikudan-v1.png` | Folha multicolorida substituída pelo tecido neutro v2. |
+| `docs/arte/jutsus/taijutsu/preview.png` | Captura anterior à revisão do tecido. |
+| `output/playwright/chidori-investida.png` | Captura da primeira implementação. |
+| `output/playwright/chidori-impacto.png` | Captura da implementação com partículas incorretas. |
 
-As outras 34 folhas presentes em src/art/effects têm referência no código/configuração atual.
+## Fontes originais preservadas
 
-## Fontes e versões anteriores
+Orientação do autor: a source é o original necessário para novos ajustes e regeneração. Foram preservadas todas as45 imagens com source no nome em docs/arte/jutsus, inclusive tentativas anteriores e fontes que deixaram de alimentar o jogo diretamente.
 
-Caminhos relativos a `docs/arte/jutsus/`:
+Isso inclui as fontes v1/v2/v3 da mão do Chidori, as fontes v1/v2 do Kaiten, primeiras fontes de Kirin/Nagashi, impacto sem padding do Rasengan, fontes antigas e modulares do Suiryuudan, fonte antiga e neutra do Nikudan e fonte antiga do Sekizō. As fontes atuais dos demais jutsus também permanecem.
 
-| Arquivo | Motivo / referência restante |
-|---|---|
-| `chidori/chidori-hand-source-v1.png` | Origem da primeira proposta, substituída pela fonte v2. |
-| `chidori/chidori-hand-source-v3.png` | Alternativa descartada, nunca integrada. |
-| `chidori/effect-chidori-hand-v1.png` | Folha da proposta v1; a prévia HTML antiga ainda aponta para ela. |
-| `chidori/preview-v1.png` | Captura do estudo inicial com figuras esquemáticas. |
-| `kaiten/kaiten-source-v1.png` | Primeira versão; preparo atual usa kaiten-source-v2.png. |
-| `raiton-mokuton/chidorinagashi-first-source.png` | Tentativa anterior; preparo atual usa chidorinagashi-source.png. |
-| `raiton-mokuton/kirin-first-source.png` | Tentativa anterior; preparo atual usa kirin-source.png. |
-| `raiton-mokuton/kirin-padding-source.png` | Etapa anterior; preparo atual usa kirin-source.png. |
-| `rasengan/impact-source.png` | Versão sem padding; preparo atual usa impact-padded-source.png. |
-| `suiton/projectile-suiryuudan-source.png` | Origem do dragão monolítico abandonado; jogo usa as três peças em suiton/modular. |
-| `suiton/projectile-suiryuudan-v2-source.png` | Segunda origem do dragão monolítico abandonado. |
-| `taijutsu/nikudan-source.png` | Roupa multicolorida substituída pela fonte neutra nikudan-source-v2.png. |
-| `taijutsu/effect-nikudan-v1.png` | Folha multicolorida substituída por effect-nikudan-v2. |
-| `taijutsu/preview.png` | Captura da versão anterior ao tecido neutro. |
-| `lava-vento/sekizo-source.png` | Fonte da proposta antiga, ainda citada pelo preparo legado; não alimenta o canhão atual. |
+As34 folhas restantes em src/art/effects têm referência no código/configuração atual. As folhas preparadas atuais usadas nas prévias, os prompts e as capturas da versão aprovada foram preservados.
 
-Alguns documentos/prompts mantêm referências históricas a essas versões. Antes de apagar, atualizar as prévias e os preparadores que ainda as consomem.
+## Referências atualizadas
 
-## Capturas antigas desta integração
+- Retirados import/registro do impacto antigo do Sekizō em src/render/art.ts.
+- Retirada a entrada antiga do Sekizō em scripts/prepare-lava-vento.ps1, evitando recriar a folha descartada; sua source permanece guardada.
+- Prévia do Chidori atualizada para as folhas ativas e links da sequência real no laboratório.
+- README do Chidori e da arte de taijutsu atualizados para não depender das folhas/capturas removidas.
 
-- `output/playwright/chidori-investida.png`: primeira implementação.
-- `output/playwright/chidori-impacto.png`: primeira implementação com partículas incorretas.
-
-As capturas de formação/corrida/contato v2, impacto sem gotas e Nagashi corrigido registram a versão atual e foram preservadas para o commit.
-
-## Fontes atuais a preservar
-
-Preservar fontes v2 da mão do Chidori e do Kaiten, impacto v1 do Chidori, nikudan-source-v2, fontes principais de Raiton/Mokuton, imagens com padding do Rasengan/Rasenshuriken, as três fontes de Suiryuudan modular e as demais fontes consumidas pelos preparadores atuais. As cópias preparadas em docs usadas nas prévias também são úteis, embora o jogo carregue src/art.
+Typecheck, testes focados de configuração dos efeitos e build do jogo/laboratório executados após a limpeza. A busca em src/scripts/tests/tools não encontrou referências às três folhas derivadas descartadas.

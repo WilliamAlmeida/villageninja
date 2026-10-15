@@ -64,8 +64,7 @@ $sheets = @(
  @('yokaiProjectile','projectile-yokai-v1',64,$false),
  @('yokaiImpact','effect-yokai-impact-v1',128,$true),
  @('daitoppa','effect-daitoppa-v1',128,$false),
- @('shinkuuha','projectile-shinkuuha-v1',64,$false),
- @('sekizo','effect-sekizo-impact-v1',128,$true)
+ @('shinkuuha','projectile-shinkuuha-v1',64,$false)
 )
 foreach ($sheet in $sheets) {
  if ($Only.Count -gt 0 -and $sheet[0] -notin $Only) { continue }
