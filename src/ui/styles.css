@@ -1995,7 +1995,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   border-image: var(--frame-win) 47 / 2.6rem / 0.36rem stretch; image-rendering: pixelated;
   background-clip: padding-box; box-shadow: 0 1.2rem 3.5rem rgba(0, 0, 0, 0.65);
 }
-#win .box > * { image-rendering: auto; }
+#win .box > :not(button) { image-rendering: auto; }
 #win .wtop { border-radius: 0; }
 @media (max-height: 520px) {
   #dock { --dk: 0.8; }
@@ -2084,7 +2084,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   border-image-width: 32px; border-image-repeat: stretch; border-width: 28px 22px 26px 22px; image-rendering: pixelated;
   padding: 0.4rem 0.6rem 0.3rem;
 }
-#alertbox .card > * { image-rendering: auto; }
+#alertbox .card > :not(button) { image-rendering: auto; }
 #alertbox .card .at {
   --sl: 0 10 0 10 fill; top: -50px; height: 62px; min-width: 11rem; padding: 0.15rem 1.4rem 0;
   border-image-source: var(--k2-title); border-image-slice: var(--sl); border-width: 0 20px; border-image-width: 0 20px;
@@ -2164,7 +2164,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   image-rendering: pixelated; box-shadow: none; filter: drop-shadow(0 0.6rem 1rem rgba(0, 0, 0, 0.55));
   top: calc(3.4rem + 34px); max-height: calc(100dvh - 3.9rem - 34px - var(--safe-b));
 }
-#panel > * { image-rendering: auto; }
+#panel > :not(button) { image-rendering: auto; }
 #panel::before {
   content: ""; position: absolute; left: 50%; top: -52px; width: 326px; height: 68px; transform: translateX(-50%);
   background: var(--k2-crest) center / 100% 100% no-repeat; image-rendering: pixelated; pointer-events: none; z-index: 2;
@@ -2182,7 +2182,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   border-image-source: var(--k2-hud-bar); border-image-slice: var(--sl); border-image-width: 16px 28px; border-image-repeat: stretch;
   image-rendering: pixelated;
 }
-#topbar > * { image-rendering: auto; }
+#topbar > :not(button) { image-rendering: auto; }
 #topbar .chip {
   --sl: 10 10 10 10 fill; background: none; box-shadow: none; border: 0 solid transparent; border-width: 2px 4px;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
@@ -2221,7 +2221,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   image-rendering: pixelated;
 }
 .ncard:hover { background: none; filter: brightness(1.12); }
-.ncard > * { image-rendering: auto; }
+.ncard > :not(button) { image-rendering: auto; }
 .ncard.r-genin { border-image-source: var(--k2-card-genin); }
 .ncard.r-chunin { border-image-source: var(--k2-card-chunin); }
 .ncard.r-jounin { border-image-source: var(--k2-card-jounin); }
@@ -2253,9 +2253,9 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
   image-rendering: pixelated;
 }
-.bsec > *, .tcard > *, .xcard > *, .wscard > *, .mactive > *, .omem > *, .scard > *, .kcand > *, .ftile > *, .vhero > *, .mteam > *, .mrecent > *,
-.rrow > *, .jcard > *, .mcard > *, .lvlcard > *, .statcard > *, .cand > *, .fquick > span > *, .vit .vbox > *, .breed > *, .vperk > *, .kart > *,
-#alertbox .need li > *, .duel > div > *, .lrow > *, .inv-cell > *, .slot > * { image-rendering: auto; }
+.bsec > :not(button), .tcard > :not(button), .xcard > :not(button), .wscard > :not(button), .mactive > :not(button), .omem > :not(button), .scard > :not(button), .kcand > :not(button), .ftile > :not(button), .vhero > :not(button), .mteam > :not(button), .mrecent > :not(button),
+.rrow > :not(button), .jcard > :not(button), .mcard > :not(button), .lvlcard > :not(button), .statcard > :not(button), .cand > :not(button), .fquick > span > :not(button), .vit .vbox > :not(button), .breed > :not(button), .vperk > :not(button), .kart > :not(button),
+#alertbox .need li > :not(button), .duel > div > :not(button), .lrow > :not(button), .inv-cell > :not(button), .slot > :not(button) { image-rendering: auto; }
 .kart b { color: var(--c); }
 
 /* chips de filtro/ordenação, etiquetas e segmentos: botão escuro; o escolhido, laranja */
@@ -2301,7 +2301,7 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 26px; border-image-repeat: stretch;
   image-rendering: pixelated; filter: drop-shadow(0 0.8rem 1.4rem rgba(0, 0, 0, 0.6));
 }
-#modal .box.menu1 > * { image-rendering: auto; }
+#modal .box.menu1 > :not(button) { image-rendering: auto; }
 
 /* cartões de construção (lista de baixo): quadro de bronze; o escolhido, dourado */
 .bcard {
@@ -2332,7 +2332,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 26px; border-image-outset: 0; border-image-repeat: stretch;
   image-rendering: pixelated; box-shadow: none; filter: drop-shadow(0 1rem 2rem rgba(0, 0, 0, 0.6)); overflow: visible;
 }
-#win .box > * { image-rendering: auto; }
+#win .box > :not(button) { image-rendering: auto; }
 /* fechar das janelas: ficava atrás do cabeçalho preso ao rolar; agora no canto da moldura, por cima de tudo */
 #win .close { top: -12px; right: -12px; width: 2.5rem; height: 2.5rem; z-index: 6; border: 0; }
 @media (max-height: 520px) { #win .box { border-width: 12px; border-image-width: 14px; } #win .close { top: -8px; right: -8px; } }
@@ -2395,7 +2395,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
   image-rendering: pixelated;
 }
-.mcontract > *, .xlcard > *, .xmine > *, .ws-now > *, .wsrow > *, .kpanel > *, .tform > *, .vmark > *, .sc2 > *, .o-prog > *, .rlegend > * { image-rendering: auto; }
+.mcontract > :not(button), .xlcard > :not(button), .xmine > :not(button), .ws-now > :not(button), .wsrow > :not(button), .kpanel > :not(button), .tform > :not(button), .vmark > :not(button), .sc2 > :not(button), .o-prog > :not(button), .rlegend > :not(button) { image-rendering: auto; }
 .mcontract { padding: 0.55rem 0.7rem; }
 .xlcard { padding: 0.5rem 0.65rem; }
 .wsrow { padding: 0.35rem 0.5rem; margin-bottom: 0.3rem; }
@@ -2405,7 +2405,7 @@ h4 > * { image-rendering: auto; }
   --sl: 14 14 14 14 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 5px 6px;
   border-image-source: var(--k2-dock-slot-on); border-image-slice: var(--sl); border-image-width: 14px; image-rendering: pixelated;
 }
-.bup > *, .vmark.done > * { image-rendering: auto; }
+.bup > :not(button), .vmark.done > :not(button) { image-rendering: auto; }
 /* Bingo Book: as organizações inimigas na moldura vermelha (o cartão de patente tingido de vermelho) */
 .kpanel.ocard, .kfill .ocard {
   --sl: 12 12 12 12 fill; border: 0 solid transparent; border-width: 6px; box-shadow: none;
@@ -2423,7 +2423,7 @@ h4 > * { image-rendering: auto; }
   --sl: 10 10 10 10; border-radius: 0; border: 0 solid transparent; border-width: 5px;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
 }
-.rmapview > * { image-rendering: auto; }
+.rmapview > :not(button) { image-rendering: auto; }
 .rzoom button, .rsheet-x { background: var(--k2-round) center / 100% 100% no-repeat; border: 0; border-radius: 50%; image-rendering: pixelated; }
 .rzoom button > *, .rsheet-x > * { image-rendering: auto; }
 .rsheet {
@@ -2431,7 +2431,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 16px; image-rendering: pixelated;
   filter: drop-shadow(0 0.5rem 1rem rgba(0, 0, 0, 0.55));
 }
-.rsheet > * { image-rendering: auto; }
+.rsheet > :not(button) { image-rendering: auto; }
 .rsheet { padding: 0.4rem 0.45rem; }
 .rsheet .rteams button { white-space: nowrap; }
 /* sobras da segunda varredura: linha da ANBU, ranking, estoque, escolha de membro, lâminas do Bingo, faixas */
@@ -2440,7 +2440,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
   image-rendering: pixelated;
 }
-.arow > *, .topr > *, .ws-it > *, .tt-pick > *, .sc-done > *, .bl > *, .td-mission > * { image-rendering: auto; }
+.arow > :not(button), .topr > :not(button), .ws-it > :not(button), .tt-pick > :not(button), .sc-done > :not(button), .bl > :not(button), .td-mission > :not(button) { image-rendering: auto; }
 .bl.on, .ttile.sensei .tt-pick {
   --sl: 14 14 14 14 fill; border-width: 5px 6px; border-image-source: var(--k2-dock-slot-on); border-image-width: 14px;
 }
@@ -2466,7 +2466,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-hud-bar); border-image-slice: var(--sl); border-image-width: 16px 28px; border-image-repeat: stretch;
   image-rendering: pixelated; filter: drop-shadow(0 0.4rem 0.8rem rgba(0, 0, 0, 0.5));
 }
-#placebar > *, #orderbar > *, #scenebar > *, #roadbar > * { image-rendering: auto; }
+#placebar > :not(button), #orderbar > :not(button), #scenebar > :not(button), #roadbar > :not(button) { image-rendering: auto; }
 #placebar, #orderbar, #roadbar { bottom: calc(6.6rem + var(--safe-b)); }
 #placebar .hint, #orderbar .hint, #roadbar .hint { color: #f3e3c3; }
 @media (max-height: 520px) { #placebar, #orderbar, #roadbar { bottom: calc(5.3rem + var(--safe-b)); } }
@@ -2476,7 +2476,7 @@ h4 > * { image-rendering: auto; }
   --sl: 10 10 10 10 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 4px 5px;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
 }
-#maptip > * { image-rendering: auto; }
+#maptip > :not(button) { image-rendering: auto; }
 /* cartão de construção sem recurso/requisito: escurecido mas opaco (transparente, o mapa aparecia através da moldura) */
 .bcard.off { opacity: 1; filter: grayscale(0.75) brightness(0.62); }
 /* notificações: caixinha do kit; o tipo (bom, atenção, perigo) numa listrinha à esquerda, dentro da moldura */
@@ -2485,7 +2485,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch;
   image-rendering: pixelated; padding: 0.25rem 0.6rem 0.25rem 0.85rem; box-shadow: none; filter: drop-shadow(0 0.25rem 0.5rem rgba(0, 0, 0, 0.45));
 }
-.toast > * { image-rendering: auto; }
+.toast > :not(button) { image-rendering: auto; }
 .toast::before { content: ""; position: absolute; left: 3px; top: 3px; bottom: 3px; width: 3px; background: var(--muted); }
 .toast.good::before { background: var(--good); }
 .toast.warn::before { background: var(--warn); }
@@ -2496,7 +2496,7 @@ h4 > * { image-rendering: auto; }
   border-image-source: var(--k2-pill-amber); border-image-slice: var(--sl); border-image-width: 8px 10px; border-image-repeat: stretch;
   image-rendering: pixelated; color: #2a1406; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); font-weight: 800; padding: 0.35rem 0.9rem;
 }
-.banner.exam > * { image-rendering: auto; }
+.banner.exam > :not(button) { image-rendering: auto; }
 /* minas conhecidas: a moldura come um pouco da largura; cartão um pouco mais largo para "Equipe lá dentro" caber */
 .xmines { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 .xmine { padding: 0.3rem 0.55rem; }
@@ -2565,7 +2565,7 @@ h4:not(.plain), .bsec h4, #modal .menu1 h4 { display: flex; width: fit-content; 
   --sl: 10 10 10 10 fill; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; padding: 0.25rem 0.5rem;
   border: 0 solid transparent; border-width: 4px 5px; border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
 }
-.kklist li > * { image-rendering: auto; }
+.kklist li > :not(button) { image-rendering: auto; }
 .kklist .kk-k { font-size: 1.25rem; color: var(--c); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
 .kklist small { display: block; color: var(--muted); font-size: 0.72rem; }
 .kklist b { color: #e8d6b8; white-space: nowrap; }
@@ -2678,7 +2678,7 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
   --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 5px 7px; border-radius: 0; background: none; padding: 0.15rem 0.2rem;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch; image-rendering: pixelated;
 }
-.ract > * { image-rendering: auto; }
+.ract > :not(button) { image-rendering: auto; }
 .ract .ri { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 0.4rem; background: rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px rgba(255, 214, 150, 0.18); color: var(--ac); }
 .ract .ri .ic { width: 1.15rem; height: 1.15rem; margin: 0; color: var(--ac); }
 .ract .rt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
@@ -2757,7 +2757,7 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
   --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 5px 7px; border-radius: 0;
   border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; image-rendering: pixelated;
 }
-.bjcard > * { image-rendering: auto; }
+.bjcard > :not(button) { image-rendering: auto; }
 .bjcard .bj-pic { position: relative; width: 4.6rem; height: 3.6rem; display: grid; place-items: center; border-radius: 0.4rem; background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--c) 35%, transparent), rgba(0, 0, 0, 0.35) 75%); }
 .bjcard .bj-pic { overflow: hidden; }
 .bjcard .bj-pic img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
