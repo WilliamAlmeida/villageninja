@@ -13,6 +13,11 @@ export function effectSystem(g: Game, dt: number) {
       if (!a || !b || a.dead || b.dead) e.t = e.life;
       else Object.assign(e, { x: a.x, y: a.y, x2: b.x, y2: b.y });
     }
+    if (e.kind === 'text' && e.followId != null) {
+      const u = g.unit(e.followId);
+      if (!u || u.dead || u.hidden) e.t = e.life;
+      else { e.x = u.x; e.y = u.y; }
+    }
     // Nagashi continua ao redor do corpo enquanto a descarga termina, sem repetir dano.
     if (e.kind === 'burst' && e.fx === 'chidorinagashi' && e.uid != null) {
       const u = g.unit(e.uid);

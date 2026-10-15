@@ -376,6 +376,18 @@
    "burst": [
 
    ]
+  },
+  "kaiten": {
+   "sprite": {"sheet":"effect-kaiten-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":96,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":0.7,"blend":"normal","rotate":false,"flip":false}
+  },
+  "soshiken": {
+   "sprite": {"sheet":"effect-soshiken-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":36,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":0.79,"blend":"normal","rotate":false,"flip":true}
+  },
+  "gatsuga": {
+   "sprite": {"sheet":"effect-gatsuga-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":76,"anchorX":0.65,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":true}
+  },
+  "nikudan": {
+   "sprite": {"sheet":"effect-nikudan-v2","cols":4,"rows":2,"frames":8,"fps":16,"size":84,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":true}
   }
  },
  "status": {

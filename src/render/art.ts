@@ -301,6 +301,10 @@ import kirinStrike from '../art/effects/effect-kirin-v1.png';
 import jukaiRoots from '../art/effects/effect-jukai-v1.png';
 import raikyuuSphere from '../art/effects/projectile-raikyuu-v1.png';
 import nagashiDischarge from '../art/effects/effect-chidorinagashi-v1.png';
+import kaitenDome from '../art/effects/effect-kaiten-v1.png';
+import lionFists from '../art/effects/effect-soshiken-v1.png';
+import fangDrill from '../art/effects/effect-gatsuga-v1.png';
+import rollingBall from '../art/effects/effect-nikudan-v2.png';
 import yokaiLava from '../art/effects/projectile-yokai-v1.png';
 import yokaiSplash from '../art/effects/effect-yokai-impact-v1.png';
 import daitoppaGust from '../art/effects/effect-daitoppa-v1.png';
@@ -319,6 +323,8 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'projectile-doryuudan-v1': doryuudanMud, 'effect-sunanotate-v1': sandShield, 'effect-sabakukyu-v1': sandCoffin,
   'effect-kirin-v1': kirinStrike, 'effect-jukai-v1': jukaiRoots,
   'projectile-raikyuu-v1': raikyuuSphere, 'effect-chidorinagashi-v1': nagashiDischarge,
+  'effect-kaiten-v1': kaitenDome,
+  'effect-soshiken-v1': lionFists, 'effect-gatsuga-v1': fangDrill, 'effect-nikudan-v2': rollingBall,
   'projectile-yokai-v1': yokaiLava, 'effect-yokai-impact-v1': yokaiSplash, 'effect-daitoppa-v1': daitoppaGust, 'projectile-shinkuuha-v1': shinkuuBlade, 'effect-sekizo-impact-v1': sekizoColumn,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre

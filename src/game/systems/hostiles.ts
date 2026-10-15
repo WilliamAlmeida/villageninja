@@ -58,6 +58,7 @@ function animal(g: Game, u: Unit, dt: number) {
     u.moving = false;
     return;
   }
+  if (u.dash?.partnerOf != null) return; // a investida conjunta controla o ninken até o contato/cancelamento
   if (u.faction === 'village') return ally(g, u, dt, def);
   if (u.state === 'charge') return charging(g, u, dt, def);
   if (u.missionId != null) return guardHome(g, u, dt, def.aggro);

@@ -1,4 +1,5 @@
 import { startSekizo } from './sekizo';
+import { dogOf } from './ninken';
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { scarArea } from './battleScars';
 import { rasenganHitFx } from './rasenganFx';
@@ -355,6 +356,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       // corre até o alvo deixando um rastro (dashTick); golpeia ao chegar
       u.dash = { id: def.id, targetId: t.id, t: 1, power, nature: def.nature, color: def.color, lx: u.x, ly: u.y, trail: 0, vfx };
       u.hasGoal = false;
+      if (def.id === 'gatsuga') joinGatsuga(g, u, t);
       break;
     case 'melee':
       fx(g, 'slash', t.x, t.y, { r: 24, color: def.color, life: 0.35 });
@@ -398,7 +400,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       u.shieldVfx = vfx;
       // terra (Doryuuheki): a muralha brota do chão e fica parada ali, entre ele e o inimigo
       if (vfx === 'earth') raiseWall(g, u, def.duration ?? 6, def.color);
-      else if (def.id !== 'sunanotate' || !FX.jutsus.sunanotate?.sprite) {
+      else if (!(['sunanotate', 'kaiten'].includes(def.id) && FX.jutsus[def.id]?.sprite)) {
         fx(g, 'burst', u.x, u.y, { r: 20, color: def.color, life: 0.5, vfx, fx: def.id });
         fx(g, 'ring', u.x, u.y, { r: 22, color: def.color, life: 0.5 });
       }
@@ -737,6 +739,24 @@ function splitGolem(g: Game, t: Unit) {
 // ------------------------------------------------------------------ investida (Chidori, Passo de Sangue)
 const DASH_SPEED = 480;
 
+/** O cão já presente acompanha a investida do dono, partindo da própria posição. */
+function joinGatsuga(g: Game, owner: Unit, target: Unit) {
+  const dog = dogOf(g, owner);
+  if (!dog || dog.hidden || dog.away != null || dog.stun > 0 || dog.dash || dog.cast || dog.barrage ||
+      dog.faction !== owner.faction || !canHit(dog.faction, dog.arenaSide, target) ||
+      Math.hypot(dog.x - owner.x, dog.y - owner.y) > 120) return;
+  const stats = meleeStats(dog);
+  dog.dash = { id: 'gatsuga', partnerOf: owner.id, targetId: target.id, t: 1,
+    power: stats.dmg, nature: null, color: JUTSUS.gatsuga!.color,
+    lx: dog.x, ly: dog.y, trail: 0, vfx: 'impact' };
+  dog.targetId = target.id;
+  dog.hasGoal = false;
+  dog.strike = undefined;
+  dog.attackCd = Math.max(dog.attackCd, stats.cd);
+  dog.combatTimer = Math.max(dog.combatTimer, 3);
+  dog.facing = Math.atan2(target.y - dog.y, target.x - dog.x);
+}
+
 /** Toca a coreografia do jutsu (`moves`, só desenho); sem ela, o quadro de impacto do soco por `fallback` s. */
 function playMoves(u: Unit, def: JutsuDef | undefined, fallback: number) {
   if (def?.moves?.length) {
@@ -775,8 +795,14 @@ export function dashTick(g: Game, u: Unit, dt: number) {
   const d = u.dash;
   if (!d) return;
   const t = g.unit(d.targetId);
+  const owner = d.partnerOf != null ? g.unit(d.partnerOf) : undefined;
+  const partnerReady = d.partnerOf == null || !!owner && !owner.dead && !owner.hidden &&
+    owner.away == null && owner.stun <= 0 && u.animal === 'dog' && u.ownerId === owner.id &&
+    u.faction === owner.faction &&
+    (owner.dash?.id === 'gatsuga' || owner.animKind === 'moves' && owner.moveJutsu === 'gatsuga' && owner.anim > 0);
   d.t -= dt;
-  if (!t || t.dead || t.hidden || d.t <= 0 || u.stun > 0) {
+  if (u.dead || u.hidden || u.away != null || !partnerReady ||
+      !t || t.dead || t.hidden || t.away != null || !canHit(u.faction, u.arenaSide, t) || d.t <= 0 || u.stun > 0) {
     u.dash = undefined;
     u.moving = false;
     return;
@@ -828,7 +854,8 @@ export function dashTick(g: Game, u: Unit, dt: number) {
 
 /** Rastro da investida: raio (Chidori, Raiton) ou vultos vermelhos de quem força o corpo (Passo de Sangue). */
 function dashTrail(g: Game, u: Unit, d: NonNullable<Unit['dash']>) {
-  if (d.id === 'rasengan' || d.id === 'odama') return;
+  if (d.id === 'rasengan' || d.id === 'odama' ||
+      ((d.id === 'gatsuga' || d.id === 'nikudan') && FX.jutsus[d.id]?.sprite)) return;
   if (d.vfx === 'blood' || d.vfx === 'impact') {
     fx(g, 'afterimage', d.lx, d.ly, { uid: u.id, facing: u.facing, life: 0.3, color: d.color });
     fx(g, 'burst', d.lx, d.ly + 6, { r: 6, color: d.color, life: 0.3, vfx: d.vfx });

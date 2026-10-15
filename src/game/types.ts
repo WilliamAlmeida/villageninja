@@ -227,7 +227,7 @@ export interface Unit {
   /** Sequência serializável dos cinco socos do Sekizō. */
   barrage?: { targetId: number; elapsed: number; next: number; power: number; angle?: number; distance?: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
-  dash?: { /** Jutsu da investida (coreografia ao chegar). */ id?: string; targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number; vfx?: Vfx };
+  dash?: { /** Jutsu da investida (coreografia ao chegar). */ id?: string; targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number; vfx?: Vfx; /** Dono que iniciou o Gatsūga conjunto do ninken. */ partnerOf?: number };
   /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
   sage?: number;
   sanninCd?: number;
@@ -559,6 +559,10 @@ export interface Effect {
   x2?: number;
   y2?: number;
   big?: boolean;
+  /** Texto auxiliar: tamanho e altura em pixels de cena, após a projeção. */
+  fontSize?: number;
+  textDy?: number;
+  followId?: number;
   variant?: FlickerStyle;
   uid?: number;
   /** Segundo envolvido que o efeito segue (`tether`: a sombra vai de `uid` até `tid`). */

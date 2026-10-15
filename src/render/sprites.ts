@@ -1,8 +1,9 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
 import { drawPressureProjectile } from './pressureCannon';
+import { drawRollingBody, drawLionFists } from './taijutsuSprites';
 import { TILE } from '../config';
-import { drawHandJutsu, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
+import { drawKaiten, drawHandJutsu, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -557,6 +558,8 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   const slashK = slash ? 1 - u.anim / STRIKE_ANIM : 0;
   // golpe de mão, arremesso e selos: pose própria do ninja em camadas (sem pose, o avanço curto de sempre)
   const pz = !action ? poseOf(u, t) : null;
+  const rolling = !action ? u.dash?.id ?? (u.anim > 0 && u.animKind === 'moves' && pz?.fx === 'roll' ? u.moveJutsu : undefined) : undefined;
+  if (!silColor && drawRollingBody(ctx, u, rolling, t)) return true;
   const pic = action ? art(`villager-${action}`) : unitPic(u, !!slash && !!swordPic(slash), pz?.pose);
   if (!pic) return false;
   const posed = !!pz && pic.dataset.pose === pz.pose; // a arte da pose pode ainda estar carregando (vem a caminhada)
@@ -672,6 +675,21 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     const growth = charging ? Math.min(1, 0.2 + (0.3 - u.cast!.t) / 0.24)
       : u.dash ? Math.min(1, 0.25 + (1 - u.dash.t) / 0.12) : 1;
     if (!drawHandJutsu(ctx, orbJ, hx, hy - 3 - 4 * (size - 1), t, u.id, growth)) handOrb(ctx, hx, hy - 3, orb, t, size);
+  }
+  if (u.moveJutsu === 'soshiken' && u.animKind === 'moves' && u.anim > 0 && !u.dead && u.stun <= 0) {
+    const r = artRect(pic, ux, uy, height, frame, row);
+    const pose = pic.dataset.pose as DollPose | undefined;
+    const hp = (pose && (dollPoses.hand as unknown as Record<string, ([number, number] | null)[]>)[pose]?.[row * r.frames + frame])
+      || artPoint(pic.dataset.name ?? '', 'hand', row * r.frames + frame, r.frames);
+    const hx = hp ? (flip ? 2 * ux - r.left - r.w : r.left) + ((flip ? r.fw - hp[0] - 1 : hp[0]) + .5) * r.w / r.fw
+      : ux + (flip ? -9 : 9) * scale;
+    const hy = hp ? r.top + (hp[1] + .5) * r.h / r.fh : uy - 13 * scale;
+    const handX = row === SHEET_ROWS.side ? ux + (flip ? -1 : 1) * Math.max(7 * scale, Math.abs(hx - ux))
+      : ux + (hx < ux ? -1 : 1) * Math.max(9 * scale, Math.abs(hx - ux));
+    const other = row === SHEET_ROWS.side
+      ? { x: ux - (flip ? -1 : 1) * 9 * scale, y: uy - 12 * scale }
+      : { x: 2 * ux - handX, y: hy };
+    drawLionFists(ctx, u, t, { x: handX, y: hy }, other, scale);
   }
   // Shintenshin: a mente de outro dentro dele (espiral rosa acima da cabeça)
   if (u.charm) mindMark(ctx, ux, uy - height - 5, t);
@@ -1193,6 +1211,14 @@ function drawDome(ctx: Ctx, u: Unit) {
 function drawShield(ctx: Ctx, u: Unit, t: number) {
   ctx.save();
   switch (u.shieldVfx) {
+    case 'wind':
+      if (drawKaiten(ctx, u.x, u.y, u.shield)) break;
+      ctx.strokeStyle = 'rgba(191,224,255,0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(u.x, u.y - 4, 24, 18, 0, Math.PI, Math.PI * 2);
+      ctx.stroke();
+      break;
     case 'earth':
       break;
     case 'web':

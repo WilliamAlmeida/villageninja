@@ -15,7 +15,7 @@ import type { Nature } from '../../src/data/natures';
 import { ORG_MEMBERS, type OrgMemberId } from '../../src/data/org';
 import { SOUND_MEMBERS, type SoundId } from '../../src/data/sound';
 import { castJutsu, engage, kageArt, spawnProjectile, trySupport } from '../../src/game/combat';
-import { createNinja, createRogue, refreshDerived } from '../../src/game/entities';
+import { createAnimal, createNinja, createRogue, refreshDerived } from '../../src/game/entities';
 import { Game } from '../../src/game/game';
 import { createNewGame } from '../../src/game/newGame';
 import { createOrgMember, orgArt } from '../../src/game/org';
@@ -96,6 +96,25 @@ const dummy = createRogue(g, cx + 50, cy, 30, { rank: 'jounin', stats: 1, jutsu:
 const ally = createNinja(g, cx + 50, cy, 'chunin', 0);
 ally.name = 'Aliado (alvo da Ordem/Som e da cura)';
 let enemy: Unit | null = null;
+let labDog: Unit | null = null;
+const ninkenToggle = document.getElementById('ninken') as HTMLInputElement;
+function placeNinken() {
+  if (!ninkenToggle.checked || caster.hidden) {
+    if (labDog) { labDog.hidden = true; labDog.dash = undefined; labDog.moving = false; }
+    return;
+  }
+  if (!labDog || labDog.dead) {
+    labDog = createAnimal(g, 'dog', caster.x - 14, caster.y + 18);
+    labDog.name = 'Ninken de teste';
+    labDog.faction = caster.faction;
+    labDog.ownerId = caster.id;
+    labDog.life = 1e9;
+    labDog.breed = 'shiba';
+  }
+  Object.assign(labDog, { hidden: false, x: caster.x - 14, y: caster.y + 18,
+    facing: caster.facing, stun: 0, dash: undefined, moving: false, hasGoal: false });
+}
+ninkenToggle.onchange = placeNinken;
 
 function setupCaster() {
   const n = caster.ninja!;
@@ -148,6 +167,7 @@ function place() {
     enemy.y = spot.y;
     enemy.facing = face;
   }
+  placeNinken();
 }
 
 /** Quem aparece: o ninja contra o boneco, ou um membro inimigo contra o aliado. */
@@ -632,7 +652,14 @@ preloadArt().then(() => {
   // Link reproduzível para inspecionar um jutsu pausado no mesmo instante.
   const params=new URLSearchParams(location.search),id=params.get('jutsu');
   if(id && JUTSUS[id]){
-    caster.ninja!.jutsu=[id,null];selectJutsu(id);castJutsu(g,caster,0,dummy);
+    caster.ninja!.jutsu=[id,null];caster.ninja!.kekkei=JUTSUS[id]!.kekkei??null;caster.combatTimer=3;selectJutsu(id);
+    // A prévia de golpes de contato começa ao alcance dos punhos.
+    if(JUTSUS[id]!.effect==='melee'){
+      const dx=dummy.x-caster.x,dy=dummy.y-caster.y,d=Math.hypot(dx,dy)||1;
+      caster.x=dummy.x-dx/d*24;caster.y=dummy.y-dy/d*24;
+    }
+    ninkenToggle.checked=params.get('ninken')==='1';placeNinken();
+    castJutsu(g,caster,0,dummy);
     const seconds=Math.max(0,Math.min(3,Number(params.get('at')??0)||0));
     for(let elapsed=0;elapsed<seconds;elapsed+=SIM_DT)g.step(SIM_DT);
     clock=seconds;setPaused(true);now.textContent=JUTSUS[id]!.name;

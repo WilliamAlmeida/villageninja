@@ -169,12 +169,12 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       break;
     }
     case 'text': {
-      const size = (e.big ? 10 : e.uid != null ? 7 : 8.5) * Math.max(1, 1.1 / zoom); // dano (uid) em fonte menor
+      const size = (e.fontSize ?? (e.big ? 10 : e.uid != null ? 7 : 8.5)) * Math.max(1, 1.1 / zoom); // dano (uid) em fonte menor
       ctx.globalAlpha = 1 - k * k;
       ctx.font = `bold ${size}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const y = e.y - k * (e.big ? 18 : 24);
+      const y = e.y + (e.textDy ?? 0) - k * (e.big ? 18 : 24);
       const s = e.big ? 1 + Math.max(0, 0.3 - e.t) : 1;
       ctx.save();
       ctx.translate(e.x, y);

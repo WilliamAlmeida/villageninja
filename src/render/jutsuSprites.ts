@@ -88,14 +88,14 @@ function drawDragonChain(ctx: CanvasRenderingContext2D, p: Projectile, s: Sprite
 }
 
 /** Célula da folha e quantos quadros ela tem. */
-function cells(img: HTMLImageElement, s: SpriteFx) {
+function cells(img: HTMLImageElement | HTMLCanvasElement, s: SpriteFx) {
   const cols = Math.max(1, s.cols), rows = Math.max(1, s.rows);
-  return { cols, cw: img.naturalWidth / cols, ch: img.naturalHeight / rows, frames: Math.max(1, Math.min(s.frames, cols * rows)) };
+  return { cols, cw: (img instanceof HTMLImageElement ? img.naturalWidth : img.width) / cols, ch: (img instanceof HTMLImageElement ? img.naturalHeight : img.height) / rows, frames: Math.max(1, Math.min(s.frames, cols * rows)) };
 }
 
 /** Quadro em loop no ponto (x, y), girando com `angle` se a folha pede; preserva o estado do canvas. */
-export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: number, y: number, angle: number, t: number, phase: number, behind?: number, frameOverride?: number): boolean {
-  const img = art(s.sheet);
+export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: number, y: number, angle: number, t: number, phase: number, behind?: number, frameOverride?: number, imageOverride?: HTMLCanvasElement): boolean {
+  const img = imageOverride ?? art(s.sheet);
   if (!img) return false;
   const { cols, cw, ch, frames } = cells(img, s);
   const frame = frameOverride == null ? (Math.floor(t * s.fps) + (phase % frames)) % frames : Math.max(0, Math.min(frames - 1, frameOverride));
@@ -211,6 +211,18 @@ export function drawJutsuOrigin(ctx: CanvasRenderingContext2D, e: Effect): boole
   const p = originPosition(e, s.forward ?? 0), fade = Math.min(1, Math.max(0, (e.life - e.t) / 0.15));
   return drawSpriteFx(ctx, { ...s, forward: 0, anchorX: s.mouthX, anchorY: s.mouthY, opacity: s.opacity * fade },
     p.x, p.y, projectAngle(e.facing ?? 0), 0, 0, undefined, Math.min(7, 3 + Math.floor(e.t * s.fps)));
+}
+
+/** Formação, rotação contínua e dissipação sincronizadas com o escudo. */
+export function drawKaiten(ctx: CanvasRenderingContext2D, x: number, y: number, remaining: number): boolean {
+  const s = spriteFx('kaiten');
+  if (!s) return false;
+  const age = Math.max(0, (JUTSUS.kaiten!.duration ?? 2.5) - remaining);
+  const formation = .12, ending = .16;
+  const frame = age < formation ? 0 : remaining < ending ? 7
+    : 1 + Math.floor((age - formation) * Math.max(1, s.fps)) % 6;
+  const fade = remaining < ending ? Math.max(0, remaining / ending) : 1;
+  return drawSpriteFx(ctx, { ...s, opacity: s.opacity * fade }, x, y + 9, 0, 0, 0, undefined, frame);
 }
 
 export function drawSandShield(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, t: number, id: number): boolean {

@@ -50,7 +50,12 @@ export function eyeTick(g: Game, u: Unit) {
   u.eyeOn = on || undefined;
   if (!on) return;
   const d = KEKKEI[eye];
-  fxText(g, u.x, u.y - 30, `${d.kanji} ${d.name}!`, d.color, true);
+  // O aviso ocular tem sua própria linha acima do nome do jutsu.
+  const label = g.state.effects.find(e => e.kind === 'text' && e.fx === 'dojutsu' && e.followId === u.id);
+  const text = { text: `${d.kanji} ${d.name}!`, color: d.color, fontSize: 7, textDy: -30,
+    followId: u.id, fx: 'dojutsu', life: 1.1, t: 0 };
+  if (label) Object.assign(label, text, { x: u.x, y: u.y });
+  else fx(g, 'text', u.x, u.y, text);
   fx(g, 'ring', u.x, u.y - 22, { r: 10, color: d.color, life: 0.4 });
 }
 
