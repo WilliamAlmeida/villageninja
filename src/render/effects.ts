@@ -1,6 +1,7 @@
+import { drawPressureTube } from './pressureCannon';
 import { plainTokens } from '../core/tokens';
 import type { Effect } from '../game/types';
-import { drawJutsuImpact } from './jutsuSprites';
+import { drawJutsuGust, drawJutsuImpact } from './jutsuSprites';
 
 type Ctx = CanvasRenderingContext2D;
 const TAU = Math.PI * 2;
@@ -355,7 +356,12 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
         ctx.stroke();
       }
       break;
+    case 'pressure': {
+      drawPressureTube(ctx, e.x, e.y - 8, e.x2 ?? e.x, (e.y2 ?? e.y) - 8, 0, 1 - k);
+      break;
+    }
     case 'gust': {
+      if (drawJutsuGust(ctx, e)) break;
       // rajada em leque: arcos de vento avançando do lançador até o alvo
       const x2 = e.x2 ?? e.x;
       const y2 = e.y2 ?? e.y;

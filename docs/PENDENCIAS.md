@@ -62,17 +62,19 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [x] Rasengan e Ōdama Rasengan — esfera compartilhada na mão, formação por escala, impacto animado e cratera temporária no chão (12/18 s). Ōdama usa as mesmas três imagens em 2×. Aprovado visualmente pelo autor em 2026-10-13 (73c11ca); prévia em `docs/arte/jutsus/rasengan/preview-impacto.html`.
 - [x] Rasenshuriken — formação na mão, projétil com quatro lâminas giratórias, domo expansivo de 0,8 s (baixado +8 px no eixo Y) e cratera compartilhada ampliada (20 s). Aprovado visualmente pelo autor em 2026-10-13; prévia em `docs/arte/jutsus/rasenshuriken/preview.html`.
 - [ ] Chidori — chakra elétrico na mão, investida e impacto.
-- [ ] Doryuuheki — integrado: subida, permanência, rachaduras e desmoronamento; três folhas (frontal, diagonal e perfil) com volume próprio, sem deformar a face por código (correção de 2026-10-14). Implementado no commit 3a50dcf; avaliação da correção no jogo pendente; galeria com 16 direções em `docs/arte/jutsus/doton-suna/preview-doryuuheki.html`.
-- [ ] Doryuudan — integrado: cabeça fixa na origem, boca alinhada ao projétil de lama, espelhamento pela direção. Implementado no commit 3a50dcf; avaliação no jogo pendente.
-- [ ] Suna no Tate — integrado: barreira curva de areia acompanhando o ninja enquanto o escudo estiver ativo. Implementado no commit 3a50dcf; avaliação no jogo pendente.
-- [ ] Sabaku Kyū — integrado: envolver, fechar, manter, comprimir e desfazer o casulo conforme o tempo restante da prisão. Implementado no commit 3a50dcf; avaliação no jogo pendente. Prévia das artes em `docs/arte/jutsus/doton-suna/preview.html`.
+- [x] Doryuuheki — muralha frontal, diagonal e perfil aprovados; registros de perfil e diagonal restaurados após regressão na configuração; três vistas deslocadas +7 px em Y. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
+- [x] Doryuudan — cabeça e lama aprovadas; afastamento visual da cabeça aumentado 12 px na direção do disparo. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
+- [x] Suna no Tate — barreira de areia aprovada. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
+- [x] Sabaku Kyū — casulo e fases de prisão aprovados. Aprovação do autor em 2026-10-15; integração original 3a50dcf.
 - [x] Kirin — integrado em 2026-10-15: formação, cabeça descendente e descarga no chão em 0,8 s; mantém redução de força sem tempestade. Aprovado visualmente pelo autor (3de1e8b).
 - [ ] Amaterasu e Susano'o — adiados por solicitação do autor em 2026-10-14.
 - [x] Jukai Kōtan — integrado: raízes crescem, envolvem, permanecem e recuam pelo tempo da prisão. Aprovado visualmente pelo autor (3de1e8b).
 - [x] Raikyuu — esfera elétrica em voo integrada e aprovada visualmente pelo autor (3de1e8b).
-- [ ] Chidori Nagashi — descarga radial de 0,8 s acompanhando o corpo, com centro aberto; deslocamento Y corrigido para +18 px em 2026-10-15. Commit 3de1e8b; falta avaliar o posicionamento; prévia em `docs/arte/jutsus/raiton-mokuton/preview.html`.
-- [ ] Yōkai — substituir a arte reaproveitada do Housenka por lava própria.
-- [ ] Daitoppa, Shinkuu Ha e Sekizō — rajadas, lâminas e colunas de ar.
+- [x] Chidori Nagashi — alinhamento Y entre os oito quadros corrigido em 2026-10-15: fundo da abertura central em referência fixa, dy final −9 px no laboratório. Prévia atualizada e montagem em `docs/arte/jutsus/raiton-mokuton/nagashi-alinhamento.png`; Aprovado pelo autor em 2026-10-15.
+- [x] Yōkai — lava própria e impacto de 0,8 s integrados em 2026-10-15; Aprovado pelo autor em 2026-10-15. Prévia em `docs/arte/jutsus/lava-vento/preview.html`.
+- [x] Daitoppa e Shinkuu Ha — rajada e lâmina integradas; artes aprovadas pelo autor em 2026-10-15.
+- [x] Sekizō — substituído o leque/coluna por cinco socos sucessivos, canhões longos de ar comprimido e deslocamentos ao redor do alvo. Corrigido a partir da referência do autor em 2026-10-15; captura em `output/playwright/sekizo-canhoes.png`; Aprovado pelo autor em 2026-10-15.
+- [x] Ajustes de contato e posicionamento aprovados pelo autor em 2026-10-15: frente física das sprites, impacto do Yōkai no chão, origem ajustável do Daitoppa e controles de todas as peças no laboratório. Auditoria em `docs/auditoria-projeteis.md`.
 - [ ] Kaiten, Sōshiken, Gatsūga e Nikudan Sensha — efeitos característicos sobre as poses atuais.
 - [ ] Sensatsu, Reiza e Kajōsatsu — agulhas de gelo, feixes e esferas de calor.
 - [ ] Kage Bunshin, Edo Tensei e Shousen — aparição, invocação e cura.

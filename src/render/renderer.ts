@@ -3,7 +3,8 @@ import { ANIMALS } from '../data/animals';
 import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
-import { drawEarthWall, drawJutsuCrater, drawJutsuOrigin, jutsuOriginBase } from './jutsuSprites';
+import { FX } from '../data/jutsuFx';
+import { drawEarthWall, drawJutsuCrater, drawJutsuImpact, drawJutsuOrigin, jutsuOriginBase } from './jutsuSprites';
 import { dragonPoint } from '../game/dragonFlight';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
@@ -402,9 +403,11 @@ export class Renderer {
     }
     this.drawHarvest(g);
     for (const e of s.effects) {
-      if (e.kind !== 'crater') continue;
-      const pos = project(e.x, e.y);
-      drawJutsuCrater(ctx, { ...e, x: pos.x, y: pos.y });
+      const groundImpact = e.kind === 'burst' && FX.jutsus[e.fx ?? '']?.impact?.layer === 'ground';
+      if (e.kind !== 'crater' && !groundImpact) continue;
+      const pos = project(e.x, e.y), pe = { ...e, x: pos.x, y: pos.y };
+      if (groundImpact) drawJutsuImpact(ctx, pe);
+      else drawJutsuCrater(ctx, pe);
     }
     this.drawTethers(g, time);
     drawCaveFlat(ctx, s, (tx, ty) => isExplored(s, tx, ty));
@@ -749,7 +752,8 @@ export class Renderer {
     this.particles.draw(ctx, 'trail');
     for (const p of flying) drawProjectile(ctx, p, time);
     for (const e of s.effects) {
-      if (e.kind === 'wall' || e.kind === 'crater' || e.kind === 'jutsuOrigin') continue; // peças fixas já desenhadas
+      if (e.kind === 'wall' || e.kind === 'crater' || e.kind === 'jutsuOrigin' ||
+          (e.kind === 'burst' && FX.jutsus[e.fx ?? '']?.impact?.layer === 'ground')) continue; // peças fixas já desenhadas
       if (e.kind === 'afterimage') {
         this.afterimage(g, e, time);
         continue;

@@ -51,7 +51,7 @@ export function ninjaSystem(g: Game, dt: number) {
       u.moving = false;
       continue;
     }
-    if (u.cast || u.dash) continue; // selos / investida: o sistema de técnicas cuida
+    if (u.cast || u.dash || u.barrage) continue; // selos / investida: o sistema de técnicas cuida
     if (!u.hidden) trySupport(g, u);
     specTick(g, u, dt); // profissão (médico, espião, marionetista) e contrato de invocação
     // consumível gasto: pega outro do estoque ao passar pela vila

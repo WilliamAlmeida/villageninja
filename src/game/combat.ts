@@ -1,3 +1,4 @@
+import { startSekizo } from './sekizo';
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { scarArea } from './battleScars';
 import { rasenganHitFx } from './rasenganFx';
@@ -89,7 +90,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
   u.targetId = t.id;
   u.hidden = false;
   const d = Math.hypot(t.x - u.x, t.y - u.y);
-  if (u.cast || u.dash) return; // selos / investida em andamento (systems/techniques.ts)
+  if (u.cast || u.dash || u.barrage) return; // selos / investida em andamento (systems/techniques.ts)
   if (u.channel) {
     u.moving = false; // segurando a sombra / a mente no outro: o corpo fica parado
     return;
@@ -244,6 +245,7 @@ function pickJutsu(g: Game, u: Unit, t: Unit, d: number): number {
 }
 
 function startCast(g: Game, u: Unit, slot: number, def: JutsuDef) {
+  u.barrage = undefined;
   const n = u.ninja!;
   u.chakra -= jutsuChakra(def, n.stats);
   n.cd[slot] = jutsuCooldown(def, n.stats);
@@ -306,6 +308,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
   shout(g, u, def);
   if (def.forbidden) fxMoment(g, u.x, u.y, def.name, def.color);
 
+  if (def.id === 'sekizo') { startSekizo(g, u, t, power); return; }
   switch (def.effect) {
     case 'projectile':
       if (FX.jutsus[def.id]?.origin) {
@@ -334,16 +337,17 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
       // incandescentes estourando em volta; do céu (Kirin): o raio cai, fraco sem nuvem de tempestade sobre o alvo
       const c = def.self ? u : t;
       const impact = FX.jutsus[def.id]?.impact;
+      const gust = FX.jutsus[def.id]?.gust;
       const impactLife = impact ? impact.frames / Math.max(1, impact.fps) : 0.55;
       let p = power;
       if (def.sky) {
         fx(g, 'thunder', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: impact ? impactLife : 0.7, fx: def.id });
         if (weatherAt(g.state, seasonOf(g.state), c.x, c.y) === 'clear') p *= 0.6;
       }
-      if (vfx === 'wind' && !def.self) fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: 0.55, r: def.radius ?? 50 });
-      if (!def.sky || !impact)
+      if (vfx === 'wind' && !def.self) fx(g, 'gust', u.x, u.y, { x2: t.x, y2: t.y, color: def.color, life: gust ? gust.frames / Math.max(1, gust.fps) : 0.55, r: def.radius ?? 50, fx: def.id });
+      if (!gust && (!def.sky || !impact))
         fx(g, 'burst', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: impactLife, vfx, fx: def.id, uid: def.self ? u.id : undefined });
-      if (!impact) fx(g, 'ring', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
+      if (!impact && !gust) fx(g, 'ring', c.x, c.y, { r: def.radius ?? 50, color: def.color, life: 0.5 });
       areaDamage(g, u, u.faction, c.x, c.y, def.radius ?? 50, p, def.nature, 45, def.stun ?? 0);
       break;
     }

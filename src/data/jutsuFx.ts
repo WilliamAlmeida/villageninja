@@ -73,6 +73,18 @@ export interface SpriteFx {
   anchorX: number;
   anchorY: number;
   dy: number;
+  dx?: number;
+  /** Deslocamentos em pixels de cena: à frente e perpendicular à direção. */
+  forward?: number;
+  side?: number;
+  /** Contato na célula; ausente usa a frente opaca medida da folha. */
+  hitX?: number;
+  hitY?: number;
+  hitRadius?: number;
+  /** Contato frontal acompanha a direção em discos que giram sem virar a folha. */
+  contactRotate?: boolean;
+  /** Impacto de chão é desenhado antes dos personagens. */
+  layer?: 'ground' | 'body';
   opacity: number;
   blend: 'normal' | 'add';
   /** Gira com a direção do voo. */
@@ -134,10 +146,13 @@ export interface JutsuFx {
   profile?: SpriteFx;
   /** Muralha diagonal com topo e face lateral já desenhados. */
   oblique?: SpriteFx;
-  /** Fonte fixa do disparo; a boca coincide com o ponto inicial do projétil. */
-  origin?: SpriteFx & { life: number; mouthX: number; mouthY: number };
+  /** Fonte fixa do disparo; mouthX/Y registram a boca e forward afasta a arte em pixels de cena. */
+  origin?: SpriteFx & { life: number; mouthX: number; mouthY: number; forward?: number };
   /** Descarga curta no contato e marca temporária no chão. */
   impact?: SpriteFx;
+  /** Rajada ancorada no lançador e orientada até o alvo. */
+  gust?: SpriteFx;
+  cannon?: { width: number; opacity: number; forward: number; dy: number };
   crater?: SpriteFx & { life: number };
   /** Troca o estilo visual (rastro, impacto, estado) do jutsu. */
   vfx?: Vfx;
@@ -186,6 +201,8 @@ export function spriteFx(jutsu: string | undefined): SpriteFx | undefined {
 }
 
 /** JSON legível: um emissor por linha, o resto indentado (o arquivo vai para o git e é revisado à mão). */
+/** Revisão do protocolo de salvar: páginas antigas não podem apagar peças novas. */
+export const FX_EDITOR_REVISION = '2';
 export function formatFx(data: FxData): string {
   const line = (v: unknown) => JSON.stringify(v);
   const list = (a: Emitter[] | undefined, pad: string) => `[\n${(a ?? []).map((e) => `${pad}  ${line(e)}`).join(',\n')}\n${pad}]`;
@@ -205,6 +222,8 @@ export function formatFx(data: FxData): string {
         if (j.profile) parts.push(`   "profile": ${line(j.profile)}`);
         if (j.oblique) parts.push(`   "oblique": ${line(j.oblique)}`);
         if (j.origin) parts.push(`   "origin": ${line(j.origin)}`);
+        if (j.cannon) parts.push(`   "cannon": ${line(j.cannon)}`);
+        if (j.gust) parts.push(`   "gust": ${line(j.gust)}`);
         if (j.impact) parts.push(`   "impact": ${line(j.impact)}`);
         if (j.crater) parts.push(`   "crater": ${line(j.crater)}`);
         if (j.vfx) parts.push(`   "vfx": ${line(j.vfx)}`);
@@ -212,6 +231,8 @@ export function formatFx(data: FxData): string {
         if (j.flight) parts.push(`   "flight": ${line(j.flight)}`);
         if (j.trail) parts.push(`   "trail": ${list(j.trail, '   ')}`);
         if (j.burst) parts.push(`   "burst": ${list(j.burst, '   ')}`);
+        const known = new Set(['sprite','profile','oblique','origin','gust','cannon','impact','crater','vfx','proj','flight','trail','burst']);
+        for (const [key,value] of Object.entries(j)) if (!known.has(key) && value !== undefined) parts.push(`   ${line(key)}: ${line(value)}`);
         return `  ${line(k)}: {\n${parts.join(',\n')}\n  }`;
       })
       .join(',\n'),

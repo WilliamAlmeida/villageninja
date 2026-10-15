@@ -180,7 +180,7 @@ As três compartilham as fases; não aplicar novamente a inclinação da base à
 `earthSandMotion.wallFrame` controla subida (0,25 s), quadro estável, rachaduras e desmoronamento (últimos 0,45 s).
 Doryuudan usa `JutsuFx.origin` (também preservado por `formatFx`): folha, duração, boca e aparência da cabeça.
 O efeito `jutsuOrigin` é ordenado com os objetos pela base (`jutsuOriginBase`), fica parado onde foi disparado,
-espelha conforme a direção projetada e alinha a boca ao início do projétil, na altura de voo de 8 px. Cabeça dura
+espelha conforme a direção projetada. `origin.forward` afasta só a arte da cabeça 12 px de cena na direção do disparo, incluindo sua base de ordenação; a simulação do projétil mantém a origem anterior. A boca permanece registrada na folha, na altura de voo de 8 px. Cabeça dura
 0,65 s e desvanece nos últimos 0,15 s. O projétil tem folha própria girando com a trajetória, sem rastro de partículas.
 `drawShield` usa `drawSandShield` para areia: loop em 12 qps, abertura transparente e opacidade 0,9. `drawStunned`
 usa `drawSandCoffin`: formação nos primeiros 0,45 s, fechado durante a prisão, compressão nos últimos 0,65 s e
@@ -192,10 +192,43 @@ sprite do laboratório continua editando a folha principal.
 
 Kirin desenha `JutsuFx.impact` também no efeito `thunder` (`drawEffect`), oito fases de formação/descida/descarga,
 em execução única de 0,8 s. Nagashi usa `burst` com sua folha, centro transparente e a mesma duração, acompanhando
-o lançador por `uid` no `effectSystem`; `dy: 18` alinha a base da descarga aos pés (o centro do anel na arte fica
-acima da âncora da célula). Ambos substituem o anel e a explosão procedural e desvanecem nos últimos
+o lançador por `uid` no `effectSystem`; o preparo registra o fundo da abertura central dos oito quadros em Y=0,78. `dy: -9` alinha essa referência aos pés. Ambos substituem o anel e a explosão procedural e desvanecem nos últimos
 0,16 s. Kirin fica no ponto original atingido, mesmo que o alvo seja empurrado. Raikyuu usa a folha em loop de
 16 qps, com giro pela direção projetada, sem rastro adicional; impacto usa pequenas faíscas azul-brancas.
 `drawStunned`, estilo `wood`, chama `drawJukaiRoots` ancorado nos pés (`y+9`): cresce em 0,45 s, forma a gaiola,
 ganha folhas, permanece até os últimos 0,45 s da prisão e recua (`earthSandMotion.jukaiFrame`). Fallback procedural
 se a folha não carregar. Raikyuu/Jukai usam `.sprite`; Kirin/Nagashi usam `.impact`, editado pelo JSON.
+
+## Yōkai, Daitoppa, Shinkuu Ha e Sekizō
+
+Yōkai usa projétil de lava próprio e `JutsuFx.impact` de 0,8 s. Shinkuu Ha usa uma lâmina curva em loop nos três
+projéteis atuais. Sekizō usa a sequência de canhões de ar descrita abaixo, substituindo a coluna de impacto antiga.
+`projectileSystem.explode` usa a duração da folha configurada para preservar os oito quadros do impacto; não aplica
+dano adicional durante a animação. Os demais impactos conservam a duração anterior quando não têm folha.
+
+Daitoppa usa `JutsuFx.gust`, preservado por `formatFx`: o evento `gust` carrega o ID do jutsu e dura 0,5 s.
+`drawJutsuGust` orienta a folha entre origem e alvo projetados, com âncora (0,15;0,5), largura140 e execução única.
+Substitui os arcos, partículas de rajada e burst/ring procedurais; mantém o dano em área aplicado uma vez no lançamento.
+Fallback de desenho disponível se a imagem não carregar. Novo lote integrado e aprovado visualmente pelo autor em 2026-10-15.
+
+## Contato visual, impactos de chão e canhões do Sekizō (2026-10-15)
+
+Projéteis com folha usam `game/projectileCollision.ts`: ponto de contato na frente opaca medida em
+`data/sprite-contacts.json`, substituível por `SpriteFx.hitX/hitY/hitRadius`. Tamanho, âncora, giro, espelho,
+offsets e altura do voo entram na mesma projeção da arte. Discos giratórios podem orientar só o contato
+(`contactRotate`). A colisão varre o segmento até a elipse do corpo e escolhe o primeiro alvo, evitando
+atravessar unidades ou acertar pela caixa antiga `projSize+9`. Projéteis procedurais preservam o contato anterior;
+Suiryuudan continua exigindo o mergulho baixo. Reproduzir medidas: `scripts/audit-projectile-contacts.ps1`;
+reproduzir os 240 disparos: `scripts/audit-jutsu-projectiles.ts` → `docs/auditoria-projeteis.md`.
+
+`impact.layer: ground` desenha o impacto na passada da cratera, antes dos personagens. No Yōkai, a explosão
+usa o chão do alvo atingido; a área de dano continua no ponto físico da colisão. Camada `body` conserva
+efeitos sobre o corpo. `SpriteFx.dx/dy/forward/side` são offsets em pixels de cena; a rajada do Daitoppa
+começa 18 px à frente do lançador e pode ser afinada no painel.
+
+Sekizō substitui o antigo leque e a coluna vertical: cinco socos nos instantes 0/0,30/0,54/0,72/0,84 s,
+com velocidade crescente. Entre socos, o atacante muda de lado ao redor do alvo, pousando apenas em terreno
+andável e respeitando a arena. Cada projétil conserva sua fonte fixa (`Projectile.cannon`); o renderer desenha
+um canhão longo de ar comprimido, transparente, com largura padrão28 e opacidade0,62. O último trecho dura
+0,32 s após contato. Largura, opacidade e origem são configuráveis em `JutsuFx.cannon`. A folha
+`effect-sekizo-impact-v1.png` foi preservada para reaproveitamento, sem uso padrão no Sekizō.

@@ -67,3 +67,31 @@
   teste (vários; arrastar ou mandar andar pelo caminho de verdade), com "Mostrar" para ver junto as peças, o terreno,
   os pontos e a linha do chão (lembrado no navegador). Salvar grava o JSON (cópia em docs/arte/backup-editor) e
   o jogo se refaz. A arena começou de `scripts/layout-arena.py` (rodar de novo sobrescreve a arena).
+
+## Ajuste fino dos jutsus: peças e diagnóstico de contato (2026-10-15)
+
+A aba Sprite seleciona Principal/projétil, Impacto, Rajada, Fonte, Cratera, Perfil ou Diagonal. Cada peça com
+folha tem as mesmas seções Pontos (zoom), Tamanho e aparência e Grade da folha. Ao escolher um jutsu,
+o painel abre a primeira peça existente; Kirin/Nagashi abrem Impacto, Daitoppa abre Rajada. Fonte também
+edita a boca e duração; cratera edita a duração; impacto escolhe chão ou corpo.
+
+Para ajustar a colisão: ligar Diagnóstico de contato e Pausar no contato, disparar e observar a elipse azul
+do corpo, o ponto amarelo da arte e o segmento laranja. A última sprite fica como referência transparente.
+Ajustar o marcador Contato em Pontos (zoom) e o raio em Contato do projétil, repetir em outras direções
+e distâncias e salvar. Restaurar frente medida remove o ajuste manual e usa `sprite-contacts.json`.
+O botão Passo e a tecla ponto avançam um único `SIM_DT`, em vez de 0,25 s. Ajustes também redesenham pausado.
+Daitoppa: selecionar Rajada e ajustar À frente da origem, Lateral da origem e Deslocamento X/Y.
+Sekizō tem controles próprios de largura, opacidade e origem dos canhões; seus cinco socos não usam leque.
+
+Links reproduzíveis para inspeção: `/lab?jutsu=sekizo&at=0.95`, por exemplo, solta o jutsu, avança até o
+instante e pausa. Apenas IDs existentes e intervalos de 0 a 3 s são aceitos.
+
+O protocolo de salvamento do laboratório está na revisão2 (`X-Fx-Editor-Version`). O servidor recusa com409
+páginas antigas antes de escrever; é necessário recarregar uma página que estava aberta antes da atualização.
+`formatFx` também conserva campos futuros de peças. Correção motivada pelo servidor antigo descartar
+`gust/cannon` ao salvar ajustes. O editor local foi reiniciado para carregar o novo formato.
+
+Capturas verificadas no laboratório: `output/playwright/sekizo-canhoes.png`,
+`daitoppa-origem.png` e `yokai-impacto-chao.png`. Yōkai usa camada de chão e deslocamentoY+12,
+alinhando a poça à base dos pés. O corpo humano da colisão fica no centro da arte (base+9, altura30),
+não no ponto acima do corpo usado pela caixa anterior.

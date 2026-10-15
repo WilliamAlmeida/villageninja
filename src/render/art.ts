@@ -301,6 +301,11 @@ import kirinStrike from '../art/effects/effect-kirin-v1.png';
 import jukaiRoots from '../art/effects/effect-jukai-v1.png';
 import raikyuuSphere from '../art/effects/projectile-raikyuu-v1.png';
 import nagashiDischarge from '../art/effects/effect-chidorinagashi-v1.png';
+import yokaiLava from '../art/effects/projectile-yokai-v1.png';
+import yokaiSplash from '../art/effects/effect-yokai-impact-v1.png';
+import daitoppaGust from '../art/effects/effect-daitoppa-v1.png';
+import shinkuuBlade from '../art/effects/projectile-shinkuuha-v1.png';
+import sekizoColumn from '../art/effects/effect-sekizo-impact-v1.png';
 
 const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, academy, hospital, tower, library, missions, ironmine, forge, pharmacy, sealshop, monument, farm, training, herbgarden, villager, rogue, boar, wolf, bear, tree0, tree1, rock, ore, herb,
   'projectile-housenka': projectileHousenka, 'projectile-goukakyuu': projectileGoukakyuu,
@@ -314,6 +319,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'projectile-doryuudan-v1': doryuudanMud, 'effect-sunanotate-v1': sandShield, 'effect-sabakukyu-v1': sandCoffin,
   'effect-kirin-v1': kirinStrike, 'effect-jukai-v1': jukaiRoots,
   'projectile-raikyuu-v1': raikyuuSphere, 'effect-chidorinagashi-v1': nagashiDischarge,
+  'projectile-yokai-v1': yokaiLava, 'effect-yokai-impact-v1': yokaiSplash, 'effect-daitoppa-v1': daitoppaGust, 'projectile-shinkuuha-v1': shinkuuBlade, 'effect-sekizo-impact-v1': sekizoColumn,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,
   // níveis de upgrade dos prédios e o guarda da torre
   'house-2': house2, 'house-3': house3, 'lumber-2': lumber2, 'lumber-3': lumber3, 'quarry-2': quarry2, 'quarry-3': quarry3, 'market-2': market2, 'market-3': market3, 'tower-top': towerTop, 'hospital-2': hospital2, 'hospital-3': hospital3, 'farm-2': farm2, 'farm-3': farm3, 'training-2': training2, 'training-3': training3,

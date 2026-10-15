@@ -27,7 +27,7 @@ import { pickFoe } from '../tactics';
 /** Animais selvagens, ninjas renegados e clones das sombras. */
 export function hostileSystem(g: Game, dt: number) {
   for (const u of g.state.units) {
-    if (u.dead || u.away != null) continue; // fora do mapa (do lado do Som, entre invasões)
+    if (u.dead || u.away != null || u.barrage) continue; // fora do mapa (do lado do Som, entre invasões)
     if (u.kind === 'animal') animal(g, u, dt);
     else if (u.kind === 'rogue') rogue(g, u, dt);
     else if (u.kind === 'clone') clone(g, u, dt);

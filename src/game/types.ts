@@ -224,6 +224,8 @@ export interface Unit {
   /** Fazendo os selos de um jutsu (ritmo tático): sai quando `t` zera; um golpe forte interrompe. */
   /** Selos em andamento: jutsu, alvo, segundos que faltam e o total (o desenho mostra os selos pelo andamento). */
   cast?: { id: string; targetId: number; t: number; total?: number };
+  /** Sequência serializável dos cinco socos do Sekizō. */
+  barrage?: { targetId: number; elapsed: number; next: number; power: number; angle?: number; distance?: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */
   dash?: { /** Jutsu da investida (coreografia ao chegar). */ id?: string; targetId: number; t: number; power: number; nature: Nature | null; color: string; lx: number; ly: number; trail: number; vfx?: Vfx };
   /** Modo Sábio ativo (s restantes) e recarga da técnica lendária do Sannin. */
@@ -515,6 +517,8 @@ export interface Projectile {
   fx?: string;
   /** Suiryuudan modular: simulação e desenho compartilham esta curva. */
   dragon?: DragonFlight;
+  /** Origem fixa de um canhão de ar do Sekizō. */
+  cannon?: { sx: number; sy: number; index: number };
 }
 
 /** `harvest`: canteiro recém-colhido (terra à mostra que volta a brotar com o tempo; desenhado no chão). */
@@ -538,6 +542,8 @@ export type EffectKind =
   | 'crater'
   /** Cabeça/fonte fixa e temporária de um disparo de jutsu. */
   | 'jutsuOrigin'
+  /** Canhão de ar após o contato: conserva a direção do soco por um instante. */
+  | 'pressure'
   /** Momento especial (Kage, Sannin, chefe, proibido): câmera lenta curta, fundo escuro e o nome no centro (main.ts). */
   | 'moment';
 

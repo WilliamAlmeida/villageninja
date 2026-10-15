@@ -218,13 +218,13 @@
  },
  "jutsus": {
   "housenka": {
-   "sprite": {"sheet":"projectile-housenka","cols":4,"rows":2,"frames":8,"fps":16,"size":32,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"add","rotate":true,"flip":false},
+   "sprite": {"sheet":"projectile-housenka","cols":4,"rows":2,"frames":8,"fps":16,"size":32,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":0.89,"blend":"normal","rotate":true,"flip":false},
    "trail": [
      {"shape":"ember","colors":["#ff982e"],"n":18,"life":[0.18,0.3],"size":[0.8,1.5],"speed":[0,3],"follow":-0.04,"back":15,"spread":0.3,"opacity":0.32,"under":true,"glow":false,"rise":[-5,-5]}
    ]
   },
   "goukakyuu": {
-   "sprite": {"sheet":"projectile-goukakyuu","cols":4,"rows":2,"frames":8,"fps":16,"size":52,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"add","rotate":true,"flip":false},
+   "sprite": {"sheet":"projectile-goukakyuu","cols":4,"rows":2,"frames":8,"fps":16,"size":52,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":0.88,"blend":"normal","rotate":true,"flip":false},
    "trail": [
      {"shape":"ember","colors":["#ff982e"],"n":18,"life":[0.18,0.3],"size":[0.8,1.5],"speed":[0,3],"follow":-0.04,"back":25,"spread":0.3,"opacity":0.32,"under":true,"glow":false,"rise":[-5,-5]}
    ]
@@ -243,7 +243,14 @@
    ]
   },
   "yokai": {
-   "sprite": {"sheet":"projectile-housenka","cols":4,"rows":2,"frames":8,"fps":16,"size":40,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"add","rotate":true,"flip":false}
+   "sprite": {"sheet":"projectile-yokai-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":48,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":true},
+   "impact": {"sheet":"effect-yokai-impact-v1","cols":4,"rows":2,"frames":8,"fps":10,"size":144,"anchorX":0.5,"anchorY":0.78,"dy":12,"opacity":1,"blend":"normal","rotate":false,"flip":false,"layer":"ground"},
+   "trail": [
+
+   ],
+   "burst": [
+
+   ]
   },
   "hirudora": {
    "sprite": {"sheet":"projectile-hirudora","cols":2,"rows":4,"frames":8,"fps":10,"size":110,"anchorX":0.890625,"anchorY":0.5,"dy":0,"opacity":0.87,"blend":"add","rotate":true,"flip":true,"emerge":true},
@@ -290,11 +297,13 @@
    ]
   },
   "doryuuheki": {
-   "sprite": {"sheet":"effect-doryuuheki-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":64,"anchorX":0.5,"anchorY":0.78,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":false}
+   "sprite": {"sheet":"effect-doryuuheki-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":64,"anchorX":0.5,"anchorY":0.78,"dy":7,"opacity":1,"blend":"normal","rotate":false,"flip":false},
+   "profile": {"cols":4,"rows":2,"frames":8,"fps":12,"size":58,"anchorX":0.5,"anchorY":0.78,"dy":7,"opacity":1,"blend":"normal","rotate":false,"flip":true,"sheet":"effect-doryuuheki-profile-v1"},
+   "oblique": {"cols":4,"rows":2,"frames":8,"fps":12,"size":58,"anchorX":0.5,"anchorY":0.78,"dy":7,"opacity":1,"blend":"normal","rotate":false,"flip":true,"sheet":"effect-doryuuheki-oblique-v1"}
   },
   "doryuudan": {
    "sprite": {"sheet":"projectile-doryuudan-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":22,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":true,"flip":false},
-   "origin": {"sheet":"effect-doryuudan-origin-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":68,"anchorX":0.5,"anchorY":0.78,"dy":-8,"opacity":1,"blend":"normal","rotate":false,"flip":true,"life":0.65,"mouthX":0.76,"mouthY":0.52},
+   "origin": {"sheet":"effect-doryuudan-origin-v1","cols":4,"rows":2,"frames":8,"fps":12,"size":68,"anchorX":0.5,"anchorY":0.78,"dy":-8,"opacity":1,"blend":"normal","rotate":false,"flip":true,"life":0.65,"mouthX":0.76,"mouthY":0.52,"forward":-12},
    "trail": [
 
    ]
@@ -340,6 +349,30 @@
   },
   "chidorinagashi": {
    "impact": {"sheet":"effect-chidorinagashi-v1","cols":4,"rows":2,"frames":8,"fps":10,"size":142,"anchorX":0.5,"anchorY":0.78,"dy":-9,"opacity":0.95,"blend":"normal","rotate":false,"flip":false},
+   "burst": [
+
+   ]
+  },
+  "daitoppa": {
+   "gust": {"sheet":"effect-daitoppa-v1","cols":4,"rows":2,"frames":8,"fps":16,"size":140,"anchorX":0.15,"anchorY":0.5,"dy":0,"opacity":0.8,"blend":"normal","rotate":true,"flip":true,"forward":18},
+   "trail": [
+     {"shape":"streak","colors":["#e8fff0","#b6f2cc","#7fe0a0"],"n":60,"life":[0.25,0.25],"size":[4,8],"speed":[0,0],"follow":-0.1,"spread":0.6,"off":true}
+   ],
+   "burst": [
+
+   ]
+  },
+  "shinkuuha": {
+   "sprite": {"sheet":"projectile-shinkuuha-v1","cols":4,"rows":2,"frames":8,"fps":20,"size":42,"anchorX":0.75,"anchorY":0.5,"dy":0,"opacity":0.9,"blend":"normal","rotate":true,"flip":true},
+   "trail": [
+
+   ]
+  },
+  "sekizo": {
+   "cannon": {"width":28,"opacity":0.62,"forward":14,"dy":-4},
+   "trail": [
+
+   ],
    "burst": [
 
    ]

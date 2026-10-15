@@ -102,7 +102,8 @@ export function drawSpriteFx(ctx: CanvasRenderingContext2D, s: SpriteFx, x: numb
   const w = s.size, h = (s.size * ch) / cw;
   const left = Math.cos(angle) < 0;
   ctx.save();
-  ctx.translate(x, y + s.dy);
+  ctx.translate(x + (s.dx ?? 0) + Math.cos(angle) * (s.forward ?? 0) - Math.sin(angle) * (s.side ?? 0),
+    y + s.dy + Math.sin(angle) * (s.forward ?? 0) + Math.cos(angle) * (s.side ?? 0));
   if (s.rotate) {
     ctx.rotate(angle);
     if (s.flip && left) ctx.scale(1, -1); // indo para a esquerda: a arte não fica de cabeça para baixo
@@ -186,21 +187,29 @@ export function drawEarthWall(ctx: CanvasRenderingContext2D, e: Effect): boolean
     angle, 0, 0, undefined, frame);
 }
 
-/** Posição projetada da base para ordenar a fonte fixa com os personagens. */
-export function jutsuOriginBase(e: Effect) {
-  const p = project(e.x, e.y), s = e.fx ? FX.jutsus[e.fx]?.origin : undefined;
-  if (!s) return p;
-  const side = Math.cos(projectAngle(e.facing ?? 0)) < 0 ? -1 : 1;
-  return { x: p.x + side * (s.anchorX - s.mouthX) * s.size,
-    y: p.y + s.dy + (s.anchorY - s.mouthY) * s.size };
+/** Deslocamento visual em pixels de cena na direção do disparo. */
+function originPosition(e: Effect, forward: number) {
+  const p = project(e.x, e.y), angle = projectAngle(e.facing ?? 0);
+  return { x: p.x + Math.cos(angle) * forward, y: p.y + Math.sin(angle) * forward };
 }
 
-/** A âncora da boca coincide com o início do projétil, inclusive ao espelhar. */
+/** Posição projetada da base para ordenar a fonte fixa com os personagens. */
+export function jutsuOriginBase(e: Effect) {
+  const s = e.fx ? FX.jutsus[e.fx]?.origin : undefined;
+  const p = originPosition(e, s?.forward ?? 0);
+  if (!s) return p;
+  const side = Math.cos(projectAngle(e.facing ?? 0)) < 0 ? -1 : 1;
+  const angle = projectAngle(e.facing ?? 0);
+  return { x: p.x + side * (s.anchorX - s.mouthX) * s.size + (s.dx ?? 0) - Math.sin(angle) * (s.side ?? 0),
+    y: p.y + s.dy + (s.anchorY - s.mouthY) * s.size + Math.cos(angle) * (s.side ?? 0) };
+}
+
+/** Boca registrada na origem visual, inclusive ao espelhar a cabeça. */
 export function drawJutsuOrigin(ctx: CanvasRenderingContext2D, e: Effect): boolean {
   const s = e.fx ? FX.jutsus[e.fx]?.origin : undefined;
   if (!s) return false;
-  const p = project(e.x, e.y), fade = Math.min(1, Math.max(0, (e.life - e.t) / 0.15));
-  return drawSpriteFx(ctx, { ...s, anchorX: s.mouthX, anchorY: s.mouthY, opacity: s.opacity * fade },
+  const p = originPosition(e, s.forward ?? 0), fade = Math.min(1, Math.max(0, (e.life - e.t) / 0.15));
+  return drawSpriteFx(ctx, { ...s, forward: 0, anchorX: s.mouthX, anchorY: s.mouthY, opacity: s.opacity * fade },
     p.x, p.y, projectAngle(e.facing ?? 0), 0, 0, undefined, Math.min(7, 3 + Math.floor(e.t * s.fps)));
 }
 
@@ -226,6 +235,16 @@ export function drawJukaiRoots(ctx: CanvasRenderingContext2D, x: number, y: numb
 export function drawHandJutsu(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, t: number, uid: number, growth = 1): boolean {
   const s = spriteFx(id);
   return !!s && drawSpriteFx(ctx, { ...s, size: s.size * Math.max(0.2, growth) }, x, y, 0, t, uid);
+}
+
+/** Rajada em execução única entre os pontos já projetados do efeito. */
+export function drawJutsuGust(ctx: CanvasRenderingContext2D, e: Effect): boolean {
+  const s = e.fx ? FX.jutsus[e.fx]?.gust : undefined;
+  if (!s) return false;
+  const angle = Math.atan2((e.y2 ?? e.y) - e.y, (e.x2 ?? e.x) - e.x);
+  const fade = Math.min(1, Math.max(0, (e.life - e.t) / .15));
+  return drawSpriteFx(ctx, { ...s, opacity: s.opacity * fade }, e.x, e.y - 10,
+    angle, e.t, 0, undefined, Math.floor(e.t * s.fps));
 }
 
 export function drawJutsuImpact(ctx: CanvasRenderingContext2D, e: Effect): boolean {

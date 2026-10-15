@@ -35,7 +35,10 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 - Suiryuudan: cabeça, corpo e fonte separados, montados sobre uma curva.
 - Hirudora: tigre de ar.
 - Prisão de Água: esfera animada sobre o preso.
-- Yōkai: reaproveita a arte do Housenka; ainda merece projétil e impacto próprios de lava.
+- Yōkai: projétil de lava e impacto próprios.
+- Daitoppa: rajada em leque na origem.
+- Shinkuu Ha: lâmina curva de ar em voo.
+- Sekizō: cinco socos sucessivos, com canhões longos de ar comprimido e deslocamentos ao redor do alvo.
 
 ## Prioridades sugeridas
 
@@ -44,13 +47,14 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Concluído; aprovado pelo autor | Rasengan e Ōdama Rasengan | Esfera compartilhada ligada à mão, formação por escala, impacto e cratera temporária; Ōdama usa tudo em 2× (73c11ca). |
 | Concluído; aprovado pelo autor | Rasenshuriken | Formação na mão, quatro lâminas giratórias, voo, domo expansivo e cratera ampliada. |
 | Muito alta | Chidori | Chakra elétrico na mão, descarga durante a investida e impacto. |
-| Integrado; avaliação no jogo pendente | Doryuuheki; Doryuudan; Suna no Tate; Sabaku Kyū | Muralha, cabeça de terra e projétil de lama separados, barreira curva de areia e casulo com compressão. |
+| Aprovado pelo autor em 2026-10-15 | Doryuuheki; Doryuudan; Suna no Tate; Sabaku Kyū | Muralha, cabeça de terra e projétil de lama separados, barreira curva de areia e casulo com compressão. |
 | Aprovado pelo autor (3de1e8b) | Kirin | Formação no céu, dragão elétrico e queda. |
 | Adiados pelo autor em 2026-10-14 | Amaterasu e Susano'o | Chamas negras presas ao alvo; armadura de chakra em camadas ao redor do ninja. |
 | Aprovado pelo autor (3de1e8b) | Jukai Kōtan | Raízes crescendo e envolvendo. |
-| Raikyuu aprovado; Nagashi com posição a avaliar (3de1e8b) | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo, deslocada +18 px. |
-| Alta | Yōkai | Massa de lava e explosão viscosa próprias. |
-| Média | Daitoppa, Shinkuu Ha e Sekizō | Rajadas, lâminas e colunas de ar. |
+| Concluído; aprovado pelo autor em 2026-10-15 | Raikyuu e Chidori Nagashi | Esfera elétrica pulsante; descarga em volta do corpo, quadros alinhados pela abertura central e deslocamento final −9 px no laboratório. |
+| Concluído; aprovado pelo autor em 2026-10-15 | Yōkai | Massa de lava e explosão viscosa próprias. |
+| Concluído; aprovado pelo autor em 2026-10-15 | Daitoppa e Shinkuu Ha | Rajada e lâmina de ar com ajustes no painel. |
+| Concluído; aprovado pelo autor em 2026-10-15 | Sekizō | Cinco socos sucessivos com canhões longos de pressão, de direções diferentes. |
 | Média | Kaiten, Sōshiken, Gatsūga e Nikudan Sensha | Domo giratório, leões de chakra, tornado e corpo rolando. |
 | Média | Sensatsu, Reiza e Kajōsatsu | Agulhas de gelo, feixes elétricos e esferas de calor. |
 | Complementar | Kage Bunshin, Edo Tensei e Shousen | Fumaça de criação, surgimento da invocação e aura de cura. |
@@ -99,7 +103,7 @@ Cinco folhas RGBA, oito quadros cada, grade 4x2, geradas pelo ImageGen integrado
 
 Preparo em `scripts/prepare-doton-suna.ps1`: escala comum por folha, alpha limpo, nearest-neighbor,
 alinhamento da base e conferência de margens. Prévia autocontida: `bun scripts/preview-doton-suna.ts`.
-Fontes, prompts, metadados e prévia em `docs/arte/jutsus/doton-suna/`. Integrado no jogo (3a50dcf); avaliação visual pendente.
+Fontes, prompts, metadados e prévia em `docs/arte/jutsus/doton-suna/`. Integrado no jogo (3a50dcf); quatro jutsus aprovados pelo autor em 2026-10-15. Cabeça do Doryuudan afastada mais 12 px de cena na direção do disparo, por pedido do autor.
 Doryuudan mantém um projétil de dano e acrescenta a origem visual fixa; muralha e casulo usam fases pela duração,
 e o escudo acompanha o ninja. Dados em `jutsu-fx.json`; configuração reproduzível em `scripts/configure-doton-suna.ts`.
 
@@ -117,4 +121,15 @@ Fontes, prompts ImageGen integrado, metadados e prévia em `docs/arte/jutsus/rai
 Preparo em `scripts/prepare-raiton-mokuton.ps1`; prévia com `bun scripts/preview-raiton-mokuton.ts`.
 Integrado no jogo em 2026-10-15. Configuração reproduzível: `scripts/configure-raiton-mokuton.ts`.
 Kirin e Nagashi usam impacto único de 0,8 s; raízes seguem o tempo de prisão, Raikyuu anima no voo.
-Commit 3de1e8b. Kirin, Jukai e Raikyuu aprovados; falta avaliar o ajuste Y do Nagashi.
+Commit 3de1e8b. Kirin, Jukai e Raikyuu aprovados. Em 2026-10-15, o autor apontou variação Y entre os quadros do Nagashi: preparo corrigido para registrar o fundo da abertura do ninja, em vez da borda externa da descarga; dy final ajustado no laboratório para −9 px para alinhar essa referência aos pés. Conferência dos oito quadros em `docs/arte/jutsus/raiton-mokuton/nagashi-alinhamento.png`; correção aprovada pelo autor em 2026-10-15, incluída no commit de alinhamento.
+
+## Quinto lote: Yōkai, Daitoppa, Shinkuu Ha e Sekizō
+
+Autorizado pelo autor em 2026-10-15. Cinco folhas RGBA, grade 4x2 e oito quadros, geradas pelo ImageGen integrado:
+
+- Yōkai: `projectile-yokai-v1.png` (256x128) e `effect-yokai-impact-v1.png` (512x256); lava viscosa com crosta escura e explosão própria de 0,8 s.
+- Daitoppa: `effect-daitoppa-v1.png` (512x256), rajada em leque de 0,5 s ancorada no lançador e orientada ao alvo.
+- Shinkuu Ha: `projectile-shinkuuha-v1.png` (256x128), lâmina curva em loop; mantém os três projéteis.
+- Sekizō: a coluna `effect-sekizo-impact-v1.png` (512x256) fica disponível para reaproveitamento. Após correção do autor em 2026-10-15, o jutsu usa cinco socos sucessivos com canhões direcionais longos e deslocamentos ao redor do alvo; a antiga coluna e o leque deixaram de ser o visual padrão.
+
+Fontes, prompts e prévia em `docs/arte/jutsus/lava-vento/`. Preparo: `scripts/prepare-lava-vento.ps1`; configuração: `scripts/configure-lava-vento.ts`; prévia: `scripts/preview-lava-vento.ts`. Artes inicialmente aprovadas em 2026-10-15; após a referência do autor, o Sekizō foi refeito e aprovado em 2026-10-15. Origem do Daitoppa e contato/impacto do Yōkai também receberam ajuste, aprovado pelo autor em 2026-10-15. Escala comum por folha e âncoras fixas; lava e lâmina têm frente estável, rajada nasce à esquerda e impactos usam base no chão.

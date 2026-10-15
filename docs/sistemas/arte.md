@@ -88,7 +88,7 @@ Prévia autocontida: `bun scripts/preview-rasenshuriken.ts`. Configuração do l
 
 ## Doryuuheki, Doryuudan, Suna no Tate e Sabaku Kyū: artes v1
 
-Lote integrado no renderer, aguardando avaliação no jogo. PNGs em `src/art/effects/`: `effect-doryuuheki-v1`,
+Lote integrado no renderer e aprovado pelo autor em 2026-10-15. PNGs em `src/art/effects/`: `effect-doryuuheki-v1`,
 `effect-doryuudan-origin-v1`, `effect-sunanotate-v1` e `effect-sabakukyu-v1` têm 384x192, células de 96x96;
 `projectile-doryuudan-v1` tem 256x128, células de 64x64. Todas são RGBA, grade 4x2 com oito quadros.
 Base das peças de chão em (0,5; 0,78); projétil centrado em (0,5; 0,5). Escala comum preserva a subida da muralha
@@ -122,3 +122,16 @@ Raikyuu tem centro fixo. Integradas em 2026-10-15; Amaterasu e Susano'o adiados 
 Dados de runtime em `jutsu-fx.json`: `kirin.impact` tamanho180, 10 qps; `jukai.sprite` tamanho76;
 `raikyuu.sprite` tamanho30, 16 qps, gira com o voo; `chidorinagashi.impact` tamanho142, 10 qps, opacidade0,95.
 Configuração reproduzível: `scripts/configure-raiton-mokuton.ts`.
+
+## Lava e vento: Yōkai, Daitoppa, Shinkuu Ha e Sekizō
+
+Cinco folhas ImageGen integrado em `src/art/effects/`, RGBA, oito quadros 4x2: `projectile-yokai-v1` e
+`projectile-shinkuuha-v1` têm células64; `effect-yokai-impact-v1`, `effect-daitoppa-v1` e
+`effect-sekizo-impact-v1` têm células128. Fontes e prompts em `docs/arte/jutsus/lava-vento/`.
+Preparo técnico: `scripts/prepare-lava-vento.ps1`, alpha mínimo32, remoção de ruído, nearest-neighbor e escala
+comum por folha. Frente dos projéteis em (0,75;0,5), rajada em (0,15;0,5), impactos em (0,5;0,78).
+Configuração: `scripts/configure-lava-vento.ts`; prévia autocontida: `scripts/preview-lava-vento.ts`.
+
+Nagashi (correção de 2026-10-15): registra o fundo da abertura do ninja entre os quadros, usando os pontos da fonte
+em `prepare-raiton-mokuton.ps1`. Mantém escala comum; evita a oscilação Y causada pela borda externa dos raios.
+Montagem com referência fixa: `docs/arte/jutsus/raiton-mokuton/nagashi-alinhamento.png`.

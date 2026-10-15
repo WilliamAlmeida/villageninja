@@ -1,5 +1,6 @@
 // Desenho procedural de tudo (sem assets). Trocar por spritesheets no futuro
 // é só reimplementar estas funções mantendo as assinaturas.
+import { drawPressureProjectile } from './pressureCannon';
 import { TILE } from '../config';
 import { drawHandJutsu, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
@@ -1987,6 +1988,7 @@ function paintTower(ctx: Ctx, def: BuildingDef, x: number, y: number, w: number,
 // ---------------------------------------------------------------- projéteis
 export function drawProjectile(ctx: Ctx, p: Projectile, t: number) {
   const a = Math.atan2(p.vy, p.vx);
+  if (drawPressureProjectile(ctx, p)) return;
   if (drawJutsuProjectile(ctx, p, t)) return;
   const sp = Math.hypot(p.vx, p.vy);
   const dx = p.vx / sp;

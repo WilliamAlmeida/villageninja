@@ -1,0 +1,107 @@
+{
+    "projectile-housenka":  {
+                                "cols":  4,
+                                "rows":  2,
+                                "x":  0.851562,
+                                "y":  0.5,
+                                "aspect":  1
+                            },
+    "projectile-goukakyuu":  {
+                                 "cols":  4,
+                                 "rows":  2,
+                                 "x":  0.867188,
+                                 "y":  0.503348,
+                                 "aspect":  1
+                             },
+    "projectile-mizurappa":  {
+                                 "cols":  4,
+                                 "rows":  2,
+                                 "x":  0.882812,
+                                 "y":  0.501379,
+                                 "aspect":  1
+                             },
+    "effect-suiryuudan-head":  {
+                                   "cols":  4,
+                                   "rows":  2,
+                                   "x":  0.835938,
+                                   "y":  0.464286,
+                                   "aspect":  1
+                               },
+    "projectile-yokai-v1":  {
+                                "cols":  4,
+                                "rows":  2,
+                                "x":  0.742188,
+                                "y":  0.5,
+                                "aspect":  1
+                            },
+    "projectile-hirudora":  {
+                                "cols":  2,
+                                "rows":  4,
+                                "x":  0.981771,
+                                "y":  0.476562,
+                                "aspect":  0.33333333333333331
+                            },
+    "effect-rasengan-v1":  {
+                               "cols":  4,
+                               "rows":  2,
+                               "x":  0.867188,
+                               "y":  0.494708,
+                               "aspect":  1
+                           },
+    "projectile-rasenshuriken-v1":  {
+                                        "cols":  4,
+                                        "rows":  2,
+                                        "x":  0.828125,
+                                        "y":  0.545718,
+                                        "aspect":  1
+                                    },
+    "effect-doryuuheki-v1":  {
+                                 "cols":  4,
+                                 "rows":  2,
+                                 "x":  0.848958,
+                                 "y":  0.747396,
+                                 "aspect":  1
+                             },
+    "projectile-doryuudan-v1":  {
+                                    "cols":  4,
+                                    "rows":  2,
+                                    "x":  0.835938,
+                                    "y":  0.503438,
+                                    "aspect":  1
+                                },
+    "effect-sunanotate-v1":  {
+                                 "cols":  4,
+                                 "rows":  2,
+                                 "x":  0.786458,
+                                 "y":  0.727083,
+                                 "aspect":  1
+                             },
+    "effect-sabakukyu-v1":  {
+                                "cols":  4,
+                                "rows":  2,
+                                "x":  0.765625,
+                                "y":  0.614583,
+                                "aspect":  1
+                            },
+    "effect-jukai-v1":  {
+                            "cols":  4,
+                            "rows":  2,
+                            "x":  0.796875,
+                            "y":  0.652604,
+                            "aspect":  1
+                        },
+    "projectile-raikyuu-v1":  {
+                                  "cols":  4,
+                                  "rows":  2,
+                                  "x":  0.804688,
+                                  "y":  0.477214,
+                                  "aspect":  1
+                              },
+    "projectile-shinkuuha-v1":  {
+                                    "cols":  4,
+                                    "rows":  2,
+                                    "x":  0.742188,
+                                    "y":  0.493304,
+                                    "aspect":  1
+                                }
+}

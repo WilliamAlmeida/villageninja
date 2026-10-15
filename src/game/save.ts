@@ -277,6 +277,8 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   // obra pronta esperando espaço
   // v39: limpar área (ResourceNode.clear/cleared, campos opcionais: nada a converter)
   38: () => {},
+  // v45: sequência do Sekizō e origem dos canhões, opcionais; saves anteriores continuam sem sequência.
+  44: () => {},
   // v44: altura de saída da fonte no bote do dragão (DragonFlight.z0, opcional: nada a converter)
   43: () => {},
   // v43: curva opcional do Suiryuudan modular; projéteis antigos terminam o voo anterior.

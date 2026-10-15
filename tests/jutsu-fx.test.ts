@@ -99,3 +99,12 @@ describe('visual dos jutsus (jutsu-fx.json)', () => {
     expect(m.version).toBe(SAVE_VERSION);
   });
 });
+
+test('formatFx conserva campos futuros de peças ao salvar pelo servidor',()=>{
+ const data=JSON.parse(JSON.stringify(FX));
+ data.jutsus.daitoppa.futurePiece={size:42,anchorX:.25};
+ const saved=JSON.parse(formatFx(data));
+ expect(saved.jutsus.daitoppa.futurePiece).toEqual(data.jutsus.daitoppa.futurePiece);
+ expect(saved.jutsus.daitoppa.gust).toEqual(data.jutsus.daitoppa.gust);
+ expect(saved.jutsus.sekizo.cannon).toEqual(data.jutsus.sekizo.cannon);
+});

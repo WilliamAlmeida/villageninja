@@ -108,3 +108,15 @@ Nagashi mantém um único dano em área no momento do uso; o `burst` de 0,8 s le
 `effectSystem` e termina se o lançador morrer, sumir ou ficar oculto. Seguir visualmente não aplica dano novamente.
 Jukai mantém dano e 2,5 s de prisão com estilo `wood`, substituindo a explosão inicial pelas fases de raízes.
 Raikyuu mantém o projétil e o atordoamento existentes. Nenhum campo persistente novo; save continua v44.
+
+## Sekizō: sequência de canhões de ar (2026-10-15)
+
+A implementação anterior soltava cinco projéteis em leque com um impacto de coluna vertical. Corrigido
+conforme o ataque da referência: cinco socos sucessivos, cada vez mais rápidos, produzindo canhões de
+pressão na direção do alvo. `game/sekizo.ts` mantém `Unit.barrage` (alvo, tempo, próximo soco e poder),
+atualizado pelo sistema de técnicas; a IA aguarda a sequência. Cada soco tem um projétil de dano,
+poder/consumo/recarga da definição atual; aceleração e deslocamentos são a adaptação para o jogo 2D.
+Os deslocamentos ao redor do alvo só pousam em terreno andável e ficam dentro do limite do Exame.
+Morte, ocultação, atordoamento, alvo inválido ou fuga interrompem os socos restantes. Save v45:
+sequência e `Projectile.cannon` são campos opcionais; saves v44 continuam sem sequência ativa.
+Referências: episódio420 de Naruto Shippūden e [Evening Elephant](https://naruto.fandom.com/wiki/Evening_Elephant).

@@ -261,6 +261,7 @@ export class Particles {
         break;
       }
       case 'gust':
+        if (e.fx && FX.jutsus[e.fx]?.gust) break;
         // rajada: riscos de vento correndo do lançador até o alvo
         for (let i = 0; i < 14; i++) {
           const k = Math.random() * 0.4;

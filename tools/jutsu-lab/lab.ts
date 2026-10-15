@@ -2,6 +2,8 @@
 // boneco de treino. Cada botão solta um jutsu, golpe, técnica, arte de Ordem/Som/Sannin ou lâmina no boneco, usando o
 // código real do jogo (combate, projéteis, efeitos e o renderer). "Duelo" deixa a IA lutar para ver o estilo de luta.
 // O painel "Ajuste" (à direita, fxPanel.ts) muda sprite, partículas e números do jutsu escolhido ao vivo e grava.
+import { drawContactDebug } from './contactDebug';
+import { PROJECTILE_DEBUG } from '../../src/game/projectileCollision';
 import { applyIcons, helpDialog, ico } from '../shared/ui';
 import { initFxPanel, selectJutsu } from './fxPanel';
 import { FX } from '../../src/data/jutsuFx';
@@ -48,6 +50,8 @@ let idle = 0;
 let dist = 100;
 let nature: Nature = 'katon';
 let speed = 1;
+let contactDebug = false;
+let pauseOnContact = false;
 /** Últimos dois jutsus escolhidos: o ninja os leva para o duelo. */
 const picked: string[] = [];
 
@@ -74,7 +78,7 @@ function labSystem(g: Game, dt: number) {
     if (mode.t <= 0) mode = { kind: 'idle', t: 0 };
   }
   // parado um tempo: todo mundo volta para o lugar
-  const busy = mode.kind !== 'idle' || g.state.projectiles.length > 0 || [caster, dummy, enemy].some((u) => u?.dash || u?.cast);
+  const busy = mode.kind !== 'idle' || g.state.projectiles.length > 0 || [caster, dummy, enemy].some((u) => u?.dash || u?.cast || u?.barrage);
   idle = busy ? 0 : idle + dt;
   if (idle > 2.5) {
     idle = -999;
@@ -126,6 +130,7 @@ function place() {
     u.shield = 0;
     u.dash = undefined;
     u.cast = undefined;
+    u.barrage = undefined;
     u.moving = false;
     u.hasGoal = false;
   }
@@ -447,6 +452,7 @@ for (const [title, acts, hint] of GROUPS) {
     if (a.tip) b.dataset.tip = a.tip;
     b.onclick = () => {
       idle = 0;
+      PROJECTILE_DEBUG.hits.length = 0;
       if (lastBtn !== b) selectJutsu(a.jutsu ?? null);
       lastBtn = b;
       a.run();
@@ -604,20 +610,35 @@ function frame(t: number) {
   const dt = Math.min(0.1, (t - last) / 1000);
   last = t;
   if (paused) {
+    renderer.render(g, camera, null, clock);
+  drawContactDebug(canvas,camera,g,contactDebug,clock);
     requestAnimationFrame(frame);
     return;
   }
   clock += dt * speed;
   acc += dt * speed;
   while (acc >= SIM_DT) {
+    const lastHit = PROJECTILE_DEBUG.hits.at(-1);
     g.step(SIM_DT);
     acc -= SIM_DT;
+    if (pauseOnContact && PROJECTILE_DEBUG.hits.at(-1) !== lastHit) { setPaused(true); acc=0; break; }
   }
   if (repeat && lastBtn && idle > 0.8) lastBtn.click();
   renderer.render(g, camera, null, clock);
+  drawContactDebug(canvas,camera,g,contactDebug,clock);
   requestAnimationFrame(frame);
 }
-preloadArt().then(() => requestAnimationFrame(frame));
+preloadArt().then(() => {
+  // Link reproduzível para inspecionar um jutsu pausado no mesmo instante.
+  const params=new URLSearchParams(location.search),id=params.get('jutsu');
+  if(id && JUTSUS[id]){
+    caster.ninja!.jutsu=[id,null];selectJutsu(id);castJutsu(g,caster,0,dummy);
+    const seconds=Math.max(0,Math.min(3,Number(params.get('at')??0)||0));
+    for(let elapsed=0;elapsed<seconds;elapsed+=SIM_DT)g.step(SIM_DT);
+    clock=seconds;setPaused(true);now.textContent=JUTSUS[id]!.name;
+  }
+  requestAnimationFrame(frame);
+});
 
 /** Para depurar (console): pausa e avança a simulação quadro a quadro. `lab.act('Chidori')` aperta o botão. */
 let paused = false;
@@ -630,9 +651,10 @@ function setPaused(p: boolean) {
 }
 pauseBtn.onclick = () => setPaused(!paused);
 document.getElementById('step')!.onclick = () => {
-  for (let t = 0; t < 0.25; t += SIM_DT) g.step(SIM_DT);
-  clock += 0.25;
+  g.step(SIM_DT);
+  clock += SIM_DT;
   renderer.render(g, camera, null, clock);
+  drawContactDebug(canvas,camera,g,contactDebug,clock);
 };
 window.addEventListener('keydown', (e) => {
   if ((e.target as HTMLElement).tagName === 'INPUT') return;
@@ -665,11 +687,13 @@ fxToggle.onclick = () => showFx(cols.classList.contains('nofx'));
 initFxPanel(document.getElementById('fx')!, {
   fire: () => lastBtn?.click(),
   setRepeat: (on) => (repeat = on),
+  setContactDebug: on=>{contactDebug=on;PROJECTILE_DEBUG.enabled=on||pauseOnContact},
+  setPauseOnContact: on=>{pauseOnContact=on;PROJECTILE_DEBUG.enabled=on||contactDebug},
 });
 applyIcons();
 setPaused(false);
 helpDialog('Laboratório: atalhos', [
-  ['Simulação', [['Espaço', 'Pausar / continuar'], ['.', 'Avança 0,25 s (pausado)'], ['R', 'Reiniciar (volta o ninja e o boneco ao lugar)'], ['Roda', 'Zoom']]],
+  ['Simulação', [['Espaço', 'Pausar / continuar'], ['.', 'Avança um quadro de simulação (pausado)'], ['R', 'Reiniciar (volta o ninja e o boneco ao lugar)'], ['Roda', 'Zoom']]],
   ['Campo', [['Arrastar ninja/boneco', 'Muda a posição (a Distância mantém a direção)'], ['Arrastar o chão', 'Move a câmera']]],
   ['Lista', [['/', 'Buscar jutsu, golpe ou técnica'], ['Clique', 'Solta a técnica no boneco'], ['?', 'Esta ajuda']]],
   ['Ajuste (painel à direita)', [['Ctrl+S', 'Grava src/data/jutsu-fx.json (só no localhost:3011)'], ['Clique na folha', 'Põe a âncora da sprite'], ['Shift+clique', 'Ponto do mergulho (dragão)'], ['Repetir', 'Solta de novo sozinho para ver o ajuste']]],
@@ -686,6 +710,7 @@ Object.assign(window, {
       for (let t = 0; t < sec; t += SIM_DT) g.step(SIM_DT);
       clock += sec;
       renderer.render(g, camera, null, clock);
+  drawContactDebug(canvas,camera,g,contactDebug,clock);
     },
     act(label: string) {
       const b = [...lists.querySelectorAll('button')].find((x) => x.textContent === label);

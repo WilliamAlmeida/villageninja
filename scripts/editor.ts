@@ -14,7 +14,7 @@ import page from '../tools/sprite-editor/index.html';
 import lab from '../tools/jutsu-lab/index.html';
 import cenario from '../tools/scene-editor/index.html';
 import paleta from '../tools/palette/index.html';
-import { formatFx, type FxData } from '../src/data/jutsuFx';
+import { formatFx, FX_EDITOR_REVISION, type FxData } from '../src/data/jutsuFx';
 
 const ROOT = join(import.meta.dir, '..');
 const ART = join(ROOT, 'src', 'art');
@@ -92,8 +92,10 @@ Bun.serve({
       },
     },
     '/api/fx': {
-      GET: () => new Response(Bun.file(JUTSU_FX), { headers: { ...noStore, 'Content-Type': 'application/json' } }),
+      GET: () => new Response(Bun.file(JUTSU_FX), { headers: { ...noStore, 'Content-Type': 'application/json', 'X-Fx-Editor-Version': FX_EDITOR_REVISION } }),
       PUT: async (req) => {
+        if (req.headers.get('X-Fx-Editor-Version') !== FX_EDITOR_REVISION)
+          return new Response('O laboratório aberto está desatualizado. Recarregue a página antes de salvar para preservar as peças novas.', { status: 409 });
         let data: FxData;
         try {
           data = JSON.parse(await req.text());

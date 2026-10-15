@@ -9,9 +9,10 @@
 // Todo número tem barra, campo e ‹ › de passo fino (Shift no ‹ › = passo ×10). Tudo muda o objeto vivo `FX` (e o
 // JutsuDef, nos números), então o próximo disparo já sai com o ajuste.
 import { applyIcons, ico } from '../shared/ui';
-import { FX, PARTS_DEFAULT, PROJ_KEYS, SHAPES, type DragonParts, type Emitter, type FxData, type JutsuFx, type ProjFx, type Shape, type SpriteFx } from '../../src/data/jutsuFx';
+import { FX, FX_EDITOR_REVISION, PARTS_DEFAULT, PROJ_KEYS, SHAPES, type DragonParts, type Emitter, type FxData, type JutsuFx, type ProjFx, type Shape, type SpriteFx } from '../../src/data/jutsuFx';
 import { JUTSU_BASE, JUTSU_LIST, JUTSUS } from '../../src/data/jutsus';
 import { jutsuVfx, type Vfx } from '../../src/data/vfx';
+import { spriteContact } from '../../src/game/projectileCollision';
 import { art, EFFECT_SHEETS } from '../../src/render/art';
 
 const STYLE_LABEL: Record<string, string> = {
@@ -34,6 +35,8 @@ export interface FxPanelOpts {
   fire: () => void;
   /** Liga/desliga o disparo repetido (o laboratório solta de novo quando o campo fica parado). */
   setRepeat: (on: boolean) => void;
+  setContactDebug: (on: boolean) => void;
+  setPauseOnContact: (on: boolean) => void;
 }
 
 let opts: FxPanelOpts;
@@ -46,6 +49,8 @@ let piece: 'head' | 'origin' | 'body' = 'head';
 /** Estilo editado quando não há jutsu escolhido. */
 let style = 'fire';
 let repeat = false;
+let contactDebug = false;
+let pauseOnContact = false;
 let canSave = false;
 /** Há ajuste não salvo; texto e cor do estado (o painel se redesenha, então guarda aqui). */
 let dirty = false;
@@ -220,7 +225,7 @@ function tidy(data: FxData) {
 async function probe() {
   try {
     const r = await fetch('/api/fx', { method: 'GET', cache: 'no-store' });
-    canSave = r.ok && (r.headers.get('content-type') ?? '').includes('json');
+    canSave = r.ok && (r.headers.get('content-type') ?? '').includes('json') && r.headers.get('X-Fx-Editor-Version') === FX_EDITOR_REVISION;
   } catch {
     canSave = false;
   }
@@ -238,7 +243,7 @@ async function save() {
   tidy(FX);
   showStatus('Salvando…');
   try {
-    const r = await fetch('/api/fx', { method: 'PUT', body: JSON.stringify(FX) });
+    const r = await fetch('/api/fx', { method: 'PUT', headers: { 'X-Fx-Editor-Version': FX_EDITOR_REVISION }, body: JSON.stringify(FX) });
     if (!r.ok) throw new Error(await r.text());
     dirty = false;
     showStatus('Salvo em src/data/jutsu-fx.json', 'ok');
@@ -582,33 +587,59 @@ const anchorMarker = (s: { anchorX: number; anchorY: number }, label: string, ti
   },
 });
 
+
+type SpriteSlot = 'sprite' | 'impact' | 'gust' | 'origin' | 'crater' | 'profile' | 'oblique';
+const SPRITE_SLOTS: SpriteSlot[] = ['sprite','impact','gust','origin','crater','profile','oblique'];
+const SPRITE_LABELS: Record<SpriteSlot,string> = {
+ sprite:'Principal / projétil',impact:'Impacto',gust:'Rajada',origin:'Fonte',crater:'Cratera',profile:'Perfil',oblique:'Diagonal',
+};
+let spriteSlot: SpriteSlot = 'sprite';
+function defaultSlotSprite(sheet: string, slot: SpriteSlot): SpriteFx {
+ const s=defaultSprite(sheet);
+ if(slot!=='sprite')Object.assign(s,{anchorX:.5,anchorY:slot==='gust'?.5:.78,rotate:slot==='gust',size:80});
+ if(slot==='gust')s.anchorX=.15;
+ if(slot==='crater')Object.assign(s,{cols:1,rows:1,frames:1,fps:1,anchorY:.5,layer:'ground'});
+ return s;
+}
+function setSpriteSlot(e:JutsuFx,slot:SpriteSlot,s:SpriteFx) {
+ if(slot==='origin')e.origin={life:.65,mouthX:.75,mouthY:.5,...e.origin,...s};
+ else if(slot==='crater')e.crater={life:12,...e.crater,...s};
+ else e[slot]=s;
+}
+
 function spriteTab(box: HTMLElement) {
   const d = jutsu ? JUTSUS[jutsu] : null;
-  const cur = spriteTarget === 'water' ? FX.status.water : jutsu ? FX.jutsus[jutsu]?.sprite : undefined;
+  const e = jutsu ? FX.jutsus[jutsu] : undefined;
+  const cur = spriteTarget === 'water' ? FX.status.water : e?.[spriteSlot];
   section(box, 'sp-sheet', 'Folha', (b) => {
     b.append(chips<'jutsu' | 'water'>([['jutsu', d ? d.name : 'Jutsu escolhido'], ['water', "Prisão d'Água (estado)"]], spriteTarget, (v) => {
-      spriteTarget = v;
-      render();
+      spriteTarget = v; render();
     }));
     if (spriteTarget === 'jutsu' && !jutsu) {
-      b.append(h('p', { class: 'hint' }, 'Toque num jutsu na lista à esquerda.'));
-      return;
+      b.append(h('p', { class:'hint' }, 'Toque num jutsu na lista à esquerda.')); return;
     }
     if (spriteTarget === 'jutsu') {
-      b.append(chips<string>([['', 'Sem sprite'], ...EFFECT_SHEETS.map((s): [string, string] => [s, sheetLabel(s)])], cur?.sheet ?? '', (v) => {
-        const e = entry(jutsu!);
-        if (!v) delete e.sprite;
-        else e.sprite = cur ? { ...cur, sheet: v } : defaultSprite(v);
-        changed();
-        render();
+      b.append(chips<SpriteSlot>(SPRITE_SLOTS.map(k=>[k,SPRITE_LABELS[k]+(e?.[k]?' •':'')]),spriteSlot,v=>{spriteSlot=v;render()}));
+      b.append(chips<string>([['', 'Sem sprite'], ...EFFECT_SHEETS.map((s): [string,string]=>[s,sheetLabel(s)])],cur?.sheet??'',v=>{
+        const obj=entry(jutsu!);
+        if(!v)delete obj[spriteSlot];
+        else setSpriteSlot(obj,spriteSlot,cur?{...cur,sheet:v}:defaultSlotSprite(v,spriteSlot));
+        changed();render();
       }));
-      if (d && d.effect !== 'projectile' && d.effect !== 'multi') b.append(h('p', { class: 'warn' }, 'Este jutsu não solta projétil: a sprite só aparece em projéteis.'));
-      if (!cur) b.append(h('p', { class: 'hint' }, 'Sem sprite: o projétil é desenhado pelo código. Folha nova: PNG em src/art/effects registrado no art.ts.'));
+      if(!cur)b.append(h('p',{class:'hint'},'Esta peça não tem folha configurada. Escolha uma folha para criar a peça.'));
     }
-  }, { badge: cur ? sheetLabel(cur.sheet) : 'sem sprite' });
+  }, { badge:cur?sheetLabel(cur.sheet):'sem sprite' });
+  if(e?.cannon) section(box,'sp-cannon','Sekizō: canhões de ar',b=>{
+    const c=e.cannon!;
+    b.append(slider('Largura',c.width,2,96,.25,v=>c.width=v),
+      slider('Opacidade',c.opacity,0,1,.01,v=>c.opacity=v),
+      slider('Origem à frente',c.forward,0,60,.25,v=>c.forward=v),
+      slider('Origem Y',c.dy,-40,40,.25,v=>c.dy=v),
+      h('p',{class:'hint'},'Cinco socos sucessivos, com intervalos cada vez menores. A coluna antiga está disponível no seletor de folhas para reaproveitar.'));
+  });
   if (!cur || (spriteTarget === 'jutsu' && !jutsu)) return;
   const s = cur;
-  const parts = s.motion === 'dragon' ? s.parts : undefined;
+  const parts = spriteSlot === 'sprite' && s.motion === 'dragon' ? s.parts : undefined;
   const single = s.motion === 'dragon' && !parts; // dragão de folha única (sequência v2)
 
   // ---- pontos (inspetor com zoom)
@@ -625,6 +656,7 @@ function spriteTab(box: HTMLElement) {
           key: `head:${s.sheet}`, sheet: s.sheet, cols: s.cols, rows: s.rows, frames: s.frames,
           markers: [
             anchorMarker(s, 'Ponta', 'Fica sobre a trajetória (a cabeça segue a curva por aqui)'),
+            {label:'Contato',color:'#b8ff5f',kind:'point',tip:'Frente que toca o alvo',get:()=>{const c=spriteContact(s);return[c.x,c.y]},set:(x,y)=>{s.hitX=x;s.hitY=y}},
             {
               label: 'Pescoço', color: '#5fd3ff', kind: 'point', tip: 'Onde o corpo encaixa na cabeça',
               get: () => [p.neckX ?? PARTS_DEFAULT.neckX, p.neckY ?? PARTS_DEFAULT.neckY],
@@ -665,7 +697,12 @@ function spriteTab(box: HTMLElement) {
         };
       }
     } else {
-      const markers = [anchorMarker(s, single ? 'Fonte' : 'Âncora', single ? 'Fonte do dragão no chão' : 'Fica sobre o projétil')];
+      const markers = [anchorMarker(s, single ? 'Fonte' : 'Âncora', 'Ponto da folha registrado no mundo')];
+      if (spriteSlot === 'sprite' && spriteTarget === 'jutsu' && (d?.effect === 'projectile' || d?.effect === 'multi')) markers.push({
+        label:'Contato',color:'#5fd3ff',kind:'point',tip:'Frente sólida que toca o corpo do alvo; o padrão vem da medição da folha',
+        get:()=>{const c=spriteContact(s);return[c.x,c.y]},set:(x,y)=>{s.hitX=x;s.hitY=y},
+      });
+      if(spriteSlot==='origin' && e?.origin) {const o=e.origin;markers.push({label:'Boca',color:'#5fd3ff',kind:'point',tip:'Saída do projétil',get:()=>[o.mouthX,o.mouthY],set:(x,y)=>{o.mouthX=x;o.mouthY=y}})}
       if (single)
         markers.push({ label: 'Mergulho', color: '#5fd3ff', kind: 'vline', tip: 'Onde o mergulho cai', get: () => [s.targetX ?? 0.75, 0], set: (x) => (s.targetX = x) });
       spec = { key: `sheet:${s.sheet}`, sheet: s.sheet, cols: s.cols, rows: s.rows, frames: s.frames, markers };
@@ -675,7 +712,7 @@ function spriteTab(box: HTMLElement) {
 
   // ---- tamanho e aparência
   section(box, 'sp-look', 'Tamanho e aparência', (b) => {
-    if (spriteTarget === 'jutsu')
+    if (spriteTarget === 'jutsu' && spriteSlot === 'sprite')
       b.append(h('div', { class: 'row' }, h('span', { class: 'lbl' }, 'Movimento'),
         seg<'loop' | 'dragon'>([['loop', 'Loop', 'Os quadros giram em loop sobre o projétil'], ['dragon', 'Bote', 'Dragão da fonte até o alvo']], s.motion === 'dragon' ? 'dragon' : 'loop', (v) => {
           if (v === 'dragon') Object.assign(s, { motion: 'dragon', targetX: s.targetX ?? 0.75, minSize: s.minSize ?? 56, maxSize: s.maxSize ?? 128, shear: s.shear ?? 0.6 });
@@ -685,7 +722,10 @@ function spriteTab(box: HTMLElement) {
         })));
     if (!single) b.append(slider(parts ? 'Tamanho da cabeça' : 'Tamanho', s.size, 4, 200, 0.5, (v) => (s.size = v), 'Largura desenhada (px do mundo; o ninja tem uns 24 de altura)'));
     b.append(
-      slider('Altura', s.dy, -40, 40, 0.25, (v) => (s.dy = v), 'Desloca na vertical (px; positivo desce)'),
+      slider('Deslocamento Y', s.dy, -80, 80, .25, v=>s.dy=v, 'Pixels de cena; positivo desce'),
+      slider('Deslocamento X',s.dx??0,-80,80,.25,v=>s.dx=v),
+      slider('À frente da origem',s.forward??0,-60,80,.25,v=>s.forward=v,'Segue a direção do disparo; use na rajada para sair à frente do ninja'),
+      slider('Lateral da origem',s.side??0,-60,60,.25,v=>s.side=v),
       slider('Quadros/s', s.fps, 1, 40, 1, (v) => (s.fps = v)),
       slider('Opacidade', s.opacity, 0, 1, 0.01, (v) => (s.opacity = v)),
       h('div', { class: 'row' }, h('span', { class: 'lbl' }, 'Mistura'),
@@ -700,6 +740,15 @@ function spriteTab(box: HTMLElement) {
         toggle('Espelhar à esquerda', s.flip, (v) => (s.flip = v), 'Indo para a esquerda, espelha a arte para não ficar de cabeça para baixo')),
     );
   });
+
+  if (spriteSlot === 'sprite' && spriteTarget === 'jutsu' && (d?.effect === 'projectile' || d?.effect === 'multi')) section(box,'sp-contact','Contato do projétil',b=>{
+    b.append(slider('Raio do contato',s.hitRadius??1.5,0,12,.25,v=>s.hitRadius=v),
+      s.rotate ? h('span') : toggle('Contato acompanha direção',s.contactRotate??!s.flip,v=>s.contactRotate=v,'Discos giratórios: muda a frente física sem girar a folha'),
+      btn('Usar frente medida da folha',()=>{delete s.hitX;delete s.hitY;delete s.hitRadius;delete s.contactRotate;changed();render()}),
+      h('p',{class:'hint'},'Ajuste o ponto Contato em Pontos (zoom). Ative Diagnóstico de contato e Pausar no contato para conferir no campo.'));
+  });
+  if(spriteSlot==='impact' && spriteTarget==='jutsu')section(box,'sp-layer','Posicionamento do impacto',b=>b.append(seg<'ground'|'body'>([['ground','No chão, sob personagens'],['body','Sobre o corpo']],s.layer??'body',v=>{s.layer=v;changed()})));
+  if(spriteTarget==='jutsu' && (spriteSlot==='origin'||spriteSlot==='crater')){const life= e?.[spriteSlot];if(life)section(box,'sp-life','Duração',b=>b.append(slider('Segundos',life.life,.1,30,.05,v=>life.life=v)))}
 
   // ---- dragão: peças e trajetória
   if (parts) {
@@ -966,10 +1015,10 @@ function projTab(box: HTMLElement) {
     const fallback: Required<ProjFx> = { projSpeed: multi ? 260 : 250, projSize: multi ? 5 : d.radius ? 9 : 6, radius: d.effect === 'aoe' ? 50 : 0, count: 3, range: d.range, spread: 0.6 };
     const fields: [keyof ProjFx, string, number, number, number, string][] = [];
     if (proj || multi) fields.push(['projSpeed', 'Velocidade', 40, 700, 1, 'px/s']);
-    if (proj || multi) fields.push(['projSize', 'Tamanho', 1, 24, 0.25, 'Do projétil (o rastro proporcional segue)']);
+    if ((proj || multi) && id !== 'sekizo') fields.push(['projSize', 'Tamanho', 1, 24, 0.25, 'Tamanho procedural e do rastro. Com sprite, a colisão é ajustada em Contato do projétil']);
     if (proj || d.effect === 'aoe') fields.push(['radius', 'Raio da área', 0, 150, 0.5, 'Explosão (0 = só acerta o alvo)']);
-    if (multi) fields.push(['count', 'Quantidade', 1, 16, 1, 'Projéteis no leque']);
-    if (multi) fields.push(['spread', 'Leque', 0, 3, 0.01, 'Abertura total (rad)']);
+    if (multi && id !== 'sekizo') fields.push(['count', 'Quantidade', 1, 16, 1, 'Projéteis no leque']);
+    if (multi && id !== 'sekizo') fields.push(['spread', 'Leque', 0, 3, 0.01, 'Abertura total (rad)']);
     fields.push(['range', 'Alcance', 20, 320, 1, 'Distância em que solta o jutsu']);
     for (const [k, label, min, max, step, tip] of fields) {
       const cur = (d[k] as number | undefined) ?? fallback[k];
@@ -1013,6 +1062,7 @@ function render() {
     }, 'Solta de novo sozinho sempre que o campo fica parado', false),
   );
   const status = h('div', { id: 'status', class: 'status' });
+  target.append(toggle('Diagnóstico de contato',contactDebug,v=>{contactDebug=v;opts.setContactDebug(v)},'Mostra a frente do projétil, o corpo do alvo e o último contato',false),toggle('Pausar no contato',pauseOnContact,v=>{pauseOnContact=v;opts.setPauseOnContact(v)},undefined,false));
   const tabs = seg<Tab>([['sprite', 'Sprite'], ['particles', 'Partículas'], ['proj', 'Projétil']], tab, (v) => {
     tab = v;
     render();
@@ -1033,6 +1083,7 @@ export function selectJutsu(id: string | null) {
   jutsu = id;
   spriteTarget = 'jutsu';
   open.clear();
+  spriteSlot = id ? SPRITE_SLOTS.find(k=>FX.jutsus[id]?.[k]) ?? 'sprite' : 'sprite';
   if (id) style = styleOfJutsu(id);
   render();
 }
