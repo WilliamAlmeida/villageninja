@@ -75,7 +75,8 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [x] Daitoppa e Shinkuu Ha — rajada e lâmina integradas; artes aprovadas pelo autor em 2026-10-15.
 - [x] Sekizō — substituído o leque/coluna por cinco socos sucessivos, canhões longos de ar comprimido e deslocamentos ao redor do alvo. Corrigido a partir da referência do autor em 2026-10-15; captura em `output/playwright/sekizo-canhoes.png`; Aprovado pelo autor em 2026-10-15.
 - [x] Ajustes de contato e posicionamento aprovados pelo autor em 2026-10-15: frente física das sprites, impacto do Yōkai no chão, origem ajustável do Daitoppa e controles de todas as peças no laboratório. Auditoria em `docs/auditoria-projeteis.md`.
-- [ ] Kaiten, Sōshiken, Gatsūga e Nikudan Sensha — efeitos característicos sobre as poses atuais.
+- [x] Kaiten — folha própria aprovada em 2026-10-15 e integrada: formação, seis quadros de rotação e dissipação, acompanhando o tempo do escudo; posição editável no laboratório.
+- [x] Sōshiken, Gatsūga e Nikudan Sensha — artes aprovadas e integradas em 2026-10-15: leões ligados aos punhos, uma broca no ninja e outra no ninken próximo durante a investida e bola de tecido neutro recolorida pela roupa externa do ninja; ajustes disponíveis no laboratório.
 - [ ] Sensatsu, Reiza e Kajōsatsu — agulhas de gelo, feixes e esferas de calor.
 - [ ] Kage Bunshin, Edo Tensei e Shousen — aparição, invocação e cura.
 - [ ] Avaliar efeitos compartilhados de impacto, poeira, cortes e chakra para os golpes físicos restantes.

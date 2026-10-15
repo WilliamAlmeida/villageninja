@@ -8,7 +8,7 @@ Implementado no jogo, aguardando avaliação visual do autor.
 - `src/art/effects/effect-rasenshuriken-impact-v1.png`: RGBA 512x256, 4x2, oito células 128x128; expansão e dissipação de 0,8 s, largura 208 px, opacidade 0,75, deslocamento vertical +8 px.
 - Cratera compartilhada: `src/art/effects/effect-rasengan-crater-v1.png`, desenhada com largura 164 px e duração 20 s.
 
-Fontes ImageGen integrado: `flight-source.png`, `flight-padded-source.png`, `impact-source.png`, `impact-padded-source.png`.
+Fontes ImageGen integrado: `flight-padded-source.png` e `impact-padded-source.png`.
 Prompts de geração e edição: `prompts.json`. O preparo técnico mantém uma escala comum entre os quadros,
 remove ruído solto/alpha residual <32 e reduz por nearest-neighbor; o domo cresce sem normalizar cada fase para o mesmo tamanho.
 

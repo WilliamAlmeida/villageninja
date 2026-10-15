@@ -120,3 +120,11 @@ Os deslocamentos ao redor do alvo só pousam em terreno andável e ficam dentro 
 Morte, ocultação, atordoamento, alvo inválido ou fuga interrompem os socos restantes. Save v45:
 sequência e `Projectile.cannon` são campos opcionais; saves v44 continuam sem sequência ativa.
 Referências: episódio420 de Naruto Shippūden e [Evening Elephant](https://naruto.fandom.com/wiki/Evening_Elephant).
+
+## Gatsūga com ninken e avisos oculares — 2026-10-15
+
+Uma broca por unidade. Ao usar Gatsūga, o ninken real do dono participa se estiver visível, vivo, sem atordoamento/outra técnica, na mesma facção e até120px de mundo do dono. Cada um sai da própria posição e mira o mesmo alvo, respeitando terreno e regras de facção/arena. O dono conserva o poder do jutsu; o cão aplica seu dano normal de ataque (com multiplicador da raça), uma vez no contato, com recarga de ataque. Não duplica o poder do jutsu do dono. A IA do cão aguarda sua investida; morte, ocultação, atordoamento, perda de vínculo ou alvo inválido cancelam a participação. Savev46 adiciona apenas campos opcionais.
+
+Laboratório: opção Ninken na barra; links /lab?jutsu=gatsuga&at=0.1 e /lab?jutsu=gatsuga&at=0.08&ninken=1. O ninken de teste é uma unidade real ligada ao lançador.
+
+Sharingan/Byakugan: fonte7px, deslocamento vertical−47px de cena, seguindo o lançador. Aviso identificado separadamente do texto de dano e reutilizado por unidade para não duplicar; nome do jutsu mantém tamanho e origem atuais. Capturas: output/playwright/gatsuga-solo.png, gatsuga-ninken.png, byakugan-texto.png e sharingan-texto.png.

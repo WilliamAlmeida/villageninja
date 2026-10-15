@@ -55,7 +55,8 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Concluído; aprovado pelo autor em 2026-10-15 | Yōkai | Massa de lava e explosão viscosa próprias. |
 | Concluído; aprovado pelo autor em 2026-10-15 | Daitoppa e Shinkuu Ha | Rajada e lâmina de ar com ajustes no painel. |
 | Concluído; aprovado pelo autor em 2026-10-15 | Sekizō | Cinco socos sucessivos com canhões longos de pressão, de direções diferentes. |
-| Média | Kaiten, Sōshiken, Gatsūga e Nikudan Sensha | Domo giratório, leões de chakra, tornado e corpo rolando. |
+| Concluído; arte aprovada pelo autor em 2026-10-15 | Kaiten | Domo com formação, rotação e dissipação; folha própria 4x2. |
+| Concluído; arte aprovada pelo autor em 2026-10-15 | Sōshiken, Gatsūga e Nikudan Sensha | Leões acompanhando os punhos; uma broca por participante do Gatsūga (ninja e ninken próximo); bola com costuras e cor da roupa externa. |
 | Média | Sensatsu, Reiza e Kajōsatsu | Agulhas de gelo, feixes elétricos e esferas de calor. |
 | Complementar | Kage Bunshin, Edo Tensei e Shousen | Fumaça de criação, surgimento da invocação e aura de cura. |
 
