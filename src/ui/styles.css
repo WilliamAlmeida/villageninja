@@ -2273,9 +2273,9 @@ h4 > .ic.gl:first-child, .mh-title > .ic.gl, .ph .title > .ic.gl, .kp-head > .ic
   image-rendering: pixelated; color: #f3e3c3; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.65);
 }
 .mchip > * { image-rendering: auto; }
-.mchip.gold { border-image-source: var(--k2-pill-amber); color: #2a1406; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); }
-.mchip.bad { border-image-source: var(--k2-pill-red); color: #fff; }
-.mchip.good { border-image-source: var(--k2-pill-green); color: #fff; }
+.mchip.gold { border-image-source: var(--k2-pill-amber); color: #2a1406; text-shadow: 0 1px 0 rgba(255, 220, 160, 0.5); background: none; }
+.mchip.bad { border-image-source: var(--k2-pill-red); color: #fff; background: none; }
+.mchip.good { border-image-source: var(--k2-pill-green); color: #fff; background: none; }
 .seg { background: none; border: 0; padding: 0; gap: 0.25rem; border-radius: 0; overflow: visible; }
 .speed { background: none; border: 0; gap: 0.2rem; }
 
