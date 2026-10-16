@@ -1,9 +1,11 @@
-// Rotas HTTP (/api/...). Autenticação: `Authorization: Bearer <token>` (sessão de convidado ou de conta).
+// Rotas HTTP (/api/...). Autenticação: `Authorization: Bearer <token>` (sessão de convidado ou de conta; o login do
+// Discord/Google entrega o token no fragmento do endereço de volta, services/oauth.ts).
 // Erros: { error: CODIGO } com o status HTTP; o jogo traduz o código (ui/arenaClient.ts).
 import { timingSafeEqual } from 'node:crypto';
-import { allowOrigin, config } from '../config';
+import { allowOrigin, config, publicOrigin } from '../config';
 import { ApiError } from '../errors';
-import { type Account, accounts, hashToken, rateLimit } from '../services/accounts';
+import { type Account, accounts, hashToken, isStaff, rateLimit } from '../services/accounts';
+import { isProvider, oauth } from '../services/oauth';
 import { duels } from '../services/duels';
 import { routeAdmin } from './admin';
 
@@ -76,23 +78,37 @@ async function route(req: Request, url: URL, ip: string, json: (data: unknown, s
 
   // ---------- conta ----------
   if (is('POST', '/api/auth/guest')) {
-    rateLimit(`guest:${ip}`, 30, 60 * 60_000);
+    await rateLimit(`guest:${ip}`, 30, 60 * 60_000);
     const { token, account } = await accounts.createGuest();
     return json({ token, account });
   }
   if (is('POST', '/api/auth/login')) {
-    rateLimit(`login:${ip}`);
+    await rateLimit(`login:${ip}`);
     const { token, account } = await accounts.login(body);
     return json({ token, account });
   }
 
-  // painel do dono (só a senha; sem conta de jogador)
+  // login com Discord/Google: lista, ida ao provedor e volta (por navegação: respondem com redirecionamento)
+  if (is('GET', '/api/auth/providers')) return json({ providers: oauth.providers() });
+  const social = /^\/api\/auth\/([a-z]+)\/(start|callback)$/.exec(path);
+  if (social && method === 'GET' && isProvider(social[1]!)) {
+    const go = (location: string) => new Response(null, { status: 302, headers: { Location: location, 'Cache-Control': 'no-store' } });
+    if (social[2] === 'start') {
+      await rateLimit(`oauth:${ip}`, 30);
+      return go(await oauth.start(social[1], publicOrigin(req), url.searchParams));
+    }
+    return go(await oauth.callback(social[1], publicOrigin(req), url.searchParams, ip));
+  }
+
+  // painel da equipe: conta com papel de moderador/admin, ou a chave de emergência (X-Dev-Key)
   if (path === '/api/admin' || path.startsWith('/api/admin/')) {
+    const actor = await accounts.fromToken(bearer(req));
+    if (isStaff(actor)) return routeAdmin(method, path, body, json, { actor, ip });
     if (!isDevKey(req.headers.get('x-dev-key'))) {
-      rateLimit(`dev:${ip}`);
+      await rateLimit(`dev:${ip}`);
       throw new ApiError(403, 'FORBIDDEN');
     }
-    return routeAdmin(method, path, body, json);
+    return routeAdmin(method, path, body, json, { actor: null, ip });
   }
 
   // ---------- daqui em diante precisa de sessão ----------
@@ -102,7 +118,7 @@ async function route(req: Request, url: URL, ip: string, json: (data: unknown, s
     return json({ account: me, stats, snapshot, online });
   }
   if (is('POST', '/api/auth/register')) {
-    rateLimit(`register:${ip}`);
+    await rateLimit(`register:${ip}`);
     return json({ account: await accounts.register(me.id, body) });
   }
   if (is('POST', '/api/auth/logout')) {
@@ -110,6 +126,11 @@ async function route(req: Request, url: URL, ip: string, json: (data: unknown, s
     return json({ ok: true });
   }
   if (is('POST', '/api/me/name')) return json({ name: await accounts.setDisplayName(me.id, body.name) });
+  if (is('POST', '/api/auth/link-ticket')) {
+    await rateLimit(`ticket:${me.id}`, 20);
+    return json({ ticket: await oauth.linkTicket(me.id) });
+  }
+  if (is('POST', '/api/me/unlink')) return json({ account: await oauth.unlink(me.id, String(body.provider ?? '')) });
 
   // ---------- retrato e duelos ----------
   if (is('PUT', '/api/snapshot')) return json(await duels.publish(me.id, body.code));

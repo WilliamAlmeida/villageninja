@@ -1,14 +1,24 @@
-// Painel do dono (/api/admin/*, header X-Dev-Key = DEV_PASSWORD): só números gerais por enquanto.
+// Painel da equipe (/api/admin/*): conta com papel de moderador/admin ou a chave de emergência X-Dev-Key (DEV_PASSWORD).
+// Toda ação que muda algo passa por staffLog (services/staff.ts).
 import { sql } from '../db';
 import { ApiError } from '../errors';
+import type { Account } from '../services/accounts';
 import { duels } from '../services/duels';
+import { staff } from '../services/staff';
 
 type Json = Record<string, unknown>;
 
-export async function routeAdmin(method: string, path: string, _body: Json, json: (data: unknown, status?: number) => Response): Promise<Response> {
+export interface StaffCtx {
+  /** Quem está no painel (null = chave de emergência). */
+  actor: Account | null;
+  ip: string;
+}
+
+export async function routeAdmin(method: string, path: string, body: Json, json: (data: unknown, status?: number) => Response, ctx: StaffCtx): Promise<Response> {
+  if (method === 'GET' && path === '/api/admin/whoami') return json({ actor: ctx.actor, emergency: !ctx.actor });
   if (method === 'GET' && path === '/api/admin/overview') {
     const [users] = await sql<Array<{ total: number; registered: number; online: number; today: number }>>`
-      SELECT count(*)::int as total, count(password_hash)::int as registered,
+      SELECT count(*)::int as total, count(registered_at)::int as registered,
         count(*) FILTER (WHERE last_seen_at > NOW() - interval '2 minutes')::int as online,
         count(*) FILTER (WHERE created_at > NOW() - interval '1 day')::int as today
       FROM users WHERE NOT is_test
@@ -26,5 +36,7 @@ export async function routeAdmin(method: string, path: string, _body: Json, json
     return json({ users, snapshots: snaps!.n, duels: { ...d!, flagged7d: flagged!.n }, perDay });
   }
   if (method === 'GET' && path === '/api/admin/suspicious') return json({ duels: await duels.suspicious() });
+  if (method === 'GET' && path === '/api/admin/log') return json({ actions: await staff.log(100) });
+  if (method === 'POST' && path === '/api/admin/role') return json({ account: await staff.setRole(ctx.actor, String(body.userId ?? ''), body.role, ctx.ip) });
   throw new ApiError(404, 'NOT_FOUND');
 }

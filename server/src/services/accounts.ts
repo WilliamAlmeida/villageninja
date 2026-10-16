@@ -1,5 +1,6 @@
 // Contas e sessões (molde do battlecard-server): todo jogador entra como convidado sem senha; cadastrar-se é ganhar
 // apelido + senha (e e-mail opcional) na mesma conta; login em outro aparelho abre outra sessão da mesma conta.
+import { cache } from '../cache';
 import { sql } from '../db';
 import { ApiError } from '../errors';
 
@@ -11,7 +12,15 @@ export interface Account {
   isGuest: boolean;
   createdAt: Date;
   registeredAt: Date | null;
+  role: Role;
+  avatarUrl: string | null;
+  /** Discord/Google ligados à conta; `password` quando tem senha. */
+  logins: string[];
 }
+
+export type Role = 'player' | 'mod' | 'admin';
+export const ROLES: Role[] = ['player', 'mod', 'admin'];
+export const isStaff = (a: Pick<Account, 'role'> | null | undefined) => a?.role === 'mod' || a?.role === 'admin';
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
 const DISPLAY_NAME_RE = /^[\p{L}\p{N} _.\-]{2,24}$/u;
@@ -28,7 +37,10 @@ function newToken(): string {
 
 const COLUMNS = sql`
   id, display_name as "displayName", username, email,
-  (password_hash IS NULL) as "isGuest", created_at as "createdAt", registered_at as "registeredAt"
+  (registered_at IS NULL) as "isGuest", created_at as "createdAt", registered_at as "registeredAt",
+  role, avatar_url as "avatarUrl",
+  ARRAY(SELECT provider FROM user_identities i WHERE i.user_id = users.id ORDER BY provider)
+    || CASE WHEN password_hash IS NULL THEN ARRAY[]::varchar[] ELSE ARRAY['password']::varchar[] END as logins
 `;
 
 const ADJ = ['Veloz', 'Oculto', 'Bravo', 'Sereno', 'Rubro', 'Dourado', 'Silente', 'Feroz', 'Astuto', 'Nobre', 'Errante', 'Vigilante'];
@@ -38,17 +50,9 @@ export function guestName(): string {
   return `${pick(NOUN)} ${pick(ADJ)} ${Math.floor(Math.random() * 900) + 100}`;
 }
 
-// tentativas por IP (em memória)
-const attempts = new Map<string, { count: number; resetAt: number }>();
-export function rateLimit(key: string, max = 10, windowMs = 10 * 60_000): void {
-  const now = Date.now();
-  const e = attempts.get(key);
-  if (!e || e.resetAt < now) {
-    attempts.set(key, { count: 1, resetAt: now + windowMs });
-    return;
-  }
-  e.count++;
-  if (e.count > max) throw new ApiError(429, 'TOO_MANY_ATTEMPTS');
+/** Tentativas por chave (IP, conta) na janela: no Redis, então valem entre reinícios e entre processos. */
+export async function rateLimit(key: string, max = 10, windowMs = 10 * 60_000): Promise<void> {
+  if ((await cache.hit(`rl:${key}`, Math.ceil(windowMs / 1000))) > max) throw new ApiError(429, 'TOO_MANY_ATTEMPTS');
 }
 
 export function validateDisplayName(raw: unknown): string {
@@ -100,7 +104,7 @@ export const accounts = {
     if (email && !EMAIL_RE.test(email)) throw new ApiError(400, 'INVALID_EMAIL');
     const cur = await this.get(userId);
     if (!cur) throw new ApiError(401, 'UNAUTHORIZED');
-    if (!cur.isGuest) throw new ApiError(409, 'ALREADY_REGISTERED');
+    if (cur.logins.includes('password')) throw new ApiError(409, 'ALREADY_REGISTERED');
     const [taken] = await sql`SELECT 1 FROM users WHERE lower(username) = lower(${username})`;
     if (taken) throw new ApiError(409, 'USERNAME_TAKEN');
     if (email) {
@@ -110,7 +114,7 @@ export const accounts = {
     const hash = await Bun.password.hash(password, { algorithm: 'argon2id' });
     try {
       const [account] = await sql<Account[]>`
-        UPDATE users SET username = ${username}, email = ${email}, password_hash = ${hash}, registered_at = NOW()
+        UPDATE users SET username = ${username}, email = COALESCE(${email}, email), password_hash = ${hash}, registered_at = COALESCE(registered_at, NOW())
         WHERE id = ${userId} RETURNING ${COLUMNS}
       `;
       return account!;

@@ -3,7 +3,7 @@
   "short_name": "Vila Ninja",
   "description": "Construa e defenda sua vila ninja.",
   "lang": "pt-BR",
-  "start_url": "/",
+  "start_url": "/play",
   "scope": "/",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],

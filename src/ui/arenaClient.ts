@@ -14,6 +14,14 @@ export interface ArenaAccount {
   username: string | null;
   email: string | null;
   isGuest: boolean;
+  role?: 'player' | 'mod' | 'admin';
+  avatarUrl?: string | null;
+  /** Discord/Google ligados à conta; `password` quando tem apelido e senha. */
+  logins?: string[];
+}
+export interface Provider {
+  id: 'discord' | 'google';
+  name: string;
 }
 export interface ArenaStats {
   rating: number;
@@ -96,6 +104,14 @@ const ERROR_TEXT: Record<string, string> = {
   SERVER_ERROR: 'O servidor deu erro. Tente de novo.',
   NOT_FOUND: 'Rota não encontrada no servidor.',
   OFFLINE: 'Sem conexão com o servidor de duelos.',
+  OAUTH_STATE: 'O login demorou demais. Tente de novo.',
+  OAUTH_CANCELLED: 'Login cancelado.',
+  OAUTH_FAILED: 'Não deu para entrar agora. Tente de novo.',
+  OAUTH_TOKEN_FAILED: 'O provedor recusou o login. Tente de novo.',
+  OAUTH_PROFILE_FAILED: 'Não deu para ler o seu perfil no provedor. Tente de novo.',
+  PROVIDER_DISABLED: 'Esse jeito de entrar está desligado no servidor.',
+  LAST_LOGIN: 'É o único jeito de entrar nesta conta: ligue outro antes de desligar este.',
+  NOT_LINKED: 'Essa conta não está ligada a este provedor.',
 };
 
 /** Ligas por pontuação, com os nomes das patentes ninja (pedido do autor); emblemas `league-*` no atlas dos selos. */
@@ -163,6 +179,10 @@ export class ArenaClient {
   /** Último erro em português (some na próxima chamada que der certo). */
   error: string | null = null;
   busy = false;
+  /** Jeitos de entrar ligados no servidor (Discord/Google); null = ainda não perguntou. */
+  providers: Provider[] | null = null;
+  /** Acabou de voltar do Discord/Google (a interface abre a aba Conta e avisa). */
+  socialReturn: { ok: boolean; linked: boolean } | null = null;
   /** Avisa a interface que algo mudou. */
   onChange: () => void = () => {};
   private lastDuelSeen: DuelResult | null | undefined;
@@ -172,6 +192,7 @@ export class ArenaClient {
     if (q != null) store.set(URL_KEY, q || null);
     this.base = (store.get(URL_KEY) ?? '').replace(/\/+$/, '');
     this.token = store.get(TOKEN_KEY);
+    this.readSocialReturn();
     const p = store.get(PENDING_KEY);
     if (p) {
       try {
@@ -179,6 +200,30 @@ export class ArenaClient {
       } catch {
         store.set(PENDING_KEY, null);
       }
+    }
+  }
+
+  /**
+   * Volta do login do Discord/Google: o servidor manda o token (ou o erro) no fragmento do endereço (`#vn_token=…`),
+   * que não vai para servidor nem para o histórico depois que limpamos aqui.
+   */
+  private readSocialReturn() {
+    if (typeof location === 'undefined' || !location.hash.includes('vn_')) return;
+    const h = new URLSearchParams(location.hash.slice(1));
+    const token = h.get('vn_token');
+    const err = h.get('vn_error');
+    if (token) {
+      this.token = token;
+      store.set(TOKEN_KEY, token);
+      this.socialReturn = { ok: true, linked: h.get('vn_linked') === '1' };
+    } else if (err) {
+      this.error = new ArenaError(err).message;
+      this.socialReturn = { ok: false, linked: false };
+    }
+    try {
+      history.replaceState(null, '', location.pathname + location.search);
+    } catch {
+      /* sem history (testes) */
     }
   }
 
@@ -367,6 +412,38 @@ export class ArenaClient {
   register(username: string, password: string, email: string) {
     return this.run(async () => {
       const r = await this.call<{ account: ArenaAccount }>('POST', '/api/auth/register', { username, password, email: email || undefined });
+      this.account = r.account;
+      return r.account;
+    });
+  }
+
+  /** Quais provedores o servidor tem ligados (uma vez por sessão do jogo). */
+  loadProviders() {
+    this.providersReq ??= this.call<{ providers: Provider[] }>('GET', '/api/auth/providers', undefined, { auth: false })
+      .then((r) => (this.providers = r.providers))
+      .catch(() => (this.providers = []))
+      .finally(() => this.changed());
+    return this.providersReq;
+  }
+  private providersReq: Promise<Provider[]> | null = null;
+
+  /**
+   * Entrar com Discord/Google: com sessão aberta (convidado ou conta), o provedor é ligado a ela (bilhete de uso
+   * único, porque a navegação não leva o token); o navegador vai ao provedor e volta para esta mesma página.
+   */
+  social(provider: Provider['id']) {
+    return this.run(async () => {
+      const ticket = this.token ? (await this.call<{ ticket: string }>('POST', '/api/auth/link-ticket', {})).ticket : null;
+      const q = new URLSearchParams({ return: location.pathname + location.search });
+      if (ticket) q.set('ticket', ticket);
+      location.href = `${this.base}/api/auth/${provider}/start?${q}`;
+      return true;
+    });
+  }
+
+  unlink(provider: string) {
+    return this.run(async () => {
+      const r = await this.call<{ account: ArenaAccount }>('POST', '/api/me/unlink', { provider });
       this.account = r.account;
       return r.account;
     });

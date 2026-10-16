@@ -1,9 +1,11 @@
-// Servidor do Vila Ninja: contas, retratos e duelos (docs/gdd-escala-ilhas-pvp.md, seção 6). Bun + Postgres.
+// Servidor do Vila Ninja: contas, retratos e duelos (docs/gdd-escala-ilhas-pvp.md, seção 6) e o site público (src/site,
+// pt-BR e inglês). Bun + Postgres + Redis (cache.ts).
 // Sobe com `bun src/index.ts` (ou pelo PM2, ecosystem.local.config.cjs); o jogo chega por /api/* (scripts/live.ts e
 // scripts/dev.ts fazem o proxy, então o túnel Cloudflare expõe tudo numa origem só).
 import { config } from './config';
 import { migrate, testConnection } from './db';
 import { handleApi } from './http/api';
+import { handleSite } from './site';
 
 export function createServer(port = config.port) {
   return Bun.serve({
@@ -12,7 +14,7 @@ export function createServer(port = config.port) {
     fetch(req, server) {
       const url = new URL(req.url);
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return handleApi(req, url, server.requestIP(req)?.address ?? null);
-      return new Response('Vila Ninja: servidor de duelos. API em /api/.', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+      return handleSite(req, url);
     },
   });
 }

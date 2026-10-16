@@ -1,5 +1,6 @@
 // Servidor do acesso externo (https://ninja.wmst.com.br via túnel Cloudflare → PM2, porta 3010).
-// Serve o BUILD de produção (dist/) e refaz o build sozinho quando o código muda.
+// Serve o BUILD de produção (dist/) e refaz o build sozinho quando o código muda. O jogo fica em /play; o que não é
+// arquivo do build (início, ranking, perfis, /staff) vai para o site do server/ (scripts/apiProxy.ts).
 //
 // Por que não o servidor de desenvolvimento (scripts/dev.ts)? Ele mantém o mesmo nome de arquivo para o
 // CSS/JS mesmo quando o conteúdo muda, e a Cloudflare guarda esses arquivos em cache por horas: o celular
@@ -9,7 +10,7 @@ import { copyFileSync, mkdirSync, readdirSync, rmSync, watch } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { perfReport } from './perfReport';
-import { proxyApi } from './apiProxy';
+import { legacyGameRedirect, proxyApi, proxySite } from './apiProxy';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DIST = `${ROOT}dist/`;
@@ -86,11 +87,18 @@ Bun.serve({
     // /api/* vai para o servidor de duelos (server/), pela mesma origem (o túnel expõe os dois)
     const api = await proxyApi(req, server.requestIP(req)?.address);
     if (api) return api;
-    const path = decodeURIComponent(new URL(req.url).pathname);
+    const url = new URL(req.url);
+    const legacy = legacyGameRedirect(url);
+    if (legacy) return legacy;
+    const path = decodeURIComponent(url.pathname);
     if (path.includes('..')) return new Response('Not found', { status: 404, headers: NO_STORE });
-    const name = path === '/' ? 'index.html' : path === '/lab' || path === '/lab/' ? 'tools/jutsu-lab/index.html' : path.slice(1);
+    // /play/ com barra quebraria os caminhos relativos do build (./chunk-x.js)
+    if (path === '/play/') return new Response(null, { status: 301, headers: { Location: `/play${url.search}` } });
+    // o jogo fica em /play; a raiz e as outras páginas são do site (server/, proxySite)
+    const name = path === '/play' ? 'index.html' : path === '/lab' || path === '/lab/' ? 'tools/jutsu-lab/index.html' : path.slice(1);
     const file = Bun.file(DIST + name);
-    if (!(await file.exists())) return new Response('Not found', { status: 404, headers: NO_STORE });
+    if (name === 'index.html' && path !== '/play') return proxySite(req, server.requestIP(req)?.address);
+    if (!(await file.exists())) return proxySite(req, server.requestIP(req)?.address);
     const ext = name.split('.').pop() ?? '';
     // arquivo com hash do conteúdo no nome (index-ab12cd34.js, house-xyz.png): pode ficar em cache para sempre
     const hashed = /-[a-z0-9]{8}\.[a-z0-9]+$/.test(name);

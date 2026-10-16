@@ -264,6 +264,17 @@ export const duels = {
     return { top: top.map((r) => ({ ...r, data: undefined, ninja: r.data ? ninjaOf(r.data) : null })), me: { ...me, position: played ? pos!.n : null } };
   },
 
+  /** Ranking público (site): top N sem dado de conta, com o ninja do retrato. */
+  async publicTop(limit = 50): Promise<Array<{ userId: string; name: string; rating: number; wins: number; losses: number; ninja: Opponent['ninja'] | null }>> {
+    const rows = await sql<Array<{ userId: string; name: string; rating: number; wins: number; losses: number; data: NinjaSnapshot | null }>>`
+      SELECT ds.user_id as "userId", u.display_name as name, ds.rating, ds.wins, ds.losses, s.data
+      FROM duel_stats ds JOIN users u ON u.id = ds.user_id LEFT JOIN snapshots s ON s.user_id = u.id AND s.kind = 'ninja'
+      WHERE ds.wins + ds.losses + ds.def_wins + ds.def_losses > 0 AND NOT u.is_test AND u.banned_at IS NULL
+      ORDER BY ds.rating DESC, ds.wins DESC LIMIT ${Math.min(100, Math.max(1, limit))}
+    `;
+    return rows.map((r) => ({ ...r, data: undefined, ninja: r.data ? ninjaOf(r.data) : null }));
+  },
+
   /** Quem enfrentou o meu retrato e como foi; `unseen` = depois da última vez que olhei o relatório. */
   async defenses(userId: string): Promise<{ defenses: Defense[]; unseen: number; rating: number }> {
     const me = await this.stats(userId);

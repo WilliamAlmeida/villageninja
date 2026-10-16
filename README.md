@@ -12,7 +12,7 @@ Requer [Bun](https://bun.sh) 1.2 ou mais novo.
 
 ```bash
 bun install        # só dev-deps (TypeScript, tipos do Bun, ícones Phosphor para gerar os glifos)
-bun run dev        # http://localhost:3010 com HMR; mostra o IP para abrir no celular (mesma Wi-Fi)
+bun run dev        # http://localhost:3010/play com HMR (a raiz é o site, server/); mostra o IP para abrir no celular (mesma Wi-Fi)
 bun run build      # gera dist/ (e copia public/: manifesto do PWA, ícones, service worker)
 bun run preview    # build + serve dist/ em http://localhost:4173
 bun run editor     # ferramentas em http://localhost:3011 (editor de sprites, laboratório de jutsus, editor de cenário)
@@ -40,7 +40,7 @@ Abra o IP mostrado pelo `bun run dev`, gire para paisagem e use o botão de tela
 
 ### Depuração
 
-- `?demo` na URL (ex.: http://localhost:3010/?demo) abre a **vitrine**: uma vila de fim de jogo gerada na hora, que
+- `?demo` na URL (ex.: http://localhost:3010/play?demo) abre a **vitrine**: uma vila de fim de jogo gerada na hora, que
   não lê nem grava o save. O botão "Vitrine" abre qualquer janela, prédio, ninja, equipe ou local, e
   `?demo&tela=<chave>` abre direto (`crafts`, `b-forge`, `n-kage`, `group`, `cena-mina`…).
 - No console do navegador: `vila` (o `App`: `vila.game.state` é o estado), `renderer` e `bench()` (quanto custa

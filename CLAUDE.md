@@ -7,9 +7,11 @@ TypeScript + Bun + Canvas 2D, **sem engine e sem dependências em runtime**. Idi
 - `bun install` · `bun run dev` (HMR, mostra IP para abrir no celular) · `bun run build` · `bun run preview`
 - `bun run check` = `tsc --noEmit` + `bun test` — rode sempre antes de commitar.
 - Testes de simulação usam aleatoriedade: rode a suíte várias vezes ao mexer em combate/IA para pegar instabilidade.
-- **Servidor de duelos** (`server/`, Bun + Postgres, README lá): `cd server && bun run dev` (porta 3012); o jogo chega
-  por `/api/*` pelo proxy do `scripts/live.ts`/`dev.ts`. PM2: `villageninja-server`. `bun test` na raiz roda também os
-  testes dele (pulados sem `TEST_DATABASE_URL` em `server/.env`).
+- **Servidor** (`server/`, Bun + Postgres + Redis, README lá): API de contas/duelos, login Discord/Google, papéis da
+  equipe e o **site público** (pt-BR na raiz, inglês em `/en`). `cd server && bun run dev` (porta 3012). O **jogo fica em
+  `/play`**: o `scripts/live.ts`/`dev.ts` serve o jogo e manda `/api/*` e as páginas do site para o servidor
+  (`scripts/apiProxy.ts`). PM2: `villageninja-server`. `bun test` na raiz roda também os testes dele (pulados sem
+  `TEST_DATABASE_URL` em `server/.env`).
 
 ## Arquitetura (ver README e docs/ROADMAP.md)
 - `src/data/` conteúdo declarativo (jutsus, prédios, animais, missões, itens, níveis, kekkei, chefes).
@@ -93,11 +95,11 @@ um sistema, atualize o arquivo dele (não este).
 - **Dicas e avisos próprios** (`ui/popup.ts`), nada de `title`/`alert` nativo: `tipAttr(título, texto, tap?)` dá dica ao
   passar o mouse ou segurar o dedo (`tap` = um toque já mostra, para o que não tem ação). Botão que não pode agir não usa
   `disabled`: `blocked(g, [motivos], custo)` deixa clicável e o toque abre o aviso com o que falta (calculado na hora). Drawers mostram só números e botões: a explicação de uma seção vai no "i" ao lado do título (`infoTip` em panel.ts), não em parágrafo. Ícone inline tem `margin-inline` (`.ic`) para não colar no texto/número. Trabalhadores: uma marca por vaga (cheia = trabalhando, contorno = pedido) e o alcance em etiquetas.
-- **Vitrine de interface** (`?demo` na URL, ex.: http://localhost:3010/?demo): vila de fim de jogo gerada na hora
+- **Vitrine de interface** (`?demo` na URL, ex.: http://localhost:3010/play?demo): vila de fim de jogo gerada na hora
   (`game/demo.ts`: todos os prédios no nível 3, ninjas de toda patente, Kage, Sannin, ANBU, clãs, cães, equipes em missão e
   expedição, oficinas com fila e "Manter", lâminas, região em cada situação, mapa explorado; sem invasões) que não lê nem
   grava o save. O botão "Vitrine" (`ui/demoMenu.ts`) abre qualquer janela, drawer de prédio, ninja em cada situação, equipe
-  ou local; `?demo&tela=<chave>` já abre direto (`crafts`, `b-forge`, `n-kage`, `group`…; mapas jogáveis: `cena-mina`, `cena-saque`). Tela nova que precisa de requisito
+  ou local; `/play?demo&tela=<chave>` já abre direto (`crafts`, `b-forge`, `n-kage`, `group`…; mapas jogáveis: `cena-mina`, `cena-saque`). Tela nova que precisa de requisito
   para aparecer: garantir que a vitrine a alcança (teste em `tests/demo.test.ts`).
 - UI tem que funcionar em 844×390 (celular deitado), mas a conferência visual é do autor: não abrir navegador nem tirar
   screenshot sem ele pedir.
@@ -116,7 +118,7 @@ um sistema, atualize o arquivo dele (não este).
   `scripts/public.ts` no dev e copiado para `dist/` no build; as tags entram por `main.ts` (o bundler do Bun não resolve
   caminhos absolutos no `index.html`). Botão de tela cheia na barra de cima e "Instalar como app" no menu
   (`ui/fullscreen.ts`); no iPhone só funciona "Adicionar à Tela de Início".
-- Acesso externo: https://ninja.wmst.com.br (túnel Cloudflare → localhost:3010). O PM2 roda `scripts/live.ts`: build de
+- Acesso externo: https://ninja.wmst.com.br (temporário; túnel Cloudflare → localhost:3010; jogo em `/play`). O PM2 roda `scripts/live.ts`: build de
   produção em `dist/` refeito sozinho a cada mudança, `index.html` com no-store e arquivos com hash em cache longo.
   **Não** expor `scripts/dev.ts` (HMR) pelo túnel: ele mantém o nome do CSS/JS e a Cloudflare entrega versão velha. A Cloudflare guarda 404 de `.js`/`.png`
   em cache por 4 h (sem acesso ao painel para limpar): os 404 do servidor saem com `no-store`, e um arquivo que já

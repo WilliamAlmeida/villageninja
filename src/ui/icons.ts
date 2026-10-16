@@ -38,6 +38,9 @@ const I: Record<string, string> = {
   pause: '<path d="M8 5v14M16 5v14"/>',
   play: '<path d="M7 4l13 8-13 8z"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  // entrar com (formas simples no traço dos outros ícones, não os logotipos)
+  discord: '<path d="M7 7c3-1.300 7-1.300 10 0l2 3c1 3 1 6 0 8-1.500 1-3 1.500-4 1.500l-1-2c-1.300.300-2.700.300-4 0l-1 2c-1 0-2.500-.500-4-1.500-1-2-1-5 0-8z"/><circle cx="9.500" cy="13" r="1"/><circle cx="14.500" cy="13" r="1"/>',
+  google: '<path d="M20 12h-8M20 12a8 8 0 1 1-2.300-5.700"/>',
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.500 1.500M17.500 17.500L19 19M19 5l-1.500 1.500M6.500 17.500L5 19"/>',
   moon: '<path d="M20 14.500A8.500 8.500 0 0 1 9.500 4 8.500 8.500 0 1 0 20 14.500z"/>',

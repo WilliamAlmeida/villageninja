@@ -94,6 +94,14 @@ export function createUI(app: App, root: HTMLElement) {
   const duelsNew = btnDuels.querySelector<HTMLElement>('[data-t="duels-new"]')!;
   // quem já entrou na arena alguma vez reconecta ao abrir o jogo: defesas novas viram bolinha no botão e um aviso
   void arena.boot().then((fresh) => {
+    // voltou do login do Discord/Google: abre a aba Conta com o resultado
+    const back = arena.socialReturn;
+    if (back) {
+      arena.socialReturn = null;
+      win.show({ kind: 'duelAccount' });
+      if (back.ok) app.game.toast(back.linked ? '{check} Conta vinculada: o ranking agora vai com você em qualquer aparelho.' : `{check} Bem-vindo, ${arena.account?.displayName ?? 'ninja'}.`, 'good');
+      return;
+    }
     if (!fresh || !arena.defenses) return;
     const d = arena.defenses.defenses.filter((x) => x.unseen);
     const more = d.length > 4 ? `<p class="hint">e mais ${d.length - 4} na aba Defesas.</p>` : '';

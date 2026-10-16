@@ -2898,6 +2898,10 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .dl-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-bottom: 0.5rem; }
 .dl-acc > div { display: flex; flex-direction: column; }
 .dl-acc small { color: var(--muted); font-size: 0.8rem; }
+.dl-logins { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.4rem 0 0.6rem; }
+.dl-login { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.dl-login.on { padding: 0.3rem 0.5rem; border-radius: 0.4rem; background: rgba(255, 255, 255, 0.05); }
+.dl-login > .btn:only-child { min-width: 14rem; justify-content: flex-start; }
 .dl-acc > .btn { margin-left: auto; }
 #alertbox .dl-field { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.45rem 0; font-size: 0.85rem; color: var(--muted); }
 #alertbox .dl-field input { font: inherit; font-size: 1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 0.45rem 0.55rem; }

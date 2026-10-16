@@ -2769,16 +2769,32 @@ export class Panel {
 
   private duelAccountTab() {
     const a = arena.account;
-    let html = `<div class="bsec"><h4>Sua conta ${infoTip('Conta', 'A conta só serve para os duelos e o ranking: o jogo continua salvo neste aparelho. Com apelido e senha você entra na mesma conta em outro aparelho.')}</h4>`;
+    let html = `<div class="bsec"><h4>Sua conta ${infoTip('Conta', 'A conta serve para os duelos e o ranking: o jogo continua salvo neste aparelho. Entrando com Discord ou Google você usa a mesma conta em qualquer aparelho.')}</h4>`;
     if (!a) return html + `<p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Conectando...'}</p></div>`;
+    if (!arena.providers && !arena.offline) void arena.loadProviders();
+    const providers = arena.providers ?? [];
+    const logins = a.logins ?? [];
     html += `<div class="dl-acc"><div><small>Nome na arena</small><b>${esc(a.displayName)}</b></div><button class="btn warn" data-act="arena-rename">{edit} Trocar nome</button></div>`;
-    if (a.isGuest) {
-      html += `<p class="hint">Você está como <b>convidado</b>: a conta vale só neste navegador. Crie um apelido e uma senha para não perder o ranking e para entrar em outro aparelho.</p>
-        <div class="actions"><button class="btn primary" data-act="arena-register">{userplus} Criar apelido e senha</button><button class="btn" data-act="arena-login">{key} Entrar com uma conta</button></div>`;
-    } else {
-      html += `<div class="dl-acc"><div><small>Apelido</small><b>${esc(a.username ?? '')}</b></div>${a.email ? `<div><small>E-mail</small><b>${esc(a.email)}</b></div>` : ''}</div>
-        <div class="actions"><button class="btn danger" data-act="arena-logout">{x} Sair da conta</button></div>`;
+    if (a.isGuest)
+      html += `<p class="hint">Você está como <b>convidado</b>: a conta vale só neste navegador. ${providers.length ? 'Entre com Discord ou Google para guardar o ranking e jogar em outro aparelho.' : 'Crie um apelido e uma senha para não perder o ranking e para entrar em outro aparelho.'}</p>`;
+    else html += `<div class="dl-acc">${a.username ? `<div><small>Apelido</small><b>${esc(a.username)}</b></div>` : ''}${a.email ? `<div><small>E-mail</small><b>${esc(a.email)}</b></div>` : ''}</div>`;
+    // jeitos de entrar: cada provedor ligado no servidor, ligado ou não a esta conta
+    if (providers.length) {
+      html += `<div class="dl-logins">`;
+      for (const p of providers) {
+        const on = logins.includes(p.id);
+        html += on
+          ? `<div class="dl-login on"><span>{${p.id}} <b>${esc(p.name)}</b> <span class="mpill safe">ligado</span></span><button class="btn" data-act="arena-unlink" data-arg="${p.id}" ${blocked(this.app.game, [logins.length < 2 && 'É o único jeito de entrar nesta conta.'])}>Desligar</button></div>`
+          : `<div class="dl-login"><button class="btn ${a.isGuest ? 'primary' : ''}" data-act="arena-social" data-arg="${p.id}">{${p.id}} ${a.isGuest ? 'Entrar' : 'Ligar'} com ${esc(p.name)}</button></div>`;
+      }
+      html += `</div>`;
     }
+    html += `<div class="actions">`;
+    if (a.isGuest && !providers.length) html += `<button class="btn primary" data-act="arena-register">{userplus} Criar apelido e senha</button>`;
+    if (a.isGuest) html += `<button class="btn" data-act="arena-login">{key} Já tenho apelido e senha</button>`;
+    else html += `<button class="btn danger" data-act="arena-logout">{x} Sair da conta</button>`;
+    html += `</div>`;
+    if (a.role === 'mod' || a.role === 'admin') html += `<p class="hint">Conta da equipe: painel em <a href="/staff" target="_blank" rel="noopener">/staff</a>.</p>`;
     html += `</div><div class="bsec"><h4>Servidor</h4><p class="hint">${arena.base ? esc(arena.base) : 'Mesma origem do jogo (/api)'} · ${arena.offline ? 'sem conexão' : `${arena.online} jogador(es) on-line`}</p></div>`;
     return html;
   }
@@ -3471,6 +3487,12 @@ export class Panel {
         return this.arenaForm(act.slice('arena-'.length) as 'register' | 'login' | 'rename');
       case 'arena-logout':
         void arena.logout();
+        return;
+      case 'arena-social':
+        void arena.social(arg as 'discord' | 'google');
+        return;
+      case 'arena-unlink':
+        void arena.unlink(arg);
         return;
       case 'arena-watch':
         return this.watchDuel();

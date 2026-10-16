@@ -3,7 +3,7 @@
 import postgres from 'postgres';
 import { config } from './config';
 
-export const sql = postgres(config.databaseUrl, { max: 10, idle_timeout: 20, connect_timeout: 10, transform: { undefined: null } });
+export const sql = postgres(config.databaseUrl, { max: 10, idle_timeout: 20, connect_timeout: 10, transform: { undefined: null }, onnotice: () => {} });
 
 export async function testConnection(): Promise<boolean> {
   try {
@@ -35,6 +35,37 @@ export async function migrate() {
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (lower(username)) WHERE username IS NOT NULL`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (lower(email)) WHERE email IS NOT NULL`;
   await sql`CREATE INDEX IF NOT EXISTS idx_users_seen ON users (last_seen_at DESC)`;
+  // papel (jogador, moderador, admin: o painel /staff) e a foto vinda do Discord/Google
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(10) NOT NULL DEFAULT 'player'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
+  // jeitos de entrar além da senha: uma conta pode ter Discord e Google; um perfil do provedor é de uma conta só
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_identities (
+      provider VARCHAR(10) NOT NULL,
+      provider_user_id VARCHAR(64) NOT NULL,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      email VARCHAR(120),
+      name VARCHAR(64),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (provider, provider_user_id)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_identities_user ON user_identities (user_id)`;
+  // tudo que a equipe faz no painel (quem, o quê, em quem, quando); staff_id nulo = chave de emergência
+  await sql`
+    CREATE TABLE IF NOT EXISTS staff_actions (
+      id BIGSERIAL PRIMARY KEY,
+      staff_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      action VARCHAR(32) NOT NULL,
+      target_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      detail JSONB,
+      ip VARCHAR(64),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_staff_actions_at ON staff_actions (created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_staff_actions_target ON staff_actions (target_id, created_at DESC)`;
   // sessões: o cliente guarda o token; aqui só o SHA-256 dele
   await sql`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -93,7 +124,7 @@ export async function migrate() {
 
 /** Só para os testes: esvazia tudo. */
 export async function truncateAll() {
-  await sql`TRUNCATE users, sessions, snapshots, duels, duel_stats CASCADE`;
+  await sql`TRUNCATE users, sessions, snapshots, duels, duel_stats, user_identities, staff_actions CASCADE`;
 }
 
 export async function closeDb() {

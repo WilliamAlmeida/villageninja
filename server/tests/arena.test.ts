@@ -15,6 +15,7 @@ let db: typeof import('../src/db') | undefined;
 
 if (testUrl) {
   Bun.env.ARENA_DATABASE_URL = testUrl; // antes de abrir a conexão
+  Bun.env.REDIS_PREFIX = 'vntest:'; // chaves próprias no Redis, apagadas a cada rodada
   db = await import('../src/db');
   dbOk = await db.testConnection();
   if (!dbOk) console.warn('Banco de teste indisponível (TEST_DATABASE_URL): testes do servidor pulados.');
@@ -44,6 +45,7 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
   beforeAll(async () => {
     await db!.migrate();
     await db!.truncateAll();
+    await (await import('../src/cache')).cache.clear();
     const { createServer } = await import('../src/index');
     server = createServer(0);
     base = `http://localhost:${server.port}`;
@@ -185,5 +187,119 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     const r = await api('GET', '/api/admin/overview', undefined, undefined, { 'X-Dev-Key': config.devPassword });
     expect(r.status).toBe(200);
     expect(r.data.users.total).toBeGreaterThan(0);
+  });
+
+  describe('login com Discord/Google e equipe', () => {
+    /** Discord de mentira: troca de código e perfil pelo `code` que o teste manda. */
+    const realFetch = globalThis.fetch;
+    const PROFILES: Record<string, Record<string, unknown>> = {
+      dono: { id: '900', username: 'dono', global_name: 'Dono da Vila', email: 'dono@vila.test', verified: true, avatar: 'abc' },
+      ana: { id: '901', username: 'ana', global_name: 'Ana', email: 'ana@vila.test', verified: true, avatar: null },
+    };
+    beforeAll(() => {
+      config.discord.clientId = 'cid';
+      config.discord.clientSecret = 'secret';
+      config.adminEmails.push('dono@vila.test');
+      globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input instanceof Request ? input.url : input);
+        if (url === 'https://discord.com/api/oauth2/token') {
+          const form = new URLSearchParams(String(init?.body));
+          expect(form.get('code_verifier')?.length).toBeGreaterThan(40);
+          return Response.json({ access_token: `tok-${form.get('code')}` });
+        }
+        if (url === 'https://discord.com/api/users/@me') {
+          const who = String(new Headers(init?.headers).get('authorization')).replace('Bearer tok-', '');
+          return Response.json(PROFILES[who]);
+        }
+        return realFetch(input, init);
+      }) as typeof fetch;
+    });
+    afterAll(() => {
+      globalThis.fetch = realFetch;
+      config.discord.clientId = config.discord.clientSecret = '';
+      config.adminEmails.length = 0;
+    });
+
+    /** Faz a ida e a volta como o navegador: devolve o fragmento do endereço final. */
+    async function social(code: string, query = 'return=/play', stateOverride?: string) {
+      const start = await fetch(`${base}/api/auth/discord/start?${query}`, { redirect: 'manual' });
+      expect(start.status).toBe(302);
+      const to = new URL(start.headers.get('location')!);
+      expect(to.origin + to.pathname).toBe('https://discord.com/oauth2/authorize');
+      expect(to.searchParams.get('code_challenge_method')).toBe('S256');
+      const state = stateOverride ?? to.searchParams.get('state')!;
+      const back = await fetch(`${base}/api/auth/discord/callback?code=${code}&state=${state}`, { redirect: 'manual' });
+      expect(back.status).toBe(302);
+      const loc = new URL(back.headers.get('location')!);
+      return { path: loc.pathname, hash: new URLSearchParams(loc.hash.slice(1)) };
+    }
+
+    test('provedor aparece configurado; convidado vincula o Discord e vira conta sem perder nada', async () => {
+      expect((await api('GET', '/api/auth/providers')).data.providers).toEqual([{ id: 'discord', name: 'Discord' }]);
+      const token = await guest();
+      const before = (await api('GET', '/api/me', undefined, token)).data.account;
+      const { ticket } = (await api('POST', '/api/auth/link-ticket', {}, token)).data;
+      const r = await social('ana', `return=/play&ticket=${ticket}`);
+      expect(r.path).toBe('/play');
+      expect(r.hash.get('vn_linked')).toBe('1');
+      const after = (await api('GET', '/api/me', undefined, r.hash.get('vn_token')!)).data.account;
+      expect(after.id).toBe(before.id);
+      expect(after.isGuest).toBe(false);
+      expect(after.logins).toEqual(['discord']);
+      expect(after.email).toBe('ana@vila.test');
+      // entrar de novo (outro aparelho, sem bilhete) cai na mesma conta
+      const again = await social('ana');
+      expect((await api('GET', '/api/me', undefined, again.hash.get('vn_token')!)).data.account.id).toBe(before.id);
+      // único jeito de entrar não sai
+      expect((await api('POST', '/api/me/unlink', { provider: 'discord' }, token)).data.error).toBe('LAST_LOGIN');
+    });
+
+    test('estado inválido e retorno para fora do site são recusados', async () => {
+      expect((await social('ana', 'return=/play', 'forjado')).hash.get('vn_error')).toBe('OAUTH_STATE');
+      expect((await social('ana', 'return=//evil.example/x')).path).toBe('/play');
+    });
+
+    test('e-mail do dono vira admin; painel por papel, jogador comum barrado, troca de papel registrada', async () => {
+      const owner = (await social('dono')).hash.get('vn_token')!;
+      const who = await api('GET', '/api/admin/whoami', undefined, owner);
+      expect(who.status).toBe(200);
+      expect(who.data.actor.role).toBe('admin');
+      const player = await guest();
+      expect((await api('GET', '/api/admin/overview', undefined, player)).status).toBe(403);
+      const target = (await api('GET', '/api/me', undefined, player)).data.account.id;
+      const set = await api('POST', '/api/admin/role', { userId: target, role: 'mod' }, owner);
+      expect(set.data.account.role).toBe('mod');
+      expect((await api('GET', '/api/admin/overview', undefined, player)).status).toBe(200);
+      // moderador não troca papéis; o dono não tira o próprio admin
+      expect((await api('POST', '/api/admin/role', { userId: target, role: 'admin' }, player)).status).toBe(403);
+      expect((await api('POST', '/api/admin/role', { userId: who.data.actor.id, role: 'player' }, owner)).data.error).toBe('OWN_ROLE');
+      const log = (await api('GET', '/api/admin/log', undefined, owner)).data.actions as Array<{ action: string }>;
+      expect(log.map((a) => a.action)).toEqual(expect.arrayContaining(['login', 'role']));
+    });
+  });
+
+  test('site: início e ranking em pt e en, arquivos com versão, 404 e nada fora da pasta', async () => {
+    const get = async (p: string) => {
+      const r = await fetch(base + p);
+      return { status: r.status, type: r.headers.get('content-type') ?? '', cc: r.headers.get('cache-control') ?? '', text: await r.text() };
+    };
+    const home = await get('/');
+    expect(home.status).toBe(200);
+    expect(home.text).toContain('<html lang="pt-BR">');
+    expect(home.text).toContain('href="/play"');
+    expect(home.text).toContain('hreflang="en"');
+    const en = await get('/en');
+    expect(en.text).toContain('<html lang="en">');
+    expect(en.text).toContain('Ninja Village');
+    expect((await get('/en/ranking')).text).toContain('Duel leaderboard');
+    expect((await get('/ranking')).text).toContain('Ranking de duelos');
+    const css = home.text.match(/href="(\/site\/site\.css\?v=[0-9a-f]+)"/)![1]!;
+    const asset = await get(css);
+    expect(asset.status).toBe(200);
+    expect(asset.cc).toContain('immutable');
+    expect((await get('/site/art/scene-village.png')).type).toContain('image/png');
+    expect((await get('/nada-aqui')).status).toBe(404);
+    expect((await get('/site/..%2F..%2F.env')).status).toBe(404);
+    expect((await get('/site/art/..%2F..%2F..%2F..%2Fserver%2F.env')).status).toBe(404);
   });
 });

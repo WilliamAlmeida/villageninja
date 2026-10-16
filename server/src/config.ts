@@ -26,9 +26,34 @@ export const config = {
   },
   testDatabaseUrl: Bun.env.TEST_DATABASE_URL ?? '',
   origins,
-  /** Senha do painel do dono (/api/admin/*); sem ela o painel fica desligado. */
+  /** Chave de emergência do painel (/api/admin/* pelo header X-Dev-Key); o normal é entrar com uma conta de staff. */
   devPassword: Bun.env.DEV_PASSWORD ?? '',
+  /** Redis (cache, limites, estado do login); vazio = memória do processo. */
+  redisUrl: Bun.env.REDIS_URL ?? '',
+  /** Lido na hora: os testes usam `vntest:` (e apagam só as chaves deles). */
+  get redisPrefix() {
+    return Bun.env.REDIS_PREFIX ?? 'vn:';
+  },
+  /** Login social: cada provedor só aparece com id e segredo preenchidos. */
+  discord: { clientId: Bun.env.DISCORD_CLIENT_ID ?? '', clientSecret: Bun.env.DISCORD_CLIENT_SECRET ?? '' },
+  google: { clientId: Bun.env.GOOGLE_CLIENT_ID ?? '', clientSecret: Bun.env.GOOGLE_CLIENT_SECRET ?? '' },
+  /** E-mails (confirmados pelo Discord/Google) que viram admin ao entrar: o dono não depende da chave de emergência. */
+  adminEmails: (Bun.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
 };
+
+/**
+ * Origem pública de quem chamou (o proxy do jogo manda X-Forwarded-Host/Proto), só se for uma das permitidas: o endereço
+ * de volta do login é montado com ela, então um Host forjado não pode desviar o retorno para outro site.
+ */
+export function publicOrigin(req: Request): string {
+  const url = new URL(req.url);
+  const host = req.headers.get('x-forwarded-host') ?? url.host;
+  const proto = (req.headers.get('x-forwarded-proto') ?? url.protocol.replace(':', '')).split(',')[0]!.trim();
+  const origin = `${proto}://${host}`;
+  if (config.origins.includes(origin)) return origin;
+  // proxy que não informou o protocolo: vale a origem permitida com o mesmo host
+  return config.origins.find((o) => new URL(o).host === host) ?? config.origins[0]!;
+}
 
 export function allowOrigin(origin: string | null): string {
   if (origin && config.origins.includes(origin)) return origin;
