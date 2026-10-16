@@ -18,6 +18,14 @@ import { TILE } from '../config';
 import { DECO_MOOD_MAX } from '../game/mood';
 import { commitFields, draftField, draftPlots, fieldCost, plotCap, plotCount, plotWith } from '../game/fields';
 import { FIELD } from '../data/crops';
+import cardField from '../art/ui/cards/card-field.png';
+import cardRoad from '../art/ui/cards/card-road.png';
+import cardClear from '../art/ui/cards/card-clear.png';
+import cardFill from '../art/ui/cards/card-fill.png';
+import cardDig from '../art/ui/cards/card-dig.png';
+
+/** Imagem de fundo dos cards de pintar terreno (scripts/card-art.py), no lugar da arte do prédio dos outros cards. */
+const cardBg = (src: string) => `<img class="bg" src="${src}" alt="" draggable="false">`;
 
 /** Dica do card (texto puro): o que faz e o custo. */
 const plainInfo = (d: (typeof BUILDINGS)[BuildingType]) => `${plainTokens(d.desc)}${d.mood ? `
@@ -42,7 +50,7 @@ export class BuildUI {
         'button',
         { class: 'bcard road field', 'data-field': '1', 'data-tip-title': 'Campo cercado', 'data-tip': `Arraste no mapa para cercar canteiros, no formato que quiser. Canteiros encostados formam um campo, com uma cultura só (trigo, nabo, repolho, arroz, abóbora ou ervas). Os fazendeiros aram, semeiam, regam e colhem canteiro a canteiro.
 Custo: ${plainTokens(costLabel(FIELD.cost))} de cerca por canteiro` },
-        rich(`<span class="i">{wheat}</span><span class="n">Campo cercado</span><span class="c">${costLabel(FIELD.cost)} / canteiro</span><span class="lock"></span><span class="cnt" data-fcnt></span>`),
+        rich(`${cardBg(cardField)}<span class="i">{wheat}</span><span class="n">Campo cercado</span><span class="c">${costLabel(FIELD.cost)} / canteiro</span><span class="lock"></span><span class="cnt" data-fcnt></span>`),
       ),
     );
     for (const d of list) {
@@ -53,7 +61,7 @@ Custo: ${plainTokens(costLabel(FIELD.cost))} de cerca por canteiro` },
             'button',
             { class: 'bcard road', 'data-road': '1', 'data-tip-title': 'Rua calçada', 'data-tip': `Arraste no mapa para calçar. Quem anda na rua vai ${Math.round((ROAD.speed - 1) * 100)}% mais rápido e o caminho prefere ela.
 Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
-            rich(`<span class="i">{road}</span><span class="n">Rua calçada</span><span class="c">${costLabel(ROAD.cost)} / tile</span><span class="lock"></span>`),
+            rich(`${cardBg(cardRoad)}<span class="i">{road}</span><span class="n">Rua calçada</span><span class="c">${costLabel(ROAD.cost)} / tile</span><span class="lock"></span>`),
           ),
         );
         // limpar área: marca árvores, tocos e pedras para os moradores sem obra arrancarem (game/clearing.ts)
@@ -61,7 +69,7 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
           el(
             'button',
             { class: 'bcard road', 'data-clear': '1', 'data-tip-title': 'Limpar área', 'data-tip': `Arraste no mapa sobre árvores, tocos, rochas e veios. Os moradores sem obra vão lá e arrancam: o que ainda estava de pé rende o que sobrava. O lugar fica limpo e só brota de novo depois de ${CLEAR.regrowMult}× o tempo normal.` },
-            rich(`<span class="i">{axe}</span><span class="n">Limpar área</span><span class="c">grátis</span><span class="lock"></span>`),
+            rich(`${cardBg(cardClear)}<span class="i">{axe}</span><span class="n">Limpar área</span><span class="c">grátis</span><span class="lock"></span>`),
           ),
         );
         // aterrar e cavar: o terreno muda tile a tile pelo trabalho dos moradores (game/earthworks.ts)
@@ -70,14 +78,14 @@ Custo: ${plainTokens(costLabel(ROAD.cost))} por tile` },
             'button',
             { class: 'bcard road', 'data-earth': 'fill', 'data-tip-title': 'Aterrar', 'data-tip': `Arraste sobre a água para virar terra. Os moradores sem obra aterram da margem para dentro (o meio do lago espera a margem chegar).
 Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarcar)` },
-            rich(`<span class="i">{stone}</span><span class="n">Aterrar</span><span class="c">${costLabel(EARTH.fillCost)} / tile</span><span class="lock"></span>`),
+            rich(`${cardBg(cardFill)}<span class="i">{stone}</span><span class="n">Aterrar</span><span class="c">${costLabel(EARTH.fillCost)} / tile</span><span class="lock"></span>`),
           ),
         );
         this.bar.appendChild(
           el(
             'button',
             { class: 'bcard road', 'data-earth': 'dig', 'data-tip-title': 'Cavar', 'data-tip': 'Arraste sobre a terra para virar água (lago, canal, beira para o Porto). Os moradores sem obra cavam. Árvore e pedra no caminho: limpe a área antes.' },
-            rich(`<span class="i">{drop}</span><span class="n">Cavar</span><span class="c">grátis</span><span class="lock"></span>`),
+            rich(`${cardBg(cardDig)}<span class="i">{drop}</span><span class="n">Cavar</span><span class="c">grátis</span><span class="lock"></span>`),
           ),
         );
         continue;

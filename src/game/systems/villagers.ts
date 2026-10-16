@@ -400,7 +400,10 @@ function decide(g: Game, u: Unit) {
       const p = nextPlot(g, f, u);
       if (p) {
         u.taskId = p.ty * g.state.mapW + p.tx;
-        if (setDestination(g, u, tileCenter(p.tx) + rand(-6, 6), tileCenter(p.ty) + 8)) {
+        // os pés do boneco saem 9 px abaixo do ponto na cena: o ponto fica ~10 px antes do centro nos dois eixos
+        // (sobe 7,5 px na cena, sem andar para os lados) para ele trabalhar no meio do canteiro, e não na cerca da frente
+        const k = rand(-4, 4);
+        if (setDestination(g, u, tileCenter(p.tx) - 10 + k + rand(-2, 2), tileCenter(p.ty) - 10 - k + rand(-2, 2))) {
           u.state = 'toPlot';
           return;
         }

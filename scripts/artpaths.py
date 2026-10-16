@@ -12,7 +12,7 @@
 #   scenery       árvores, tocos, rochas, veios, erva, baú, ruína, entrada de mina
 #   props         atlas de enfeites desenhados por código (caverna, mapas temáticos, campos cercados)
 #   region        fundo do mapa da região e o atlas dos lugares
-#   ui/…          interface (já organizada: art, frame, kit1, kit2, atlas na raiz de ui)
+#   ui/…          interface (já organizada: art, frame, kit1, kit2, cards do menu Construir, atlas na raiz de ui)
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -54,6 +54,8 @@ def art_folder(name: str) -> str:
         return 'region'
     if name == 'ui-scroll':
         return 'ui/art'
+    if name.startswith('card-'):
+        return 'ui/cards'
     return 'buildings'
 
 

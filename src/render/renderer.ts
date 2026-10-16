@@ -32,7 +32,7 @@ import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { draftPaves, isRoad as isRoadNow, paveBlock, type RoadDraft } from '../game/roads';
 import { draftPlots, plotAt, plotBlock } from '../game/fields';
-import { drawFields } from './fields';
+import { drawFieldItem, drawFields, type FieldItem, fieldItems } from './fields';
 import { buildingCenter, doorPos, doorTile, hasWater, idx, inBounds, nodeArt, T } from '../game/world';
 import { art, artFoot, ART_SCALE, drawWhole } from './art';
 import { drawEffect } from './effects';
@@ -128,6 +128,8 @@ type Drawable = { y: number; x: number; /** chave de profundidade (começa em y)
   /** Enfeite da mina (render/cave.ts). */
   cave?: CaveDeco;
   theme?: ThemeDeco;
+  /** Planta de canteiro ou trecho de cerca de um campo cercado (render/fields.ts). */
+  field?: FieldItem;
   /** Peça da arte (Editor de cenário): 0 = o resto em pé, 1… = peça pintada, cada uma na profundidade da sua âncora. */
   piece?: number;
   /** Vigia no alto da torre: onde ficam os pés dele na cena (a plataforma), em vez do ponto lógico (a porta). */
@@ -420,7 +422,7 @@ export class Renderer {
 
     this.mark('chão');
     this.drawRoads(g, ov.roadMode === 'pave' ? (ov.roadDraft ?? null) : null);
-    this.drawFields(g, ov.roadMode === 'field' ? (ov.roadDraft ?? null) : null, time);
+    this.drawFields(g, ov.roadMode === 'field' ? (ov.roadDraft ?? null) : null);
     if (ov.roadMode) this.paintPreview(g, ov);
     this.mark('ruas');
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
@@ -544,6 +546,10 @@ export class Renderer {
       const p = project(theme.x, theme.y);
       if (seen(p)) list.push({ x: p.x, y: p.y, theme });
     }
+    // campos cercados: plantas e cerca na ordem de profundidade (quem trabalha dentro fica atrás da cerca da frente)
+    fieldItems(g, (x, y, field) => {
+      if (seen({ x, y })) list.push({ x, y, field });
+    });
     for (const u of s.units) {
       // dano recente: conferido de todos (também fora da tela), para a barra não surgir ao voltar a câmera
       const h = this.hurt.get(u);
@@ -722,6 +728,7 @@ export class Renderer {
       else if (d.deco) drawDeco(ctx, d.deco, d.x, d.y, time);
       else if (d.cave) drawCaveDeco(ctx, d.cave, d.x, d.y);
       else if (d.theme) drawThemeDeco(ctx, d.theme, d.x, d.y);
+      else if (d.field) drawFieldItem(ctx, d.field, time);
       else if (d.wall) drawWall(ctx, d.wall);
       else if (d.origin) drawJutsuOrigin(ctx, d.origin);
       ctx.globalAlpha = 1;
@@ -1716,9 +1723,9 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Campos cercados: chão de cada canteiro, as plantas pela etapa e a cerca na borda (render/fields.ts). */
-  private drawFields(g: Game, draft: RoadDraft | null, time: number) {
-    drawFields(this.ctx, g, draft, time, this.season === 'winter');
+  /** Campos cercados: o chão de cada canteiro (as plantas e a cerca vão em pé, `fieldItems`; render/fields.ts). */
+  private drawFields(g: Game, draft: RoadDraft | null) {
+    drawFields(this.ctx, g, draft, this.season === 'winter');
   }
 
   /** Caminho do losango de um tile (na cena). */
