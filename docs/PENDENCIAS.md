@@ -86,8 +86,8 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 
 ## Campos cercados (2026-10-16)
 - [x] Fazenda em etapas: canteiros de formato livre, cultura por cercado, teto de canteiros, Horta vira cultura (save v49)
-- [ ] Arte do Codex: folha 32×32 por cultura e etapa (semente, broto, crescendo, quase, maduro), chão do canteiro (cru,
-      arado, úmido) e peças de cerca no losango (dois lados, cantos, portão); hoje é desenho provisório em `render/fields.ts`
+- [x] Arte do Codex: plantas por cultura e etapa (mais "passando do ponto"), chão do canteiro (cru, arado, úmido, inverno)
+      e cerca no losango (dois lados, portão, poste); atlas `fields` por `scripts/field-art.py` (falta o autor aprovar)
 - [ ] Espantalho (decoração que protege os canteiros dos corvos num raio) e poço/irrigação
 
 ## Fora da lista (só quando o autor pedir)

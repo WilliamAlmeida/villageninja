@@ -54,6 +54,8 @@ describe('variantes de arte por id do prédio', () => {
     const g = createDemoGame(SYSTEMS);
     const names = (t: BuildingType) => new Set(g.state.buildings.filter((b) => b.type === t).map((b) => variantArt(t, b.id, t, all)));
     expect(names('house').size).toBe(VARIANTS.house!.length);
+    // a fazenda virou campo cercado (render/fields.ts): a arte dela e a variante só aparecem nos vilarejos invadidos
+    expect(BUILDINGS.farm.buildable).toBe(false);
     for (const t of ['lumber', 'quarry'] as const) {
       expect(BUILDINGS[t].buildable).toBe(true);
       expect(names(t).size).toBe(2);

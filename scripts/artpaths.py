@@ -10,7 +10,7 @@
 #   buildings     prédios (com nível e tema: <tipo>-2, <tipo>-fishing…), Monte dos Kages, Pedra Memorial
 #   buildings/deco decorações (lanterna, banco, cerejeira…)
 #   scenery       árvores, tocos, rochas, veios, erva, baú, ruína, entrada de mina
-#   props         atlas de enfeites desenhados por código (caverna, mapas temáticos)
+#   props         atlas de enfeites desenhados por código (caverna, mapas temáticos, campos cercados)
 #   region        fundo do mapa da região e o atlas dos lugares
 #   ui/…          interface (já organizada: art, frame, kit1, kit2, atlas na raiz de ui)
 from pathlib import Path
@@ -24,7 +24,7 @@ ANIMALS = {'bear', 'boar', 'crow', 'golem', 'hydra', 'monkey', 'rhino', 'slug', 
 DECO = {'lantern', 'bench', 'flowers', 'banner', 'shrine', 'statue', 'cherry', 'cherry-green', 'cherry-bare', 'fountain', 'pond', 'pagoda'}
 SCENERY = {'tree0', 'tree1', 'stump0', 'stump1', 'rock', 'rock-cracked', 'rock-pebbles', 'ore', 'ore-empty', 'herb',
            'chest', 'chest-open', 'ruin', 'ruin-alt', 'cave', 'cave-alt'}
-PROPS = {'cave-props', 'theme-props'}
+PROPS = {'cave-props', 'theme-props', 'fields'}
 REGION = {'region', 'region-places'}
 
 
