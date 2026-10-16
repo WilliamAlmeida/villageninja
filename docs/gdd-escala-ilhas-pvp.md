@@ -205,7 +205,10 @@ Só um mapa é simulado em detalhe por vez (como hoje com as cenas). Medir cada 
    (`game/commands.ts`), `popLimit`/`tax`/`ninjaLimit` em `villageLevels.ts`, contadores no menu de construção e na
    janela Vila, `blocked` com o motivo, testes, réguas `.perf/econ.ts` e `bal-threats.ts` antes e depois, `demo.ts`.
    Sem migração de save. É o passo que resolve o problema de hoje e não depende dos outros.
-2. **Variantes de arte** das casas e da produção (seção 4), pelo Codex.
+2. [x] **Variantes de arte** das casas e da produção (seção 4), pelo Codex (2026-10-15): `house-b`/`house-c` e
+   `lumber-b`, `quarry-b`, `farm-b` nos 3 níveis, escolhidas por `id % 3` / `id % 2` só no desenho
+   (`render/variants.ts`); lotes `variant` em `scripts/building-art.py` e `scripts/field-variants.py`
+   (docs/sistemas/arte.md). Bairro e moradores em resumo ficaram para o item 6.
 3. [x] parte offline (2026-10-15): `game/snapshot.ts` (retrato "VN1." copiado/colado, conferido e preso aos tetos) e
    `game/duel.ts` (duelo na arena pela máquina do Exame, `Exam.duel`; XP e placar `stats.duelsWon/duelsLost`, save v47).
    [x] servidor (2026-10-15, `server/`, README lá; molde do battlecard-server): contas de convidado/cadastro, retrato

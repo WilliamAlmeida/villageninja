@@ -15,6 +15,7 @@ import { learnSpec, specBlock } from '../game/specs';
 import { adoptDog, breedBlock, dogBlock, dogCap, dogOf, DOG_COST, freeDogs, giveDog, releaseDog, villageDogs } from '../game/ninken';
 import { BREED_LIST, BREEDS, breedArt, type DogBreed } from '../data/breeds';
 import { artUrl } from '../render/art';
+import { variantArt } from '../render/variants';
 import { searchTiles } from '../game/systems/villagers';
 import { TILE } from '../config';
 import { doorPos, tileCenter } from '../game/world';
@@ -1892,7 +1893,9 @@ export class Panel {
     const g = this.app.game;
     const d = defOf(bd);
     const lvl = bd.type === 'hokage' ? g.state.level + 1 : levelOf(bd);
-    const url = (lvl > 1 && artUrl(`${bd.type}-${lvl}`)) || artUrl(bd.type);
+    // a mesma arte que o prédio tem no mapa: o nível e, nos repetidos, a variante pelo id (render/variants.ts)
+    const baseArt = lvl > 1 && artUrl(`${bd.type}-${lvl}`) ? `${bd.type}-${lvl}` : bd.type;
+    const url = artUrl(variantArt(bd.type, bd.id, baseArt, (n) => artUrl(n) !== null));
     const max = bd.type === 'hokage' ? 4 : UPGRADES[bd.type] ? MAX_BUILDING_LEVEL : 0;
     const [st, cls] = !bd.built ? ['Em obra', 'good'] : bd.upgrade != null ? ['Melhorando', 'good'] : ['Funcionando', 'safe'];
     return `<div class="bhead"><span class="bh-art">${url ? pimg(url) : d.icon}</span><div class="bh-main">

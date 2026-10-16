@@ -24,6 +24,7 @@ import { arenaSpots } from '../../src/game/exam';
 import { art, preloadArt } from '../../src/render/art';
 import { applyPolys, hullOf, maskOf } from '../../src/render/pieces';
 import { Renderer } from '../../src/render/renderer';
+import { VARIANTS, withLetter } from '../../src/render/variants';
 
 // ------------------------------------------------------------------ itens
 type Item = { kind: 'building' | 'site' | 'node'; type: string; artName: string; label: string; level: number };
@@ -39,7 +40,14 @@ function fillItems() {
     for (let lv = 1; lv <= maxLv; lv++) {
       const artName = lv === 1 ? d.type : `${d.type}-${lv}`;
       if (lv > 1 && !art(artName)) continue;
-      ITEMS.push({ kind: 'building', type: d.type, artName, label: lv === 1 ? d.name : `${d.name} · nível ${lv}`, level: lv });
+      const lvLabel = lv === 1 ? '' : ` · nível ${lv}`;
+      ITEMS.push({ kind: 'building', type: d.type, artName, label: `${d.name}${lvLabel}`, level: lv });
+      // variantes dos prédios repetidos (render/variants.ts: casa -b/-c, lenhador/pedreira/fazenda -b): mesmo terreno
+      // e porta do nível, cada arte com o seu ajuste de escala/posição no layout
+      for (const letter of VARIANTS[d.type] ?? []) {
+        const v = letter && withLetter(artName, letter);
+        if (v && art(v)) ITEMS.push({ kind: 'building', type: d.type, artName: v, label: `${d.name} · variante ${letter.toUpperCase()}${lvLabel}`, level: lv });
+      }
     }
   }
   // prédios dos mapas temáticos (Vila dos Pescadores, Cidade dos Mercadores): arte própria, ajuste próprio
