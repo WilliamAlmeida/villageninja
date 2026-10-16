@@ -4,6 +4,7 @@ import { drawPressureProjectile } from './pressureCannon';
 import { drawRollingBody, drawLionFists } from './taijutsuSprites';
 import { TILE } from '../config';
 import { drawKaiten, drawHandJutsu, drawChidoriHand, drawJukaiRoots, drawJutsuProjectile, drawSandCoffin, drawSandShield, drawWaterPrison } from './jutsuSprites';
+import { drawHealingHand } from './supportSprites';
 import { art, artFrames, artRect, dollArt, drawArt, NINJA_HAIRSTYLES, SHEET_ROWS, solidArt, tintedArt, whiteArt } from './art';
 import { anbuMask, dollParts, type DollPose, SANNIN_COAT, SWORDS, tintPixels, VESTS } from './doll';
 import { bladeOf } from '../game/blades';
@@ -666,8 +667,9 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
   // Rasengan na investida; Rasenshuriken se forma no fim dos selos, antes do arremesso.
   const charging = u.cast?.id === 'rasenshuriken' && u.cast.t <= 0.3;
   const chidoriRecovery = u.moveJutsu === 'chidori' && u.animKind === 'moves' && u.anim > 0;
-  const orbJ = u.dash?.id ?? (chidoriRecovery ? 'chidori' : undefined) ?? (charging ? u.cast!.id : undefined) ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
-  const orb = orbJ === 'chidori' ? '#9fd8ff' : orbJ === 'rasenshuriken' ? '#7fc8ff' : orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
+  const healing=u.healing&&u.healing.stage!=='approach';
+  const orbJ = healing?'shousen':u.dash?.id ?? (chidoriRecovery ? 'chidori' : undefined) ?? (charging ? u.cast!.id : undefined) ?? (u.state === 'practice' && u.animKind === 'moves' && u.anim > 0.15 ? u.moveJutsu : undefined);
+  const orb = orbJ==='shousen'?'#7dff9a':orbJ === 'chidori' ? '#9fd8ff' : orbJ === 'rasenshuriken' ? '#7fc8ff' : orbJ ? JUTSUS[orbJ]?.handOrb : undefined;
   if (orb && orbJ) {
     const r = artRect(pic, ux, uy, height, frame, row);
     const pose = pic.dataset.pose as DollPose | undefined;
@@ -680,7 +682,8 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
     const size = JUTSUS[orbJ]?.orbSize ?? 1;
     const growth = charging ? Math.min(1, 0.2 + (0.3 - u.cast!.t) / 0.24)
       : u.dash ? Math.min(1, 0.25 + (1 - u.dash.t) / 0.12) : 1;
-    if (orbJ === 'chidori') drawChidoriHand(ctx, u, hx, hy, t, uy);
+    if (orbJ==='shousen')drawHealingHand(ctx,u,hx,hy);
+    else if (orbJ === 'chidori') drawChidoriHand(ctx, u, hx, hy, t, uy);
     else if (!drawHandJutsu(ctx, orbJ, hx, hy - 3 - 4 * (size - 1), t, u.id, growth)) handOrb(ctx, hx, hy - 3, orb, t, size);
   }
   if (u.moveJutsu === 'soshiken' && u.animKind === 'moves' && u.anim > 0 && !u.dead && u.stun <= 0) {
@@ -716,6 +719,7 @@ function drawUnitArt(ctx: Ctx, u: Unit, t: number, action?: WorkAction): boolean
  */
 function poseOf(u: Unit, t: number): PoseNow | null {
   if (!u.ninja && !u.swordsman) return null;
+  if(u.healing&&u.healing.stage!=='approach')return {pose:'cast',frame:u.healing.targetId===u.id?1:3,h:0};
   if (u.cast) {
     // os três selos pelo andamento (selo curto também passa pelos três); sem o total (save antigo), em ciclo
     const k = u.cast.total ? 1 - u.cast.t / u.cast.total : (t * 5 + u.id) % 3 / 3;

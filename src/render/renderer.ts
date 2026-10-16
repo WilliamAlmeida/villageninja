@@ -6,6 +6,7 @@ import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
 import { FX } from '../data/jutsuFx';
 import { drawEarthWall, drawJutsuCrater, drawJutsuImpact, drawJutsuOrigin, jutsuOriginBase, drawNatureBeam } from './jutsuSprites';
 import { dragonPoint } from '../game/dragonFlight';
+import { drawEdoCoffin, drawEdoRemnant } from './supportSprites';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
 import { DEFENSES } from '../game/systems/towers';
@@ -558,7 +559,7 @@ export class Renderer {
         if (u.hp < h.hp - HURT_MIN) h.until = time + HURT_BAR;
         h.hp = u.hp;
       }
-      if (u.hidden || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
+      if ((u.hidden && !u.edoIntro) || (u.faction !== 'village' && !isExploredPx(s, u.x, u.y))) continue;
       // vigia da torre: desenhado na plataforma (entre as peças da arte, ver abaixo)
       const tw = u.state === 'towerWatch' && u.onTower != null ? g.building(u.onTower) : undefined;
       const spot = tw && this.guardSpot(tw, s.level);
@@ -730,9 +731,10 @@ export class Renderer {
       else if (d.theme) drawThemeDeco(ctx, d.theme, d.x, d.y);
       else if (d.field) drawFieldItem(ctx, d.field, time);
       else if (d.wall) drawWall(ctx, d.wall);
-      else if (d.origin) drawJutsuOrigin(ctx, d.origin);
+      else if (d.origin) {if(d.origin.fx==='edotensei')drawEdoRemnant(ctx,d.origin);else drawJutsuOrigin(ctx,d.origin);}
       ctx.globalAlpha = 1;
       if (d.u) {
+        if(d.u.edoIntro&&drawEdoCoffin(ctx,d.u,time,copy=>drawUnit(ctx,copy,time,false,undefined,true)))continue;
         // vigia: anda entre os pontos da plataforma (só desenho), a 70%, e esmaece junto com a torre
         const u = d.lift ? this.watchPose(d.u, d.lift, time) : this.projected(d.u);
         if (d.lift) ctx.globalAlpha = this.towerFade(d.lift.towerId);

@@ -1,4 +1,5 @@
 import { startSekizo } from './sekizo';
+import { beginHealing, supportBusy } from './healing';
 import { dogOf } from './ninken';
 // Regras de combate compartilhadas por ninjas, renegados, clones, animais e torres.
 import { scarArea } from './battleScars';
@@ -93,7 +94,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
   u.targetId = t.id;
   u.hidden = false;
   const d = Math.hypot(t.x - u.x, t.y - u.y);
-  if (u.cast || u.dash || u.barrage || holdingNatureJutsu(g,u)) return; // selos / investida / emissão em andamento
+  if (u.cast || u.dash || u.barrage || holdingNatureJutsu(g,u) || supportBusy(g,u)) return; // selos / investida / emissão em andamento
   if (u.channel) {
     u.moving = false; // segurando a sombra / a mente no outro: o corpo fica parado
     return;
@@ -387,8 +388,9 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
         const cx = u.x + Math.cos(a) * 20;
         const cy = u.y + Math.sin(a) * 20;
         const c = createClone(g, u, g.world.walkablePx(cx, cy) ? cx : u.x, g.world.walkablePx(cx, cy) ? cy : u.y, def.duration ?? 10);
-        fx(g, 'smoke', c.x, c.y, { r: 18, life: 0.7, color: '#e8e8e8' });
-        fx(g, 'ring', c.x, c.y, { r: 14, life: 0.35, color: '#ffffff' }); // "puf" do clone
+        c.cloneIntro=.18; c.hidden=true;
+        fx(g, 'smoke', c.x, c.y, { r: 18, life: 0.7, color: '#e8e8e8', fx:'kagebunshin' });
+
       }
       break;
     }
@@ -465,38 +467,7 @@ export function burnTick(g: Game, u: Unit, dt: number) {
 }
 
 /** Ninjas médicos curam aliados feridos próximos. */
-export function trySupport(g: Game, u: Unit): boolean {
-  const n = u.ninja;
-  if (!n || u.kind === 'clone' || u.attackCd > 0 || u.arenaSide != null) return false;
-  for (let i = 0; i < 2; i++) {
-    const id = n.jutsu[i];
-    if (!id || n.cd[i]! > 0) continue;
-    const def = JUTSUS[id]!;
-    if (def.effect !== 'heal' || u.chakra < jutsuChakra(def, n.stats)) continue;
-    let best: Unit | null = null;
-    let ratio = 0.6;
-    for (const o of g.state.units) {
-      if (o.dead || o.hidden || o.faction !== u.faction || o.kind === 'animal') continue;
-      if (Math.hypot(o.x - u.x, o.y - u.y) > def.range) continue;
-      const r = o.hp / o.maxHp;
-      if (r < ratio) {
-        ratio = r;
-        best = o;
-      }
-    }
-    if (!best) continue;
-    startCast(g, u, i, def);
-    shout(g, u, def);
-    const amount = Math.round(jutsuPower(def, n.stats));
-    best.hp = Math.min(best.maxHp, best.hp + amount);
-    // chakra verde das mãos do médico até o ferido
-    if (best !== u) fx(g, 'beam', u.x, u.y - 12, { x2: best.x, y2: best.y - 12, color: def.color, life: 0.6 });
-    fx(g, 'heal', best.x, best.y, { r: 18, color: def.color, life: 0.8 });
-    fxText(g, best.x, best.y - 18, `+${amount}`, def.color);
-    return true;
-  }
-  return false;
-}
+export function trySupport(g: Game, u: Unit): boolean { return beginHealing(g,u); }
 
 function throwKunai(g: Game, u: Unit, t: Unit) {
   const d = derive(u.ninja!.stats);
@@ -669,7 +640,7 @@ export function killUnit(g: Game, t: Unit, src: Unit | null) {
   if (t.sound) soundMemberDown(g, t);
   else if (t.carrying != null) dropCaptive(g, t);
   if (t.kind === 'clone' || (t.faction === 'village' && t.ownerId != null)) {
-    fx(g, 'smoke', t.x, t.y, { r: 16, life: 0.6, color: '#e8e8e8' });
+    fx(g, 'smoke', t.x, t.y, { r: 16, life: 0.6, color: '#e8e8e8', fx:'kagebunshin' });
     return;
   }
   fx(g, 'burst', t.x, t.y, { r: 18, color: '#ffffff', life: 0.4 });

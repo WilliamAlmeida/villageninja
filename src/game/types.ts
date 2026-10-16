@@ -227,6 +227,12 @@ export interface Unit {
   /** Fazendo os selos de um jutsu (ritmo tático): sai quando `t` zera; um golpe forte interrompe. */
   /** Selos em andamento: jutsu, alvo, segundos que faltam e o total (o desenho mostra os selos pelo andamento). */
   cast?: { id: string; targetId: number; t: number; total?: number };
+  /** Atendimento próximo; campos opcionais permitem retomar saves sem migração. */
+  healing?: { targetId: number; slot: number; stage: 'approach' | 'treat' | 'ending'; t: number; total: number; given: number; command: string; patientCommand: string; hp: number; patientHp: number; x: number; y: number; patientX: number; patientY: number };
+  treatedBy?: number;
+  healRetry?: number;
+  cloneIntro?: number;
+  edoIntro?: { elapsed: number; x: number; y: number; exitX: number; exitY: number };
   /** Sequência serializável dos cinco socos do Sekizō. */
   barrage?: { targetId: number; elapsed: number; next: number; power: number; angle?: number; distance?: number };
   /** Investida em andamento (Chidori, Passo de Sangue): corre até o alvo e golpeia ao chegar. */

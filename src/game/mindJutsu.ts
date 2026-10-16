@@ -104,7 +104,10 @@ export function reanimate(g: Game, u: Unit, def: JutsuDef, secs: number): Unit |
   refreshDerived(e);
   e.hp = e.maxHp;
   e.chakra = e.maxChakra;
-  fx(g, 'smoke', e.x, e.y, { r: 22, life: 0.9, color: '#8a7f70' });
+  const exit=Array.from({length:8},(_,i)=>({x:e.x+Math.cos(i*Math.PI/4)*24,y:e.y+Math.sin(i*Math.PI/4)*24})).find(p=>g.world.walkablePx(p.x,p.y)&&g.world.clearPx((p.x+e.x)/2,(p.y+e.y)/2))??{x:e.x,y:e.y};
+  e.edoIntro={elapsed:0,x:e.x,y:e.y,exitX:exit.x,exitY:exit.y};
+  e.hidden=true;e.facing=Math.atan2(exit.y-e.y,exit.x-e.x);
+  fx(g,'chips',e.x,e.y,{r:12,life:.6,color:'#a18460'});
   fx(g, 'ring', e.x, e.y, { r: 26, color: def.color, life: 0.8 });
   fxText(g, e.x, e.y - 34, f.name, '#d8cfc0', true);
   fxMoment(g, e.x, e.y, `Edo Tensei: ${f.name}`, def.color);

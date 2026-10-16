@@ -426,6 +426,15 @@
    "burst": [
      {"shape":"mist","colors":["#fff5e8","#eadbd0"],"n":7,"life":[0.3,0.6],"size":[2,4],"speed":[2,8],"rise":[-16,-8],"dy":-10,"opacity":0.6,"glow":false}
    ]
+  },
+  "kagebunshin": {
+   "sprite": {"sheet":"effect-smoke-poof-v1","cols":4,"rows":2,"frames":8,"fps":14,"size":48,"anchorX":0.5,"anchorY":0.94,"dy":9,"opacity":1,"blend":"normal","rotate":false,"flip":false}
+  },
+  "edotensei": {
+   "sprite": {"sheet":"effect-edo-coffin-v1","cols":4,"rows":2,"frames":8,"fps":14,"size":62,"anchorX":0.65,"anchorY":0.88,"dy":9,"opacity":1,"blend":"normal","rotate":false,"flip":false}
+  },
+  "shousen": {
+   "sprite": {"sheet":"effect-shousen-palm-v1","cols":4,"rows":2,"frames":8,"fps":14,"size":22,"anchorX":0.5,"anchorY":0.5,"dy":0,"opacity":1,"blend":"normal","rotate":false,"flip":false}
   }
  },
  "status": {

@@ -103,7 +103,7 @@ function nextPow2(n: number) {
 
 /** Senta na arquibancada (salto curto com fumaça). */
 export function takeSeat(g: Game, u: Unit, arena: Building, p: { x: number; y: number }) {
-  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd' });
+  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd', fx:'kagebunshin' });
   u.x = p.x;
   u.y = p.y;
   u.perch = arena.id;
@@ -111,7 +111,7 @@ export function takeSeat(g: Game, u: Unit, arena: Building, p: { x: number; y: n
   u.hasGoal = false;
   u.moving = false;
   u.facing = Math.PI / 4; // olhando para o chão de luta (frente da tela)
-  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd' });
+  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd', fx:'kagebunshin' });
 }
 
 /** Desce da arquibancada para o chão de luta, logo abaixo do lugar. */
@@ -120,7 +120,7 @@ export function leaveSeat(g: Game, u: Unit) {
   u.perch = undefined;
   if (!arena) return;
   const p = arenaSpots(arena).below(u);
-  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd' });
+  fx(g, 'smoke', u.x, u.y, { r: 10, life: 0.4, color: '#ddd', fx:'kagebunshin' });
   u.x = p.x;
   u.y = p.y;
   u.path = [];
@@ -151,7 +151,7 @@ export function startExam(g: Game): Result {
     refreshDerived(gst);
     gst.hp = gst.maxHp;
     gst.chakra = gst.maxChakra;
-    fx(g, 'smoke', gst.x, gst.y, { r: 14, life: 0.6, color: '#ddd' });
+    fx(g, 'smoke', gst.x, gst.y, { r: 14, life: 0.6, color: '#ddd', fx:'kagebunshin' });
     entrants.push(gst);
   }
   // embaralha o chaveamento
@@ -217,7 +217,7 @@ export function finishExam(g: Game) {
     const u = g.unit(e.id);
     if (!u) continue;
     if (!e.village) {
-      fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.6, color: '#ddd' });
+      fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.6, color: '#ddd', fx:'kagebunshin' });
       u.dead = true;
       continue;
     }
@@ -248,7 +248,7 @@ function finishDuel(g: Game, exam: Exam) {
     const u = g.unit(e.id);
     if (!u) continue;
     if (!e.village) {
-      fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.6, color: '#ddd' });
+      fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.6, color: '#ddd', fx:'kagebunshin' });
       u.dead = true;
       continue;
     }

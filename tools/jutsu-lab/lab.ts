@@ -79,7 +79,7 @@ function labSystem(g: Game, dt: number) {
     if (mode.t <= 0) mode = { kind: 'idle', t: 0 };
   }
   // parado um tempo: todo mundo volta para o lugar
-  const busy = mode.kind !== 'idle' || g.state.projectiles.length > 0 || [caster, dummy, enemy].some((u) => u?.dash || u?.cast || u?.barrage);
+  const busy = mode.kind !== 'idle' || g.state.projectiles.length > 0 || [caster, dummy, enemy].some((u) => u?.dash || u?.cast || u?.barrage || u?.healing);
   idle = busy ? 0 : idle + dt;
   if (idle > 2.5) {
     idle = -999;
@@ -150,7 +150,7 @@ function place() {
     u.shield = 0;
     u.dash = undefined;
     u.cast = undefined;
-    u.barrage = undefined;
+    u.barrage = undefined; u.healing=undefined; u.treatedBy=undefined; u.healRetry=0;
     u.moving = false;
     u.hasGoal = false;
   }
@@ -660,7 +660,12 @@ preloadArt().then(() => {
       caster.x=dummy.x-dx/d*24;caster.y=dummy.y-dy/d*24;
     }
     ninkenToggle.checked=params.get('ninken')==='1';placeNinken();
-    castJutsu(g,caster,0,dummy);
+    if(JUTSUS[id]!.effect==='heal'){
+      ally.hidden=false;dummy.hidden=true;ally.hp=ally.maxHp*.4;ally.x=caster.x+60;ally.y=caster.y;trySupport(g,caster);
+    }else{
+      if(JUTSUS[id]!.effect==='reanimate'&&!s.fallen.length){const an=ally.ninja!;s.fallen.push({id:ally.id,name:'Aliado caído',rank:an.rank,level:20,day:1,nature:an.nature,stats:{...an.stats},jutsu:['goukakyuu',null],look:{...ally.look}});}
+      castJutsu(g,caster,0,dummy);
+    }
     const seconds=Math.max(0,Math.min(3,Number(params.get('at')??0)||0));
     for(let elapsed=0;elapsed<seconds;elapsed+=SIM_DT)g.step(SIM_DT);
     clock=seconds;setPaused(true);now.textContent=JUTSUS[id]!.name;

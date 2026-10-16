@@ -331,6 +331,9 @@ import chidoriImpact from '../art/effects/effect-chidori-impact-v1.png';
 import sensatsuNeedles from '../art/effects/effect-sensatsu-v1.png';
 import reizaHalo from '../art/effects/effect-reiza-v1.png';
 import kajosatsuSun from '../art/effects/effect-kajosatsu-v1.png';
+import smokePoof from '../art/effects/effect-smoke-poof-v1.png';
+import edoCoffin from '../art/effects/effect-edo-coffin-v1.png';
+import healingPalm from '../art/effects/effect-shousen-palm-v1.png';
 import lionFists from '../art/effects/effect-soshiken-v1.png';
 import fangDrill from '../art/effects/effect-gatsuga-v1.png';
 import rollingBall from '../art/effects/effect-nikudan-v2.png';
@@ -354,6 +357,7 @@ const URLS: Record<string, string> = { hokage, house, lumber, quarry, market, ac
   'effect-kaiten-v1': kaitenDome,
   'effect-chidori-hand-v2': chidoriHand, 'effect-chidori-impact-v1': chidoriImpact,
   'effect-sensatsu-v1': sensatsuNeedles, 'effect-reiza-v1': reizaHalo, 'effect-kajosatsu-v1': kajosatsuSun,
+  'effect-smoke-poof-v1': smokePoof, 'effect-edo-coffin-v1': edoCoffin, 'effect-shousen-palm-v1': healingPalm,
   'effect-soshiken-v1': lionFists, 'effect-gatsuga-v1': fangDrill, 'effect-nikudan-v2': rollingBall,
   'projectile-yokai-v1': yokaiLava, 'effect-yokai-impact-v1': yokaiSplash, 'effect-daitoppa-v1': daitoppaGust, 'projectile-shinkuuha-v1': shinkuuBlade,
   'villager-chop': chop, 'villager-mine': mine, 'villager-farm': hoe, stump0, stump1, 'rock-cracked': rockCracked, 'rock-pebbles': rockPebbles, 'ore-empty': oreEmpty,

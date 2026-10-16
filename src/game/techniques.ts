@@ -140,12 +140,12 @@ export function tryKawarimi(g: Game, t: Unit, src: Unit | null, dmg: number): bo
   if (!p) return false;
   p = keepInRing(g, t, p);
   fx(g, 'log', t.x, t.y, { life: 1.6, color: '#8a5a2e' });
-  fx(g, 'smoke', t.x, t.y - 4, { r: 18, life: 0.6, color: '#e8e8e8' });
+  fx(g, 'smoke', t.x, t.y - 4, { r: 18, life: 0.6, color: '#e8e8e8', fx:'kagebunshin' });
   fxText(g, t.x, t.y - 26, 'Kawarimi!', '#e8d6b0');
   t.x = p.x;
   t.y = p.y;
   stopMoving(t);
-  fx(g, 'smoke', t.x, t.y - 4, { r: 12, life: 0.45, color: '#e8e8e8' });
+  fx(g, 'smoke', t.x, t.y - 4, { r: 12, life: 0.45, color: '#e8e8e8', fx:'kagebunshin' });
   t.chakra -= KAWARIMI.chakra;
   t.kawaCd = KAWARIMI.cooldown;
   if (src) t.facing = Math.atan2(src.y - t.y, src.x - t.x);

@@ -1,4 +1,5 @@
 import { drawPressureTube } from './pressureCannon';
+import { drawSmokePoof } from './supportSprites';
 import { plainTokens } from '../core/tokens';
 import type { Effect } from '../game/types';
 import { drawJutsuGust, drawJutsuImpact } from './jutsuSprites';
@@ -237,6 +238,7 @@ export function drawEffect(ctx: Ctx, e: Effect, zoom: number, snowy = false) {
       ctx.stroke();
       break;
     case 'smoke':
+      if(drawSmokePoof(ctx,e))break;
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * TAU;
         const d = r * k;

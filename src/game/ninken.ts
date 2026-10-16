@@ -100,7 +100,7 @@ export function adoptDog(g: Game, unitId: number, breed: DogBreed = 'shiba'): Re
   d.breed = breed;
   d.maxHp = d.hp = Math.round(d.maxHp * def.hp);
   d.name = def.names[(u.id * 7 + g.state.day) % def.names.length]!;
-  fx(g, 'smoke', d.x, d.y, { r: 14, life: 0.5, color: '#e8e0d0' });
+  fx(g, 'smoke', d.x, d.y, { r: 14, life: 0.5, color: '#e8e0d0', fx:'kagebunshin' });
   g.toast(`{paw} ${u.name} adotou ${d.name}!`, 'good', u);
   return { ok: true };
 }

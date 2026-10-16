@@ -277,7 +277,7 @@ export function spawnAmbush(g: Game, m: Mission, merchant: Unit) {
     const p = around(g, ax, ay, 2.5 * TILE);
     const u = spawnEnemy(g, m, e, p.x, p.y);
     m.targetIds.push(u.id);
-    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#bbb' });
+    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#bbb', fx:'kagebunshin' });
   }
   g.toast(`{swords} Emboscada! Bandidos bloqueiam a estrada do ${merchant.name}!`, 'danger', { x: ax, y: ay });
 }
@@ -297,7 +297,7 @@ function cleanup(g: Game, m: Mission) {
   for (const u of g.state.units) {
     if (u.missionId !== m.id || u.dead) continue;
     u.dead = true;
-    if (!u.hidden) fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.5, color: '#ccc' });
+    if (!u.hidden) fx(g, 'smoke', u.x, u.y, { r: 14, life: 0.5, color: '#ccc', fx:'kagebunshin' });
   }
   for (const id of m.nodeIds) if (g.node(id)) g.removeNode(id);
 }

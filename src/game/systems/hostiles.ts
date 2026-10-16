@@ -1,4 +1,5 @@
 import { canHit } from '../factions';
+import { supportBusy } from '../healing';
 import { TILE } from '../../config';
 import { rand, randi } from '../../core/rng';
 import { ANIMALS, type AnimalDef } from '../../data/animals';
@@ -27,7 +28,7 @@ import { pickFoe } from '../tactics';
 /** Animais selvagens, ninjas renegados e clones das sombras. */
 export function hostileSystem(g: Game, dt: number) {
   for (const u of g.state.units) {
-    if (u.dead || u.away != null || u.barrage) continue; // fora do mapa (do lado do Som, entre invasões)
+    if (u.dead || u.away != null || u.barrage || u.edoIntro || u.cloneIntro!=null || supportBusy(g,u)) continue; // fora do mapa (do lado do Som, entre invasões)
     if (u.kind === 'animal') animal(g, u, dt);
     else if (u.kind === 'rogue') rogue(g, u, dt);
     else if (u.kind === 'clone') clone(g, u, dt);
@@ -106,7 +107,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (u.edo) {
     // Edo Tensei: se desfaz quando o tempo acaba ou quem o trouxe cai
     const owner = g.unit(u.ownerId);
-    if ((u.life = (u.life ?? 0) - dt) <= 0 || !owner || owner.dead) return dissolveEdo(g, u);
+    if ((u.life ?? 0) <= 0 || !owner || owner.dead) return dissolveEdo(g, u);
     const t = validTarget(g, u, 300) ?? g.nearestHostile(u, 240);
     if (t) return engage(g, u, t, dt);
     return chase(g, u, owner.x - 18, owner.y + 10, dt, 16);
@@ -114,7 +115,7 @@ function rogue(g: Game, u: Unit, dt: number) {
   if (u.org && orgBrain(g, u, dt)) return; // Ordem do Eclipse: caça o mais forte e usa a técnica própria
   if (u.sound && soundBrain(g, u, dt)) return; // Quinteto do Som: rapto, cobertura e técnicas
   if (u.cloak && !u.swordsman) revealSpy(g, u); // espadachim sumindo na névoa não é espião
-  if (!u.cloak) trySupport(g, u);
+  if (!u.cloak && trySupport(g,u)) return;
   if (u.missionId != null) return guardHome(g, u, dt, 220);
   if (u.guard != null) return guardHome(g, u, dt, 110, 60); // guardião não se afasta do altar
   if (u.state !== 'escape' && u.role === 'spy' && spy(g, u, dt)) return;
@@ -639,7 +640,7 @@ function ally(g: Game, u: Unit, dt: number, def: AnimalDef) {
   const owner = g.unit(u.ownerId);
   if (!owner || owner.dead) {
     u.dead = true;
-    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#e8e8e8' });
+    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#e8e8e8',fx:'kagebunshin' });
     return;
   }
   // ninken: dono dentro de casa (ou fora numa expedição) → de dia patrulha a vila farejando, à noite dorme no
@@ -753,12 +754,7 @@ function nearestEdge(g: Game, x: number, y: number) {
 }
 
 function clone(g: Game, u: Unit, dt: number) {
-  u.life = (u.life ?? 0) - dt;
-  if (u.life <= 0) {
-    u.dead = true;
-    fx(g, 'smoke', u.x, u.y, { r: 16, life: 0.6, color: '#e8e8e8' });
-    return;
-  }
+  // Duração expira no sistema de técnicas, inclusive durante pausas de atendimento.
   if (u.stun > 0) return;
   const t = validTarget(g, u, 300) ?? g.nearestHostile(u, 220);
   if (t) {

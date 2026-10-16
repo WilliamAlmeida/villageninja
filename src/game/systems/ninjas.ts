@@ -1,4 +1,5 @@
 import { TILE } from '../../config';
+import { supportBusy } from '../healing';
 import { chance, pick, rand, randi } from '../../core/rng';
 import { defOf } from '../../data/buildings';
 import { FORBIDDEN_RISK, JUTSUS } from '../../data/jutsus';
@@ -51,8 +52,8 @@ export function ninjaSystem(g: Game, dt: number) {
       u.moving = false;
       continue;
     }
-    if (u.cast || u.dash || u.barrage) continue; // selos / investida: o sistema de técnicas cuida
-    if (!u.hidden) trySupport(g, u);
+    if (u.cast || u.dash || u.barrage || supportBusy(g,u)) continue; // selos / investida: o sistema de técnicas cuida
+    if (!u.hidden && trySupport(g, u)) continue;
     specTick(g, u, dt); // profissão (médico, espião, marionetista) e contrato de invocação
     // consumível gasto: pega outro do estoque ao passar pela vila
     if (u.ninja!.equip.item && carried(u) < carryMax(u) && g.world.inVillage(u.x, u.y)) refillItem(g, u);

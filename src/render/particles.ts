@@ -165,6 +165,7 @@ export class Particles {
   effect(src: Effect, e: Effect) {
     if (this.seen.has(src)) return;
     this.seen.add(src);
+    if(e.kind==='smoke'&&e.fx==='kagebunshin')return;
     const r = e.r ?? 16;
     switch (e.kind) {
       case 'treasure': {
