@@ -40,6 +40,7 @@ s.buildings = [];
 s.nodes = [];
 s.units = [];
 s.sites = [];
+s.fields = []; // o jogo novo já começa com um campo cercado
 s.explored = s.explored.map(() => -1); // tudo revelado
 s.time = DAY_LENGTH * 0.3; // meio do dia
 s.pace = 'fast';
