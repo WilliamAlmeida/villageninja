@@ -1,6 +1,6 @@
 // Páginas públicas do site (HTML pronto do servidor). Dados vêm já agregados e guardados no cache (site/index.ts).
 import { duels } from '../services/duels';
-import { base, type Lang, leagueOf, T } from './i18n';
+import { href, type Lang, leagueOf, T } from './i18n';
 import { esc, page } from './layout';
 import { assetUrl } from './static';
 
@@ -28,29 +28,35 @@ function rankingTable(lang: Lang, rows: Row[]): string {
 
 export function homePage(lang: Lang, origin: string, top: Row[]): string {
   const t = T[lang];
-  const b = base(lang);
-  const features = t.features
-    .map(([h, p], i) => `<article class="feat"><span class="feat-n">${String(i + 1).padStart(2, '0')}</span><h3>${h}</h3><p>${p}</p></article>`)
+  const h = (p: string) => href(lang, p);
+  const img = (k: string) => assetUrl(`img/${k}.webp`);
+  const show = t.show
+    .map(([k, eyebrow, title, text], i) => `<article class="show${i % 2 ? ' flip' : ''}"><figure><img src="${img(k)}" alt="${esc(title)}" loading="lazy" ${k === 'region' ? 'width="1800" height="1110"' : 'width="1536" height="1024"'}></figure><div class="show-t"><span class="eyebrow">${eyebrow}</span><h2>${title}</h2><p>${text}</p></div></article>`)
+    .join('');
+  const more = [t.features[1], t.features[3]]
+    .map(([title, text]) => `<article class="feat"><h3>${title}</h3><p>${text}</p></article>`)
     .join('');
   const body = `
-<section class="hero" style="--hero:url('${assetUrl('art/scene-village.png')}')">
+<section class="hero" style="--hero:url('${img('hero')}')">
   <div class="hero-in">
-    <h1>${t.tagline}</h1>
-    <p class="lead">${t.heroSub}</p>
-    <div class="cta"><a class="btn play big" href="/play">${t.play}</a><a class="btn ghost big" href="${b}/entrar" data-login>${t.login}</a></div>
+    <span class="eyebrow">${t.eyebrow}</span>
+    <h1><img class="hero-emblem" src="${assetUrl('img/emblem-256.png')}" alt="" width="96" height="96">${t.siteName}</h1>
+    <p class="lead">${t.tagline} ${t.heroSub}</p>
+    <div class="cta"><a class="btn play big" href="/play">${t.play}</a><a class="btn ghost big" href="${h('/entrar')}" data-login>${t.login}</a></div>
     <p class="note">${t.heroNote} <span class="live" data-online hidden></span></p>
     ${t.gameLangNote ? `<p class="note">${t.gameLangNote}</p>` : ''}
   </div>
 </section>
+<section class="sec shows">${show}</section>
 <section class="sec">
-  <h2>${t.featuresTitle}</h2>
-  <div class="feats">${features}</div>
+  <h2>${t.moreTitle}</h2>
+  <div class="feats">${more}</div>
 </section>
 <section class="sec">
-  <div class="sec-h"><div><h2>${t.rankingTitle}</h2><p class="sub">${t.rankingSub}</p></div><a class="more" href="${b}/ranking">${t.rankingAll} →</a></div>
+  <div class="sec-h"><div><h2>${t.rankingTitle}</h2><p class="sub">${t.rankingSub}</p></div><a class="more" href="${h('/ranking')}">${t.rankingAll} →</a></div>
   ${rankingTable(lang, top.slice(0, 10))}
 </section>
-<section class="sec final" style="--hero:url('${assetUrl('art/duel-arena-bg.png')}')">
+<section class="sec final" style="--hero:url('${img('arena')}')">
   <h2>${t.ctaTitle}</h2><p>${t.ctaSub}</p><a class="btn play big" href="/play">${t.play}</a>
 </section>`;
   return page({ lang, path: '/', nav: 'home', body, origin });
@@ -72,5 +78,5 @@ export function loginPage(lang: Lang, origin: string): string {
 
 export function notFoundPage(lang: Lang, origin: string): string {
   const t = T[lang];
-  return page({ lang, path: '/', title: '404', body: `<section class="sec page-h"><h1>404</h1><p class="sub">${t.notFound}</p><p><a class="btn ghost" href="${base(lang) || '/'}">${t.back}</a></p></section>`, origin });
+  return page({ lang, path: '/', title: '404', body: `<section class="sec page-h"><h1>404</h1><p class="sub">${t.notFound}</p><p><a class="btn ghost" href="${href(lang, '/')}">${t.back}</a></p></section>`, origin });
 }

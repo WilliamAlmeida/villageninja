@@ -37,6 +37,8 @@ export const config = {
   /** Login social: cada provedor só aparece com id e segredo preenchidos. */
   discord: { clientId: Bun.env.DISCORD_CLIENT_ID ?? '', clientSecret: Bun.env.DISCORD_CLIENT_SECRET ?? '' },
   google: { clientId: Bun.env.GOOGLE_CLIENT_ID ?? '', clientSecret: Bun.env.GOOGLE_CLIENT_SECRET ?? '' },
+  /** Contato público (páginas de privacidade e termos, tela de login do Google). */
+  contactEmail: Bun.env.CONTACT_EMAIL ?? 'naruto-cursed-fight@googlegroups.com',
   /** E-mails (confirmados pelo Discord/Google) que viram admin ao entrar: o dono não depende da chave de emergência. */
   adminEmails: (Bun.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
 };

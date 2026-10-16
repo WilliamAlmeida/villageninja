@@ -7,7 +7,10 @@ seção 6). Também serve o **site público** e a API do **painel da equipe**.
 ## Endereços (mesma origem, pelo `scripts/live.ts` do jogo)
 
 - `/play` é o jogo (build do `live.ts`); `/?demo`, `/?tela=…` antigos redirecionam para lá.
-- `/`, `/ranking`, `/entrar` é o site em pt-BR; `/en`, `/en/ranking`, `/en/entrar` em inglês (`src/site/`). HTML pronto do
+- `/`, `/ranking`, `/entrar`, `/privacidade`, `/termos` é o site em pt-BR; `/en`, `/en/ranking`, `/en/sign-in`,
+  `/en/privacy`, `/en/terms` em inglês (`src/site/`; nomes em inglês em `EN_SLUG`, `i18n.ts`). Nome público: **Ninja
+  Cursed Fight (NCF RPG)**, sem "Naruto" (marca registrada). Contato das páginas legais: `CONTACT_EMAIL`. Arte do site em
+  `site/img/`, gerada por `python scripts/site-art.py` a partir dos originais do Codex em `site/img/raw/` (fora do git). HTML pronto do
   servidor, guardado 60 s no cache; `site.js` (`site/`) faz a parte viva depois (quem está logado, on-line, botões
   de entrar e língua automática na primeira visita). Arquivos em `/site/…?v=<hash>` (cache de um ano); as ilustrações
   do jogo saem de `src/art/ui/art` em `/site/art/`.

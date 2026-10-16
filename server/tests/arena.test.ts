@@ -192,6 +192,7 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
   describe('login com Discord/Google e equipe', () => {
     /** Discord de mentira: troca de código e perfil pelo `code` que o teste manda. */
     const realFetch = globalThis.fetch;
+    const saved = { discord: { ...config.discord }, google: { ...config.google }, admins: [...config.adminEmails] };
     const PROFILES: Record<string, Record<string, unknown>> = {
       dono: { id: '900', username: 'dono', global_name: 'Dono da Vila', email: 'dono@vila.test', verified: true, avatar: 'abc' },
       ana: { id: '901', username: 'ana', global_name: 'Ana', email: 'ana@vila.test', verified: true, avatar: null },
@@ -199,6 +200,8 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     beforeAll(() => {
       config.discord.clientId = 'cid';
       config.discord.clientSecret = 'secret';
+      config.google.clientId = config.google.clientSecret = '';
+      config.adminEmails.length = 0;
       config.adminEmails.push('dono@vila.test');
       globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input instanceof Request ? input.url : input);
@@ -216,8 +219,9 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     });
     afterAll(() => {
       globalThis.fetch = realFetch;
-      config.discord.clientId = config.discord.clientSecret = '';
-      config.adminEmails.length = 0;
+      Object.assign(config.discord, saved.discord);
+      Object.assign(config.google, saved.google);
+      config.adminEmails.splice(0, config.adminEmails.length, ...saved.admins);
     });
 
     /** Faz a ida e a volta como o navegador: devolve o fragmento do endereço final. */
@@ -290,7 +294,12 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     expect(home.text).toContain('hreflang="en"');
     const en = await get('/en');
     expect(en.text).toContain('<html lang="en">');
-    expect(en.text).toContain('Ninja Village');
+    expect(en.text).toContain('Ninja Cursed Fight');
+    expect(en.text).toContain('href="/en/sign-in"');
+    expect((await get('/privacidade')).text).toContain('Política de privacidade');
+    expect((await get('/en/privacy')).text).toContain('Privacy policy');
+    expect((await get('/en/terms')).text).toContain('Terms of use');
+    expect((await get('/termos')).text).toContain('hreflang="en" href="http://localhost:3010/en/terms"');
     expect((await get('/en/ranking')).text).toContain('Duel leaderboard');
     expect((await get('/ranking')).text).toContain('Ranking de duelos');
     const css = home.text.match(/href="(\/site\/site\.css\?v=[0-9a-f]+)"/)![1]!;
@@ -298,6 +307,7 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     expect(asset.status).toBe(200);
     expect(asset.cc).toContain('immutable');
     expect((await get('/site/art/scene-village.png')).type).toContain('image/png');
+    expect((await get('/site/img/hero.webp')).status).toBe(200);
     expect((await get('/nada-aqui')).status).toBe(404);
     expect((await get('/site/..%2F..%2F.env')).status).toBe(404);
     expect((await get('/site/art/..%2F..%2F..%2F..%2Fserver%2F.env')).status).toBe(404);

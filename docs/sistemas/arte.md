@@ -173,3 +173,9 @@ Configuração: `scripts/configure-lava-vento.ts`; prévia autocontida: `scripts
 Nagashi (correção de 2026-10-15): registra o fundo da abertura do ninja entre os quadros, usando os pontos da fonte
 em `prepare-raiton-mokuton.ps1`. Mantém escala comum; evita a oscilação Y causada pela borda externa dos raios.
 Montagem com referência fixa: `docs/arte/jutsus/raiton-mokuton/nagashi-alinhamento.png`.
+
+## Arte do site
+
+`scripts/codex-image.mjs ... --cena` gera arte com cenário (sem fundo branco e sem `remove-bg`). Originais em
+`server/site/img/raw/` (fora do git); `python scripts/site-art.py` gera os `.webp`, o emblema em 64/256/512 e o botão de
+jogar recortado. Nada de personagens, símbolos ou lugares do anime (ver CLAUDE.md, nome público).

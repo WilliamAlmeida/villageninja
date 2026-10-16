@@ -5,6 +5,7 @@
 //   node scripts/codex-image.mjs <saida.png> "<descrição>" [--ref a.png,b.png] [--size 1024x1024]
 //   node scripts/codex-image.mjs <saida.png> "<descrição do personagem>" --sheet biped|quadruped [--ref visual.png]
 //   --vaos   na remoção de fundo, apaga também vãos brancos fechados (torres, cercas, escadas)
+//   --cena   arte com cenário (banners e fundos do site): o fundo fica e não passa pelo remove-bg
 //     --sheet  folha de sprite no padrão do jogo: manda o gabarito de poses (docs/arte/gabarito-*.png) como
 //              1ª referência e usa o prompt fixo (grade 4×3, de lado para a direita / frente / costas).
 // Depois tira o fundo branco localmente (scripts/remove-bg.py). Para folhas, rode scripts/prepare-art.py (valida).
@@ -22,6 +23,8 @@ const flag = (name) => {
 };
 const holes = args.includes('--vaos'); // remove-bg também apaga vãos brancos fechados (torres, cercas)
 if (holes) args.splice(args.indexOf('--vaos'), 1);
+const scene = args.includes('--cena'); // arte com cenário (banner do site, fundo): sem fundo branco e sem remover fundo
+if (scene) args.splice(args.indexOf('--cena'), 1);
 const sheet = flag('--sheet');
 const refs = (flag('--ref') ?? '').split(',').filter(Boolean);
 const size = flag('--size') ?? (sheet ? '1536x1024' : '1024x1024');
@@ -80,7 +83,7 @@ const body = sheet
       STYLE,
       'Remove the grid lines, red baselines and mannequins. Pure white background, no shadows, no text.',
     ]
-  : [desc, refs.length ? 'Use the attached image(s) as reference.' : '', 'Pure white background, no shadows, no text.'];
+  : [desc, refs.length ? 'Use the attached image(s) as reference.' : '', scene ? '' : 'Pure white background, no shadows, no text.'];
 
 const prompt = [
   `Use your image generation tool to create ONE image, ${size}, and save it in the current folder as ${file}.`,
@@ -99,6 +102,8 @@ if (!fs.existsSync(out)) {
   console.error(`FALHOU ${out}: ${err} (veja ${out}.codex.txt)`);
   process.exit(1);
 }
-const bg = spawnSync('python', ['scripts/remove-bg.py', out, ...(holes ? ['--vaos'] : [])], { encoding: 'utf8' });
-if (bg.status !== 0) console.error(`remoção de fundo falhou: ${bg.stderr}`);
+if (!scene) {
+  const bg = spawnSync('python', ['scripts/remove-bg.py', out, ...(holes ? ['--vaos'] : [])], { encoding: 'utf8' });
+  if (bg.status !== 0) console.error(`remoção de fundo falhou: ${bg.stderr}`);
+}
 console.log(`ok ${out}  (${Math.round((Date.now() - t0) / 1000)} s, Codex ${MODEL})`);

@@ -3,7 +3,8 @@
 import { cache } from '../cache';
 import { publicOrigin } from '../config';
 import { duels } from '../services/duels';
-import type { Lang } from './i18n';
+import { type Lang, ptOf } from './i18n';
+import { privacyPage, termsPage } from './legal';
 import { homePage, loginPage, notFoundPage, rankingPage } from './pages';
 import { serveStatic } from './static';
 
@@ -20,7 +21,7 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   if (stat) return stat;
   const raw = url.pathname.replace(/\/+$/, '') || '/';
   const lang: Lang = raw === '/en' || raw.startsWith('/en/') ? 'en' : 'pt';
-  const path = lang === 'en' ? raw.slice(3) || '/' : raw;
+  const path = lang === 'en' ? ptOf(raw.slice(3) || '/') : raw;
   const origin = publicOrigin(req);
   const cached = (key: string, render: () => Promise<string>) => cache.remember(`site:page:${lang}:${key}:${origin}`, PAGE_TTL, render).then((b) => html(b));
   switch (path) {
@@ -30,6 +31,10 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
       return cached('ranking', async () => rankingPage(lang, origin, await publicTop()));
     case '/entrar':
       return cached('entrar', async () => loginPage(lang, origin));
+    case '/privacidade':
+      return cached('privacidade', async () => privacyPage(lang, origin));
+    case '/termos':
+      return cached('termos', async () => termsPage(lang, origin));
   }
   return html(notFoundPage(lang, origin), 404);
 }

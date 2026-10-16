@@ -11,3 +11,6 @@ __pycache__/
 .tmp
 server/.env
 server/node_modules
+
+# originais da arte do site (scripts/site-art.py gera server/site/img)
+server/site/img/raw/

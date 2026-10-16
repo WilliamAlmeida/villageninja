@@ -108,6 +108,8 @@ um sistema, atualize o arquivo dele (não este).
 - Combate automático + ordens do jogador; pixel art no futuro (Fase 2 adiada até haver arte);
   sandbox com marcos; missões no próprio mapa; mapa da vila 112×112 (era 72×48) com território que cresce por nível.
 - Se o jogo for publicado: trocar nomes do anime (Chidori, Kage Bunshin, Hyōton…) por nomes originais.
+- Nome público: **Ninja Cursed Fight (NCF RPG)**, nunca "Naruto" (marca registrada). Arte para o público (site,
+  divulgação) sem personagens, símbolos ou lugares do anime: o Codex tende a desenhá-los, então conferir cada imagem.
 
 ## Estado atual
 - Fases 1 e 3–8 do roadmap prontas (equipes/ordens, níveis da vila, missões, economia/equipamento,

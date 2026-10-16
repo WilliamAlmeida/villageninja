@@ -1,4 +1,4 @@
-/* Site do Vila Ninja: mesma paleta do jogo (madeira escura, laranja de chakra). Sem fonte externa: abre na hora. */
+/* Site do Ninja Cursed Fight (NCF RPG): mesma paleta do jogo (madeira escura, laranja de chakra). Sem fonte externa: abre na hora. */
 :root {
   --bg: #16110d;
   --bg2: #211912;
@@ -16,6 +16,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
@@ -38,7 +39,9 @@ h3 { font-size: 1.1rem; }
 }
 .brand { display: flex; align-items: center; gap: 0.5rem; color: var(--text); font-weight: 700; font-size: 1.1rem; }
 .brand:hover { text-decoration: none; }
-.brand img { border-radius: 0.4rem; image-rendering: pixelated; }
+.brand img { image-rendering: pixelated; }
+.brand span { display: flex; flex-direction: column; line-height: 1.05; }
+.brand small { color: var(--accent); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; }
 .nav { display: flex; gap: 1rem; }
 .nav a { color: var(--muted); font-weight: 600; }
 .nav a[aria-current] { color: var(--text); }
@@ -55,9 +58,14 @@ h3 { font-size: 1.1rem; }
 }
 .btn:hover { background: var(--card-hi); text-decoration: none; }
 .btn:active { transform: translateY(1px); }
-.btn.play { background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: var(--accent-ink); border-color: #ffc27f; box-shadow: 0 0.3rem 1.2rem rgba(255, 138, 43, 0.25); }
-.btn.play:hover { filter: brightness(1.06); }
+.btn.play {
+  background: url('img/play-button.png') center / 100% 100% no-repeat; border: 0; border-radius: 0; image-rendering: pixelated;
+  color: #fff8ec; text-shadow: 0 2px 0 #7a2c00, 0 0 6px rgba(0, 0, 0, 0.35); letter-spacing: 0.03em; padding: 0.55rem 1.4rem;
+  filter: drop-shadow(0 0.25rem 0.8rem rgba(255, 138, 43, 0.25));
+}
+.btn.play:hover { background: url('img/play-button.png') center / 100% 100% no-repeat; filter: brightness(1.08) drop-shadow(0 0.25rem 1rem rgba(255, 138, 43, 0.4)); }
 .btn.big { padding: 0.8rem 1.6rem; font-size: 1.1rem; }
+.btn.play.big { padding: 1rem 2.6rem; font-size: 1.25rem; }
 .btn.ghost { background: transparent; }
 .btn.prov { width: 100%; justify-content: flex-start; padding: 0.8rem 1rem; font-size: 1rem; }
 .btn.prov.discord { background: #5865f2; border-color: #7983f5; color: #fff; }
@@ -70,7 +78,10 @@ h3 { font-size: 1.1rem; }
   padding: 3rem max(1rem, calc((100% - var(--w)) / 2)); background: var(--hero) center / cover no-repeat; image-rendering: pixelated;
 }
 .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22, 17, 13, 0.15) 0%, rgba(22, 17, 13, 0.55) 45%, var(--bg) 100%); }
-.hero-in { position: relative; max-width: 40rem; image-rendering: auto; }
+.hero-in { position: relative; max-width: 42rem; image-rendering: auto; }
+.hero h1 { display: flex; align-items: center; gap: 1rem; }
+.hero-emblem { width: clamp(4rem, 8vw, 6rem); height: auto; image-rendering: pixelated; filter: drop-shadow(0 0.3rem 0.8rem rgba(0, 0, 0, 0.6)); }
+.eyebrow { display: inline-block; color: var(--accent-2); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.6rem; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
 .hero h1 { text-shadow: 0 0.2rem 1rem rgba(0, 0, 0, 0.6); }
 .lead { font-size: 1.15rem; color: #e9dcc6; margin: 0 0 1.4rem; text-shadow: 0 0.1rem 0.6rem rgba(0, 0, 0, 0.7); }
 .cta { display: flex; flex-wrap: wrap; gap: 0.8rem; }
@@ -85,6 +96,20 @@ h3 { font-size: 1.1rem; }
 .feat { position: relative; padding: 1.2rem; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
 .feat-n { position: absolute; top: 1rem; right: 1rem; color: var(--accent); font-weight: 800; opacity: 0.6; }
 .feat p { color: var(--muted); margin: 0; }
+
+/* vitrine: imagem e texto alternando */
+.shows { display: flex; flex-direction: column; gap: 3.5rem; }
+.show { display: grid; grid-template-columns: 1.35fr 1fr; gap: 2.5rem; align-items: center; }
+.show.flip figure { order: 2; }
+.show figure { margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45); }
+.show img { width: 100%; height: auto; image-rendering: pixelated; }
+.show p { color: var(--muted); font-size: 1.05rem; margin: 0; }
+
+.legal { max-width: 46rem; margin: 0 auto; }
+.legal h2 { font-size: 1.25rem; margin-top: 1.8rem; }
+.legal p, .legal li { color: #e3d6c0; }
+.legal ul { padding-left: 1.2rem; }
+.legal li { margin-bottom: 0.4rem; }
 
 .final { position: relative; text-align: center; background: var(--hero) center / cover no-repeat; image-rendering: pixelated; }
 .final::before { content: ""; position: absolute; inset: 0; background: rgba(22, 17, 13, 0.72); }
@@ -120,12 +145,17 @@ h3 { font-size: 1.1rem; }
 .spin { width: 1.4rem; height: 1.4rem; margin: 0.5rem auto; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.foot-brand { display: flex; align-items: center; gap: 0.5rem; }
+.foot-brand img { image-rendering: pixelated; }
 .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; padding: 1.5rem max(1rem, calc((100% - var(--w)) / 2)); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
 
 @media (max-width: 720px) {
   .top { gap: 0.6rem; }
   .nav { display: none; }
   .brand span { display: none; }
+  .show, .show.flip { grid-template-columns: 1fr; gap: 1rem; }
+  .show.flip figure { order: 0; }
+  .hero h1 { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
   .lang { font-size: 0.8rem; }
   .rank .champ, .rank .rec { display: none; }
   .hero { min-height: 70vh; padding-top: 6rem; }
