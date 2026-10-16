@@ -400,7 +400,10 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     const en = await get('/en');
     expect(en.text).toContain('<html lang="en">');
     expect(en.text).toContain('Ninja Cursed Fight');
-    expect(en.text).toContain('href="/en/sign-in"');
+    expect(en.text).toContain('href="/en/login"');
+    const old = await fetch(base + '/entrar?next=/play', { redirect: 'manual' });
+    expect(old.status).toBe(301);
+    expect(old.headers.get('location')).toBe('/login?next=/play');
     expect((await get('/privacidade')).text).toContain('Política de privacidade');
     expect((await get('/en/privacy')).text).toContain('Privacy policy');
     expect((await get('/en/terms')).text).toContain('Terms of use');

@@ -34,7 +34,7 @@ function rankingTable(lang: Lang, n: number): string {
   const cfg = JSON.stringify({ lang, n, leagues: LEAGUES, atlas: assetUrl('ui/badge-ranks.png'), cols: BADGE_ATLAS.cols, rows: BADGE_ATLAS.rows, profile: h('/jogador/'), empty: t.rankingEmpty, lv: lang === 'pt' ? 'Nv' : 'Lv', ranks: RANK_NAME });
   return `<div class="rank-wrap locked" data-ranking='${cfg.replace(/'/g, '&#39;')}'>
     <div class="table-wrap"><table class="rank"><thead><tr><th>${t.colPos}</th><th>${t.colPlayer}</th><th class="champ">${t.colChampion}</th><th>${t.colLeague}</th><th class="num">${t.colPoints}</th><th class="num rec">${t.colRecord}</th></tr></thead><tbody>${fake}</tbody></table></div>
-    <div class="lock"><div class="lock-in">${leagueBadge(7, 'lgb big')}<p>${t.rankingLocked}</p><a class="btn play" href="${h('/entrar')}?next=${encodeURIComponent(lang === 'pt' ? '/ranking' : '/en/ranking')}" data-login>${t.rankingLockedBtn}</a></div></div>
+    <div class="lock"><div class="lock-in">${leagueBadge(7, 'lgb big')}<p>${t.rankingLocked}</p><a class="btn play" href="${h('/login')}?next=${encodeURIComponent(lang === 'pt' ? '/ranking' : '/en/ranking')}" data-login>${t.rankingLockedBtn}</a></div></div>
   </div>`;
 }
 
@@ -59,7 +59,7 @@ export function homePage(lang: Lang, origin: string, _top: Row[], latest: NewsRo
     <span class="eyebrow rise">${t.eyebrow}</span>
     <h1 class="rise d1"><img class="hero-emblem" src="${assetUrl('img/emblem-256.png')}" alt="" width="96" height="96">${t.siteName}</h1>
     <p class="lead rise d2">${t.tagline} ${t.heroSub}</p>
-    <div class="cta rise d3"><a class="btn play big glow" href="/play">${t.play}</a><a class="btn ghost big" href="${h('/entrar')}" data-login>${t.login}</a></div>
+    <div class="cta rise d3"><a class="btn play big glow" href="/play">${t.play}</a><a class="btn ghost big" href="${h('/login')}" data-login>${t.login}</a></div>
     <p class="note rise d4">${t.heroNote} <span class="live" data-online hidden></span></p>
     ${t.gameLangNote ? `<p class="note">${t.gameLangNote}</p>` : ''}
   </div>
@@ -93,7 +93,7 @@ export function loginPage(lang: Lang, origin: string): string {
   const body = `<section class="sec login">${chakra(8)}<div class="card reveal in"><img class="login-emblem" src="${assetUrl('img/emblem-256.png')}" alt="" width="72" height="72"><h1>${t.loginTitle}</h1><p class="sub">${t.loginChoose} ${t.loginSub}</p>
   <div class="providers" data-providers data-none="${esc(t.loginNone)}" data-with="${esc(t.loginWith('%s'))}" data-error="${esc(t.loginError)}" data-guest="${esc(t.guestBtn)}"><span class="spin"></span></div>
   <p class="guest-note" data-guest-note>${t.guestNote}</p><p class="guest-note" data-guest-upgrade hidden>${t.guestUpgrade}</p></div></section>`;
-  return page({ lang, path: '/entrar', title: t.loginTitle, body, origin });
+  return page({ lang, path: '/login', title: t.loginTitle, body, origin });
 }
 
 type Profile = NonNullable<Awaited<ReturnType<typeof duels.publicProfile>>>;

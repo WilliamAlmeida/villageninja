@@ -178,7 +178,7 @@ export function leagueOf(rating: number) {
 }
 
 /** Páginas com nome próprio em inglês (o resto usa o mesmo nome: /ranking ↔ /en/ranking). */
-const EN_SLUG: Record<string, string> = { '/privacidade': '/privacy', '/termos': '/terms', '/entrar': '/sign-in', '/novidades': '/news' };
+const EN_SLUG: Record<string, string> = { '/privacidade': '/privacy', '/termos': '/terms', '/novidades': '/news' };
 const PT_SLUG = Object.fromEntries(Object.entries(EN_SLUG).map(([pt, en]) => [en, pt]));
 /** Começos de caminho com nome próprio (`/jogador/<id>` ↔ `/player/<id>`). */
 const EN_PREFIX: Array<[string, string]> = [['/jogador/', '/player/'], ['/novidades/', '/news/']];

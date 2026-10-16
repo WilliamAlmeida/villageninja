@@ -35,8 +35,8 @@ const DEMO = new URLSearchParams(location.search).has('demo');
 // Porta de entrada: para jogar é preciso ter escolhido um login no site (convidado, Discord ou Google), que deixa o
 // token da arena no localStorage (ui/arenaClient.ts guarda o do Discord/Google ao voltar). A vitrine passa direto.
 if (!DEMO && !localStorage.getItem('vn_arena_token')) {
-  location.replace(`/entrar?next=${encodeURIComponent(location.pathname + location.search)}`);
-  throw new Error('sem login: indo para /entrar');
+  location.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  throw new Error('sem login: indo para /login');
 }
 const saveGame: typeof writeSave = (g) => (DEMO ? true : writeSave(g));
 let home = DEMO ? createDemoGame(SYSTEMS) : (loadGame(SYSTEMS) ?? createNewGame(SYSTEMS));

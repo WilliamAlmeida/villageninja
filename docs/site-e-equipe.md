@@ -13,7 +13,7 @@ Decisões do autor (2026-10-16) e ordem de trabalho. Detalhe técnico em `server
   compartilhada: o `X-Dev-Key` vira só a chave de emergência.
 - O painel não pode demorar para abrir. A casca abre na hora e cada quadro busca o seu dado ao mesmo tempo. Os números
   pesados ficam prontos em tabela, guardados no Redis.
-- Para jogar é preciso passar por `/entrar` e escolher convidado (temporário), Discord ou Google. Ranking só para quem
+- Para jogar é preciso passar por `/login` e escolher convidado (temporário), Discord ou Google. Ranking só para quem
   tem conta. O jogo não abre janela nenhuma ao entrar (o tutorial, quando existir, é que guia).
 - Arte do site com referência do próprio jogo (prints do autor em `server/site/img/screenshots`, bustos e sprites):
   vila e arena são prints reais; emblema, defesa e duelo são do Codex no estilo dos sprites. Referências ao anime podem

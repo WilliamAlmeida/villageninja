@@ -67,7 +67,7 @@ export function page(o: PageOpts): string {
   <div class="top-r">
     <a class="lang" href="${o.lang === 'pt' ? enPath : ptPath}" data-lang-switch="${o.lang === 'pt' ? 'en' : 'pt'}">${t.langOther}</a>
     <span class="who" data-who hidden></span>
-    <a class="btn ghost" href="${h('/entrar')}" data-login>${t.login}</a>
+    <a class="btn ghost" href="${h('/login')}" data-login>${t.login}</a>
     <a class="btn play" href="/play">${t.playShort}</a>
   </div>
 </header>

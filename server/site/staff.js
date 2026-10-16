@@ -431,7 +431,7 @@
     try {
       me = (await api('/api/admin/whoami')).actor;
     } catch (e) {
-      app.innerHTML = `<div class="card login-card"><h1>Painel da equipe</h1><p class="sub">${e.status === 403 || e.status === 401 ? 'Entre com uma conta da equipe (moderador ou admin).' : esc(e.message)}</p><a class="btn play" href="/entrar?next=/staff">Entrar</a></div>`;
+      app.innerHTML = `<div class="card login-card"><h1>Painel da equipe</h1><p class="sub">${e.status === 403 || e.status === 401 ? 'Entre com uma conta da equipe (moderador ou admin).' : esc(e.message)}</p><a class="btn play" href="/login?next=/staff">Entrar</a></div>`;
       return;
     }
     document.querySelector('[data-nav]').hidden = false;

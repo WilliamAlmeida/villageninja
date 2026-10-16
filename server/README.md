@@ -7,8 +7,8 @@ seção 6). Também serve o **site público** e a API do **painel da equipe**.
 ## Endereços (mesma origem, pelo `scripts/live.ts` do jogo)
 
 - `/play` é o jogo (build do `live.ts`); `/?demo`, `/?tela=…` antigos redirecionam para lá.
-- `/`, `/ranking`, `/jogador/<id>`, `/novidades`, `/novidades/<slug>`, `/entrar`, `/privacidade`, `/termos` é o site em
-  pt-BR; `/en`, `/en/ranking`, `/en/player/<id>`, `/en/news…`, `/en/sign-in`, `/en/privacy`, `/en/terms` em inglês (`src/site/`; nomes em inglês em `EN_SLUG`, `i18n.ts`). Nome público: **Ninja
+- `/`, `/ranking`, `/jogador/<id>`, `/novidades`, `/novidades/<slug>`, `/login`, `/privacidade`, `/termos` é o site em
+  pt-BR; `/en`, `/en/ranking`, `/en/player/<id>`, `/en/news…`, `/en/login`, `/en/privacy`, `/en/terms` em inglês (`src/site/`; nomes em inglês em `EN_SLUG`, `i18n.ts`). Nome público: **Ninja
   Cursed Fight (NCF RPG)**, sem "Naruto" (marca registrada). Contato das páginas legais: `CONTACT_EMAIL`. Arte do site em
   `site/img/`, gerada por `python scripts/site-art.py` a partir dos originais do Codex em `site/img/raw/` (fora do git). HTML pronto do
   servidor, guardado 60 s no cache; `site.js` (`site/`) faz a parte viva depois (quem está logado, on-line, botões
@@ -25,8 +25,8 @@ Origem (`services/source.ts`): o site e o jogo guardam no navegador o primeiro `
 dias) e mandam ao criar o convidado ou a conta pelo Discord/Google (`users.ref`, `ref_host`, hosts agrupados: facebook,
 youtube, tiktok…). O painel mostra em Público ("De onde vieram") e no detalhe do jogador.
 
-Porta de entrada: `/play` sem token da arena manda para `/entrar?next=/play` (`src/main.ts`; a vitrine `?demo` passa).
-Em `/entrar` a pessoa escolhe convidado (login temporário, só este navegador; o aviso explica), Discord ou Google; quem
+Porta de entrada: `/play` sem token da arena manda para `/login?next=/play` (`src/main.ts`; a vitrine `?demo` passa).
+Em `/login` a pessoa escolhe convidado (login temporário, só este navegador; o aviso explica), Discord ou Google; quem
 já entrou com conta vai direto para `next`; convidado vê a opção de vincular. O Ranking (menu, `/ranking` e o quadro do
 início) é trancado para quem não tem conta: a página em cache traz linhas de mentira embaçadas e o site.js troca pelas
 de verdade (`GET /api/duel/ranking`) quando `/api/me` não é convidado. Selos das ligas vêm do atlas do jogo em
@@ -54,7 +54,7 @@ domínio público). O token volta no fragmento (`/play#vn_token=…`), lido pelo
 ## Painel `/staff`
 
 Casca estática (`src/site/index.ts`, `site/staff.js` + `staff.css`, `noindex`, sem cache) que entra com a conta do jogo
-(token no localStorage, papel `mod`/`admin`; senão manda para `/entrar?next=/staff`). Telas por `#/`:
+(token no localStorage, papel `mod`/`admin`; senão manda para `/login?next=/staff`). Telas por `#/`:
 - **Visão geral:** cada quadro faz o seu pedido e mostra um esqueleto até chegar.
   - "Agora": on-line, ativos, contas, duelos, suspeitos.
   - "Por dia": barras de ativos, contas novas e duelos em 14/30/90 dias, com o retorno no dia seguinte e a tabela.

@@ -23,6 +23,10 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   const raw = url.pathname.replace(/\/+$/, '') || '/';
   const lang: Lang = raw === '/en' || raw.startsWith('/en/') ? 'en' : 'pt';
   const path = lang === 'en' ? ptOf(raw.slice(3) || '/') : raw;
+  // endereços antigos da página de login (/entrar, /en/sign-in) continuam valendo
+  if (raw === '/entrar' || raw === '/en/sign-in') {
+    return new Response(null, { status: 301, headers: { Location: `${lang === 'en' ? '/en' : ''}/login${url.search}` } });
+  }
   const origin = publicOrigin(req);
   // painel da equipe: casca estática (os dados chegam pela API, um quadro por vez); fora do Google e sem cache
   if (raw === '/staff') return staffShell();
@@ -34,8 +38,8 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
       return cached('novidades', async () => newsListPage(lang, origin, await news.published(50)));
     case '/ranking':
       return cached('ranking', async () => rankingPage(lang, origin, []));
-    case '/entrar':
-      return cached('entrar', async () => loginPage(lang, origin));
+    case '/login':
+      return cached('login', async () => loginPage(lang, origin));
     case '/privacidade':
       return cached('privacidade', async () => privacyPage(lang, origin));
     case '/termos':
