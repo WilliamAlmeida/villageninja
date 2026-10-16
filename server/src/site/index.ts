@@ -6,7 +6,7 @@ import { duels } from '../services/duels';
 import { type Lang, ptOf } from './i18n';
 import { privacyPage, termsPage } from './legal';
 import { homePage, loginPage, notFoundPage, rankingPage } from './pages';
-import { serveStatic } from './static';
+import { assetUrl, serveStatic } from './static';
 
 const PAGE_TTL = 60;
 const html = (body: string, status = 200, maxAge = PAGE_TTL) =>
@@ -23,6 +23,8 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   const lang: Lang = raw === '/en' || raw.startsWith('/en/') ? 'en' : 'pt';
   const path = lang === 'en' ? ptOf(raw.slice(3) || '/') : raw;
   const origin = publicOrigin(req);
+  // painel da equipe: casca estática (os dados chegam pela API, um quadro por vez); fora do Google e sem cache
+  if (raw === '/staff') return staffShell();
   const cached = (key: string, render: () => Promise<string>) => cache.remember(`site:page:${lang}:${key}:${origin}`, PAGE_TTL, render).then((b) => html(b));
   switch (path) {
     case '/':
@@ -37,4 +39,31 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
       return cached('termos', async () => termsPage(lang, origin));
   }
   return html(notFoundPage(lang, origin), 404);
+}
+
+function staffShell(): Response {
+  const body = `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel · NCF RPG</title>
+<link rel="icon" href="${assetUrl('img/emblem-64.png')}">
+<link rel="stylesheet" href="${assetUrl('site.css')}">
+<link rel="stylesheet" href="${assetUrl('staff.css')}">
+<script src="${assetUrl('staff.js')}" defer></script>
+</head>
+<body class="staff">
+<header class="top">
+  <a class="brand" href="#/"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="32" height="32"><span><b>Painel</b><small>NCF RPG</small></span></a>
+  <nav class="nav" data-nav hidden>
+    <a href="#/">Visão geral</a><a href="#/jogadores">Jogadores</a><a href="#/suspeitos">Suspeitos</a><a href="#/avisos">Avisos</a><a href="#/registro">Registro</a>
+  </nav>
+  <div class="top-r"><span class="who" data-who></span><a class="btn ghost" href="/">Site</a><a class="btn play" href="/play">Jogo</a></div>
+</header>
+<main id="app"><div class="sec"><span class="spin"></span></div></main>
+</body>
+</html>`;
+  return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
 }

@@ -5,6 +5,7 @@
 import { config } from './config';
 import { migrate, testConnection } from './db';
 import { handleApi } from './http/api';
+import { startDailyJob } from './services/panel';
 import { handleSite } from './site';
 
 export function createServer(port = config.port) {
@@ -26,5 +27,6 @@ if (import.meta.main) {
   }
   await migrate();
   const server = createServer();
+  startDailyJob();
   console.log(`Servidor do Vila Ninja em http://localhost:${server.port}/api/health (origens: ${config.origins.join(', ')})`);
 }

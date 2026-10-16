@@ -64,6 +64,7 @@ export function validateDisplayName(raw: unknown): string {
 export const accounts = {
   async createGuest(): Promise<{ token: string; account: Account }> {
     const [account] = await sql<Account[]>`INSERT INTO users (display_name) VALUES (${guestName()}) RETURNING ${COLUMNS}`;
+    await sql`INSERT INTO user_days (user_id, day) VALUES (${account!.id}, (NOW() AT TIME ZONE 'America/Sao_Paulo')::date) ON CONFLICT DO NOTHING`;
     const token = await this.createSession(account!.id);
     return { token, account: account! };
   },
@@ -74,8 +75,11 @@ export const accounts = {
     return token;
   },
 
-  /** Conta dona do token (null se não existe ou está banida). Atualiza o "visto por último" no máximo a cada 30 s. */
-  async fromToken(token: string | null | undefined): Promise<Account | null> {
+  /**
+   * Conta dona do token (null se não existe ou está banida). Atualiza o "visto por último" no máximo a cada 30 s e,
+   * junto, marca o dia de hoje (user_days) e o país (cabeçalho da Cloudflare).
+   */
+  async fromToken(token: string | null | undefined, country: string | null = null): Promise<Account | null> {
     if (!token || token.length < 20 || token.length > 100) return null;
     const hash = hashToken(token);
     const rows = await sql<Account[]>`
@@ -84,7 +88,12 @@ export const accounts = {
     const account = rows[0] ?? null;
     if (account) {
       await sql`UPDATE sessions SET last_used_at = NOW() WHERE token_hash = ${hash} AND last_used_at < NOW() - interval '30 seconds'`;
-      await sql`UPDATE users SET last_seen_at = NOW() WHERE id = ${account.id} AND last_seen_at < NOW() - interval '30 seconds'`;
+      const cc = country && /^[A-Z]{2}$/.test(country) && country !== 'XX' ? country : null;
+      const seen = await sql`
+        UPDATE users SET last_seen_at = NOW(), country = COALESCE(${cc}, country)
+        WHERE id = ${account.id} AND last_seen_at < NOW() - interval '30 seconds' RETURNING id
+      `;
+      if (seen.length) await sql`INSERT INTO user_days (user_id, day) VALUES (${account.id}, (NOW() AT TIME ZONE 'America/Sao_Paulo')::date) ON CONFLICT DO NOTHING`;
     }
     return account;
   },

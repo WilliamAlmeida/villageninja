@@ -93,6 +93,25 @@ export function createUI(app: App, root: HTMLElement) {
   const btnDuels = dock.querySelector<HTMLElement>('[data-act="duels"]')!;
   const duelsNew = btnDuels.querySelector<HTMLElement>('[data-t="duels-new"]')!;
   // quem já entrou na arena alguma vez reconecta ao abrir o jogo: defesas novas viram bolinha no botão e um aviso
+  // avisos da equipe (painel /staff): uma janela por aviso novo, com o botão do link quando houver
+  arena.onNotice = (n) => {
+    const safe = (t: string) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+    const url = n.actionUrl;
+    showAlert({
+      kind: n.tone === 'danger' || n.tone === 'warn' ? 'warn' : 'info',
+      title: n.titlePt,
+      text: safe(n.textPt).replace(/\n/g, '<br>'),
+      action: url
+        ? {
+            label: 'Abrir',
+            run: () => {
+              arena.noticeClicked(n.id);
+              window.open(url, url.startsWith('/') ? '_self' : '_blank', 'noopener');
+            },
+          }
+        : undefined,
+    });
+  };
   void arena.boot().then((fresh) => {
     // voltou do login do Discord/Google: abre a aba Conta com o resultado
     const back = arena.socialReturn;

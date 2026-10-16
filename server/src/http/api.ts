@@ -5,6 +5,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { allowOrigin, config, publicOrigin } from '../config';
 import { ApiError } from '../errors';
 import { type Account, accounts, hashToken, isStaff, rateLimit } from '../services/accounts';
+import { notices } from '../services/notices';
 import { isProvider, oauth } from '../services/oauth';
 import { duels } from '../services/duels';
 import { routeAdmin } from './admin';
@@ -45,8 +46,10 @@ export function isDevKey(key: string | null | undefined): boolean {
   return timingSafeEqual(Buffer.from(hashToken(key)), Buffer.from(hashToken(config.devPassword)));
 }
 
+const countryOf = (req: Request) => req.headers.get('cf-ipcountry')?.toUpperCase() ?? null;
+
 async function requireAccount(req: Request): Promise<Account> {
-  const account = await accounts.fromToken(bearer(req));
+  const account = await accounts.fromToken(bearer(req), countryOf(req));
   if (!account) throw new ApiError(401, 'UNAUTHORIZED');
   return account;
 }
@@ -103,12 +106,12 @@ async function route(req: Request, url: URL, ip: string, json: (data: unknown, s
   // painel da equipe: conta com papel de moderador/admin, ou a chave de emergência (X-Dev-Key)
   if (path === '/api/admin' || path.startsWith('/api/admin/')) {
     const actor = await accounts.fromToken(bearer(req));
-    if (isStaff(actor)) return routeAdmin(method, path, body, json, { actor, ip });
+    if (isStaff(actor)) return routeAdmin(method, path, body, json, { actor, ip }, url.searchParams);
     if (!isDevKey(req.headers.get('x-dev-key'))) {
       await rateLimit(`dev:${ip}`);
       throw new ApiError(403, 'FORBIDDEN');
     }
-    return routeAdmin(method, path, body, json, { actor: null, ip });
+    return routeAdmin(method, path, body, json, { actor: null, ip }, url.searchParams);
   }
 
   // ---------- daqui em diante precisa de sessão ----------
@@ -132,11 +135,23 @@ async function route(req: Request, url: URL, ip: string, json: (data: unknown, s
   }
   if (is('POST', '/api/me/unlink')) return json({ account: await oauth.unlink(me.id, String(body.provider ?? '')) });
 
+  // ---------- avisos da equipe ----------
+  if (is('GET', '/api/notices')) return json({ notices: await notices.forPlayer(me), maintenance: await notices.maintenance() });
+  const nv = /^\/api\/notices\/(\d+)\/(read|click)$/.exec(path);
+  if (nv && method === 'POST') {
+    await notices.mark(me, Number(nv[1]), nv[2] as 'read' | 'click');
+    return json({ ok: true });
+  }
+
   // ---------- retrato e duelos ----------
   if (is('PUT', '/api/snapshot')) return json(await duels.publish(me.id, body.code));
   if (is('GET', '/api/duel/opponent')) return json({ opponent: await duels.findOpponent(me.id, url.searchParams.get('not')) });
   if (method === 'GET' && path.startsWith('/api/duel/opponent/')) return json({ opponent: await duels.opponent(me.id, path.slice('/api/duel/opponent/'.length)) });
-  if (is('POST', '/api/duel/start')) return json(await duels.start(me.id, body.opponentId));
+  if (is('POST', '/api/duel/start')) {
+    const maint = await notices.maintenance();
+    if (maint) throw new ApiError(423, 'MAINTENANCE', maint.until);
+    return json(await duels.start(me.id, body.opponentId));
+  }
   if (is('POST', '/api/duel/finish')) return json(await duels.finish(me.id, body));
   if (is('POST', '/api/duel/cancel')) return json({ ok: await duels.cancel(me.id, body.duelId) });
   if (is('GET', '/api/duel/ranking')) return json(await duels.ranking(me.id));

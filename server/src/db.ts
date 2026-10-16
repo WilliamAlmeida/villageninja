@@ -66,6 +66,70 @@ export async function migrate() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_staff_actions_at ON staff_actions (created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_staff_actions_target ON staff_actions (target_id, created_at DESC)`;
+  // país (cabeçalho CF-IPCountry da Cloudflare; o IP não é guardado) e o motivo do banimento
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(2)`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT`;
+  // dias em que cada conta abriu o jogo (uma linha por conta e dia, fuso de Brasília): ativos e retorno
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_days (
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day DATE NOT NULL,
+      PRIMARY KEY (user_id, day)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_user_days_day ON user_days (day)`;
+  // contas de antes da tabela: o dia em que nasceram e o último em que foram vistas (uma vez; depois não acha nada)
+  await sql`
+    INSERT INTO user_days (user_id, day)
+    SELECT id, (created_at AT TIME ZONE 'America/Sao_Paulo')::date FROM users UNION
+    SELECT id, (last_seen_at AT TIME ZONE 'America/Sao_Paulo')::date FROM users
+    ON CONFLICT DO NOTHING
+  `;
+  // números do painel prontos por dia (refeitos pelo job a cada 5 min para hoje e ontem; o painel só lê)
+  await sql`
+    CREATE TABLE IF NOT EXISTS daily_stats (
+      day DATE PRIMARY KEY,
+      new_users INT NOT NULL DEFAULT 0,
+      new_registered INT NOT NULL DEFAULT 0,
+      active INT NOT NULL DEFAULT 0,
+      returning_d1 INT NOT NULL DEFAULT 0,
+      duels INT NOT NULL DEFAULT 0,
+      duels_flagged INT NOT NULL DEFAULT 0,
+      snapshots INT NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  // avisos da equipe para os jogadores: live = faixa no jogo; inbox = janela uma vez. block_from = manutenção
+  // (a partir dali o duelo não começa). notice_views: entregue, lido e clicado por conta.
+  await sql`
+    CREATE TABLE IF NOT EXISTS notices (
+      id SERIAL PRIMARY KEY,
+      kind VARCHAR(8) NOT NULL DEFAULT 'inbox',
+      tone VARCHAR(8) NOT NULL DEFAULT 'info',
+      title_pt VARCHAR(120) NOT NULL,
+      text_pt TEXT NOT NULL DEFAULT '',
+      title_en VARCHAR(120),
+      text_en TEXT,
+      action_url VARCHAR(300),
+      audience VARCHAR(12) NOT NULL DEFAULT 'all',
+      starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      ends_at TIMESTAMPTZ,
+      block_from TIMESTAMPTZ,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS notice_views (
+      notice_id INT NOT NULL REFERENCES notices(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      delivered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      read_at TIMESTAMPTZ,
+      clicked_at TIMESTAMPTZ,
+      PRIMARY KEY (notice_id, user_id)
+    )
+  `;
   // sessões: o cliente guarda o token; aqui só o SHA-256 dele
   await sql`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -124,7 +188,7 @@ export async function migrate() {
 
 /** Só para os testes: esvazia tudo. */
 export async function truncateAll() {
-  await sql`TRUNCATE users, sessions, snapshots, duels, duel_stats, user_identities, staff_actions CASCADE`;
+  await sql`TRUNCATE users, sessions, snapshots, duels, duel_stats, user_identities, staff_actions, user_days, daily_stats, notices, notice_views CASCADE`;
 }
 
 export async function closeDb() {

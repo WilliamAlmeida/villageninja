@@ -35,6 +35,26 @@ domínio público). O token volta no fragmento (`/play#vn_token=…`), lido pelo
   conta existente liga nela; senão nasce uma conta nova.
 - Apelido e senha continuam para quem já tem (o jogo só oferece criar quando nenhum provedor está ligado).
 
+## Painel `/staff`
+
+Casca estática (`src/site/index.ts`, `site/staff.js` + `staff.css`, `noindex`, sem cache) que entra com a conta do jogo
+(token no localStorage, papel `mod`/`admin`; senão manda para `/entrar?next=/staff`). Telas por `#/`:
+- **Visão geral:** cada quadro faz o seu pedido e mostra um esqueleto até chegar.
+  - "Agora": on-line, ativos, contas, duelos, suspeitos.
+  - "Por dia": barras de ativos, contas novas e duelos em 14/30/90 dias, com o retorno no dia seguinte e a tabela.
+  - Público: países pela Cloudflare (`CF-IPCountry`; o IP não é guardado) e jeitos de entrar.
+  - Suspeitos, Servidor (Redis/memória, banco, memória) e as últimas ações.
+- **Jogadores** e o detalhe com ações.
+- **Suspeitos**, **Avisos** e **Registro**.
+
+Números por dia: `user_days` ganha uma linha por conta e dia ao usar o jogo (`accounts.fromToken`). O job
+`startDailyJob` (`services/panel.ts`, só no `index.ts`) refaz hoje e ontem em `daily_stats` a cada 5 min, e os últimos 90
+dias na subida. O painel só lê, então abre rápido com muitos jogadores.
+
+Avisos (`services/notices.ts`): o jogo pergunta ao abrir e a cada minuto (só quem já tem conta na arena). Cada aviso
+aparece uma vez, numa janela com o botão do link. Manutenção (`blockFrom` até `endsAt`) faz `POST /duel/start` responder
+423 `MAINTENANCE`.
+
 ## Equipe (papéis)
 
 `users.role`: `player`, `mod` ou `admin`. O painel (`/api/admin/*`) aceita uma conta `mod`/`admin` pelo token normal;
@@ -75,6 +95,11 @@ bun run dev                                         # http://localhost:3012/api/
 | `GET /duel/defenses` · `POST /duel/defenses/seen` | Quem desafiou o meu retrato (e revanche pendente) / marca como visto |
 | `GET /admin/whoami` · `GET /admin/overview` · `GET /admin/suspicious` · `GET /admin/log` | Equipe: quem sou, números gerais, duelos suspeitos, registro de ações |
 | `POST /admin/role` `{userId, role}` | Só admin: troca o papel (registrado) |
+| `GET /admin/kpis` · `/admin/daily?days=` · `/admin/audience` · `/admin/health` | Quadros da visão geral, um pedido por quadro (cache 30 s a 5 min; `daily` lê `daily_stats`) |
+| `GET /admin/players?q=&filter=&sort=&page=` · `GET /admin/players/:id` | Lista (30 por página) e detalhe (identidades, placar, retrato, duelos, ações nela) |
+| `POST /admin/players/:id/<rename\|note\|ban\|unban\|kick\|reset-rating\|test\|delete>` | Ações (todas registradas; moderador não age em conta da equipe; apagar só admin, com o nome para confirmar) |
+| `GET/POST /admin/notices` · `PUT/DELETE /admin/notices/:id` | Avisos: tipo, tom, público, período, link e manutenção (`blockFrom`) |
+| `GET /notices` · `POST /notices/:id/<read\|click>` | Jogo: avisos valendo para a conta (marca entregue) e a manutenção marcada |
 
 Duelo aberto e largado (fechou o jogo) conta como derrota ao abrir o próximo. O resultado é do cliente (não há replay
 determinístico entre motores JS, ver o GDD seção 8 item 3): o servidor só **sinaliza** o que é suspeito em

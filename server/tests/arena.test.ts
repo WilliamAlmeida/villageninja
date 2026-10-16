@@ -280,6 +280,67 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
       const log = (await api('GET', '/api/admin/log', undefined, owner)).data.actions as Array<{ action: string }>;
       expect(log.map((a) => a.action)).toEqual(expect.arrayContaining(['login', 'role']));
     });
+
+    test('painel: quadros, jogadores e ações registradas; moderador não mexe em admin', async () => {
+      const owner = (await social('dono')).hash.get('vn_token')!;
+      const ownerId = (await api('GET', '/api/admin/whoami', undefined, owner)).data.actor.id;
+      await (await import('../src/services/panel')).refreshDaily(3);
+      const kpis = await api('GET', '/api/admin/kpis', undefined, owner);
+      expect(kpis.data.total).toBeGreaterThan(0);
+      const daily = await api('GET', '/api/admin/daily?days=7', undefined, owner);
+      expect(daily.data.rows.length).toBeGreaterThan(0);
+      expect(daily.data.rows.at(-1).newUsers).toBeGreaterThan(0);
+      expect((await api('GET', '/api/admin/audience', undefined, owner)).data.logins.length).toBeGreaterThan(0);
+      expect((await api('GET', '/api/admin/health', undefined, owner)).data.dbMs).toBeGreaterThanOrEqual(0);
+
+      const victim = await guest();
+      const vid = (await api('GET', '/api/me', undefined, victim)).data.account.id;
+      const found = await api('GET', `/api/admin/players?q=${vid}`, undefined, owner);
+      expect(found.data.players.map((p: { id: string }) => p.id)).toEqual([vid]);
+      const act = (a: string, b: unknown, tok = owner) => api('POST', `/api/admin/players/${vid}/${a}`, b, tok);
+      expect((await act('rename', { name: 'Nome Feio Trocado' })).data.player.name).toBe('Nome Feio Trocado');
+      expect((await act('ban', {})).data.error).toBe('REASON_REQUIRED');
+      expect((await act('ban', { reason: 'trapaça' })).data.player.banReason).toBe('trapaça');
+      expect((await api('GET', '/api/me', undefined, victim)).status).not.toBe(200); // sessão apagada: vira outro convidado
+      expect((await act('unban', {})).data.player.bannedAt).toBeNull();
+      expect((await act('delete', { confirm: 'outro nome' })).data.error).toBe('CONFIRM_NAME');
+      const detail = await api('GET', `/api/admin/players/${vid}`, undefined, owner);
+      expect(detail.data.log.map((l: { action: string }) => l.action)).toEqual(expect.arrayContaining(['rename', 'ban', 'unban']));
+
+      // moderador: age em jogador comum, não em conta da equipe
+      const mod = await guest();
+      const modId = (await api('GET', '/api/me', undefined, mod)).data.account.id;
+      await api('POST', '/api/admin/role', { userId: modId, role: 'mod' }, owner);
+      expect((await act('note', { note: 'visto' }, mod)).status).toBe(200);
+      expect((await api('POST', `/api/admin/players/${ownerId}/ban`, { reason: 'x' }, mod)).status).toBe(403);
+      expect((await act('delete', { confirm: 'Nome Feio Trocado' }, mod)).status).toBe(403);
+      expect((await act('delete', { confirm: 'Nome Feio Trocado' })).data.deleted).toBe(true);
+    });
+
+    test('avisos: jogador recebe, lido conta no painel; manutenção trava o duelo', async () => {
+      const owner = (await social('dono')).hash.get('vn_token')!;
+      const now = Date.now();
+      const created = await api('POST', '/api/admin/notices', {
+        kind: 'live', tone: 'warn', titlePt: 'Manutenção', textPt: 'Volta já', audience: 'all',
+        startsAt: new Date(now - 60_000).toISOString(), endsAt: new Date(now + 600_000).toISOString(), blockFrom: new Date(now - 30_000).toISOString(),
+      }, owner);
+      expect(created.status).toBe(200);
+      const p = await guest();
+      const got = await api('GET', '/api/notices', undefined, p);
+      expect(got.data.notices.map((n: { titlePt: string }) => n.titlePt)).toContain('Manutenção');
+      expect(got.data.maintenance).not.toBeNull();
+      await api('POST', `/api/notices/${created.data.id}/read`, {}, p);
+      const start = await api('POST', '/api/duel/start', { opponentId: crypto.randomUUID() }, p);
+      expect(start.status).toBe(423);
+      expect(start.data.error).toBe('MAINTENANCE');
+      const list = (await api('GET', '/api/admin/notices', undefined, owner)).data.notices as Array<{ id: number; delivered: number; readCount: number }>;
+      const n = list.find((x) => x.id === created.data.id)!;
+      expect(n.delivered).toBeGreaterThanOrEqual(1);
+      expect(n.readCount).toBe(1);
+      expect((await api('POST', '/api/admin/notices', { titlePt: '' }, owner)).data.error).toBe('TITLE_REQUIRED');
+      expect((await api('DELETE', `/api/admin/notices/${created.data.id}`, undefined, owner)).status).toBe(200);
+      await (await import('../src/cache')).cache.del('notices:maint');
+    });
   });
 
   test('site: início e ranking em pt e en, arquivos com versão, 404 e nada fora da pasta', async () => {

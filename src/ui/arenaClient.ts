@@ -19,6 +19,16 @@ export interface ArenaAccount {
   /** Discord/Google ligados à conta; `password` quando tem apelido e senha. */
   logins?: string[];
 }
+/** Aviso da equipe (painel /staff). */
+export interface Notice {
+  id: number;
+  kind: 'live' | 'inbox';
+  tone: 'info' | 'good' | 'warn' | 'danger';
+  titlePt: string;
+  textPt: string;
+  actionUrl: string | null;
+  read: boolean;
+}
 export interface Provider {
   id: 'discord' | 'google';
   name: string;
@@ -112,6 +122,7 @@ const ERROR_TEXT: Record<string, string> = {
   PROVIDER_DISABLED: 'Esse jeito de entrar está desligado no servidor.',
   LAST_LOGIN: 'É o único jeito de entrar nesta conta: ligue outro antes de desligar este.',
   NOT_LINKED: 'Essa conta não está ligada a este provedor.',
+  MAINTENANCE: 'Servidor em manutenção: os duelos voltam em instantes.',
 };
 
 /** Ligas por pontuação, com os nomes das patentes ninja (pedido do autor); emblemas `league-*` no atlas dos selos. */
@@ -185,6 +196,11 @@ export class ArenaClient {
   socialReturn: { ok: boolean; linked: boolean } | null = null;
   /** Avisa a interface que algo mudou. */
   onChange: () => void = () => {};
+  /** Aviso novo da equipe para mostrar (a interface abre a janela e marca como lido). */
+  onNotice: (n: Notice) => void = () => {};
+  /** Manutenção marcada (até quando), vinda junto com os avisos. */
+  maintenance: { until: string } | null = null;
+  private shownNotices = new Set<number>();
   private lastDuelSeen: DuelResult | null | undefined;
 
   constructor() {
@@ -244,8 +260,33 @@ export class ArenaClient {
     if (!this.token) return false;
     const me = await this.refreshMe();
     if (!me) return false;
+    // avisos da equipe: agora e a cada minuto (só quem tem conta na arena; não cria convidado à toa)
+    void this.pollNotices();
+    setInterval(() => void this.pollNotices(), 60_000);
     await this.loadDefenses(false);
     return this.unseen > 0;
+  }
+
+  /** Busca os avisos valendo; cada um não lido aparece uma vez (marca lido ao mostrar). */
+  async pollNotices() {
+    if (!this.token || (typeof document !== 'undefined' && document.hidden)) return;
+    try {
+      const r = await this.call<{ notices: Notice[]; maintenance: { until: string } | null }>('GET', '/api/notices', undefined, { retry: false });
+      this.maintenance = r.maintenance;
+      for (const n of r.notices) {
+        if (n.read || this.shownNotices.has(n.id)) continue;
+        this.shownNotices.add(n.id);
+        this.onNotice(n);
+        void this.call('POST', `/api/notices/${n.id}/read`, {}).catch(() => undefined);
+      }
+    } catch {
+      /* sem rede: tenta no próximo minuto */
+    }
+  }
+
+  /** O jogador tocou no botão do aviso. */
+  noticeClicked(id: number) {
+    void this.call('POST', `/api/notices/${id}/click`, {}).catch(() => undefined);
   }
 
   private changed() {

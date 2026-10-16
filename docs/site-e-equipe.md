@@ -49,13 +49,13 @@ Decisões do autor (2026-10-16) e ordem de trabalho. Detalhe técnico em `server
    - perfil público do jogador;
    - notícias e novidades;
    - origem `?ref=`.
-4. [ ] **Painel `/staff`**:
+4. [x] **Painel `/staff`** (detalhe no `server/README.md`):
    - visão geral por quadros, com `daily_stats` feita por um job;
    - jogadores: busca, detalhe e ações (banir, renomear, derrubar sessões, zerar ELO, anotar, papel);
    - duelos suspeitos;
    - avisos com manutenção;
    - registro de ações;
-   - país pelo IP.
+   - país pela Cloudflare (`CF-IPCountry`), sem base de IP nem IP guardado.
 5. [ ] Depois:
    - save na nuvem para quem tem login;
    - temporadas de ranking;
