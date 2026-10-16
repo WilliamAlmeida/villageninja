@@ -77,7 +77,10 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [x] Ajustes de contato e posicionamento aprovados pelo autor em 2026-10-15: frente física das sprites, impacto do Yōkai no chão, origem ajustável do Daitoppa e controles de todas as peças no laboratório. Auditoria em `docs/auditoria-projeteis.md`.
 - [x] Kaiten — folha própria aprovada em 2026-10-15 e integrada: formação, seis quadros de rotação e dissipação, acompanhando o tempo do escudo; posição editável no laboratório.
 - [x] Sōshiken, Gatsūga e Nikudan Sensha — implementação e resultado no jogo aprovados pelo autor em 2026-10-15: leões ligados aos punhos, uma broca no ninja e outra no ninken próximo durante a investida e bola de tecido neutro recolorida pela roupa externa do ninja; ajustes disponíveis no laboratório.
-- [ ] Sensatsu, Reiza e Kajōsatsu — agulhas de gelo, feixes e esferas de calor.
+- [x] Registrar os jutsus criados e aprovados até 2026-10-15 — Chidori e correção do Nagashi (`c2faabf`); Sōshiken, Gatsūga e Nikudan Sensha (`a0d19f1`); Yōkai, Daitoppa, Shinkuu Ha e Sekizō (`bbcdc6c`); registro das integrações e capturas (`a08e96c`). Kaiten e os demais concluídos permanecem discriminados acima.
+- [x] Limpeza de imagens obsoletas — oito derivados/capturas removidos, todas as 45 fontes originais preservadas, inclusive versões anteriores (`f8d7c9d`). Preservar sempre a source de qualquer jutsu em uso.
+- [x] Sensatsu, Reiza e Kajōsatsu — fontes e referências preservadas; sprites aprovadas para implementação e integradas em 2026-10-15: agulhas convergentes, halo com feixes guiados e três sóis orbitais; dano sincronizado com contato (`e70ca36`). Detalhes em `arte/jutsus/hyoton-ranton-shakuton/README.md`.
+- [x] Autor avaliar no jogo Sensatsu, Reiza e Kajōsatsu — resultado visual aprovado em 2026-10-15; controles disponíveis no laboratório, inclusive a fonte do Reiza.
 - [ ] Kage Bunshin, Edo Tensei e Shousen — aparição, invocação e cura.
 - [ ] Avaliar efeitos compartilhados de impacto, poeira, cortes e chakra para os golpes físicos restantes.
 
