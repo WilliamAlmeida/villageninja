@@ -950,7 +950,7 @@ export class Panel {
       if (trail.land) routes += `<g class="land ${back}" style="--c:${c}"><path class="edge" d="${trail.land}"/><path class="bed" d="${trail.land}"/><path class="steps" d="${trail.land}"/></g>`;
       if (trail.sea) routes += `<g class="sea ${back}" style="--c:${c}"><path class="edge" d="${trail.sea}"/><path class="bed" d="${trail.sea}"/><path class="steps" d="${trail.sea}"/></g>`;
       const st = e.status === 'going' ? 'a caminho' : e.status === 'return' ? 'voltando' : e.status === 'scene' ? 'invasão jogável' : 'no serviço';
-      const tip = tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`);
+      const tip = e.kind === 'colony' ? tipAttr('Colonos', `Mudança para ${def.name} · ${st}`) : tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`);
       if (e.status === 'going' || e.status === 'return') {
         const haul = e.status === 'going' ? 'cart' : e.outcome === 'lose' ? 'none' : Object.values(e.loot).some((v) => (v ?? 0) > 0) ? 'loot' : 'cart';
         const name = `${p.sea ? 'boat' : 'trip'}-${haul}`;
@@ -1048,6 +1048,9 @@ export class Panel {
               : `Para anexar em paz: <b>proteja</b> e <b>comercie</b> até a relação chegar a ${REL.annexPeace}.`;
       html += `<p class="bnote">{info} <span>${next}</span></p></div>`;
     }
+    // com colônia fundada, explorar/posto/fundar não fazem mais sentido: só sobra o treino no templo (se houver)
+    const acts = nodeActions(def).filter((a) => !(st.colony && (a === 'explore' || a === 'outpost' || a === 'colony')));
+    if (!acts.length) return html;
     // equipe que vai
     // livres primeiro (as ocupadas em missão/expedição vão para o fim da lista)
     const teams = s.teams.filter((tm) => teamUnits(g, tm).length).sort((a, z) => Number(!!teamBusy(g, a.id)) - Number(!!teamBusy(g, z.id)));
@@ -1066,7 +1069,7 @@ export class Panel {
     const busy = teamBusy(g, this.regionTeam);
     // uma linha por ação: ícone na cor da ação, nome e o que se paga/recebe; à direita o tempo ou "jogável" (vira mapa).
     // O que a ação faz fica na dica; bloqueada fica apagada e o toque mostra o motivo
-    for (const a of nodeActions(def)) {
+    for (const a of acts) {
       const why = actionBlock(g, def.id, a);
       const cost = actionCost(def, a);
       const time = ACTION_TIME[a].travel * 2 + ACTION_TIME[a].work;
@@ -1155,6 +1158,7 @@ export class Panel {
 
   /** Onde a expedição foi: "Mina · andar 2/5" ou "Ação · lugar da região". */
   private expWhere(e: Expedition) {
+    if (e.kind === 'colony') return `Mudança · ${REGION[e.node!]?.name ?? ''}`;
     return e.kind === 'mine' ? `Mina · andar ${e.floor}/${MINE.floors}` : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
   }
 

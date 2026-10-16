@@ -55,6 +55,16 @@ export function countBlock(g: Game, type: BuildingType): string | null {
   return `Limite de ${cap} ${plural(def.name, cap)} no nível ${lv.name}: ${more}${UPGRADES[type] ? ` ou melhore ${cap === 1 ? 'o que tem' : 'os que tem'}` : ''}.`;
 }
 
+/** Quantos contam no teto deste tipo e o teto (na colônia, a produção conta somada). */
+export function capCount(g: Game, type: BuildingType): { n: number; cap: number } {
+  if (g.state.colony && COLONY_PRODUCTION.includes(type)) {
+    let n = 0;
+    for (const b of g.state.buildings) if (COLONY_PRODUCTION.includes(b.type)) n++;
+    return { n, cap: COLONY_PRODUCTION_CAP };
+  }
+  return { n: g.buildingCount(type), cap: g.buildingCap(type) };
+}
+
 /**
  * Numa colônia (game/colonies.ts) os tetos são os dela (data/colonies.ts): poucas casas, produção somada, um mercado,
  * um porto; o resto (Academia, Hospital, Biblioteca, oficinas) só na vila.

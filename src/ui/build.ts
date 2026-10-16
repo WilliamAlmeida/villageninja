@@ -1,6 +1,6 @@
 import type { App } from '../app';
 import { BUILDING_LIST, BUILDINGS, type BuildingType, defOf } from '../data/buildings';
-import { canBuild, canMove, costLabel, moveBuilding, placeBuilding, placeError, shoreSpot } from '../game/commands';
+import { capCount, canBuild, canMove, costLabel, moveBuilding, placeBuilding, placeError, shoreSpot } from '../game/commands';
 import { isShore, toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
 import { plainTokens } from '../core/tokens';
@@ -363,11 +363,12 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
         le.innerHTML = rich(lock);
       }
       // teto por nível da vila: "3/8"; cheio fica em destaque e o toque abre o aviso com o motivo (canBuild)
-      const cap = g.buildingCap(type);
-      const cnt = Number.isFinite(cap) && !lock ? `${g.buildingCount(type)}/${cap}` : '';
+      // na colônia a produção conta somada (fazenda, lenhador, pedreira, mina e horta)
+      const { n, cap } = capCount(g, type);
+      const cnt = Number.isFinite(cap) && !lock ? `${n}/${cap}` : '';
       const ce = c.querySelector('.cnt')!;
       if (ce.textContent !== cnt) ce.textContent = cnt;
-      ce.classList.toggle('full', !!cnt && g.buildingCount(type) >= cap);
+      ce.classList.toggle('full', !!cnt && n >= cap);
     });
   }
 

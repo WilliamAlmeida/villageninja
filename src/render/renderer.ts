@@ -590,8 +590,11 @@ export class Renderer {
     }
     for (const d of list) {
       if (d.b || d.tile) continue;
-      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.origin ? d.origin.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.origin ? d.origin.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
+      // enfeite de tema (barco, rede…) ou outra coisa sem posição de mundo: fica fora da conta de profundidade
+      const at = d.u ?? d.deco ?? d.cave ?? d.wall ?? d.origin ?? d.theme;
+      if (!at && !d.n && !d.site) continue;
+      const wx = at ? at.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = at ? at.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       const col = cols[Math.max(0, Math.floor(wx))];
       if (!col) continue;
       for (const o of col) {
