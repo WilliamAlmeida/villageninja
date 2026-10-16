@@ -39,8 +39,9 @@ Decisões do autor (2026-10-16) e ordem de trabalho. Detalhe técnico em `server
    - aba Conta do jogo;
    - esqueleto do site: início, ranking e entrar, em pt/en.
 2. [x] **Apps OAuth**: "NCF RPG" no Discord e no Google (projeto `ncf-rpg`), IDs e segredos no `server/.env`. O app do
-   Google está em "Testando": para abrir a todos, preencher o Branding (página inicial, `/privacidade`, `/termos`) e
-   publicar.
+   Google está **em produção** desde 2026-10-16 (Branding com página inicial, `/privacidade`, `/termos` e o domínio
+   `wmst.com.br`; só escopos básicos, então não precisa de verificação). Logo na tela de consentimento exige verificação:
+   não foi enviado. Trocar o domínio temporário = atualizar Branding e os endereços de volta nos dois apps.
 3. [x] **Site**:
    - [x] nome público "Ninja Cursed Fight (NCF RPG)" (sem "Naruto": marca registrada; arte também sem personagens do
      anime);
