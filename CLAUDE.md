@@ -49,7 +49,8 @@ um sistema, atualize o arquivo dele (não este).
 - `combate.md` — inimigos especiais, arena do Exame, tática da equipe, Shunshin/Kawarimi/selos/Hiraishin, cuidado com
   os ninjas, Bijuu e modos, Dōjutsu, jutsus de clã, defesa proporcional, descanso.
 - `organizacoes.md` — ordem da história, lâminas lendárias, Espadachins, Quinteto do Som, Ordem do Eclipse, ANBU, Sannin.
-- `mundo.md` — exploração e névoa, locais que voltam, expedições às minas, mapa da região, mapas jogáveis e temáticos.
+- `mundo.md` — exploração e névoa, locais que voltam, expedições às minas, mapa da região, mapas jogáveis e temáticos,
+  colônias nas ilhas.
 - `vila-ninjas.md` — Biblioteca e estudo/treino, profissões e invocações, estações/clima/felicidade, ninken, desgaste e
   conserto, equipamento automático, automação.
 
@@ -80,7 +81,7 @@ um sistema, atualize o arquivo dele (não este).
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v47.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v48.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

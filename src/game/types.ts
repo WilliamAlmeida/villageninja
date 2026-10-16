@@ -376,13 +376,16 @@ export interface Building {
 /** Expedição: equipe fora do mapa (mina e, depois, lugares da região). Ver game/expeditions.ts. */
 export interface Expedition {
   id: number;
-  kind: 'mine' | 'region';
+  /** `colony`: moradores e ninjas indo morar numa colônia (game/colonies.ts). */
+  kind: 'mine' | 'region' | 'colony';
   /** Região: lugar do mapa da região e o que a equipe foi fazer lá. */
   node?: string;
   action?: RegionAction;
   teamId: number;
   /** Quem foi (fica fora do mapa até voltar). */
   unitIds: number[];
+  /** Colônia: quem viaja de mudança (saiu da lista da vila; entra na da colônia ao chegar). */
+  passengers?: Unit[];
   /** Mina: entrada de onde saiu. */
   siteId?: number;
   /** Andar atual (0 = a caminho). */
@@ -431,6 +434,8 @@ export interface RegionState {
   /** Ilha já explorada / com posto avançado. */
   explored?: boolean;
   outpost?: boolean;
+  /** Ilha com colônia fundada (o mapa dela fica em `state.colonies[id]`). */
+  colony?: boolean;
   /** Dia em que o vilarejo saqueado manda a vingança. */
   revengeDay?: number;
 }
@@ -611,6 +616,19 @@ export interface SceneInfo {
 
 export type SceneTheme = 'fishing' | 'desert' | 'cliff';
 
+/** Colônia numa ilha (game/colonies.ts): o estado dela é um `GameState` dentro de `state.colonies` da vila. */
+export interface ColonyInfo {
+  /** Ilha do mapa da região (data/region.ts). */
+  node: string;
+  theme?: SceneTheme;
+  /** Dia em que foi fundada. */
+  founded: number;
+  /** Último dia já contado no resumo fora da tela (produção creditada, obras avançadas). */
+  day: number;
+  /** Diário curto (mais novo por último): produção, ameaças, chegadas. */
+  log: string[];
+}
+
 /** Ninja caído, para a Pedra Memorial e o Edo Tensei. */
 export interface Fallen {
   id: number;
@@ -714,6 +732,10 @@ export interface GameState {
   sceneInfo?: SceneInfo;
   /** De que lado as torres e a Residência atiram (num mapa de missão as torres são do inimigo). */
   towersFaction?: Faction;
+  /** Colônias nas ilhas (id da ilha → mapa dela), só na vila (save v48). */
+  colonies: Record<string, GameState>;
+  /** Só no mapa de uma colônia: de que ilha é e o que já foi contado. */
+  colony?: ColonyInfo;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;

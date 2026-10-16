@@ -19,6 +19,7 @@ import { doorPos } from './world';
 import { WEAR } from '../data/items';
 import { wearAll } from './wear';
 import { recordFallen } from './memorial';
+import { arriveColony } from './colonies';
 
 type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
@@ -124,6 +125,12 @@ export function tickExpeditions(g: Game, dt: number) {
     if (e.status === 'done' || e.status === 'lost' || e.status === 'choice') continue;
     e.timer -= dt;
     if (e.timer > 0) continue;
+    if (e.kind === 'colony') {
+      // mudança para a colônia: só ida; quem vai entra no mapa dela ao chegar
+      if (e.status === 'going') arriveColony(g, e);
+      else e.status = 'done';
+      continue;
+    }
     if (e.kind === 'region') {
       // região: ida → serviço → volta
       if (e.status === 'going' && opensScene(g, e)) {

@@ -5,7 +5,7 @@ import type { Cost } from '../game/types';
 /** `hideout`: o covil da Ordem do Eclipse (só aparece quando descoberto). */
 export type RegionKind = 'village' | 'island' | 'sacred' | 'hideout';
 export type ContractKind = 'toad' | 'snake' | 'slug';
-export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'train' | 'contract' | 'assault' | 'covert' | 'rescue';
+export type RegionAction = 'trade' | 'protect' | 'raid' | 'annex' | 'explore' | 'outpost' | 'colony' | 'train' | 'contract' | 'assault' | 'covert' | 'rescue';
 
 export interface RegionNodeDef {
   id: string;
@@ -74,6 +74,11 @@ export const REGION_NODES: RegionNodeDef[] = [
     desc: 'Monges guardam templos antigos entre as cerejeiras. Ótimo lugar para treinar, e há cristais nas grutas.',
     outpost: { crystal: 1, ryo: 30 },
   },
+  {
+    id: 'recife', name: 'Ilha do Recife', kind: 'island', x: 9, y: 40, power: 28,
+    desc: 'Ilhotas de areia e coral a oeste. Peixe farto, pérolas nas conchas e um bom lugar para uma colônia de pescadores.',
+    outpost: { food: 30, ryo: 20 },
+  },
   // ---- lugares sagrados (contratos de invocação; precisam do Porto)
   {
     id: 'sapos', name: 'Monte dos Sapos', kind: 'sacred', x: 13, y: 66, power: 60, contract: 'toad',
@@ -107,6 +112,7 @@ export const REGION_ROUTES: Record<string, { via: [number, number][]; sail?: num
   vulcao: { via: [[46.5, 33.6], [43.5, 29.8], [39.7, 22], [32, 19.5], [26.5, 18.5], [20, 16.5], [14, 14]], sail: 5 },
   nevoa: { via: [[54, 38.8], [58, 40.3], [63, 39.2], [68, 36.6], [72.9, 33.7], [76, 26], [79, 19], [83, 16]], sail: 7 },
   templos: { via: [[54, 38.8], [58, 40.3], [63, 39.2], [68, 36.6], [72.9, 33.7], [79, 37], [84, 39.5]], sail: 6 },
+  recife: { via: [[47, 40.3], [43.5, 43.3], [39, 45.6], [33.9, 47.9], [29, 46], [22, 43.5], [15, 41.5]], sail: 5 },
   serpentes: { via: [[52.5, 41.8], [55, 47.5], [59, 53.9], [62, 56.9], [64.5, 55.7], [72, 58], [78, 61], [82, 66]], sail: 7 },
   lesmas: { via: [[52.5, 41.8], [55, 47.5], [59, 53.9], [62, 56.9], [64.5, 55.7], [67, 63], [66, 69], [65.5, 76]], sail: 7 },
   sapos: { via: [[47, 40.3], [43.5, 43.3], [39, 45.6], [33.9, 47.9], [27, 52], [21, 56], [16, 61]], sail: 6 },
@@ -120,6 +126,7 @@ export const ACTION_TIME: Record<RegionAction, { travel: number; work: number }>
   annex: { travel: 10, work: 20 },
   explore: { travel: 14, work: 16 },
   outpost: { travel: 14, work: 24 },
+  colony: { travel: 14, work: 0 },
   train: { travel: 14, work: 40 },
   contract: { travel: 14, work: 20 },
   assault: { travel: 18, work: 30 },
@@ -129,7 +136,7 @@ export const ACTION_TIME: Record<RegionAction, { travel: number; work: number }>
 
 export const ACTION_LABEL: Record<RegionAction, string> = {
   trade: 'Comerciar', protect: 'Proteger', raid: 'Saquear', annex: 'Anexar', explore: 'Explorar',
-  outpost: 'Montar posto avançado', train: 'Treinar no templo', contract: 'Buscar contrato', assault: 'Invadir o covil',
+  outpost: 'Montar posto avançado', colony: 'Fundar colônia', train: 'Treinar no templo', contract: 'Buscar contrato', assault: 'Invadir o covil',
   covert: 'Missão secreta da ANBU',
   rescue: 'Resgatar o raptado',
 };

@@ -8,6 +8,7 @@ import { createNewGame } from './game/newGame';
 import { clearSave, loadGame, saveGame as writeSave } from './game/save';
 import { SYSTEMS } from './game/systems';
 import { sceneGame, sceneTeam } from './game/scene';
+import { colonyGame } from './game/colonies';
 import { darkness, hourOf } from './game/time';
 import { doorPos } from './game/world';
 import { preloadArt, warmMips } from './render/art';
@@ -33,24 +34,28 @@ const renderer = new Renderer(canvas);
 const DEMO = new URLSearchParams(location.search).has('demo');
 const saveGame: typeof writeSave = (g) => (DEMO ? true : writeSave(g));
 let home = DEMO ? createDemoGame(SYSTEMS) : (loadGame(SYSTEMS) ?? createNewGame(SYSTEMS));
-/** Câmera de cada tela (vila e mapa de missão), para voltar onde estava. */
-const cams: { home?: { x: number; y: number; zoom: number }; scene?: { x: number; y: number; zoom: number } } = {};
+/** Câmera de cada tela (vila, mapa de missão e cada colônia), para voltar onde estava. */
+const cams: Record<string, { x: number; y: number; zoom: number } | undefined> = {};
+/** Chave da câmera da tela atual. */
+const camKey = () => (app.viewScene ? 'scene' : app.viewColony ? `colony:${app.viewColony}` : 'home');
 
 const app: App = {
   get home() {
     return home;
   },
   get game() {
-    return (app.viewScene && sceneGame(home)) || home;
+    return (app.viewScene && sceneGame(home)) || (app.viewColony && colonyGame(home, app.viewColony)) || home;
   },
   viewScene: false,
+  viewColony: null,
   setView(scene: boolean) {
     const sg = sceneGame(home);
     if (scene && !sg) return;
     if (scene === app.viewScene) return;
+    if (scene && app.viewColony) app.openColony(null);
     app.game.select(null);
     app.back = null;
-    cams[app.viewScene ? 'scene' : 'home'] = { x: camera.x, y: camera.y, zoom: camera.zoom };
+    cams[camKey()] = { x: camera.x, y: camera.y, zoom: camera.zoom };
     app.viewScene = scene;
     const saved = cams[scene ? 'scene' : 'home'];
     if (scene && (!saved || sg!.state !== sceneOf)) {
@@ -67,6 +72,30 @@ const app: App = {
     }
     bus.emit('view', scene);
   },
+  openColony(id: string | null) {
+    const cg = id ? colonyGame(home, id) : null;
+    if (id && !cg) return;
+    if (id === app.viewColony) return;
+    if (id && app.viewScene) app.setView(false);
+    app.game.select(null);
+    app.back = null;
+    cams[camKey()] = { x: camera.x, y: camera.y, zoom: camera.zoom };
+    app.viewColony = id;
+    home.activeColony = id;
+    const saved = cams[camKey()];
+    if (saved) {
+      camera.x = saved.x;
+      camera.y = saved.y;
+      camera.zoom = saved.zoom;
+    } else if (cg) {
+      // primeira vez nesta colônia: câmera no Porto
+      const port = cg.findBuilt('port') ?? cg.state.buildings[0];
+      const p = port ? doorPos(port) : { x: (cg.state.mapW * 32) / 2, y: (cg.state.mapH * 32) / 2 };
+      camera.jump(p.x, p.y - 40);
+      camera.zoom = 1.4;
+    }
+    bus.emit('view', !!id);
+  },
   camera,
   ghost: null,
   buildType: null,
@@ -82,6 +111,7 @@ const app: App = {
   newGame() {
     if (!DEMO) clearSave();
     app.viewScene = false;
+    app.viewColony = null;
     home = DEMO ? createDemoGame(SYSTEMS) : createNewGame(SYSTEMS);
     centerOnVillage();
     bus.emit('newGame', undefined);
@@ -220,7 +250,7 @@ fps.info = () => {
   return {
     day: s.day,
     speed: s.speed,
-    view: app.viewScene ? 'cena' : 'vila',
+    view: app.viewScene ? 'cena' : app.viewColony ? 'colônia' : 'vila',
     zoom: +camera.zoom.toFixed(2),
     units: s.units.filter((u) => !u.dead).length,
     nodes: s.nodes.length,
@@ -285,15 +315,16 @@ function frame(now: number) {
     saveGame(g);
   }
 
-  // a invasão acabou enquanto o jogador olhava: volta para a vila
+  // a invasão acabou (ou a colônia sumiu) enquanto o jogador olhava: volta para a vila
   if (app.viewScene && !home.state.scene) app.setView(false);
+  if (app.viewColony && !home.state.colonies?.[app.viewColony]) app.openColony(null);
   followSelected();
   camera.update(dt);
   // onde a câmera olha, para a simulação poupar quem está longe (Game.view)
   {
     const c = camera.screenToWorld(camera.viewW / 2, camera.viewH / 2);
     const r = Math.hypot(camera.viewW, camera.viewH) / camera.zoom / 2;
-    home.view = app.viewScene ? null : { x: c.x, y: c.y, r };
+    home.view = app.viewScene || app.viewColony ? null : { x: c.x, y: c.y, r };
   }
   // janela de gestão aberta cobre quase todo o mapa: desenha o fundo a ~12 quadros/s (a simulação segue igual).
   // Poupa a GPU/CPU para a janela (num save grande, mapa a 60 quadros + janela por cima travava as abas).

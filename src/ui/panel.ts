@@ -23,7 +23,9 @@ import { actionBlock, actionCost, COVERT, covertBlock, nodeActions, nodePower, r
 import regionMap from '../art/region/region.jpg';
 import regionPlaces from '../art/region/region-places.png';
 import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
-import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower } from '../game/expeditions';
+import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower, unitPower } from '../game/expeditions';
+import { colonists, colonySummary, sendColonists } from '../game/colonies';
+import { COLONY } from '../data/colonies';
 import { guardiansOf, mineUses, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra } from '../data/jutsus';
 import { NATURES } from '../data/natures';
@@ -203,6 +205,7 @@ const ACTION_TIP: Record<RegionAction, string> = {
   annex: 'Com relação 90+ ele se une em paz. Com relação -60 ou menos, só à força: vira uma invasão jogável e é preciso derrotar o chefe deles. Vassalo paga tributo dobrado e manda moradores.',
   explore: 'Vira uma exploração jogável: a equipe desembarca na ilha, enfrenta os bichos e recolhe as amostras (baús). Libera o posto avançado.',
   outpost: 'Monta um posto que produz recursos da ilha todo dia.',
+  colony: 'Funda uma colônia: um mapa pequeno na ilha onde os moradores e ninjas escolhidos passam a morar e construir (poucas casas, produção, um mercado, torres). Fora da tela ela rende por dia; visite pelo mapa da região. Até 3 colônias.',
   train: 'Os monges treinam a equipe: muito XP e atributos.',
   contract: 'Vira uma prova jogável: vença o guardião (o animal do contrato, enorme). O ninja mais forte da equipe sem contrato aprende a invocar.',
   assault: 'A invasão final: a equipe entra no covil (mapa jogável) e enfrenta os guardiões e o líder da Ordem do Eclipse. Vencendo, a Ordem acaba.',
@@ -293,7 +296,7 @@ const ROSTER_SORTS: [RosterSort, string, string][] = [
 const statSum = (u: Unit) => Object.values(u.ninja!.stats).reduce((a, b) => a + b, 0);
 
 const ACTION_ICON: Record<string, string> = {
-  trade: '{cart}', protect: '{shield}', raid: '{swords}', annex: '{flag}', explore: '{map}', outpost: '{hut}', train: '{barbell}', contract: '{scroll}', assault: '{skull}',
+  trade: '{cart}', protect: '{shield}', raid: '{swords}', annex: '{flag}', explore: '{map}', outpost: '{hut}', colony: '{houses}', train: '{barbell}', contract: '{scroll}', assault: '{skull}',
   covert: '{eye}', rescue: '{users}',
 };
 const ROUTINE_ICON: Record<string, string> = { auto: '{refresh}', train: '{barbell}', patrol: '{flag}', scout: '{eye}' };
@@ -368,6 +371,8 @@ export class Panel {
   private mapMoved = false;
   private mapMovedBy = 0;
   private regionTeam: number | null = null;
+  /** Colônia: quem o jogador escolheu mandar (moradores por quantidade, ninjas por id). Só interface. */
+  private colonyPick = { villagers: 2, ninjaIds: [] as number[] };
   /** Aba do painel do prédio (geral × lá dentro). */
   private buildingTab: BuildingTab = 'main';
   /** Pedido para abrir uma tela de gestão na janela central. */
@@ -968,9 +973,10 @@ export class Panel {
       // vilarejo hostil (saqueado) aparece queimado
       const art = st.status === 'hostile' && REGION_ART.includes(`${def.id}-x`) ? REGION_ART.indexOf(`${def.id}-x`) : REGION_ART.indexOf(def.id);
       const icon = def.kind === 'village' ? '{houses}' : def.kind === 'island' ? '{ship}' : def.kind === 'hideout' ? '{skull}' : '{scroll}';
-      const flag = st.status !== 'neutral' ? '<i class="rflag"></i>' : '';
-      const look = art >= 0 ? pic(art) : `${icon}${st.outpost ? `<i class="rpost">${pic(REGION_ART.indexOf('outpost'))}</i>` : ''}`;
-      html += `<button class="rnode k-${def.kind} s-${st.status} ${art >= 0 ? `art p-${def.id}` : ''} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${look}${flag}<span class="rname">${def.name}</span></button>`;
+      const flag = st.status !== 'neutral' || st.colony ? '<i class="rflag"></i>' : '';
+      // ilha com posto ou colônia: a cabana do posto em cima do ícone (colônia com bandeira azul)
+      const look = art >= 0 ? pic(art) : `${icon}${st.outpost || st.colony ? `<i class="rpost">${pic(REGION_ART.indexOf('outpost'))}</i>` : ''}`;
+      html += `<button class="rnode k-${def.kind} s-${st.status} ${st.colony ? 'col' : ''} ${art >= 0 ? `art p-${def.id}` : ''} ${this.regionNode === def.id ? 'on' : ''}" data-act="r-node" data-arg="${def.id}" style="left:${def.x}%;top:${def.y}%">${look}${flag}<span class="rname">${def.name}</span></button>`;
     }
     html += tokens + `</div>`;
     // legenda e ajuda (o "como funciona" virou a dica do i), e o zoom
@@ -1007,8 +1013,19 @@ export class Panel {
         <div class="rrel-lbl"><span>Hostil</span><span>Neutra</span><span>Aliada</span></div>
         ${def.tribute ? `<div class="rgain" ${tipAttr('Tributo diário', 'Protegido manda isto todo dia; vassalo manda o dobro.', true)}><small>{ryo} Tributo por dia${st.status === 'vassal' ? ' (×2)' : ''}</small>${gains(def.tribute)}</div>` : ''}`;
     } else if (def.kind === 'island') {
-      html += `<div class="bsec"><div class="rrel-top"><b>${st.outpost ? '{flag} Posto avançado' : 'Posto avançado'}</b><span class="mpill ${st.explored ? 'safe' : 'info'}">${st.explored ? '{check} Explorada' : '{todo} Não explorada'}</span></div>
+      const col = st.colony ? colonySummary(this.app.home, def.id) : null;
+      if (!col)
+        html += `<div class="bsec"><div class="rrel-top"><b>${st.outpost ? '{flag} Posto avançado' : 'Posto avançado'}</b><span class="mpill ${st.explored ? 'safe' : 'info'}">${st.explored ? '{check} Explorada' : '{todo} Não explorada'}</span></div>
         <div class="rgain"><small>${st.outpost ? 'Rende por dia' : 'Renderia por dia'}</small>${gains(def.outpost ?? {})}</div></div>`;
+      else {
+        // colônia fundada: gente, prédios, o que rende por dia fora da tela, o diário e o botão de visitar
+        html += `<div class="bsec colcard"><div class="rrel-top"><b>{houses} Colônia</b><span class="mpill good">{check} Fundada no dia ${col.day}</span></div>
+          <div class="td-chips"><span class="mchip" ${tipAttr('Gente', 'Moradores e ninjas que moram lá (contam no teto de população da vila).', true)}>{users} ${col.villagers} + {ninja} ${col.ninjas}${col.travelling ? ` <small>(+${col.travelling} a caminho)</small>` : ''}</span><span class="mchip" ${tipAttr('Prédios', `${col.buildings} prontos${col.building ? `, ${col.building} em obra (ficam prontos no próximo dia fora da tela)` : ''}.`, true)}>{hammer} ${col.buildings}${col.building ? ` <small>+${col.building}</small>` : ''}</span></div>
+          <div class="rgain" ${tipAttr('Resumo por dia', 'Fora da tela, a cada virada do dia: o que os trabalhadores renderiam (fórmula fechada), menos a comida que comem, e uma chance de ameaça (piratas, feras) resolvida sem luta.', true)}><small>Rende por dia</small>${gains(col.income)}</div>
+          ${col.log.length ? `<p class="hint collog">${esc(col.log.at(-1)!)}</p>` : ''}
+          <div class="actions"><button class="btn primary" data-act="col-visit" data-arg="${def.id}" ${tipAttr('Visitar', 'Abre o mapa da colônia: lá dá para construir, dar ordens e ver quem mora. Enquanto está na tela ela roda em detalhe.')}>{map} Visitar colônia</button></div></div>`;
+      }
+      if (st.explored && (col || !actionBlock(g, def.id, 'colony'))) html += this.colonyPickSection(col != null);
     } else if (def.id === 'som') {
       const c = s.sound.captive ? g.unit(s.sound.captive.id) : null;
       html += `<p class="hint">${c ? `{alert} Preso lá: <b>${esc(c.name)}</b>. Prazo: fim do dia ${s.sound.captive!.until}; depois ele recebe o selo amaldiçoado.` : 'Ninguém da vila está preso lá.'} Guardam o lugar: <b>${SOUND_MEMBERS.hakkotsu.name}</b>, ${esc(SOUND_MEMBERS.hakkotsu.title)}, e dois membros.</p>`;
@@ -1056,10 +1073,38 @@ export class Panel {
       const played = a === 'raid' || a === 'explore' || a === 'contract' || a === 'assault' || a === 'rescue' || (a === 'annex' && st.rel <= REL.annexForce);
       const deal = a === 'trade' && def.trade ? `${costLabel(def.trade.give)} <span class="arr">{back}</span> ${costLabel(def.trade.get)}` : cost ? costLabel(cost) : '';
       const side = played ? `<span class="rplay">{swords} Jogável</span>` : `<span class="rtime">{clock} ${time}s</span>`;
-      html += `<button class="ract a-${a}" data-act="r-go" data-arg="${a}" ${blocked(g, [why, busy], cost)} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
+      // fundar colônia leva quem foi escolhido acima, não a equipe
+      const block = a === 'colony' ? blocked(g, [why, !this.pickCount() && 'Escolha quem vai (moradores e ninjas, acima).'], cost) : blocked(g, [why, busy], cost);
+      html += `<button class="ract a-${a}" data-act="r-go" data-arg="${a}" ${block} ${tipAttr(ACTION_LABEL[a], ACTION_TIP[a])}>
         <span class="ri">${ACTION_ICON[a] ?? '{flag}'}</span><span class="rt"><b>${ACTION_LABEL[a]}</b>${deal ? `<small>${deal}</small>` : ''}</span>${side}</button>`;
     }
     return html + `</div></div>`;
+  }
+
+  /** Quantas pessoas a escolha atual manda (moradores até os que podem ir, mais os ninjas marcados que ainda podem). */
+  private pickCount() {
+    const p = this.pickFor();
+    return p.villagers + p.ninjaIds.length;
+  }
+  /** A escolha presa ao que pode ir agora. */
+  private pickFor() {
+    const { villagers, ninjas } = colonists(this.app.home);
+    return { villagers: Math.min(this.colonyPick.villagers, villagers.length), ninjaIds: this.colonyPick.ninjaIds.filter((id) => ninjas.some((u) => u.id === id)) };
+  }
+
+  /** Colônia: escolher quem vai (quantos moradores, quais ninjas) e, se ela já existe, o botão de enviar. */
+  private colonyPickSection(exists: boolean) {
+    const home = this.app.home;
+    const { villagers, ninjas } = colonists(home);
+    const pick = this.pickFor();
+    let html = `<div class="bsec"><h4>{users} Quem vai ${infoTip('Colonos', `Moradores sem emprego vão primeiro. Ninjas livres: sem o Kage, ANBU, Sannin, quem está em missão, de vigia ou com cão. Quem vai sai da vila e passa a morar na colônia (até ${COLONY.popLimit} pessoas lá; continuam contando no teto da vila). Viagem de ${COLONY.travel}s.`)}</h4>
+      <div class="workers"><button class="btn" data-act="col-v" data-arg="-1">{minus}</button><span class="wnum"><b>${pick.villagers}</b><small>de ${villagers.length} morador(es)</small></span><button class="btn primary" data-act="col-v" data-arg="1">{plus}</button></div>`;
+    html += ninjas.length
+      ? `<div class="fchips rteams colninjas">${ninjas.map((u) => `<button data-act="col-n" data-arg="${u.id}" class="${pick.ninjaIds.includes(u.id) ? 'on' : ''}">${this.face(u)}<span class="tn">${esc(u.name.split(' ').pop()!)}</span><small>{swords}${Math.round(unitPower(u))}</small></button>`).join('')}</div>`
+      : `<p class="hint">Nenhum ninja livre para ir agora.</p>`;
+    if (exists)
+      html += `<div class="actions"><button class="btn primary" data-act="col-send" ${blocked(home, [!this.pickCount() && 'Escolha quem vai.', !home.findBuilt('port') && 'Precisa de um Porto para chegar às ilhas.'])}>{ship} Enviar ${this.pickCount()} pessoa(s)</button></div>`;
+    return html + `</div>`;
   }
 
   /**
@@ -1099,7 +1144,7 @@ export class Panel {
         const lost = e.status === 'lost';
         const loot = Object.entries(e.loot).filter(([, v]) => v);
         html += `<div class="xrow" style="--c:${tm?.color ?? '#888'}" ${tipAttr(this.expWhere(e), e.log.slice(-4).join(' '))}>
-          <span class="dot"></span><b class="xr-team">${esc(tm?.name ?? 'Equipe')}</b><span class="xr-where">${esc(this.expWhere(e))}</span>
+          <span class="dot"></span><b class="xr-team">${esc(tm?.name ?? (e.kind === 'colony' ? 'Colonos' : 'Equipe'))}</b><span class="xr-where">${esc(this.expWhere(e))}</span>
           <span class="mpill ${lost ? 'danger' : 'good'}">${lost ? '{skull} Perdida' : '{check} Voltou'}</span>
           <span class="xr-loot">${loot.length ? loot.map(([k, v]) => `<span class="lchip">${costLabel({ [k]: v })}</span>`).join('') : '<small>sem saque</small>'}</span></div>`;
       }
@@ -1118,6 +1163,7 @@ export class Panel {
     const g = this.app.game;
     const tm = g.team(e.teamId);
     const mine = e.kind === 'mine';
+    const who = tm?.name ?? (e.kind === 'colony' ? 'Colonos' : 'Equipe');
     const label: Record<Expedition['status'], [string, string, string]> = {
       going: ['A caminho', '{run}', 'good'], explore: [mine ? 'Explorando' : 'No serviço', mine ? '{pickaxe}' : '{shield}', 'safe'],
       choice: ['Decida: descer ou voltar', '{alert}', 'risky'], return: ['Voltando', '{back}', 'info'], done: ['Terminou', '{check}', 'info'],
@@ -1125,7 +1171,7 @@ export class Panel {
     };
     const [st, ic, cls] = label[e.status];
     let html = `<div class="xlcard ${e.status === 'choice' ? 'want' : ''}" style="--c:${tm?.color ?? '#888'}">
-      <div class="xc-top"><span class="dot"></span><div class="xc-t"><b>${esc(tm?.name ?? 'Equipe')}</b><span>${esc(mine ? 'Mina' : this.expWhere(e))}</span></div><span class="mpill ${cls}">${ic} ${st}</span></div>
+      <div class="xc-top"><span class="dot"></span><div class="xc-t"><b>${esc(who)}</b><span>${esc(mine ? 'Mina' : this.expWhere(e))}</span></div><span class="mpill ${cls}">${ic} ${st}</span></div>
       <div class="xl-body"><div class="xl-a">`;
     // trilha dos andares: feitos, o atual e os que faltam (o último é o do guardião)
     if (mine)
@@ -1134,8 +1180,8 @@ export class Panel {
         const c = n < e.floor || (n === e.floor && e.status === 'choice') ? 'done' : n === e.floor ? 'now' : '';
         return `<span class="xf ${c}" ${tipAttr(`Andar ${n}`, n === MINE.floors ? 'O fundo: guardião e os minérios mais raros.' : `Força recomendada ${floorPower(n)}.`)}>${n === MINE.floors ? '{skull}' : n}</span>`;
       }).join('<i></i>')}</div>`;
-    // equipe: retrato com a barra de vida embaixo
-    const us = expeditionUnits(g, e);
+    // equipe: retrato com a barra de vida embaixo (colonos viajam dentro da expedição)
+    const us = e.kind === 'colony' ? (e.passengers ?? []) : expeditionUnits(g, e);
     html += `<div class="xteam">${us
       .map((u) => {
         b[`exh${u.id}`] = u.hp / u.maxHp;
@@ -3481,10 +3527,34 @@ export class Panel {
         this.regionTeam = Number(arg);
         return this.report({ ok: true });
       case 'r-go': {
-        if (!this.regionNode || this.regionTeam == null) return;
+        if (!this.regionNode) return;
+        if (arg === 'colony') {
+          const r = sendColonists(this.app.home, this.regionNode, this.pickFor());
+          if (r.ok) this.colonyPick.ninjaIds = [];
+          return this.report(r);
+        }
+        if (this.regionTeam == null) return;
         const r = startRegion(g, this.regionTeam, this.regionNode, arg as RegionAction);
         return this.report(r);
       }
+      case 'col-v':
+        this.colonyPick.villagers = Math.max(0, Math.min(COLONY.popLimit, this.colonyPick.villagers + Number(arg)));
+        return this.report({ ok: true });
+      case 'col-n': {
+        const id = Number(arg);
+        this.colonyPick.ninjaIds = this.colonyPick.ninjaIds.includes(id) ? this.colonyPick.ninjaIds.filter((x) => x !== id) : [...this.colonyPick.ninjaIds, id];
+        return this.report({ ok: true });
+      }
+      case 'col-send': {
+        if (!this.regionNode) return;
+        const r = sendColonists(this.app.home, this.regionNode, this.pickFor());
+        if (r.ok) this.colonyPick.ninjaIds = [];
+        return this.report(r);
+      }
+      case 'col-visit':
+        if (this.mode === 'window') this.show(null);
+        this.app.openColony(arg || this.regionNode);
+        return;
       case 'sell-gold': {
         const n = arg === 'all' ? Math.floor(g.state.res.gold) : Math.min(1, Math.floor(g.state.res.gold));
         if (n <= 0) return;

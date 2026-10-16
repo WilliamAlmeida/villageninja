@@ -21,7 +21,9 @@ import { crownKage } from './kage';
 import { acceptMission, generateOffers } from './missions';
 import { adoptDog } from './ninken';
 import { createNewGame } from './newGame';
-import { startRegion } from './region';
+import { regionOf, startRegion } from './region';
+import { colonyGame, createColony, moveToColony } from './colonies';
+import { placeBuilt } from './scene';
 import { nameSannin } from './sannin';
 import { learnSpec } from './specs';
 import { autoTeams } from './teams';
@@ -172,6 +174,20 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   Object.assign(s.region.montanha!, { status: 'hostile', rel: -70, revengeDay: s.day + 20 });
   Object.assign(s.region.mercadores!, { status: 'vassal', rel: 30 });
   Object.assign(s.region.nevoa!, { explored: true, outpost: true });
+  // uma colônia fundada na Ilha do Recife (tema pesca), com gente e uma obra em andamento (game/colonies.ts)
+  Object.assign(regionOf(s, 'recife'), { explored: true, colony: true });
+  s.colonies.recife = createColony(g, 'recife');
+  const settlers = [...s.units.filter((u) => u.kind === 'villager' && !u.dead).slice(0, 6), ...home.filter((u) => u.ninja!.rank === 'genin' && !u.ninja!.learning && u.hp === u.maxHp).slice(0, 2)];
+  moveToColony(g, 'recife', settlers);
+  {
+    const cg = colonyGame(g, 'recife')!;
+    const house = cg.state.buildings.find((b) => b.type === 'house')!;
+    const farm = placeBuilt(cg, 'farm', house.tx, house.ty - 5);
+    if (farm) farm.desired = 2;
+    const tower = placeBuilt(cg, 'tower', house.tx + 5, house.ty - 4);
+    if (tower) Object.assign(tower, { built: false, progress: 3 }); // uma obra para o resumo do dia terminar
+    cg.world.rebuild();
+  }
   s.honor = 34;
   s.infamy = 12;
   s.reputation = 80;

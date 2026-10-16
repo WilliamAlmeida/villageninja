@@ -165,6 +165,8 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
       { key: 'cena-saque', label: 'Saque a um vilarejo', run: () => openScene(app, 'raid') },
       { key: 'cena-pesca', label: 'Saque à Vila dos Pescadores (tema)', run: () => openScene(app, 'raid', 'pesca') },
       { key: 'cena-deserto', label: 'Saque à Cidade dos Mercadores (deserto)', run: () => openScene(app, 'raid', 'mercadores') },
+      { key: 'colonia', label: 'Colônia na Ilha do Recife (tema pesca)', run: () => app.openColony('recife') },
+      view('colonia-regiao', 'Região: ficha da colônia', () => ({ kind: 'region' })),
     ]],
   ];
 }

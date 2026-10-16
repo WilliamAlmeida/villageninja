@@ -26,6 +26,7 @@ import type { Vfx } from '../data/vfx';
 import { CHEST_LINGER, doneFor, fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { CAVE_PROPS, type CaveDeco, caveDecos, drawCaveDeco, drawCaveFlat } from './cave';
 import { drawThemeDeco, type ThemeDeco, themeDecos } from './themeProps';
+import { themeOf } from '../game/scene';
 import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
@@ -262,7 +263,7 @@ export class Renderer {
     this.level = s.level;
     this.season = seasonOf(s);
     this.kages = s.kageHistory?.length ?? 0;
-    this.theme = s.sceneInfo?.theme ?? '';
+    this.theme = themeOf(s) ?? '';
     this.seed = s.seed;
     let cache = this.maps.get(s);
     if (!cache) {

@@ -119,6 +119,8 @@ export function createUI(app: App, root: HTMLElement) {
     if (a !== 'select') app.selectTool = false;
     // gestão e construção são da vila: olhando a invasão, volta para a vila primeiro
     if (a !== 'select' && app.viewScene) app.setView(false);
+    // na colônia dá para construir e selecionar; as janelas de gestão são da vila
+    if (a !== 'select' && a !== 'build' && app.viewColony) app.openColony(null);
     if (a === 'build') {
       if (app.buildType || app.roadMode) build.exit();
       build.toggle();
@@ -203,9 +205,9 @@ export function createUI(app: App, root: HTMLElement) {
     const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', f: 'crafts', d: 'duels', s: 'select' };
     if (map[k]) dockAction(map[k]);
     if (k === ' ') {
-      // espaço: pausa/continua
+      // espaço: pausa/continua (a velocidade é sempre a da vila: a colônia roda no relógio dela)
       e.preventDefault();
-      const s = app.game.state;
+      const s = app.home.state;
       s.speed = s.speed ? 0 : 1;
     }
   });

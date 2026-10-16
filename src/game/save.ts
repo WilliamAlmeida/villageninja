@@ -283,6 +283,10 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     s.stats.duelsWon ??= 0;
     s.stats.duelsLost ??= 0;
   },
+  47: (s) => {
+    // v48: colônias nas ilhas (game/colonies.ts); nenhuma ainda
+    s.colonies ??= {};
+  },
   // v46: vínculo opcional do Gatsūga do ninken e posição/fonte de texto auxiliar.
   45: () => {},
   // v45: sequência do Sekizō e origem dos canhões, opcionais; saves anteriores continuam sem sequência.
@@ -467,7 +471,9 @@ export function migrate(s: any): GameState | null {
 export function saveGame(g: Game): boolean {
   try {
     const sc = g.state.scene;
-    const data: GameState = { ...g.state, effects: [], projectiles: [], scene: sc ? { ...sc, effects: [], projectiles: [] } : sc };
+    const colonies: GameState['colonies'] = {};
+    for (const [id, c] of Object.entries(g.state.colonies ?? {})) colonies[id] = { ...c, effects: [], projectiles: [] };
+    const data: GameState = { ...g.state, effects: [], projectiles: [], scene: sc ? { ...sc, effects: [], projectiles: [] } : sc, colonies };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     return true;
   } catch {

@@ -127,7 +127,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       if (a === 'cancel') this.cancel();
       if (a === 'done') {
         // o rascunho da rua só vale aqui: paga e calça (ou tira) de uma vez
-        const g = this.app.home;
+        const g = this.app.game;
         if (this.app.roadDraft.size && commitRoads(g, this.app.roadDraft)) g.rev++;
         this.exit();
       }
@@ -158,14 +158,14 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
 
   private roadHint() {
     const m = this.app.roadMode;
-    const works = this.app.home.state.earthworks ?? [];
+    const works = this.app.game.state.earthworks ?? [];
     const msg =
       m === 'fill'
         ? `{stone} Toque ou arraste sobre a água para aterrar · ${costLabel(EARTH.fillCost)} por tile · ${works.filter((e) => e.op === 'fill').length} marcados`
         : m === 'dig'
           ? `{drop} Toque ou arraste sobre a terra para cavar · ${works.filter((e) => e.op === 'dig').length} marcados`
           : m === 'clear'
-            ? `{axe} Toque ou arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.home.state).length} marcados`
+            ? `{axe} Toque ou arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.game.state).length} marcados`
             : this.roadDraftHint();
     const raw = this.roadMsg ? `${msg} · <b>${this.roadMsg}</b>` : msg;
     const e = this.roadBar.querySelector<HTMLElement>('[data-t="road"]')!;
@@ -186,7 +186,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
 
   /** O toque/traço começando aqui tira (já tem rua, marca de limpar ou de terreno) em vez de pôr? */
   private removesAt(tx: number, ty: number, node: ResourceNode | null): boolean {
-    const g = this.app.home;
+    const g = this.app.game;
     const m = this.app.roadMode;
     if (m === 'pave') return roadWith(g.state, this.app.roadDraft, tx, ty);
     if (m === 'clear') return !!node?.clear;
@@ -204,7 +204,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     let best: ResourceNode | null = null;
     let bestD = Infinity;
     let bestY = -Infinity;
-    for (const n of this.app.home.state.nodes) {
+    for (const n of this.app.game.state.nodes) {
       if (n.cleared) continue;
       const cx = n.tx * TILE + TILE / 2;
       const cy = n.ty * TILE + TILE / 2;
@@ -244,7 +244,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
    * ponteiro passa de fato (`sx0, sy0` = onde o arraste começou).
    */
   paintRoad(wx: number, wy: number, tap: boolean, done = false, sx?: number, sy?: number, sx0?: number, sy0?: number) {
-    const g = this.app.home;
+    const g = this.app.game;
     const tx = Math.floor(wx / TILE);
     const ty = Math.floor(wy / TILE);
     const m = this.app.roadMode;
@@ -345,8 +345,8 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   update() {
     if (this.bar.hidden) return;
     const road = this.bar.querySelector('[data-road]');
-    if (road) road.classList.toggle('off', !this.app.home.canAfford(ROAD.cost));
-    const g = this.app.home;
+    if (road) road.classList.toggle('off', !this.app.game.canAfford(ROAD.cost));
+    const g = this.app.game;
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const type = c.dataset.type as BuildingType;
       // prédio único que a vila já tem (pronto ou em obra) sai da lista; volta se for demolido
@@ -356,7 +356,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       const r = canBuild(g, type);
       c.classList.toggle('off', !r.ok);
       const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;
-      const lock = min > this.app.home.state.level ? `{lock} ${levelDef(min).name}` : '';
+      const lock = min > this.app.game.state.level ? `{lock} ${levelDef(min).name}` : '';
       const le = c.querySelector('.lock')!;
       if (le.getAttribute('data-raw') !== lock) {
         le.setAttribute('data-raw', lock);
@@ -373,7 +373,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
 
   /** Cartão com o que o prédio faz, antes de construir (o "i" do card). */
   info(type: BuildingType) {
-    const g = this.app.home;
+    const g = this.app.game;
     const d = BUILDINGS[type];
     const r = canBuild(g, type);
     const up = UPGRADES[type];
@@ -382,7 +382,9 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       `Tamanho ${d.w}×${d.h}`,
       `Obra: ${d.buildTime}s`,
       d.unique && 'Só um por vila',
-      d.maxCount && `Até ${d.maxCount[g.state.level]} neste nível da vila (${d.maxCount[d.maxCount.length - 1]} no máximo)`,
+      g.state.colony
+        ? Number.isFinite(g.buildingCap(type)) && `Até ${g.buildingCap(type)} na colônia`
+        : d.maxCount && `Até ${d.maxCount[g.state.level]} neste nível da vila (${d.maxCount[d.maxCount.length - 1]} no máximo)`,
       d.walkable && 'Dá para andar por cima',
       d.mood && `+${d.mood} de felicidade (decorações somam até ${DECO_MOOD_MAX})`,
     ].filter(Boolean);
@@ -403,7 +405,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   }
 
   private start(type: BuildingType) {
-    const r = canBuild(this.app.home, type);
+    const r = canBuild(this.app.game, type);
     if (!r.ok) {
       // mesmo aviso com o que falta (em vez de um toast que some)
       this.info(type);
@@ -420,7 +422,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
 
   /** Entra no modo de mover um prédio já existente. */
   startMove(id: number) {
-    const b = this.app.home.building(id);
+    const b = this.app.game.building(id);
     if (!b) return;
     const d = defOf(b);
     this.moveId = id;
@@ -439,7 +441,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   /** O lugar vale? Se não, o motivo aparece na barra (antes só saía ao confirmar, e com o mouse nem isso). */
   private validAt(tx: number, ty: number, flip = false) {
     const type = this.app.buildType!;
-    const g = this.app.home;
+    const g = this.app.game;
     let why: string | null = null;
     if (this.moveId != null) {
       const r = canMove(g, this.moveId, tx, ty, flip);
@@ -466,7 +468,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     // prédio de margem: gruda na beira da água mais perto, já com o lado (espelhado ou não) que encaixa
     if (isShore({ type, level: gh?.type === type ? gh.level : undefined })) {
       const same = gh?.type === type;
-      const spot = shoreSpot(this.app.home, type, tx, ty, this.moveId ?? undefined, 4, same ? (gh.level ?? 1) : 1, same && gh.flipLocked ? !!gh.flip : undefined);
+      const spot = shoreSpot(this.app.game, type, tx, ty, this.moveId ?? undefined, 4, same ? (gh.level ?? 1) : 1, same && gh.flipLocked ? !!gh.flip : undefined);
       if (spot) {
         this.app.ghost = { type, tx: spot.tx, ty: spot.ty, flip: spot.flip, level: gh?.level, moveId: gh?.moveId, moveFrom: gh?.moveFrom, flipLocked: gh?.flipLocked, valid: this.validAt(spot.tx, spot.ty, spot.flip), at: { tx, ty } };
         return;
@@ -496,9 +498,9 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   confirm() {
     const gh = this.app.ghost;
     if (!gh) return;
-    const r = this.moveId != null ? moveBuilding(this.app.home, this.moveId, gh.tx, gh.ty, gh.flip) : placeBuilding(this.app.home, gh.type, gh.tx, gh.ty, gh.flip);
+    const r = this.moveId != null ? moveBuilding(this.app.game, this.moveId, gh.tx, gh.ty, gh.flip) : placeBuilding(this.app.game, gh.type, gh.tx, gh.ty, gh.flip);
     if (!r.ok) {
-      this.app.home.toast(r.error, 'warn');
+      this.app.game.toast(r.error, 'warn');
       return;
     }
     this.exit();

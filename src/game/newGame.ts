@@ -13,12 +13,12 @@ import { CENTER_TX, CENTER_TY, doorPos, generateMap } from './world';
 
 /**
  * Estado inicial com o terreno gerado e tudo vazio (base da vila nova e dos mapas de missão). `scene`: tamanho de mapa
- * de missão (72×48) em vez do da vila.
+ * de missão (72×48) em vez do da vila, ou um tamanho próprio (colônias, 48×48).
  */
-export function baseState(seed: number, scene = false): GameState {
+export function baseState(seed: number, scene: boolean | { w: number; h: number } = false): GameState {
   let nextId = 1;
-  const mapW = scene ? SCENE_W : VILLAGE_W;
-  const mapH = scene ? SCENE_H : VILLAGE_H;
+  const mapW = typeof scene === 'object' ? scene.w : scene ? SCENE_W : VILLAGE_W;
+  const mapH = typeof scene === 'object' ? scene.h : scene ? SCENE_H : VILLAGE_H;
   const m = { mapW, mapH };
   const { tiles, nodes } = generateMap(seed, () => nextId++, mapW, mapH);
   return {
@@ -75,6 +75,7 @@ export function baseState(seed: number, scene = false): GameState {
     blades: [],
     swordsmen: { nextDay: 0, taken: false, done: false },
     sound: { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 },
+    colonies: {},
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,

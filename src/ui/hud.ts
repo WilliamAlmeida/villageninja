@@ -84,7 +84,10 @@ export class Hud {
     const threatRow = el('div', { class: 'threatrow', 'data-b': 'alert', hidden: '' });
     const threat = el('button', { class: 'banner danger', 'data-t': 'threat' }, rich('Inimigos na sua vila — toque para ver'));
     // os avisos de baixo são da vila: olhando a invasão, volta para a vila antes de levar a câmera
-    const toHome = () => this.app.viewScene && this.app.setView(false);
+    const toHome = () => {
+      if (this.app.viewScene) this.app.setView(false);
+      if (this.app.viewColony) this.app.openColony(null);
+    };
     threat.addEventListener('click', () => {
       toHome();
       this.sheetFor = 'threat';
@@ -121,7 +124,7 @@ export class Hud {
     this.alert.append(threatRow, exam, warn, bossRow);
 
     this.toasts = el('div', { id: 'toasts' });
-    bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y, !!t.scene));
+    bus.on('toast', (t) => this.toast(t.text, t.kind, t.x, t.y, !!t.scene, t.colony));
   }
 
   update() {
@@ -250,14 +253,17 @@ export class Hud {
     this.app.home.select({ kind: 'unit', id: t.id });
   }
 
-  toast(text: string, kind: ToastKind, x?: number, y?: number, scene = false) {
+  toast(text: string, kind: ToastKind, x?: number, y?: number, scene = false, colony?: string) {
     const t = el('div', { class: `toast ${kind}` }, rich(esc(text)));
     if (x != null && y != null) {
       t.classList.add('go');
       t.title = 'Ir até o local';
-      // aviso de outro mapa (vila ↔ invasão): troca a tela antes de ir até o local
+      // aviso de outro mapa (vila ↔ invasão ↔ colônia): troca a tela antes de ir até o local
       t.addEventListener('click', () => {
-        if (scene !== this.app.viewScene) this.app.setView(scene);
+        if (colony) {
+          if (this.app.viewColony !== colony) this.app.openColony(colony);
+        } else if (scene !== this.app.viewScene) this.app.setView(scene);
+        else if (this.app.viewColony) this.app.openColony(null);
         this.app.camera.focus(x, y);
       });
     }

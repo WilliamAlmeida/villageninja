@@ -37,6 +37,9 @@ const idx = (tx: number, ty: number) => ty * MAP_W + tx;
 import { shoreSpot } from './commands';
 import { recordFallen } from './memorial';
 
+/** Tema visual do mapa (arte dos prédios e enfeites): o do mapa de missão ou o da colônia. */
+export const themeOf = (s: GameState): SceneTheme | undefined => s.sceneInfo?.theme ?? s.colony?.theme;
+
 // ------------------------------------------------------------------ o jogo do mapa de missão
 const games = new WeakMap<GameState, Game>();
 
@@ -78,7 +81,8 @@ function entryPoint(g: Game) {
   return { x: tileCenter(CENTER_TX), y: tileCenter(MAP_H - 6) };
 }
 
-function place(g: Game, type: BuildingType, tx: number, ty: number, level: number) {
+/** Levanta um prédio pronto no lugar livre mais perto de (tx, ty) (mapas gerados: vilarejo invadido, colônia). */
+export function placeBuilt(g: Game, type: BuildingType, tx: number, ty: number, level = 1) {
   const def = BUILDINGS[type];
   for (let r = 0; r <= 3; r++)
     for (const [dx, dy] of r ? [[r, 0], [-r, 0], [0, r], [0, -r], [r, r], [-r, -r], [r, -r], [-r, r]] : [[0, 0]]) {
@@ -119,7 +123,7 @@ function bringTeam(home: Game, g: Game, e: Expedition, at: { x: number; y: numbe
 }
 
 /** Quem ficou dentro de parede/rocha (a fila de entrada cai fora do chão numa caverna estreita) vai para o chão mais perto. */
-function unstick(g: Game, u: Unit) {
+export function unstick(g: Game, u: Unit) {
   if (g.world.walkablePx(u.x, u.y)) return;
   const w = nearestWalkable(g.world, toTile(u.x), toTile(u.y), 12);
   if (!w) return;
@@ -148,7 +152,7 @@ export function createVillageScene(home: Game, e: Expedition): GameState {
   const lvl = power >= 50 ? 3 : power >= 30 ? 2 : 1;
   const count = power < 30 ? 9 : power < 50 ? 12 : LAYOUT.length;
   const built = LAYOUT.slice(0, count)
-    .map(([type, dx, dy]) => place(g, type, CENTER_TX + dx, CENTER_TY + dy, type === 'farm' || type === 'training' ? 1 : lvl))
+    .map(([type, dx, dy]) => placeBuilt(g, type, CENTER_TX + dx, CENTER_TY + dy, type === 'farm' || type === 'training' ? 1 : lvl))
     .filter((b) => b != null);
   // pescadores: o porto na beira do mar
   if (theme === 'fishing')
@@ -228,7 +232,8 @@ function shapeTheme(s: GameState, theme: SceneTheme, rnd: () => number) {
   });
 }
 
-function guard(u: Unit) {
+/** Fica guardando onde está (bichos e guardas dos mapas gerados). */
+export function guard(u: Unit) {
   u.missionId = -1; // defende o próprio lugar (guardHome), não marcha
   u.homeX = u.x;
   u.homeY = u.y;
@@ -476,7 +481,7 @@ export function createMineScene(home: Game, e: Expedition, floor: number): GameS
 
 // ------------------------------------------------------------------ ilha (explorar) e lugar sagrado (prova do contrato)
 /** Bichos de cada ilha. */
-const ISLAND_FAUNA: Record<string, AnimalType[]> = { vulcao: ['rhino', 'boar', 'bear'], nevoa: ['spider', 'tiger', 'wolf'], templos: ['monkey', 'boar', 'wolf'] };
+export const ISLAND_FAUNA: Record<string, AnimalType[]> = { vulcao: ['rhino', 'boar', 'bear'], nevoa: ['spider', 'tiger', 'wolf'], templos: ['monkey', 'boar', 'wolf'], recife: ['boar', 'wolf', 'monkey'] };
 
 /** Base comum dos mapas de região (ilha e prova): estado do mapa e jogo, sem vila. */
 function regionMap(home: Game, e: Expedition) {
