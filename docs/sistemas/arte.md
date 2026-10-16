@@ -31,7 +31,18 @@
   `scripts/ui-grid.py` as descrições das casas vão numa linha só: no Windows (`shell=True`) uma quebra de linha no
   argumento engolia tudo depois dela e o Codex desenhava qualquer coisa.
 - Campos andáveis com arte (treino; fazenda e horta só nos vilarejos invadidos) são decalques no chão, desenhados antes das unidades.
-  Campos cercados (game/fields.ts) têm desenho provisório em `render/fields.ts` até a folha do Codex (32×32 por cultura e etapa).
+- **Campos cercados** (game/fields.ts, desenho em `render/fields.ts`): um atlas só, `src/art/props/fields.png`, feito por
+  `scripts/field-art.py` (Codex, uma folha por cultura e uma de chão e cerca; originais em `docs/arte/fields/`). Casas de
+  112 px em 2× (56 na cena) com o losango do tile na mesma posição em todas (ponta de cima em 56,56 e da frente em 56,104):
+  linhas 0–5 = culturas na ordem de `CROP_LIST`, colunas = semente, broto, crescendo, quase, maduro e **passando do ponto**
+  (maduro há mais de metade de `FIELD.witherDays`: avisa que vai murchar); linha 6 = terra crua, arada, arada úmida, crua no
+  inverno, cerca "\" (lado de baixo-esquerdo do tile), cerca "/" (baixo-direito), portão "\" e poste solto. Cada peça é
+  desenhada na casa do tile (`piece`); o lado de cima de um tile é o de baixo do vizinho. O gabarito de cada folha
+  (`iso_template.draw`, com linha vermelha no lado da cerca) dá o tamanho, mas o Codex não acerta a posição: o recorte
+  encaixa pelo próprio desenho (chão no losango, 6% maior e recortado nele para o contorno escuro não virar grade; cerca
+  pelos pés dos postes nas pontas do lado, com a largura do poste solto; planta centrada com a base na ponta da frente) e
+  apaga os vãos brancos fechados (entre ripas e folhas). Refazer uma folha: `python scripts/field-art.py --refazer
+  trigo,cerca`; só remontar: `--pack`. Sem o atlas (carregando, testes) fica o desenho à mão de antes.
 - **Variantes dos prédios repetidos** (docs/gdd-escala-ilhas-pvp.md, seção 4; feitas em 2026-10-15): a casa tem três
   desenhos por nível (`house`, `house-b`, `house-c`, `house-b-2`, `house-c-3`…; a letra entra ANTES do nível) e lenhador,
   pedreira e fazenda dois (`<tipo>`, `<tipo>-b`, também por nível). A escolha é só no desenho, em `render/variants.ts`
