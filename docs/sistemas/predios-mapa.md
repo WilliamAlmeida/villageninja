@@ -20,7 +20,7 @@
   N / teto" na janela Vila e aviso na aba de melhoria do drawer quando no teto. Sem migração de save. Testes em
   `tests/limits.test.ts`.
 - **Campos cercados** (2026-10-16, save v49; `data/crops.ts`, `game/fields.ts`, `systems/crops.ts`, desenho em
-  `render/fields.ts` com o atlas `fields`, ver arte.md): substituem a Fazenda e a Horta de Ervas (que ficaram `buildable: false`, só como enfeite dos
+  `render/fields.ts` com as folhas de `src/art/fields`, ver arte.md): substituem a Fazenda e a Horta de Ervas (que ficaram `buildable: false`, só como enfeite dos
   vilarejos invadidos). Modo "Cercar campo" (primeiro card da construção, `BuildUI.startField`, `roadMode: 'field'`):
   pinta canteiros tile a tile em **formato livre** (rascunho `FieldDraft` como as ruas, vale no "Pronto"; `commitFields`
   paga `FIELD.cost` de madeira por canteiro, tira árvore/toco/rua embaixo e refaz os cercados com `regroup`).

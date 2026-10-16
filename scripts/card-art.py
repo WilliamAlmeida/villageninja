@@ -45,7 +45,7 @@ def main():
                 f'a strict grid of {COLS} columns and {ROWS} rows (the last cell stays EMPTY), one scene per cell. '
                 + iso_template.PROMPT + cells + ' Same flat 16-bit pixel art style, palette and dark outline as images 2 and '
                 '3 (art of the game). Nothing outside the diamond except things standing on it.')
-        refs = ','.join(p.relative_to(ROOT).as_posix() for p in [tpl, art_file('house'), art_file('fields')])
+        refs = ','.join(p.relative_to(ROOT).as_posix() for p in [tpl, art_file('house'), art_file('crop-wheat')])
         subprocess.run(['node', 'scripts/codex-image.mjs', str(sheet), desc, '--ref', refs, '--size', '1536x1024'], cwd=ROOT, check=True)
     im = Image.open(sheet).convert('RGBA')
     cw, ch = im.width / COLS, im.height / ROWS

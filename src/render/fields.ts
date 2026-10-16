@@ -1,9 +1,10 @@
 // Campos cercados (game/fields.ts): o chão de cada canteiro no losango do tile (crua, arada, úmida; passada do chão), as
-// plantas pela etapa e a cultura e a cerca nas bordas do cercado (portão na frente; em pé, na ordem de profundidade). Arte: atlas src/art/props/fields.png
-// (scripts/field-art.py, Codex); enquanto ele não carrega (e nos testes) fica o desenho à mão de antes.
+// plantas pela etapa e a cultura e a cerca nas bordas do cercado (portão na frente; em pé, na ordem de profundidade).
+// Arte em src/art/fields (scripts/field-art.py, Codex): `crop-<cultura>`, `field-soil` e `field-fence`; enquanto uma folha
+// não carrega (e nos testes) fica o desenho à mão de antes.
 import { DAY_LENGTH, TILE } from '../config';
 import { project } from '../core/iso';
-import { CROP_LIST, CROPS, FIELD, growStage } from '../data/crops';
+import { CROPS, FIELD, growStage } from '../data/crops';
 import type { FieldDraft } from '../game/fields';
 import type { Game } from '../game/game';
 import { isExplored } from '../game/explore';
@@ -14,18 +15,18 @@ import { art, drawShrunk } from './art';
 type Ctx = CanvasRenderingContext2D;
 const P = (x: number, y: number) => project(x * TILE, y * TILE);
 
-// Atlas (scripts/field-art.py): casas de 112 px em 2× = 56 px na cena, o losango do tile com a ponta de cima em (28, 28)
-// da casa. Linhas 0..5 = culturas na ordem de CROP_LIST, colunas = etapa (0 semente … 4 madura, 5 passando do ponto);
-// linha 6 = chão e cerca (GROUND).
+// Folhas (scripts/field-art.py): casas quadradas de 112 px em 2× (= 56 px na cena) numa fila, o losango do tile com a
+// ponta de cima em (28, 28) da casa. `crop-<cultura>`: etapa 0 semente … 4 madura, 5 passando do ponto; `field-soil` e
+// `field-fence`: as casas abaixo.
 const FCELL = 56;
-const GROUND = { raw: 0, tilled: 1, wet: 2, winter: 3, fenceA: 4, fenceB: 5, gate: 6, post: 7 } as const;
-const CROP_ROW = Object.fromEntries(CROP_LIST.map((c, i) => [c.id, i])) as Record<Plot['crop'] & string, number>;
+const SOIL = { raw: 0, tilled: 1, wet: 2, winter: 3 } as const;
+const FENCE = { a: 0, b: 1, gate: 2, post: 3 } as const;
 
-/** Peça (linha, coluna) do atlas na casa do tile (tx, ty). */
-function piece(ctx: Ctx, atlas: HTMLImageElement, row: number, col: number, tx: number, ty: number) {
+/** Casa `col` da folha na casa do tile (tx, ty). */
+function piece(ctx: Ctx, sheet: HTMLImageElement, col: number, tx: number, ty: number) {
   const a = P(tx, ty);
-  const c = atlas.naturalWidth / 8;
-  drawShrunk(ctx, atlas, col * c, row * c, c, c, a.x - FCELL / 2, a.y - FCELL / 2, FCELL, FCELL);
+  const c = sheet.naturalHeight;
+  drawShrunk(ctx, sheet, col * c, 0, c, c, a.x - FCELL / 2, a.y - FCELL / 2, FCELL, FCELL);
 }
 
 function diamond(ctx: Ctx, tx: number, ty: number, inset = 0) {
@@ -42,11 +43,11 @@ function diamond(ctx: Ctx, tx: number, ty: number, inset = 0) {
 }
 
 /** Chão do canteiro: terra crua (capim ralo), arada (sulcos) ou úmida (mais escura). */
-function soil(ctx: Ctx, p: Plot, winter: boolean, atlas: HTMLImageElement | null) {
+function soil(ctx: Ctx, p: Plot, winter: boolean, sheet: HTMLImageElement | null) {
   const wet = !!(p.wet && p.wet > 0) && p.st >= 1;
-  if (atlas) {
-    const col = p.st === 0 ? (winter ? GROUND.winter : GROUND.raw) : wet ? GROUND.wet : GROUND.tilled;
-    return piece(ctx, atlas, 6, col, p.tx, p.ty);
+  if (sheet) {
+    const col = p.st === 0 ? (winter ? SOIL.winter : SOIL.raw) : wet ? SOIL.wet : SOIL.tilled;
+    return piece(ctx, sheet, col, p.tx, p.ty);
   }
   diamond(ctx, p.tx, p.ty, 0.04);
   ctx.fillStyle = p.st === 0 ? (winter ? '#b9ad94' : '#9d8a57') : wet ? '#5b4129' : '#7a5a36';
@@ -118,12 +119,12 @@ function plant(ctx: Ctx, crop: Plot['crop'], st: number, x: number, y: number, s
 }
 
 /** Trecho de cerca entre dois pontos do mundo (tiles): postes nas pontas e no meio, duas ripas. `gate` = só os postes. */
-function fence(ctx: Ctx, x0: number, y0: number, x1: number, y1: number, gate: boolean, atlas: HTMLImageElement | null) {
-  if (atlas) {
-    // a cerca "\" do atlas fica no lado de baixo-esquerdo do tile e a "/" no de baixo-direito: o trecho ao longo de x
+function fence(ctx: Ctx, x0: number, y0: number, x1: number, y1: number, gate: boolean, sheet: HTMLImageElement | null) {
+  if (sheet) {
+    // a cerca "\" da folha fica no lado de baixo-esquerdo do tile e a "/" no de baixo-direito: o trecho ao longo de x
     // é o lado de baixo-esquerdo do tile de cima (x0, y0 - 1); o ao longo de y, o de baixo-direito do da esquerda
-    if (y0 === y1) piece(ctx, atlas, 6, gate ? GROUND.gate : GROUND.fenceA, x0, y0 - 1);
-    else piece(ctx, atlas, 6, GROUND.fenceB, x0 - 1, y0);
+    if (y0 === y1) piece(ctx, sheet, gate ? FENCE.gate : FENCE.a, x0, y0 - 1);
+    else piece(ctx, sheet, FENCE.b, x0 - 1, y0);
     return;
   }
   const a = P(x0, y0);
@@ -192,19 +193,20 @@ export function fieldItems(g: Game, push: (x: number, y: number, item: FieldItem
 
 /** Desenha uma planta ou trecho de cerca de `fieldItems`. */
 export function drawFieldItem(ctx: Ctx, it: FieldItem, time: number) {
-  const atlas = art('fields');
-  if (it.kind === 'fence') return fence(ctx, it.x0, it.y0, it.x1, it.y1, it.gate, atlas);
+  if (it.kind === 'fence') return fence(ctx, it.x0, it.y0, it.x1, it.y1, it.gate, art('field-fence'));
   const { f, p } = it;
   const st = p.st === 3 ? 4 : growStage(p.g);
-  if (atlas) {
+  const crop = p.crop ?? f.crop;
+  const sheet = art(`crop-${crop}`);
+  if (sheet) {
     // madura há mais de meio prazo: a etapa "passando do ponto" avisa que vai murchar
     const late = p.st === 3 && (p.ripe ?? 0) > (FIELD.witherDays * DAY_LENGTH) / 2;
-    return piece(ctx, atlas, CROP_ROW[p.crop ?? f.crop], late ? 5 : st, p.tx, p.ty);
+    return piece(ctx, sheet, late ? 5 : st, p.tx, p.ty);
   }
   const sway = st >= 3 ? Math.sin(time * 1.6 + p.tx * 0.7 + p.ty) * 0.8 : 0;
   for (const [ox, oy] of SPOTS) {
     const q = P(p.tx + ox, p.ty + oy);
-    plant(ctx, p.crop ?? f.crop, st, q.x, q.y, sway);
+    plant(ctx, crop, st, q.x, q.y, sway);
   }
 }
 
@@ -214,8 +216,8 @@ export function drawFields(ctx: Ctx, g: Game, draft: FieldDraft | null, winter: 
   const fields = s.fields ?? [];
   if (!fields.length && !draft?.size) return;
   const W = s.mapW;
-  const atlas = art('fields');
-  for (const f of fields) for (const p of f.plots) if (isExplored(s, p.tx, p.ty)) soil(ctx, p, winter, atlas);
+  const sheet = art('field-soil');
+  for (const f of fields) for (const p of f.plots) if (isExplored(s, p.tx, p.ty)) soil(ctx, p, winter, sheet);
   if (!draft?.size) return;
   // rascunho: o que vai virar canteiro (contorno amarelo) e o que vai sair (vermelho)
   ctx.save();

@@ -1,20 +1,22 @@
-# Arte dos campos cercados (render/fields.ts): as plantas de cada cultura em 6 etapas, o chão do canteiro e a cerca, num
-# atlas só, src/art/props/fields.png (casas de CELL×CELL px em 2×, SCENERY_SCALE).
+# Arte dos campos cercados (render/fields.ts): as plantas de cada cultura em 6 etapas, o chão do canteiro e a cerca, em
+# folhas separadas na pasta src/art/fields (casas de CELL×CELL px em 2×, SCENERY_SCALE, lado a lado numa fila):
+#   crop-<cultura>.png  6 casas: semente, broto, crescendo, quase, maduro, passando do ponto (murchando)
+#   field-soil.png      4 casas: terra crua, arada, arada úmida, crua no inverno
+#   field-fence.png     4 casas: cerca "\" (lado de baixo-esquerdo), cerca "/" (lado de baixo-direito), portão "\" e
+#                       poste solto (na ponta da frente)
+# Cultura nova: entrada em CROPS (o id de data/crops.ts), rodar o script e registrar `crop-<id>` em render/art.ts (o teste
+# tests/fields-art.test.ts confere que toda cultura de CROP_LIST tem a folha).
 #
 # Cada folha do Codex leva como 1ª referência um gabarito de chão (scripts/iso_template.py): em cada casa o losango exato
 # de um tile (1×1) e, nas peças de cerca, uma linha vermelha no lado do losango onde a cerca fica. O gabarito acerta o
 # tamanho, mas não a posição: o recorte (`cells`) encaixa cada peça pelo próprio desenho.
 #
-# Casa do atlas (CELL = 112, em 2×): o losango do tile tem a ponta de cima em (56, 56), esquerda (8, 80), direita
+# Casa (CELL = 112, em 2×): o losango do tile tem a ponta de cima em (56, 56), esquerda (8, 80), direita
 # (104, 80) e a da frente em (56, 104); o que passa dele (folhas, postes) cabe na folga. render/fields.ts usa as mesmas
 # medidas (FCELL, a metade na cena).
-#   linhas 0..5: culturas na ordem de CROP_LIST (data/crops.ts); colunas = semente, broto, crescendo, quase, maduro,
-#                passando do ponto (murchando)
-#   linha 6: terra crua, arada, arada úmida, crua no inverno, cerca "\" (lado de baixo-esquerdo), cerca "/" (lado de
-#            baixo-direito), portão "\" e poste de canto (na ponta da frente)
 #
-# Uso: python scripts/field-art.py            (gera as folhas que faltam, em paralelo, e monta o atlas)
-#      python scripts/field-art.py --pack     (só remonta o atlas)
+# Uso: python scripts/field-art.py            (gera as folhas do Codex que faltam, em paralelo, e recorta todas)
+#      python scripts/field-art.py --pack     (só recorta de novo)
 #      python scripts/field-art.py --refazer trigo,cerca   (gera de novo essas folhas)
 import subprocess
 import sys
@@ -217,17 +219,23 @@ def cells(name):
     return out
 
 
+def _save(name, cells):
+    strip = Image.new('RGBA', (CELL * len(cells), CELL), (0, 0, 0, 0))
+    for i, im in enumerate(cells):
+        strip.alpha_composite(im, (i * CELL, 0))
+    out = art_file(name)
+    strip.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE).save(out, optimize=True)
+    print(out.relative_to(ROOT).as_posix(), strip.size, f'{out.stat().st_size / 1024:.1f} KB')
+
+
 def pack():
-    rows = [cells(n) if (SRC / f'{n}.png').exists() else [] for n, _ in CROPS]
-    ground = cells('ground') if (SRC / 'ground.png').exists() else []
-    atlas = Image.new('RGBA', (CELL * 8, CELL * 7), (0, 0, 0, 0))
-    for r, row in enumerate(rows + [ground]):
-        for c, im in enumerate(row):
-            atlas.alpha_composite(im, (c * CELL, r * CELL))
-    rgb = atlas.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-    out = art_file('fields')
-    rgb.save(out, optimize=True)
-    print(out.relative_to(ROOT).as_posix(), atlas.size, f'{out.stat().st_size / 1024:.1f} KB')
+    for n, _ in CROPS:
+        if (SRC / f'{n}.png').exists():
+            _save(f'crop-{n}', cells(n))
+    if (SRC / 'ground.png').exists():
+        ground = cells('ground')
+        _save('field-soil', ground[:4])
+        _save('field-fence', ground[4:])
 
 
 def main():

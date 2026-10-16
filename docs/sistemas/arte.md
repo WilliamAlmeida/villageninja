@@ -31,21 +31,23 @@
   `scripts/ui-grid.py` as descrições das casas vão numa linha só: no Windows (`shell=True`) uma quebra de linha no
   argumento engolia tudo depois dela e o Codex desenhava qualquer coisa.
 - Campos andáveis com arte (treino; fazenda e horta só nos vilarejos invadidos) são decalques no chão, desenhados antes das unidades.
-- **Campos cercados** (game/fields.ts, desenho em `render/fields.ts`): um atlas só, `src/art/props/fields.png`, feito por
-  `scripts/field-art.py` (Codex, uma folha por cultura e uma de chão e cerca; originais em `docs/arte/fields/`). Casas de
-  112 px em 2× (56 na cena) com o losango do tile na mesma posição em todas (ponta de cima em 56,56 e da frente em 56,104):
-  linhas 0–5 = culturas na ordem de `CROP_LIST`, colunas = semente, broto, crescendo, quase, maduro e **passando do ponto**
-  (maduro há mais de metade de `FIELD.witherDays`: avisa que vai murchar); linha 6 = terra crua, arada, arada úmida, crua no
-  inverno, cerca "\" (lado de baixo-esquerdo do tile), cerca "/" (baixo-direito), portão "\" e poste solto. Cada peça é
+- **Campos cercados** (game/fields.ts, desenho em `render/fields.ts`): folhas separadas na pasta `src/art/fields`
+  (`scripts/artpaths.py`), feitas por `scripts/field-art.py` (Codex, uma folha por cultura e uma de chão e cerca; originais
+  em `docs/arte/fields/`): `crop-<cultura>` (6 casas: semente, broto, crescendo, quase, maduro e **passando do ponto**,
+  maduro há mais de metade de `FIELD.witherDays`, avisa que vai murchar), `field-soil` (terra crua, arada, arada úmida,
+  crua no inverno) e `field-fence` (cerca "\" no lado de baixo-esquerdo do tile, cerca "/" no de baixo-direito, portão
+  "\" e poste solto). Casas quadradas de 112 px em 2× (56 na cena) numa fila, com o losango do tile na mesma posição em
+  todas (ponta de cima em 56,56 e da frente em 56,104). **Cultura nova**: o id em `CROPS` do script, rodar, registrar
+  `crop-<id>` em `render/art.ts` (o teste `tests/fields-art.test.ts` confere toda cultura de `CROP_LIST`). Cada peça é
   desenhada na casa do tile (`piece`); o lado de cima de um tile é o de baixo do vizinho. Só o chão vai na passada do chão:
   plantas (no meio do tile) e cada trecho de cerca (no meio do lado) entram na ordem de profundidade com as unidades
   (`fieldItems`/`drawFieldItem`), e o fazendeiro mira ~10 px antes do centro do tile (os pés saem 9 px abaixo do ponto),
-  então trabalha dentro do canteiro, atrás da cerca da frente. O gabarito de cada folha
-  (`iso_template.draw`, com linha vermelha no lado da cerca) dá o tamanho, mas o Codex não acerta a posição: o recorte
-  encaixa pelo próprio desenho (chão no losango, 6% maior e recortado nele para o contorno escuro não virar grade; cerca
-  pelos pés dos postes nas pontas do lado, com a largura do poste solto; planta centrada com a base na ponta da frente) e
-  apaga os vãos brancos fechados (entre ripas e folhas). Refazer uma folha: `python scripts/field-art.py --refazer
-  trigo,cerca`; só remontar: `--pack`. Sem o atlas (carregando, testes) fica o desenho à mão de antes.
+  então trabalha dentro do canteiro, atrás da cerca da frente. O gabarito de cada folha (`iso_template.draw`, com linha
+  vermelha no lado da cerca) dá o tamanho, mas o Codex não acerta a posição: o recorte encaixa pelo próprio desenho (chão
+  no losango, 6% maior e recortado nele para o contorno escuro não virar grade; cerca pelos pés dos postes nas pontas do
+  lado, com a largura do poste solto; planta centrada com a base na ponta da frente) e apaga os vãos brancos fechados
+  (entre ripas e folhas). Refazer: `python scripts/field-art.py --refazer trigo,cerca`; só recortar de novo: `--pack`. Sem
+  a folha (carregando, testes) fica o desenho à mão de antes.
 - **Cards de pintar terreno** do menu Construir (Campo cercado, Rua calçada, Limpar área, Aterrar, Cavar; `ui/build.ts`,
   `cardBg`): uma vinheta isométrica cada, `src/art/ui/cards/card-<nome>.png` (192 px de largura), de
   `scripts/card-art.py` (uma folha do Codex com gabarito 2×2 e a casa e o atlas dos campos de referência; `--refazer`).
