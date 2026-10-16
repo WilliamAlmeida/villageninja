@@ -57,7 +57,7 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Concluído; aprovado pelo autor em 2026-10-15 | Sekizō | Cinco socos sucessivos com canhões longos de pressão, de direções diferentes. |
 | Concluído; arte aprovada pelo autor em 2026-10-15 | Kaiten | Domo com formação, rotação e dissipação; folha própria 4x2. |
 | Concluído; implementação e visual aprovados pelo autor em 2026-10-15 | Sōshiken, Gatsūga e Nikudan Sensha | Leões acompanhando os punhos; uma broca por participante do Gatsūga (ninja e ninken próximo); bola com costuras e cor da roupa externa. |
-| Média | Sensatsu, Reiza e Kajōsatsu | Agulhas de gelo, feixes elétricos e esferas de calor. |
+| Concluídos; integração e visual aprovados pelo autor em 2026-10-15 | Sensatsu, Reiza e Kajōsatsu | Agulhas de água convergentes, halo e feixes azul-brancos guiados, três sóis orbitais com vapor. Contato sincronizado e controles no laboratório. Referências e integração em `arte/jutsus/hyoton-ranton-shakuton/README.md`. |
 | Complementar | Kage Bunshin, Edo Tensei e Shousen | Fumaça de criação, surgimento da invocação e aura de cura. |
 
 Golpes físicos aproveitam as coreografias atuais do ninja em camadas, com sprites de impacto, poeira,

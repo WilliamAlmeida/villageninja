@@ -32,6 +32,20 @@
   argumento engolia tudo depois dela e o Codex desenhava qualquer coisa.
 - Campos andáveis com arte (treino; fazenda e horta só nos vilarejos invadidos) são decalques no chão, desenhados antes das unidades.
   Campos cercados (game/fields.ts) têm desenho provisório em `render/fields.ts` até a folha do Codex (32×32 por cultura e etapa).
+- **Variantes dos prédios repetidos** (docs/gdd-escala-ilhas-pvp.md, seção 4; feitas em 2026-10-15): a casa tem três
+  desenhos por nível (`house`, `house-b`, `house-c`, `house-b-2`, `house-c-3`…; a letra entra ANTES do nível) e lenhador,
+  pedreira e fazenda dois (a fazenda hoje só aparece nos vilarejos invadidos: na vila virou campo cercado) (`<tipo>`, `<tipo>-b`, também por nível). A escolha é só no desenho, em `render/variants.ts`
+  (`VARIANTS`, `variantArt`): `id % 3` na casa e `id % 2` na produção, chamada pelo `artBox` do renderer e pelo topo do
+  drawer do prédio; nada muda no save, e sem a arte da variante (não registrada ou ainda carregando) fica a base do
+  nível. O cartão do menu Construir mostra a base. Cada variante tem a sua entrada no `layout.json` (escala/posição
+  medidas na instalação). Para gerar: casa, lenhador e pedreira são lotes de `scripts/building-art.py` com `variant: True`
+  (`casa-b`, `casa-c`, `lenhador-b`, `pedreira-b`): a referência é a arte DE HOJE do mesmo nível (`_hoje-<arte>.png`,
+  régua de tamanho, paleta e acabamento) e o pedido é OUTRO prédio do mesmo tipo (telhado, fachada e detalhes
+  diferentes), com o nível anterior da própria variante como "o mesmo crescido"; `--instalar` grava em `src/art` e no
+  layout como nos outros lotes. A fazenda (decalque do pipeline antigo) sai de `scripts/field-variants.py` (Codex com a
+  fazenda de hoje do nível como referência do losango → `docs/arte/iso/farm-b*.png` → `src/art/buildings/`, largura
+  576 como a `farm`). Variante nova (`-d`…): acrescentar a letra em `VARIANTS`, gerar, registrar em `render/art.ts`
+  (`URLS`) e o teste `tests/art-variants.test.ts` confere que todos os níveis existem.
 - Moradores trabalhando usam folhas de ação (`villager-chop|mine|farm`, gabarito `action`: levanta · balança · impacto ·
   recupera); árvore vira toco e rocha racha conforme se esgotam (o recurso treme no quadro do impacto do golpe, `workImpact`, e a
   árvore que vira toco tomba para o lado com poeira, `Renderer.node`; só visual); colheita deixa um canteiro (`fx 'harvest'`) que rebrota.

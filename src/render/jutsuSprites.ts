@@ -2,7 +2,8 @@
 // sobre o projétil do jutsu (`Projectile.fx`, ou o tipo para projéteis antigos) e a Prisão d'Água sobre o preso.
 import { art } from './art';
 import { CHIDORI_CHARGE, chidoriAge } from '../data/chidori';
-import type { Effect, Projectile } from '../game/types';
+import type { Effect, NatureFlight, Projectile } from '../game/types';
+import { naturePoint } from '../game/natureProjectiles';
 import { JUTSUS } from '../data/jutsus';
 import { FX, PARTS_DEFAULT, spriteFx, type SpriteFx } from '../data/jutsuFx';
 import { suiryuudanPose } from './projectileMotion';
@@ -158,9 +159,40 @@ export function drawJutsuProjectile(ctx: CanvasRenderingContext2D, p: Projectile
   const id = p.fx ?? p.kind;
   const s = spriteFx(id);
   if (!s) return false;
+  if (p.natureFlight) {
+    const f=p.natureFlight,forming=f.elapsed<f.delay;
+    const frame=forming?Math.min(2,Math.floor(f.elapsed/Math.min(.2,f.delay/3))):2+Math.floor((f.elapsed-f.delay)*s.fps)%4;
+    if(id==='reiza') {
+      if(!forming)drawNatureBeam(ctx,f,Math.min(1,(f.elapsed-f.delay)/f.duration),s.opacity);
+      return true;
+    }
+    return drawSpriteFx(ctx,s,p.x,p.y,Math.atan2(p.vy,p.vx),0,0,undefined,frame);
+  }
   if (p.dragon && s.parts && s.motion === 'dragon') return drawDragonChain(ctx, p, s, t);
   if (s.motion === 'dragon') return drawDragon(ctx, p, s, id);
   return drawSpriteFx(ctx, s, p.x, p.y, Math.atan2(p.vy, p.vx), t, p.id, s.emerge ? traveled(p, id) : undefined);
+}
+
+/** O mesmo caminho da simulação é amostrado até a ponta atual, nunca até o alvo antes do contato. */
+export function drawNatureBeam(ctx: CanvasRenderingContext2D,f: NatureFlight,progress: number,opacity: number) {
+  const s=FX.jutsus.reiza?.sprite;
+  if(!s)return;
+  const screen=(k:number)=>{
+    const w=naturePoint(f,k),p=project(w.x,w.y),v=project(w.vx,w.vy),a=Math.atan2(v.y,v.x);
+    const shift=progress>0?k/progress:0;
+    return {x:p.x+shift*((s.dx??0)+Math.cos(a)*(s.forward??0)-Math.sin(a)*(s.side??0)),
+      y:p.y-8+shift*(s.dy+Math.sin(a)*(s.forward??0)+Math.cos(a)*(s.side??0))};
+  };
+  ctx.save();ctx.globalAlpha*=opacity;ctx.lineCap='round';
+  for(const [width,color] of [[s.size*.48,'#78cfff66'],[s.size*.24,'#8be7ff'],[s.size*.12,'#f5ffff']] as const){
+    ctx.lineWidth=Math.max(.5,width);ctx.strokeStyle=color;ctx.beginPath();
+    for(let i=0;i<=32;i++){
+      const p=screen(progress*i/32);
+      if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+    }ctx.stroke();
+  }
+  const p=screen(progress);
+  ctx.fillStyle='#f5ffff';ctx.fillRect(p.x-1,p.y-1,2,2);ctx.restore();
 }
 
 /** Esfera de água sobre o corpo; alpha adicional deixa o ninja legível dentro. */
@@ -210,6 +242,11 @@ export function drawJutsuOrigin(ctx: CanvasRenderingContext2D, e: Effect): boole
   const s = e.fx ? FX.jutsus[e.fx]?.origin : undefined;
   if (!s) return false;
   const p = originPosition(e, s.forward ?? 0), fade = Math.min(1, Math.max(0, (e.life - e.t) / 0.15));
+  if(e.fx==='reiza') {
+    const remaining=e.life-e.t;
+    const frame=remaining<.15?6+Math.floor((.15-remaining)/.075):e.t<.35?Math.min(2,Math.floor(e.t/.12)):2+Math.floor(e.t*s.fps)%4;
+    return drawSpriteFx(ctx,{...s,forward:0,opacity:s.opacity*fade},p.x,p.y,projectAngle(e.facing??0),0,0,undefined,frame);
+  }
   return drawSpriteFx(ctx, { ...s, forward: 0, anchorX: s.mouthX, anchorY: s.mouthY, opacity: s.opacity * fade },
     p.x, p.y, projectAngle(e.facing ?? 0), 0, 0, undefined, Math.min(7, 3 + Math.floor(e.t * s.fps)));
 }
@@ -293,6 +330,16 @@ export function drawJutsuGust(ctx: CanvasRenderingContext2D, e: Effect): boolean
 export function drawJutsuImpact(ctx: CanvasRenderingContext2D, e: Effect): boolean {
   const s = e.fx ? FX.jutsus[e.fx]?.impact : undefined;
   if (!s) return false;
+  if(['sensatsu','reiza','kajosatsu'].includes(e.fx??'')) {
+    const fade=Math.max(0,1-e.t/e.life);
+    if(e.fx==='reiza') {
+      ctx.save();ctx.globalAlpha*=s.opacity*fade;ctx.strokeStyle='#efffff';ctx.lineWidth=1;
+      const x=e.x+(s.dx??0),y=e.y-8+s.dy;
+      for(let i=0;i<5;i++){const a=i*Math.PI*2/5;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*s.size*.5,y+Math.sin(a)*s.size*.5);ctx.stroke();}
+      ctx.restore();return true;
+    }
+    return drawSpriteFx(ctx,{...s,opacity:s.opacity*fade},e.x,e.y-8,0,0,0,undefined,e.t<e.life*.5?6:7);
+  }
   ctx.save();
   ctx.globalAlpha = 1;
   const fade = ['rasenshuriken', 'kirin', 'chidorinagashi'].includes(e.fx ?? '')

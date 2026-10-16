@@ -4,7 +4,7 @@ import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
 import { FX } from '../data/jutsuFx';
-import { drawEarthWall, drawJutsuCrater, drawJutsuImpact, drawJutsuOrigin, jutsuOriginBase } from './jutsuSprites';
+import { drawEarthWall, drawJutsuCrater, drawJutsuImpact, drawJutsuOrigin, jutsuOriginBase, drawNatureBeam } from './jutsuSprites';
 import { dragonPoint } from '../game/dragonFlight';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
@@ -40,6 +40,7 @@ import { natureOf, Particles } from './particles';
 import { drawDeco, lightWeatherFx, Seasonal, SEASON_VIEW, snowCap, snowField, type Deco } from './seasonal';
 import { drawBuilding, drawNode, drawProjectile, drawUnit, drawUnitSilhouette, isStump, nodeRect, workImpact, type WorkAction } from './sprites';
 import { Terrain } from './terrain';
+import { variantArt } from './variants';
 import { BAND, COLW, PAD_TOP, Scenery, type SceneNode, type StripTile, stripScale, TILE_H } from './scenery';
 
 export interface Ghost {
@@ -798,6 +799,9 @@ export class Renderer {
     for (const e of s.effects) {
       if (e.kind === 'wall' || e.kind === 'crater' || e.kind === 'jutsuOrigin' ||
           (e.kind === 'burst' && FX.jutsus[e.fx ?? '']?.impact?.layer === 'ground')) continue; // peças fixas já desenhadas
+      if(e.kind==='beam'&&e.fx==='reiza'&&e.natureFlight){
+        drawNatureBeam(ctx,e.natureFlight,1,(FX.jutsus.reiza?.sprite?.opacity??1)*Math.max(0,1-e.t/e.life));continue;
+      }
       if (e.kind === 'afterimage') {
         this.afterimage(g, e, time);
         continue;
@@ -1337,7 +1341,10 @@ export class Renderer {
       b.type === 'cherry' ? (this.season === 'spring' ? 'cherry' : this.season === 'winter' ? 'cherry-bare' : 'cherry-green') : faces && art(faces) ? faces : b.type;
     const themed = this.theme && art(`${b.type}-${this.theme}`) ? `${b.type}-${this.theme}` : '';
     const artName = themed || (lvl > 1 && art(`${base}-${lvl}`) ? `${base}-${lvl}` : base);
-    return this.boxFor(b, artName, lvl);
+    // prédios repetidos (casa, lenhador, pedreira, fazenda): a variante pelo id, só no desenho (render/variants.ts);
+    // enquanto a arte dela não carregou, a base do nível
+    const name = themed ? artName : variantArt(b.type, b.id, artName, (n) => !!art(n));
+    return this.boxFor(b, name, lvl);
   }
 
   /** Retângulo de uma arte de prédio na cena (escala/deslocamento do layout, com o da arte-base nas variantes). */

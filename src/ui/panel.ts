@@ -16,6 +16,7 @@ import { learnSpec, specBlock } from '../game/specs';
 import { adoptDog, breedBlock, dogBlock, dogCap, dogOf, DOG_COST, freeDogs, giveDog, releaseDog, villageDogs } from '../game/ninken';
 import { BREED_LIST, BREEDS, breedArt, type DogBreed } from '../data/breeds';
 import { artUrl } from '../render/art';
+import { variantArt } from '../render/variants';
 import { searchTiles } from '../game/systems/villagers';
 import { TILE } from '../config';
 import { doorPos, tileCenter } from '../game/world';
@@ -217,6 +218,8 @@ const ACTION_TIP: Record<RegionAction, string> = {
 
 /** Zoom máximo do mapa da região (a imagem tem 1152 px de largura: mais que isso borra). */
 const MAP_ZOOM_MAX = 2.6;
+/** Lado do painel do lugar no mapa da região (direita padrão; esquerda quando taparia o lugar). */
+type SheetSide = 'r' | 'l';
 /** Janela larga o bastante para os contratos ativos numa coluna ao lado das missões. */
 const WIDE_BOARD = '(min-width: 1000px) and (min-height: 521px)';
 /** Telas paradas: só mudam com acontecimentos (nascer, cair, aviso, novo dia); remontam quando o jogo muda ou a cada 3 s. */
@@ -368,6 +371,7 @@ export class Panel {
   private dogPick: number | null = null;
   /** Região: lugar aberto e equipe escolhida para as ações. */
   private regionNode: string | null = null;
+  private sheetSide: SheetSide = 'r';
   /** Mapa da região: zoom e deslocamento (px da vista); `ready` = já centrado uma vez. Só interface. */
   private map = { z: 1, x: 0, y: 0, ready: false };
   /** Arrastando o mapa (ponteiros na tela, para arrastar com um e pinçar com dois). */
@@ -960,18 +964,34 @@ export class Panel {
     layer.classList.toggle('px', !!img?.naturalWidth && lw * devicePixelRatio > img.naturalWidth * 1.15);
   }
 
-  /** Leva o lugar escolhido para o meio da parte do mapa que o painel dele não cobre. */
+  /**
+   * Leva o lugar escolhido para o meio da parte do mapa que o painel dele não cobre. Se o painel taparia o lugar (lugar
+   * perto da borda, onde o mapa não rola mais), o painel vai para o outro lado.
+   */
   private focusNode(id: string) {
     const def = REGION[id];
     const view = this.body.querySelector<HTMLElement>('.rmapview');
     const layer = view?.querySelector<HTMLElement>('.rlayer');
     if (!def || !view || !layer) return;
-    const sheet = view.querySelector<HTMLElement>('.rsheet');
-    const free = view.clientWidth - (sheet ? sheet.offsetWidth + 16 : 0);
-    const m = this.map;
+    const W = view.clientWidth;
+    const sw = view.querySelector<HTMLElement>('.rsheet')?.offsetWidth ?? 0;
     const { lw, lh } = this.mapSize(view);
-    m.x = free / 2 - (def.x / 100) * lw;
+    const nx = (def.x / 100) * lw;
+    const place = (side: SheetSide) => {
+      const want = (side === 'r' ? 0 : sw) + (W - sw) / 2 - nx;
+      const x = lw <= W ? (W - lw) / 2 : Math.min(0, Math.max(W - lw, want));
+      const at = x + nx;
+      return { x, hidden: side === 'r' ? at > W - sw - 30 : at < sw + 30 };
+    };
+    let side: SheetSide = this.sheetSide;
+    if (place(side).hidden && !place(side === 'r' ? 'l' : 'r').hidden) side = side === 'r' ? 'l' : 'r';
+    const m = this.map;
+    m.x = place(side).x;
     m.y = view.clientHeight / 2 - (def.y / 100) * lh;
+    if (side !== this.sheetSide) {
+      this.sheetSide = side;
+      this.update(true);
+    }
     this.applyMap();
   }
 
@@ -993,7 +1013,8 @@ export class Panel {
     const g = this.app.game;
     const s = g.state;
     let html = this.tabs('region');
-    html += `<div class="rview"><div class="rmapview"><div class="rlayer" style="${this.mapStyle()};--rplaces:url(${regionPlaces});--rn:${REGION_ART.length}"><img src="${regionMap}" alt="" draggable="false">`;
+    const sideCls = this.regionNode && this.sheetSide === 'l' ? ' side-l' : '';
+    html += `<div class="rview"><div class="rmapview${sideCls}"><div class="rlayer" style="${this.mapStyle()};--rplaces:url(${regionPlaces});--rn:${REGION_ART.length}"><img src="${regionMap}" alt="" draggable="false">`;
     // trilhas e equipes em viagem: da vila até o lugar (ida), no lugar (serviço) e de volta
     let routes = '';
     let tokens = '';
@@ -1065,7 +1086,7 @@ export class Panel {
     const statusLabel = { neutral: 'Neutro', protected: 'Protegido', vassal: 'Vassalo', hostile: 'Hostil' }[st.status];
     const stCls = { neutral: 'info', protected: 'safe', vassal: 'good', hostile: 'danger' }[st.status];
     let html = `<div class="rhead"><div><div class="rh-name">${def.name}</div><div class="td-chips">
-      <span class="mchip">${kindLabel}</span>${def.kind === 'village' ? `<span class="mpill ${stCls}">${statusLabel}</span>` : ''}<span class="mchip">{shield} Defesas ${nodePower(s, def)}</span></div></div></div>
+      <span class="mchip">${kindLabel}</span>${def.kind === 'village' ? `<span class="mpill ${stCls}">${statusLabel}</span>` : ''}<span class="mchip">{shield} ${nodePower(s, def)}</span></div></div></div>
       <p class="bh-desc">${esc(def.desc)}</p>`;
     // ganhos por dia: cada recurso numa etiqueta (ícone e quantia)
     const gains = (c: Cost) => (Object.entries(c) as [ResKey, number][]).filter(([, v]) => v).map(([k, v]) => `<span class="lchip">${RES_INFO[k].icon} ${v}</span>`).join('');
@@ -1127,7 +1148,7 @@ export class Panel {
     const k = tp / Math.max(1, np);
     const sel = g.team(this.regionTeam);
     const fit: [string, string] = k >= 1.5 ? ['folgado', 'safe'] : k >= 1 ? ['equilibrado', 'good'] : k >= 0.7 ? ['arriscado', 'risky'] : ['muito perigoso', 'danger'];
-    html += `</div><div class="rfit"><span class="faces">${sel ? teamUnits(g, sel).map((u) => this.face(u)).join('') : ''}</span><span class="mpill ${fit[1]}">{swords} ${tp} × defesas ${np} · ${fit[0]}</span></div></div>`;
+    html += `</div><div class="rfit"><span class="faces">${sel ? teamUnits(g, sel).map((u) => this.face(u)).join('') : ''}</span><span class="mpill ${fit[1]}">{swords} ${tp} × {shield} ${np} · ${fit[0]}</span></div></div>`;
     html += `<div class="bsec"><h4>{target} Ações</h4><div class="ractions">`;
     const busy = teamBusy(g, this.regionTeam);
     // uma linha por ação: ícone na cor da ação, nome e o que se paga/recebe; à direita o tempo ou "jogável" (vira mapa).
@@ -2005,7 +2026,9 @@ export class Panel {
     const g = this.app.game;
     const d = defOf(bd);
     const lvl = bd.type === 'hokage' ? g.state.level + 1 : levelOf(bd);
-    const url = (lvl > 1 && artUrl(`${bd.type}-${lvl}`)) || artUrl(bd.type);
+    // a mesma arte que o prédio tem no mapa: o nível e, nos repetidos, a variante pelo id (render/variants.ts)
+    const baseArt = lvl > 1 && artUrl(`${bd.type}-${lvl}`) ? `${bd.type}-${lvl}` : bd.type;
+    const url = artUrl(variantArt(bd.type, bd.id, baseArt, (n) => artUrl(n) !== null));
     const max = bd.type === 'hokage' ? 4 : UPGRADES[bd.type] ? MAX_BUILDING_LEVEL : 0;
     const [st, cls] = !bd.built ? ['Em obra', 'good'] : bd.upgrade != null ? ['Melhorando', 'good'] : ['Funcionando', 'safe'];
     return `<div class="bhead"><span class="bh-art">${url ? pimg(url) : d.icon}</span><div class="bh-main">
