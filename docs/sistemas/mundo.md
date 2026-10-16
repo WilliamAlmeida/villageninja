@@ -42,7 +42,8 @@
   desenho pequeno do atlas (olham para a direita, espelhados pelo rumo): carroça vazia na ida, cheia na volta com
   espólio, vazia se recuou/não havia o que trazer, sem carroça (feridos) se perdeu (`Expedition.outcome`, posto por
   `resolveRegion`); no mar, barco vazio/cheio ou jangada. Mapa novo: refazer as rotas olhando a grade em %. Tocar num lugar abre o
-  painel dele por cima (`.rsheet`, `focusNode` tira o lugar de baixo dele); equipes em viagem andam no mapa pela trilha
+  painel dele por cima (`.rsheet`, `focusNode` tira o lugar de baixo dele; se o painel da direita taparia o lugar, vai para a
+  esquerda, classe `.side-l`, com legenda e zoom do outro lado e entrada espelhada); equipes em viagem andam no mapa pela trilha
   tracejada (`.rtoken`/`.rroute`); legenda e "como funciona" no canto. Quadro de missões numa tela só (disponíveis e
   recentes; as ativas na coluna da direita ou no alto na estreita).
   vilarejos (comerciar, proteger, saquear, anexar), ilhas (explorar, posto avançado, treinar no templo) e lugares sagrados
