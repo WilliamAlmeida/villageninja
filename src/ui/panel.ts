@@ -1,6 +1,7 @@
 // Painel lateral de detalhes. Estrutura HTML só é recriada quando muda;
 // valores dinâmicos (barras, números) são atualizados in-place via data-t / data-b.
 import type { App } from '../app';
+import type { Game } from '../game/game';
 import { ANIMALS } from '../data/animals';
 import { BUILDINGS, defOf } from '../data/buildings';
 import { ROGUE_ROLES } from '../data/enemies';
@@ -25,6 +26,8 @@ import regionPlaces from '../art/region/region-places.png';
 import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower, unitPower } from '../game/expeditions';
 import { colonists, colonySummary, sendColonists } from '../game/colonies';
+import { cropBlock, fieldById, fieldStats, isPaddy, maxWorkers, removeField, setFieldCrop, setFieldWorkers } from '../game/fields';
+import { CROP_LIST, CROPS, type CropId, FIELD } from '../data/crops';
 import { COLONY } from '../data/colonies';
 import { guardiansOf, mineUses, missingScrolls, sitePos } from '../game/explore';
 import { JUTSU_TYPE_LABEL, JUTSUS, jutsuChakra } from '../data/jutsus';
@@ -84,7 +87,7 @@ import {
   attackersOf, autoTeams, availableFighters, clearCommand, commandLabel, isAttackable, nearestFighters, orderAttack, createTeam, createTeamWith, disbandTeam, joinAsMember, joinAsSensei, leaveTeam, MAX_MEMBERS, orderRetreat,
   setTeamOrder, teamFit, teamOf, teamUnits,
 } from '../game/teams';
-import type { Building, Cost, Expedition, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
+import type { Field, Building, Cost, Expedition, Mission, NinjaOrder, Site, Team, Unit } from '../game/types';
 import { occupantsOf } from '../game/interior';
 import { isNight } from '../game/time';
 import { drawInterior } from '../render/interior';
@@ -114,6 +117,7 @@ export type View =
   | { kind: 'teams' }
   | { kind: 'clans' }
   | { kind: 'site'; id: number }
+  | { kind: 'field'; id: number }
   | { kind: 'expeditions' }
   | { kind: 'region' }
   | { kind: 'crafts' }
@@ -377,6 +381,8 @@ export class Panel {
   private buildingTab: BuildingTab = 'main';
   /** Pedido para abrir uma tela de gestão na janela central. */
   onWindow: (view: View) => void = () => {};
+  /** Abrir a ferramenta Cercar campo (drawer do campo). */
+  onPaintField: () => void = () => {};
   /** Ninja sob o mouse numa lista do painel (destacado no mapa). */
   hoverId: number | null = null;
   private lastTime = 0;
@@ -573,6 +579,9 @@ export class Panel {
     else if (this.view.kind === 'team') {
       const tm = g.team(this.view.id);
       if (tm) built = this.teamsList(tm);
+    } else if (this.view.kind === 'field') {
+      const f = fieldById(g.state, this.view.id);
+      if (f) built = this.fieldView(f);
     } else if (this.view.kind === 'site') {
       const id = this.view.id;
       const site = g.state.sites.find((x) => x.id === id);
@@ -728,7 +737,8 @@ export class Panel {
     const job = this.app.game.building(u.jobId);
     const jobDef = job ? defOf(job) : null;
     html += `<div class="ph"><div class="title">${esc(u.name)}</div><div class="badges"><span class="badge">Morador(a)</span>${this.lineageBadges(u)}</div></div>`;
-    html += `<div class="sub">${jobDef?.job ? JOB_LABEL[jobDef.job] : 'Sem emprego (ajuda nas obras)'} · <span data-t="state"></span></div>`;
+    const farmer = u.fieldId != null ? fieldById(this.app.game.state, u.fieldId) : undefined;
+    html += `<div class="sub">${jobDef?.job ? JOB_LABEL[jobDef.job] : farmer ? `${JOB_LABEL.farmer} (${CROPS[farmer.crop].name.toLowerCase()})` : 'Sem emprego (ajuda nas obras)'} · <span data-t="state"></span></div>`;
     html += `<div class="bar hp"><i data-b="hp"></i><span data-t="hp"></span></div>`;
     const h = u.heritage;
     if (h?.parents) html += `<p class="hint">Filho(a) de ${esc(h.parents.join(' e '))}</p>`;
@@ -800,6 +810,59 @@ export class Panel {
   }
 
   /** Local especial: o que é, guardiões e quem mandar investigar. */
+  /** Campo cercado (game/fields.ts): cultura, canteiros por etapa, fazendeiros e o mapa dos canteiros. */
+  private fieldView(f: Field): Built {
+    const g = this.app.game;
+    const t: Record<string, string> = {};
+    const c = CROPS[f.crop];
+    const st = fieldStats(g, f);
+    let html = `<div class="bhead"><span class="bh-art">${c.icon}</span><div class="bh-main"><div class="bh-name">Campo de ${c.name.toLowerCase()}</div>
+      <div class="bh-row"><b>${f.plots.length} canteiro(s)</b><span class="mpill ${st.ripe ? 'good' : 'safe'}">${st.ripe ? `${st.ripe} pronto(s) para colher` : 'Crescendo'}</span></div></div></div>`;
+    // etapas: quantos canteiros em cada uma
+    html += `<div class="bsec"><h4>{wheat} Canteiros ${infoTip('Canteiros', `Cada canteiro passa por terra crua, arada, plantada e madura. Os fazendeiros fazem o que mais importa primeiro: colher, semear, arar e regar. Seco cresce na metade; vizinho de água e debaixo de chuva fica úmido sozinho. Maduro aguenta ${FIELD.witherDays} dias no pé antes de murchar.`)}</h4>
+      <div class="td-chips"><span class="mchip">{todo} Crua ${st.raw}</span><span class="mchip">{shovel} Arada ${st.tilled}</span><span class="mchip">{leaf} Crescendo ${st.growing}${st.dry ? ` <small>(${st.dry} seco)</small>` : ''}</span><span class="mchip">{check} Madura ${st.ripe}</span></div>
+      ${this.plotGrid(g, f)}
+      <div class="td-chips"><span class="mchip" ${tipAttr('Próxima colheita', 'Do canteiro plantado mais adiantado, no ritmo de hoje (estação e água).', true)}>{clock} ${Number.isFinite(st.nextDays) ? `${st.nextDays < 1 ? 'menos de 1 dia' : `${Math.ceil(st.nextDays)} dia(s)`}` : st.ripe ? 'Agora' : '—'}</span>
+        <span class="mchip" ${tipAttr('Solo', `Repetir a mesma cultura cansa a terra (rende até a metade); trocar de cultura descansa. Média do cercado: ${Math.round(st.fert * 100)}%.`, true)}>{leaf} Solo ${Math.round(st.fert * 100)}%</span></div></div>`;
+    // cultura
+    html += `<div class="bsec"><h4>{target} Cultura ${infoTip('Cultura', 'Vale para o que for semeado daqui em diante; o que já cresce continua. Cada cultura tem o tempo, o que rende e as estações dela.')}</h4><div class="chips cropchips">`;
+    for (const cr of CROP_LIST) {
+      const why = cropBlock(g, f, cr.id);
+      const per = Math.round(cr.yield / cr.days);
+      html += `<button data-act="field-crop" data-arg="${cr.id}" class="${f.crop === cr.id ? 'on' : ''}" ${blocked(g, [why])} ${tipAttr(cr.name, `${cr.desc} ${cr.days} dias, rende ${cr.res === 'food' ? '{food}' : '{herbs}'} ${cr.yield} por canteiro (~${per} por dia).`)}>${cr.icon} ${cr.name}</button>`;
+    }
+    html += `</div></div>`;
+    // fazendeiros: uma marca por vaga (cheia = trabalhando, contorno = pedido)
+    const max = maxWorkers(f);
+    const pips = Array.from({ length: max }, (_, i) => `<i class="${i < f.workers.length ? 'on' : i < f.desired ? 'want' : ''}"></i>`).join('');
+    t.fworkers = String(f.workers.length);
+    html += `<div class="bsec"><h4>{users} Fazendeiros ${infoTip('Fazendeiros', `Um fazendeiro cuida de uns ${FIELD.plotsPerWorker} canteiros. Toque + e − para pedir moradores (até ${max}).`)}</h4><div class="workers"><button class="btn" data-act="field-workers" data-arg="-1">{minus}</button>
+      <span class="wnum"><b><span data-t="fworkers"></span><small>/${max}</small></b><span class="wpips">${pips}</span></span>
+      <button class="btn primary" data-act="field-workers" data-arg="1">{plus}</button></div></div>`;
+    html += `<div class="actions"><button class="btn" data-act="field-paint" ${tipAttr('Aumentar ou recortar', 'Abre a ferramenta Cercar campo: pinte canteiros encostados neste para aumentar, ou toque nos que quer tirar.')}>{hammer} Aumentar ou recortar</button><button class="btn danger" data-act="field-remove" ${tipAttr('Desfazer o campo', 'Tira a cerca e os canteiros (a madeira não volta; o que está plantado se perde).')}>{x} Desfazer</button></div>`;
+    return { html, t, b: {} };
+  }
+
+  /** Mapa miniatura dos canteiros (o formato do cercado), cada um na cor da etapa. */
+  private plotGrid(g: Game, f: Field) {
+    if (!f.plots.length) return '';
+    const xs = f.plots.map((p) => p.tx);
+    const ys = f.plots.map((p) => p.ty);
+    const x0 = Math.min(...xs);
+    const y0 = Math.min(...ys);
+    const w = Math.max(...xs) - x0 + 1;
+    const h = Math.max(...ys) - y0 + 1;
+    const cells = f.plots
+      .map((p) => {
+        const k = p.st === 3 ? 'ripe' : p.st === 2 ? (p.wet && p.wet > 0 ? 'grow' : 'dry') : p.st === 1 ? 'tilled' : 'raw';
+        const lab = { ripe: 'Madura', grow: 'Crescendo', dry: 'Crescendo (seca)', tilled: 'Arada', raw: 'Terra crua' }[k];
+        const pct = p.st === 2 ? ` · ${Math.round(p.g * 100)}%` : '';
+        return `<i class="pg-${k}" style="grid-column:${p.tx - x0 + 1};grid-row:${p.ty - y0 + 1};--g:${p.st === 2 ? p.g : p.st === 3 ? 1 : 0}" ${tipAttr(lab, `${p.crop ? CROPS[p.crop].name : 'Sem planta'}${pct} · solo ${Math.round(p.fert * 100)}%${isPaddy(g.state, p.tx, p.ty) ? ' · beira da água' : ''}`, true)}></i>`;
+      })
+      .join('');
+    return `<div class="plotgrid" style="grid-template-columns:repeat(${w},1fr);aspect-ratio:${w}/${h};max-width:${Math.min(100, w * 2.2)}rem">${cells}</div>`;
+  }
+
   private siteView(site: Site): Built {
     const g = this.app.game;
     const def = SITES[site.kind];
@@ -3508,6 +3571,19 @@ export class Panel {
         if (v?.kind !== 'unit') return;
         return this.report(learnSpec(g, v.id, arg as SpecKind));
       }
+      case 'field-crop':
+        if (v?.kind !== 'field') return;
+        return this.report(setFieldCrop(g, v.id, arg as CropId));
+      case 'field-workers':
+        if (v?.kind !== 'field') return;
+        return this.report(setFieldWorkers(g, v.id, Number(arg)));
+      case 'field-remove':
+        if (v?.kind !== 'field') return;
+        return this.report(removeField(g, v.id));
+      case 'field-paint':
+        this.show(null);
+        this.onPaintField();
+        return;
       case 'r-node':
         this.regionNode = arg || null;
         this.report({ ok: true });

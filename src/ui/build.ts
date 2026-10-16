@@ -16,6 +16,8 @@ import type { ResourceNode } from '../game/types';
 import { EARTH, earthworkAt, markEarth, unmarkEarth } from '../game/earthworks';
 import { TILE } from '../config';
 import { DECO_MOOD_MAX } from '../game/mood';
+import { commitFields, draftField, draftPlots, fieldCost, plotCap, plotCount, plotWith } from '../game/fields';
+import { FIELD } from '../data/crops';
 
 /** Dica do card (texto puro): o que faz e o custo. */
 const plainInfo = (d: (typeof BUILDINGS)[BuildingType]) => `${plainTokens(d.desc)}${d.mood ? `
@@ -34,6 +36,15 @@ export class BuildUI {
     this.bar = el('div', { id: 'buildbar', hidden: '' });
     // prédios primeiro; depois a seção Decoração, que começa pela rua calçada (pintada arrastando no mapa)
     const list = [...BUILDING_LIST.filter((d) => d.buildable && !d.deco), null, ...BUILDING_LIST.filter((d) => d.buildable && d.deco)];
+    // campo cercado (game/fields.ts): pintado tile a tile, em formato livre; substitui a Fazenda e a Horta de Ervas
+    this.bar.appendChild(
+      el(
+        'button',
+        { class: 'bcard road field', 'data-field': '1', 'data-tip-title': 'Campo cercado', 'data-tip': `Arraste no mapa para cercar canteiros, no formato que quiser. Canteiros encostados formam um campo, com uma cultura só (trigo, nabo, repolho, arroz, abóbora ou ervas). Os fazendeiros aram, semeiam, regam e colhem canteiro a canteiro.
+Custo: ${plainTokens(costLabel(FIELD.cost))} de cerca por canteiro` },
+        rich(`<span class="i">{wheat}</span><span class="n">Campo cercado</span><span class="c">${costLabel(FIELD.cost)} / canteiro</span><span class="lock"></span><span class="cnt" data-fcnt></span>`),
+      ),
+    );
     for (const d of list) {
       if (!d) {
         this.bar.appendChild(el('div', { class: 'bsep' }, 'Decoração'));
@@ -86,6 +97,10 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
         this.startRoad();
         return;
       }
+      if ((e.target as HTMLElement).closest('[data-field]')) {
+        this.startField();
+        return;
+      }
       if ((e.target as HTMLElement).closest('[data-clear]')) {
         this.startRoad('clear');
         return;
@@ -128,7 +143,9 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       if (a === 'done') {
         // o rascunho da rua só vale aqui: paga e calça (ou tira) de uma vez
         const g = this.app.game;
-        if (this.app.roadDraft.size && commitRoads(g, this.app.roadDraft)) g.rev++;
+        if (this.app.roadMode === 'field') {
+          if (this.app.roadDraft.size && commitFields(g, this.app.roadDraft)) g.rev++;
+        } else if (this.app.roadDraft.size && commitRoads(g, this.app.roadDraft)) g.rev++;
         this.exit();
       }
     });
@@ -147,7 +164,12 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
   private strokeDel: boolean | null = null;
 
   /** Entra no modo de pintar ruas (ou de marcar a área a limpar, ou de aterrar/cavar). */
-  private startRoad(mode: 'pave' | 'clear' | 'fill' | 'dig' = 'pave') {
+  /** Entra no modo de cercar campo (canteiros pintados tile a tile; vale no "Pronto"). */
+  startField() {
+    this.startRoad('field');
+  }
+
+  private startRoad(mode: 'pave' | 'clear' | 'fill' | 'dig' | 'field' = 'pave') {
     setShown(this.bar, false);
     this.app.roadMode = mode;
     this.lastRoad = null;
@@ -166,12 +188,26 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
           ? `{drop} Toque ou arraste sobre a terra para cavar · ${works.filter((e) => e.op === 'dig').length} marcados`
           : m === 'clear'
             ? `{axe} Toque ou arraste sobre árvores, tocos e pedras para mandar limpar · ${toClear(this.app.game.state).length} marcados`
-            : this.roadDraftHint();
+            : m === 'field'
+              ? this.fieldDraftHint()
+              : this.roadDraftHint();
     const raw = this.roadMsg ? `${msg} · <b>${this.roadMsg}</b>` : msg;
     const e = this.roadBar.querySelector<HTMLElement>('[data-t="road"]')!;
     if (e.dataset.raw === raw) return; // o arraste chama a cada movimento
     e.dataset.raw = raw;
     e.innerHTML = rich(raw);
+  }
+
+  /** Campo: canteiros no rascunho, o teto e o custo da cerca. */
+  private fieldDraftHint() {
+    const s = this.app.game.state;
+    const d = this.app.roadDraft;
+    const add = draftPlots(d);
+    const del = d.size - add;
+    const total = plotCount(s) + add - del;
+    const pend = [add && `${add} a cercar · ${costLabel(fieldCost(add))}`, del && `${del} a tirar`].filter(Boolean).join(' · ');
+    const base = `{wheat} Toque ou arraste para cercar canteiros · ${total}/${plotCap(s)} canteiros`;
+    return pend ? `${base} · ${pend}` : base;
   }
 
   /** Rua: o que o rascunho tem até agora (nada é pago antes do "Pronto"). */
@@ -189,6 +225,7 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const g = this.app.game;
     const m = this.app.roadMode;
     if (m === 'pave') return roadWith(g.state, this.app.roadDraft, tx, ty);
+    if (m === 'field') return plotWith(g, this.app.roadDraft, tx, ty);
     if (m === 'clear') return !!node?.clear;
     return !!earthworkAt(g.state, tx, ty);
   }
@@ -280,7 +317,8 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
       else if (m === 'fill' || m === 'dig') {
         const r = markEarth(g, x, y, m);
         if (!r.ok && r.error !== 'Já está marcado.' && r.error !== 'Aqui já é terra.' && r.error !== 'Aqui já é água.') why = r.error;
-      } else why = draftRoad(g, this.app.roadDraft, x, y, !del) ?? why;
+      } else if (m === 'field') why = draftField(g, this.app.roadDraft, x, y, !del) ?? why;
+      else why = draftRoad(g, this.app.roadDraft, x, y, !del) ?? why;
     }
     this.lastRoad = done || tap ? null : { tx, ty };
     this.roadMsg = why ?? '';
@@ -346,6 +384,13 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     if (this.bar.hidden) return;
     const road = this.bar.querySelector('[data-road]');
     if (road) road.classList.toggle('off', !this.app.game.canAfford(ROAD.cost));
+    {
+      const s = this.app.game.state;
+      const fc = this.bar.querySelector<HTMLElement>('[data-fcnt]');
+      const txt = `${plotCount(s)}/${plotCap(s)}`;
+      if (fc && fc.textContent !== txt) fc.textContent = txt;
+      fc?.classList.toggle('full', plotCount(s) >= plotCap(s));
+    }
     const g = this.app.game;
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const type = c.dataset.type as BuildingType;

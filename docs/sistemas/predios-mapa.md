@@ -10,8 +10,8 @@
   Arte por nível: `<tipo>-2` / `<tipo>-3` em src/art (gerada pelo Codex com o nível 1 como referência).
 - **Teto de prédios por nível da vila** (2026-10-15, docs/gdd-escala-ilhas-pvp.md seção 3; `BuildingDef.maxCount`
   `[n0..n3]`, `maxCountOf(type, level)`, `Game.buildingCount/buildingCap`, `countBlock` em commands.ts dentro de
-  `canBuild`): a vila cresce subindo o nível dos prédios, não repetindo. Casa 5/8/11/14; fazenda, lenhador e pedreira
-  2/3/4/5; mina de ferro e horta 0/2/3/4; mercado 1/2/2/3; torre 3/5/8/12; campo de treino 1/2/3/4; únicos = 1;
+  `canBuild`): a vila cresce subindo o nível dos prédios, não repetindo. Casa 5/8/11/14; lenhador e pedreira
+  2/3/4/5; mina de ferro 0/2/3/4 (fazenda e horta viraram campos cercados, teto de canteiros abaixo); mercado 1/2/2/3; torre 3/5/8/12; campo de treino 1/2/3/4; únicos = 1;
   decorações e ruas sem teto. Prédio em obra conta. **Casa abriga 4 / 8 / 12** (`housingOf` = 4 × nível; era 4/6/8) e
   o `popLimit` é o das casas do teto cheias: 40/90/130/170 (era 60/100/150/200), imposto 3/4/4/5. Save antigo acima
   do teto: nada é demolido; `canBuild` só recusa o próximo ("Limite de 8 casas no nível Vila: suba a vila de nível (11
@@ -19,6 +19,30 @@
   (`.cnt`, cheio em `--warn`; o toque abre o cartão com o motivo), fato "Até N neste nível" no cartão, cartão "Casas
   N / teto" na janela Vila e aviso na aba de melhoria do drawer quando no teto. Sem migração de save. Testes em
   `tests/limits.test.ts`.
+- **Campos cercados** (2026-10-16, save v49; `data/crops.ts`, `game/fields.ts`, `systems/crops.ts`, desenho provisório
+  em `render/fields.ts`): substituem a Fazenda e a Horta de Ervas (que ficaram `buildable: false`, só como enfeite dos
+  vilarejos invadidos). Modo "Cercar campo" (primeiro card da construção, `BuildUI.startField`, `roadMode: 'field'`):
+  pinta canteiros tile a tile em **formato livre** (rascunho `FieldDraft` como as ruas, vale no "Pronto"; `commitFields`
+  paga `FIELD.cost` de madeira por canteiro, tira árvore/toco/rua embaixo e refaz os cercados com `regroup`).
+  Canteiros vizinhos (4 lados) = um cercado com **uma cultura** (`Field.crop`); partir ao meio vira dois com a mesma
+  cultura, juntar fica com a do maior. **Teto total de canteiros** por nível (`FIELD.maxPlots` 18/36/48/60; colônia
+  `FIELD.colonyPlots` 18; `plotCap`). `World.fieldTile` marca o campo de cada tile; prédio não entra no canteiro e fica a
+  um tile da cerca. **Canteiro** (`Plot`): `st` 0 terra crua → 1 arada → 2 plantada (`g` 0..1 por dias de jogo × estação
+  da cultura × água) → 3 madura (`ripe` conta; passados `FIELD.witherDays` murcha e volta a arada). Água: vizinho de água
+  (`isPaddy`) ou debaixo da chuva local fica úmido; seco cresce `FIELD.dryGrowth`. **Culturas** (`CROPS`): trigo, nabo
+  (rápido, aguenta frio), repolho (outono), arroz (só em canteiro vizinho de água, rende muito), abóbora (lenta, rende
+  mais, a geada do inverno mata) e ervas (nível 1, era a Horta). **Solo** (`fert`): repetir a cultura tira
+  `FIELD.fertStep`, trocar devolve; rende 50–100%. **Fazendeiros**: `Unit.fieldId` + `Field.desired/workers`
+  (`assignJobs` enche os campos antes dos prédios; `maxWorkers` = 1 por `FIELD.plotsPerWorker` canteiros); a tarefa é
+  o canteiro mais importante e livre (`nextPlot`: colher > semear > arar > regar; `taskId` = índice do tile), estados
+  `toPlot`/`tending` em villagers.ts, `workPlot` aplica. Corvos bicam canteiro maduro (volta a arado) e levam comida.
+  Drawer (`View.kind 'field'`, toque num canteiro): canteiros por etapa, mapinha do formato (`.plotgrid`), próxima
+  colheita, solo, cultura em chips (bloqueadas com o motivo), fazendeiros, "Aumentar ou recortar" e "Desfazer".
+  Migração v49 (`farmsToFields`): cada Fazenda vira 3×3 de trigo e cada Horta 2×2 de ervas nos mesmos tiles, já
+  crescendo, com os mesmos trabalhadores, na vila e nas colônias. Jogo novo começa com 3×3 de trigo semeado. Colônia
+  fora da tela: `fieldDailyYield`. Vitrine: um campo de cada cultura em etapas variadas (`f-campo`, `f-arroz`, `cercar`).
+  Testes em `tests/fields.test.ts`. **Arte pendente**: folha do Codex de 32×32 por cultura e etapa, chão do canteiro e
+  peças de cerca (lados do losango, cantos, portão) no lugar do desenho provisório.
 - **Tamanho do mapa por estado** (`GameState.mapW/mapH`; `VILLAGE_W/H` = 112×112 e `SCENE_W/H` = 72×48 em config.ts):
   não há mais `MAP_W`/`WORLD_W` globais. Índices e limites vêm do mapa: `World.idx/inBounds/fidx/inFine/cellCenter` e
   `world.mapW/fineW`, ou `idx(s, …)`/`inBounds(s, …)`/`centerOf(s)` com o estado (`CENTER_TX/TY` = centro da VILA; os

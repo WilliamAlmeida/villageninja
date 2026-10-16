@@ -30,7 +30,8 @@
   usa `gpt-6-sol` por padrão (`CODEX_MODEL` troca; os slugs aceitos estão em `~/.codex/models_cache.json`). Em
   `scripts/ui-grid.py` as descrições das casas vão numa linha só: no Windows (`shell=True`) uma quebra de linha no
   argumento engolia tudo depois dela e o Codex desenhava qualquer coisa.
-- Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
+- Campos andáveis com arte (treino; fazenda e horta só nos vilarejos invadidos) são decalques no chão, desenhados antes das unidades.
+  Campos cercados (game/fields.ts) têm desenho provisório em `render/fields.ts` até a folha do Codex (32×32 por cultura e etapa).
 - Moradores trabalhando usam folhas de ação (`villager-chop|mine|farm`, gabarito `action`: levanta · balança · impacto ·
   recupera); árvore vira toco e rocha racha conforme se esgotam (o recurso treme no quadro do impacto do golpe, `workImpact`, e a
   árvore que vira toco tomba para o lado com poeira, `Renderer.node`; só visual); colheita deixa um canteiro (`fx 'harvest'`) que rebrota.

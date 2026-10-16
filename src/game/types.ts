@@ -1,3 +1,4 @@
+import type { CropId } from '../data/crops';
 // Todo o estado do jogo é dado puro (serializável em JSON).
 import type { ModeKind } from '../data/bijuu';
 import type { KageArtId } from '../data/kageArts';
@@ -203,6 +204,8 @@ export interface Unit {
   summonCd?: number;
   /** Fora do mapa numa expedição (id). Não age nem aparece até voltar. */
   away?: number;
+  /** Fazendeiro de um campo cercado (id do campo; o canteiro da tarefa vai em `taskId`). */
+  fieldId?: number;
   /** Guardião de um local especial (id do local): defende o lugar em vez de marchar. */
   guard?: number;
   /** Bombas já lançadas (o bombardeiro desiste depois de algumas). */
@@ -732,6 +735,8 @@ export interface GameState {
   sceneInfo?: SceneInfo;
   /** De que lado as torres e a Residência atiram (num mapa de missão as torres são do inimigo). */
   towersFaction?: Faction;
+  /** Campos cercados (game/fields.ts; save v49: substituem a Fazenda e a Horta de Ervas). */
+  fields: Field[];
   /** Colônias nas ilhas (id da ilha → mapa dela), só na vila (save v48). */
   colonies: Record<string, GameState>;
   /** Só no mapa de uma colônia: de que ilha é e o que já foi contado. */
@@ -792,4 +797,31 @@ export interface ExamResult {
   ranking: { name: string; village: boolean; score: number; promoted: boolean }[];
 }
 
-export type Selection = { kind: 'unit' | 'building' | 'team' | 'site'; id: number };
+export type Selection = { kind: 'unit' | 'building' | 'team' | 'site' | 'field'; id: number };
+
+/** Canteiro (um tile) de um campo cercado (game/fields.ts). `st`: 0 terra crua, 1 arada, 2 plantada, 3 madura. */
+export interface Plot {
+  tx: number;
+  ty: number;
+  st: 0 | 1 | 2 | 3;
+  /** Cultura plantada (a do cercado no momento da semeadura). */
+  crop?: CropId;
+  /** Crescimento 0..1 (plantada) e segundos madura (murcha depois de `FIELD.witherDays`). */
+  g: number;
+  ripe?: number;
+  /** Segundos de umidade que restam (rega, chuva, água vizinha). */
+  wet?: number;
+  /** Fertilidade 0..1 (cansa repetindo a cultura) e a última colhida. */
+  fert: number;
+  last?: CropId;
+}
+
+/** Campo cercado de formato livre: os canteiros ligados (vizinhos) formam um cercado, com uma cultura só. */
+export interface Field {
+  id: number;
+  crop: CropId;
+  plots: Plot[];
+  /** Fazendeiros pedidos e os que estão nele (ids). */
+  desired: number;
+  workers: number[];
+}

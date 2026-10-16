@@ -24,7 +24,8 @@ import { COLONY_SYSTEMS } from './systems';
 import { completeBuilding } from './systems/villagers';
 import { leaveTeam, teamOf } from './teams';
 import type { Cost, Expedition, GameState, Unit } from './types';
-import { farmYield, marketYield, upgradeTime, workersOf, workUpgrade } from './upgrade';
+import { marketYield, upgradeTime, workersOf, workUpgrade } from './upgrade';
+import { fieldDailyYield } from './fields';
 import { centerOf, doorPos, T, tileCenter } from './world';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -289,10 +290,19 @@ export function colonyIncome(home: Game, c: GameState): Cost {
     if (n <= 0) continue;
     free -= n;
     let per = y.perDay;
-    if (d.job === 'farmer') per = (y.perDay * farmYield(b)) / 2;
     if (d.job === 'merchant') per = (y.perDay * marketYield(b)) / 3;
     add(y.res, Math.round(per * n));
   }
+  // campos cercados: os fazendeiros pedidos (até os moradores livres) cuidam dos canteiros
+  const cg = colonyGame(home, c.colony?.node ?? '');
+  if (cg)
+    for (const f of c.fields ?? []) {
+      const n = Math.min(f.desired, free);
+      if (n <= 0) continue;
+      free -= n;
+      const y = fieldDailyYield(cg, f, n);
+      for (const k of RES_KEYS) add(k, y[k] ?? 0);
+    }
   const def = REGION[c.colony?.node ?? ''];
   if (def?.outpost) for (const k of RES_KEYS) add(k, def.outpost[k] ?? 0);
   return income;

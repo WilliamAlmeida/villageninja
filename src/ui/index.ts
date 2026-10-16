@@ -9,6 +9,7 @@ import { orderAttack, orderMove, teamUnits } from '../game/teams';
 import type { Building, Site, Unit } from '../game/types';
 import { isExploredPx } from '../game/explore';
 import { tileCenter, toTile } from '../game/world';
+import { plotAt } from '../game/fields';
 import { BuildUI } from './build';
 import { el } from './dom';
 import { Hud } from './hud';
@@ -58,6 +59,7 @@ export function createUI(app: App, root: HTMLElement) {
     else win.show(view);
   }
   panel.onWindow = (v) => win.show(v);
+  panel.onPaintField = () => build.startField();
   win.onWindow = (v) => win.show(v);
   // servidor de duelos: quando chega resposta da rede, a janela Duelos remonta na hora
   arena.onChange = () => {
@@ -373,6 +375,11 @@ export function createUI(app: App, root: HTMLElement) {
       g.select({ kind: 'building', id: b.id });
       return;
     }
+    const pa = plotAt(g, toTile(w.x), toTile(w.y));
+    if (pa) {
+      g.select({ kind: 'field', id: pa.field.id });
+      return;
+    }
     g.select(null);
     panel.show(null);
   }
@@ -540,10 +547,12 @@ export function createUI(app: App, root: HTMLElement) {
     build.toggle(false);
     win.show(null);
     app.group = group;
-    if (v.kind === 'unit' || v.kind === 'building' || v.kind === 'site') {
+    if (v.kind === 'unit' || v.kind === 'building' || v.kind === 'site' || v.kind === 'field') {
       app.game.select({ kind: v.kind, id: v.id });
       const t = v.kind === 'unit' ? app.game.unit(v.id) : null;
       if (t) app.camera.jump(t.x, t.y);
+      const fp = v.kind === 'field' ? app.game.state.fields.find((f) => f.id === v.id)?.plots[0] : undefined;
+      if (fp) app.camera.jump(tileCenter(fp.tx), tileCenter(fp.ty));
     } else if (v.kind === 'group') panel.show(v);
     else {
       app.game.select(null);

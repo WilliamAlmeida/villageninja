@@ -28,7 +28,8 @@ export const COLONY = {
  * SOMADO de fazenda, lenhador, pedreira, mina de ferro e horta.
  */
 export const COLONY_CAPS: Partial<Record<BuildingType, number>> = { house: 4, market: 1, tower: 4, port: 1 };
-export const COLONY_PRODUCTION: BuildingType[] = ['farm', 'lumber', 'quarry', 'ironmine', 'herbgarden'];
+/** Fazenda e horta viraram campos cercados (game/fields.ts; teto próprio de canteiros na colônia). */
+export const COLONY_PRODUCTION: BuildingType[] = ['lumber', 'quarry', 'ironmine'];
 export const COLONY_PRODUCTION_CAP = 3;
 
 /** Tema do mapa de cada ilha (arte dos prédios e enfeites, render/themeProps.ts); sem tema = ilha comum. */

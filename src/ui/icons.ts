@@ -108,6 +108,7 @@ const I: Record<string, string> = {
   crystal: '<path d="M12 2l5 6-5 14-5-14z"/><path d="M7 8h10M12 2v20"/>',
   gold: '<path d="M3 17l3-6h12l3 6z"/><path d="M8 11l2-4h4l2 4"/>',
   darksteel: '<path d="M5 19L19 5"/><path d="M15 5h4v4"/><path d="M8 16l-3 3M6 13l5 5"/>',
+  shovel: '<path d="M14 10l6-6M18 2l4 4"/><path d="M14 10c1 1 1 3-1 5l-4 4c-1 1-3 1-4 0l-1-1c-1-1-1-3 0-4l4-4c2-2 4-2 5-1z"/>',
   pickaxe2: '<path d="M4 20l9-9"/><path d="M8 5c4-2 8-1 11 2-3-1-6-1-9 1"/>',
   snow: '<path d="M12 3v18M4.200 7.500l15.600 9M4.200 16.500l15.600-9"/><path d="M9.500 4.500L12 7l2.500-2.500M9.500 19.500L12 17l2.500 2.500"/>',
   rain: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.500 1.500A3.500 3.500 0 0 1 17 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',

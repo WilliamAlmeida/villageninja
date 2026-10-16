@@ -86,7 +86,7 @@ function spawnAnimals(g: Game) {
   const wild = s.units.filter((u) => !u.dead && u.kind === 'animal' && u.missionId == null).length;
   const threat = levelDef(s.level).threat;
   if (wild >= 4 + Math.floor(s.day / 2) + threat * 2) return;
-  const hasFarm = g.builtOf('farm').length > 0;
+  const hasFarm = !!g.state.fields?.length;
   const night = isNight(s);
   const def = weightedPick(
     // corvos só vêm se houver fazenda para bicar

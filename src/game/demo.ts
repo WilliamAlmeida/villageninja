@@ -24,6 +24,8 @@ import { createNewGame } from './newGame';
 import { regionOf, startRegion } from './region';
 import { colonyGame, createColony, moveToColony } from './colonies';
 import { placeBuilt } from './scene';
+import { addField, isPaddy, plotBlock } from './fields';
+import type { CropId } from '../data/crops';
 import { nameSannin } from './sannin';
 import { learnSpec } from './specs';
 import { autoTeams } from './teams';
@@ -67,8 +69,10 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   // um de cada estado de obra para ver os cartões: upgrade andando e prédio em construção
   const house = s.buildings.find((b) => b.type === 'house' && b.level === 3);
   if (house) Object.assign(house, { level: 2, upgrade: 12 });
-  const lastFarm = s.buildings.filter((b) => b.type === 'farm').at(-1);
-  if (lastFarm) Object.assign(lastFarm, { built: false, progress: 4 });
+  const lastLumber = s.buildings.filter((b) => b.type === 'lumber').at(-1);
+  if (lastLumber) Object.assign(lastLumber, { built: false, progress: 4 });
+  g.world.rebuild();
+  demoFields(g);
   g.world.rebuild();
 
   // moradores e ninjas
@@ -182,8 +186,9 @@ export function createDemoGame(systems: System[], seed = 4242): Game {
   {
     const cg = colonyGame(g, 'recife')!;
     const house = cg.state.buildings.find((b) => b.type === 'house')!;
-    const farm = placeBuilt(cg, 'farm', house.tx, house.ty - 5);
-    if (farm) farm.desired = 2;
+    const tiles: [number, number][] = [];
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) tiles.push([house.tx + x, house.ty - 5 + y]);
+    addField(cg, tiles, 'cabbage', (p, i) => Object.assign(p, { st: 2, crop: 'cabbage', g: 0.2 + (i % 5) * 0.18 }));
     const tower = placeBuilt(cg, 'tower', house.tx + 5, house.ty - 4);
     if (tower) Object.assign(tower, { built: false, progress: 3 }); // uma obra para o resumo do dia terminar
     cg.world.rebuild();
@@ -242,5 +247,60 @@ function placeAll(g: Game) {
       });
       if (roomy) placeBuilding(g, t, tx, ty);
     }
+  }
+}
+
+/**
+ * Campos cercados da vitrine (game/fields.ts): um de cada cultura, cada um com os canteiros em etapas diferentes (crua,
+ * arada, crescendo, madura, seca), em formatos variados; o arroz na beira da água.
+ */
+function demoFields(g: Game) {
+  const s = g.state;
+  // o campo inicial do jogo novo sai: a vitrine monta os dela (e fica dentro do teto de canteiros)
+  s.fields = [];
+  g.world.rebuild();
+  const t0 = territoryCenter(s);
+  const c = { tx: Math.round(t0?.tx ?? 50), ty: Math.round(t0?.ty ?? 50) };
+  const SHAPES: Record<string, [number, number][]> = {
+    rect: [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2]],
+    l: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2], [2, 2], [3, 2]],
+    sq: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
+    row: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1]],
+    small: [[0, 0], [1, 0], [0, 1], [1, 1]],
+  };
+  const plan: [CropId, string][] = [['wheat', 'rect'], ['rice', 'row'], ['turnip', 'l'], ['cabbage', 'sq'], ['pumpkin', 'sq'], ['herbs', 'small']];
+  const taken = new Set<string>();
+  const fits = (ax: number, ay: number, shape: [number, number][], paddy: boolean) => {
+    let wet = false;
+    for (const [dx, dy] of shape) {
+      const tx = ax + dx;
+      const ty = ay + dy;
+      if (plotBlock(g, tx, ty)) return false;
+      // um tile de folga entre os campos (cada um com a sua cerca)
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) if (taken.has(`${tx + ox},${ty + oy}`)) return false;
+      if (isPaddy(s, tx, ty)) wet = true;
+    }
+    return !paddy || wet;
+  };
+  for (const [crop, shape] of plan) {
+    const sh = SHAPES[shape]!;
+    let at: [number, number] | null = null;
+    for (let r = 4; r < 40 && !at; r++)
+      for (let dy = -r; dy <= r && !at; dy++)
+        for (let dx = -r; dx <= r && !at; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          if (fits(c.tx + dx, c.ty + dy, sh, crop === 'rice')) at = [c.tx + dx, c.ty + dy];
+        }
+    if (!at) continue;
+    const tiles = sh.map(([dx, dy]) => [at![0] + dx, at![1] + dy] as [number, number]);
+    for (const [tx, ty] of tiles) taken.add(`${tx},${ty}`);
+    // etapas variadas: maduras, crescendo em vários pontos, uma seca, arada e crua
+    addField(g, tiles, crop, (p, i) => {
+      const k = i % 6;
+      if (k === 0) Object.assign(p, { st: 3, crop, g: 1, ripe: 10 });
+      else if (k === 5) Object.assign(p, { st: i % 2 ? 1 : 0 });
+      else Object.assign(p, { st: 2, crop, g: k * 0.2, wet: k === 4 ? 0 : 999 });
+      if (i % 4 === 1) p.fert = 0.5;
+    });
   }
 }

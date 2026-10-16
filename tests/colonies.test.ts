@@ -13,6 +13,8 @@ import { actionBlock, regionDaily, regionOf } from '../src/game/region';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import { colonySystem } from '../src/game/systems/colonies';
+import { addField, plotCap } from '../src/game/fields';
+import { FIELD } from '../src/data/crops';
 
 const run = (g: Game, seconds: number, until?: () => boolean) => {
   for (let t = 0; t < seconds; t += SIM_DT) {
@@ -79,13 +81,13 @@ describe('colônias nas ilhas', () => {
     const e = g.state.expeditions.at(-1)!;
     run(g, COLONY.travel + 5, () => e.status === 'done');
     expect(colonyPeople(cg.state).length).toBe(3);
-    // na tela: roda em detalhe no relógio da vila; os moradores pegam casa e emprego numa fazenda nova
+    // na tela: roda em detalhe no relógio da vila; os moradores pegam casa e emprego num campo cercado novo
     const house = cg.state.buildings.find((b) => b.type === 'house')!;
-    cg.addBuilding({ id: cg.newId(), type: 'farm', tx: house.tx, ty: house.ty - 5, built: true, progress: 10, desired: 2, workers: [], cd: 0 });
+    const field = addField(cg, Array.from({ length: 9 }, (_, i) => [house.tx + (i % 3), house.ty - 5 + Math.floor(i / 3)] as [number, number]), 'wheat');
     g.activeColony = 'recife';
     run(g, 12);
     expect(cg.state.day).toBe(g.state.day);
-    expect(cg.state.buildings.find((b) => b.type === 'farm')!.workers.length).toBeGreaterThan(0);
+    expect(field.workers.length).toBeGreaterThan(0);
     expect(colonyPeople(cg.state).every((u) => u.homeId != null)).toBe(true);
   });
 
@@ -94,10 +96,10 @@ describe('colônias nas ilhas', () => {
     const cg = found(g, 3, 1);
     const c = cg.state;
     const house = c.buildings.find((b) => b.type === 'house')!;
-    cg.addBuilding({ id: cg.newId(), type: 'farm', tx: house.tx, ty: house.ty - 5, built: true, progress: 10, desired: 2, workers: [], cd: 0 });
+    addField(cg, Array.from({ length: 9 }, (_, i) => [house.tx + (i % 3), house.ty - 5 + Math.floor(i / 3)] as [number, number]), 'wheat');
     cg.addBuilding({ id: cg.newId(), type: 'tower', tx: house.tx + 5, ty: house.ty - 4, built: false, progress: 1, desired: 0, workers: [], cd: 0 });
     const income = colonyIncome(g, c);
-    expect(income.food).toBeGreaterThan(0); // fazenda + o peixe da ilha
+    expect(income.food).toBeGreaterThan(0); // campo de trigo + o peixe da ilha
     expect(income.ryo).toBeGreaterThan(0); // pérolas: o recurso da ilha só vem da colônia
     g.state.res.food = 500;
     g.state.day += 1;
@@ -116,7 +118,7 @@ describe('colônias nas ilhas', () => {
     expect(g.state.res.ryo - ryo).toBeLessThan(20);
   });
 
-  test('tetos próprios da colônia: 4 casas, 3 de produção somados, 1 mercado, 4 torres; Academia só na vila', () => {
+  test('tetos próprios da colônia: 4 casas, 3 de produção somados, 1 mercado, 4 torres, canteiros; Academia só na vila', () => {
     const g = setup(504);
     const cg = found(g, 1, 0);
     Object.assign(g.state.res, { wood: 9999, stone: 9999, ryo: 99999 });
@@ -127,14 +129,17 @@ describe('colônias nas ilhas', () => {
     const r = canBuild(cg, 'academy');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('só na vila');
-    const add = (type: 'house' | 'farm' | 'lumber' | 'quarry') => cg.addBuilding({ id: cg.newId(), type, tx: 1, ty: 1, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const add = (type: 'house' | 'ironmine' | 'lumber' | 'quarry') => cg.addBuilding({ id: cg.newId(), type, tx: 1, ty: 1, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
     while (cg.buildingCount('house') < 4) add('house');
     expect(countBlock(cg, 'house')).toContain('Limite de 4 casas na colônia');
-    add('farm');
+    add('ironmine');
     add('lumber');
     expect(canBuild(cg, 'quarry').ok).toBe(true);
     add('quarry');
-    expect(countBlock(cg, 'farm')).toContain(`Limite de ${COLONY_PRODUCTION_CAP} prédios de produção`);
+    expect(countBlock(cg, 'lumber')).toContain(`Limite de ${COLONY_PRODUCTION_CAP} prédios de produção`);
+    // campos: teto próprio de canteiros na colônia, menor que o da vila
+    expect(plotCap(cg.state)).toBe(FIELD.colonyPlots);
+    expect(plotCap(g.state)).toBeGreaterThan(0);
     // a vila continua com a tabela dela
     expect(countBlock(g, 'house')).toBeNull();
     expect(g.buildingCap('house')).toBeGreaterThan(4);
@@ -179,7 +184,7 @@ describe('colônias nas ilhas', () => {
     const cg = colonyGame(g, 'recife')!;
     expect(cg).not.toBeNull();
     expect(colonyPeople(cg.state).length).toBeGreaterThanOrEqual(6);
-    expect(cg.state.buildings.some((b) => b.type === 'farm' && b.built)).toBe(true);
+    expect(cg.state.fields.length).toBeGreaterThan(0);
     expect(cg.state.buildings.some((b) => !b.built)).toBe(true);
     g.activeColony = 'recife';
     run(g, 5);

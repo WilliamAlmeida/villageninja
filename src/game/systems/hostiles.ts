@@ -229,13 +229,9 @@ function flee(g: Game, u: Unit) {
 }
 
 const dist = (u: Unit, p: { x: number; y: number }) => Math.hypot(u.x - p.x, u.y - p.y);
-const inside = (u: Unit, b: Building) => {
-  const d = defOf(b);
-  return u.x > b.tx * TILE && u.x < (b.tx + d.w) * TILE && u.y > b.ty * TILE && u.y < (b.ty + d.h) * TILE;
-};
 
 /**
- * Bichos ladrões. Corvo: bica a fazenda e leva comida aos poucos. Macaco: pega ryo (ou ervas) uma vez e foge.
+ * Bichos ladrões. Corvo: bica os campos cercados e leva comida aos poucos. Macaco: pega ryo (ou ervas) uma vez e foge.
  * Não caçam ninguém; o corvo só bica quem chega muito perto. Abatido, devolve o que levou (ver killUnit).
  */
 function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
@@ -251,16 +247,20 @@ function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
   if ((u.life ?? 0) <= 0) return flee(g, u);
   const res = g.state.res;
   if (def.thief === 'farm') {
-    const farms = g.builtOf('farm');
-    if (!farms.length || (u.loot?.food ?? 0) >= 12) return flee(g, u);
-    const cur = g.building(u.taskId);
-    const b = cur && cur.built ? cur : farms.reduce((a, f) => (dist(u, buildingCenter(f)) < dist(u, buildingCenter(a)) ? f : a));
-    u.taskId = b.id;
-    if (!inside(u, b)) {
+    // corvos: bicam os campos cercados (game/fields.ts), de preferência o canteiro maduro mais perto, e levam comida
+    const plots = (g.state.fields ?? []).flatMap((f) => f.plots);
+    if (!plots.length || (u.loot?.food ?? 0) >= 12) return flee(g, u);
+    const W = g.state.mapW;
+    const cur = u.taskId != null ? plots.find((p) => p.ty * W + p.tx === u.taskId) : undefined;
+    const near = (list: typeof plots) => list.reduce((a, p) => (dist(u, { x: tileCenter(p.tx), y: tileCenter(p.ty) }) < dist(u, { x: tileCenter(a.tx), y: tileCenter(a.ty) }) ? p : a));
+    const ripe = plots.filter((p) => p.st === 3);
+    const p = cur ?? near(ripe.length ? ripe : plots);
+    u.taskId = p.ty * W + p.tx;
+    const at = { x: tileCenter(p.tx), y: tileCenter(p.ty) };
+    if (dist(u, at) > 14) {
       if (!u.hasGoal || u.timer <= 0) {
         u.timer = 3;
-        const d = defOf(b);
-        setDestination(g, u, (b.tx + rand(0.3, d.w - 0.3)) * TILE, (b.ty + rand(0.3, d.h - 0.3)) * TILE);
+        setDestination(g, u, at.x + rand(-6, 6), at.y + rand(-6, 6));
       }
       followPath(g, u, dt);
       return;
@@ -269,6 +269,12 @@ function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
     if (u.timer > 0) return;
     u.timer = 2.5;
     u.anim = 0.3;
+    if (p.st === 3) {
+      // comeram o canteiro maduro: volta a ser terra arada
+      Object.assign(p, { st: 1, crop: undefined, g: 0, ripe: undefined });
+      u.taskId = null;
+      fxText(g, u.x, u.y - 22, 'Canteiro bicado!', '#ff8a8a');
+    }
     const take = Math.min(2, Math.floor(res.food));
     if (take <= 0) return flee(g, u);
     res.food -= take;
@@ -276,10 +282,9 @@ function thief(g: Game, u: Unit, dt: number, def: AnimalDef) {
     fxText(g, u.x, u.y - 14, `{food} -${take}`, '#ff8a8a');
     return;
   }
-  // macaco: vai até o estoque (Residência do Hokage, ou a horta se houver ervas), pega e foge
-  const garden = g.findBuilt('herbgarden');
-  const herbs = res.herbs >= 5 && !!garden && u.id % 2 === 0;
-  const b = herbs ? garden : g.hokage();
+  // macaco: vai até o estoque (Residência do Hokage) e pega ryo ou, se houver, ervas; depois foge
+  const herbs = res.herbs >= 5 && u.id % 2 === 0;
+  const b = g.hokage();
   if (!b) return flee(g, u);
   const p = doorPos(b);
   if (!u.hasGoal || u.timer <= 0) {

@@ -7,6 +7,7 @@ import { exploreSystem } from './explore';
 import { expeditionSystem } from './expeditions';
 import { regionSystem } from './region';
 import { colonySystem } from './colonies';
+import { cropSystem } from './crops';
 import { seasonSystem } from './seasons';
 import { natureSystem } from './nature';
 import { gearSystem } from './gear';
@@ -44,6 +45,7 @@ export const SYSTEMS: System[] = [
   kageSystem,
   bossSystem,
   villagerSystem,
+  cropSystem,
   ninjaSystem,
   hostileSystem,
   towerSystem,
@@ -79,6 +81,7 @@ const LABELS: [System, string][] = [
   [kageSystem, 'kage'],
   [bossSystem, 'chefes'],
   [villagerSystem, 'moradores'],
+  [cropSystem, 'plantações'],
   [ninjaSystem, 'ninjas'],
   [hostileSystem, 'inimigos'],
   [towerSystem, 'torres'],
@@ -123,6 +126,7 @@ export const COLONY_SYSTEMS: System[] = [
   populationSystem,
   teamSystem,
   villagerSystem,
+  cropSystem,
   ninjaSystem,
   hostileSystem,
   towerSystem,

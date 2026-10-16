@@ -30,7 +30,7 @@ export interface App {
   ghost: Ghost | null;
   buildType: BuildingType | null;
   /** Pintando no mapa: rua, limpar área ou aterrar/cavar (o toque em cima do que já está marcado tira). */
-  roadMode: 'pave' | 'clear' | 'fill' | 'dig' | null;
+  roadMode: 'pave' | 'clear' | 'fill' | 'dig' | 'field' | null;
   /** Ruas pintadas e ainda não confirmadas (só valem no "Pronto"; game/roads.ts). */
   roadDraft: RoadDraft;
   /** Tile sob o mouse nos modos de pintar (a prévia de onde o toque vai cair). */

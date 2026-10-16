@@ -86,11 +86,11 @@
   com ids novos perto do Porto (`settle`). A mesma tela manda mais gente para uma colônia que existe (sem custo). Quem
   mora lá conta no `popLimit` da vila (`Game.colonyPopulation`, descontado em `popCap`); a colônia tem o próprio teto
   (`COLONY.popLimit` = 48). **Tetos próprios** (`colonyCapOf`, `countBlock` → `colonyCountBlock` quando `state.colony`):
-  4 casas, 3 de produção SOMADOS (fazenda, lenhador, pedreira, mina, horta), 1 mercado, 4 torres, 1 porto; decorações
+  4 casas, 3 de produção SOMADOS (lenhador, pedreira, mina), 1 mercado, 4 torres, 1 porto, 18 canteiros de campo cercado; decorações
   livres; o resto (Academia, Hospital, Biblioteca, oficinas, Arena…) "só na vila". `Game.buildingCap` usa essa tabela
   na colônia. **Fora da tela** (`colonySystem`, na vila, depois da região): na virada do dia `colonyDay` credita
-  `colonyIncome` (fórmula fechada por trabalhador, `COLONY_YIELD` por dia, fazenda e mercado escalam com `farmYield`/
-  `marketYield`, lenhador/pedreira/mina só com o recurso no mapa; mais o `outpost` da ilha, que o posto deixa de pagar
+  `colonyIncome` (fórmula fechada por trabalhador, `COLONY_YIELD` por dia, mercado escala com
+  `marketYield`; campos cercados por `fieldDailyYield`, lenhador/pedreira/mina só com o recurso no mapa; mais o `outpost` da ilha, que o posto deixa de pagar
   quando há colônia), cobra a comida (`FOOD_PER_DAY` × gente × estação), termina obras e upgrades em andamento e sorteia
   uma ameaça (`COLONY.threatChance`; defesa = `unitPower` dos ninjas + torres × `towerPower` + moradores; perdendo,
   todos se ferem 30%, metade da produção se perde e, muito abaixo, alguém pode morrer) — sem simular luta, como as
@@ -103,6 +103,6 @@
   primeiro; toasts da colônia levam o id (`toast.colony`) e o toque abre o mapa dela. Ficha da ilha na região: cartão
   da colônia (gente, prédios, rende por dia, última linha do diário, "Visitar colônia") e a escolha de quem vai; a
   ilha ganha a cabana do posto e bandeira azul no mapa; colonos em viagem aparecem na trilha e em Expedições
-  ("Colonos"). Vitrine: `?demo&tela=colonia` (colônia no Recife com 6 moradores, 2 Genins, fazenda e uma torre em obra).
+  ("Colonos"). Vitrine: `?demo&tela=colonia` (colônia no Recife com 6 moradores, 2 Genins, um campo de repolho e uma torre em obra).
   Testes em `tests/colonies.test.ts`. Pendente para depois: ataque às colônias (GDD 6.3), volta de gente para a vila,
   temas das outras ilhas (hoje só o Recife tem tema; as outras viram ilha comum).

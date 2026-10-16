@@ -27,7 +27,7 @@ export const FOOD_PER_DAY = 5;
 export const VILLAGE_MARGIN = 5;
 
 export const SAVE_KEY = 'villageninja.save.v1';
-export const SAVE_VERSION = 48;
+export const SAVE_VERSION = 49;
 export const AUTOSAVE_INTERVAL = 20;
 
 export const MAX_DPR = 2;

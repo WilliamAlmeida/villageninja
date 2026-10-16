@@ -81,7 +81,7 @@ um sistema, atualize o arquivo dele (não este).
 
 ## Convenções
 - **Save versionado**: ao adicionar campo no estado, suba `SAVE_VERSION` em `config.ts` e adicione a migração
-  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v48.
+  em `game/save.ts` (`MIGRATIONS[n]` transforma vN → vN+1) + teste de migração. Hoje: v49.
 - Novas mecânicas: arquivo em `systems/` + registrar no índice + testes em `tests/`.
 - Comentários e textos de UI em português; nomes de código em inglês.
 - **Sem emoji**: ícones são SVG (`src/ui/icons.ts`). Textos (dados, toasts, `costLabel`) marcam o ícone com token

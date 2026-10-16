@@ -287,6 +287,12 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     // v48: colônias nas ilhas (game/colonies.ts); nenhuma ainda
     s.colonies ??= {};
   },
+  48: (s) => {
+    // v49: Fazenda e Horta de Ervas viram campos cercados (game/fields.ts), na vila e em cada colônia
+    farmsToFields(s);
+    for (const c of Object.values(s.colonies ?? {})) farmsToFields(c);
+    if (s.scene) s.scene.fields ??= [];
+  },
   // v46: vínculo opcional do Gatsūga do ninken e posição/fonte de texto auxiliar.
   45: () => {},
   // v45: sequência do Sekizō e origem dos canhões, opcionais; saves anteriores continuam sem sequência.
@@ -448,6 +454,44 @@ function growBuildings(s: any, type: BuildingType, W: number, H: number, level?:
     }
     s.nodes = (s.nodes ?? []).filter((n: { tx: number; ty: number }) => n.tx < a.tx || n.tx >= a.tx + W || n.ty < a.ty || n.ty >= a.ty + H);
   }
+}
+
+/**
+ * Cada Fazenda (3×3, trigo) e Horta de Ervas (2×2, ervas) vira um campo cercado nos mesmos tiles, com as plantas já
+ * crescendo em estágios variados e os mesmos trabalhadores (agora fazendeiros do campo).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function farmsToFields(s: any) {
+  if (!s || !Array.isArray(s.buildings)) return;
+  s.fields ??= [];
+  const keep = [];
+  for (const b of s.buildings) {
+    if (b.type !== 'farm' && b.type !== 'herbgarden') {
+      keep.push(b);
+      continue;
+    }
+    const n = b.type === 'farm' ? 3 : 2;
+    const crop = b.type === 'farm' ? 'wheat' : 'herbs';
+    const plots = [];
+    for (let y = 0; y < n; y++)
+      for (let x = 0; x < n; x++) {
+        const tx = b.tx + x;
+        const ty = b.ty + y;
+        const g = ((tx * 7 + ty * 3) % 10) / 10;
+        plots.push(b.built ? { tx, ty, st: 2, crop, g, fert: 1 } : { tx, ty, st: 0, g: 0, fert: 1 });
+      }
+    const id = s.nextId++;
+    const workers = [];
+    for (const u of s.units ?? [])
+      if (u.jobId === b.id) {
+        u.jobId = null;
+        u.fieldId = id;
+        workers.push(u.id);
+        if (u.state === 'farming') u.state = 'idle';
+      }
+    s.fields.push({ id, crop, plots, desired: Math.max(1, Math.min(2, b.desired ?? 2)), workers });
+  }
+  s.buildings = keep;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

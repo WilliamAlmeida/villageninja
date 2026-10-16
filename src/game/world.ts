@@ -132,6 +132,8 @@ export class World implements MapSize {
   readonly region: Int32Array;
   private regionStack: Int32Array;
   readonly occupied: Int32Array;
+  /** Campo cercado de cada tile (id; 0 = nenhum). Ver game/fields.ts. */
+  readonly fieldTile: Int32Array;
   private villageRects: { x0: number; y0: number; x1: number; y1: number }[] = [];
 
   constructor(public state: GameState) {
@@ -144,6 +146,7 @@ export class World implements MapSize {
     this.blocked = new Uint8Array(tiles);
     this.baseBlocked = new Uint8Array(tiles);
     this.occupied = new Int32Array(tiles);
+    this.fieldTile = new Int32Array(tiles);
     this.fine = new Uint8Array(cells);
     this.baseFine = new Uint8Array(cells);
     this.soft = new Uint8Array(cells);
@@ -177,6 +180,8 @@ export class World implements MapSize {
     this.occupied.fill(0);
     for (let i = 0; i < s.tiles.length; i++) if (s.tiles[i] === T.WATER || s.tiles[i] === T.ROCK) this.blockTile(i % this.mapW, Math.floor(i / this.mapW));
     this.villageRects = [];
+    this.fieldTile.fill(0);
+    for (const f of s.fields ?? []) for (const p of f.plots) if (this.inBounds(p.tx, p.ty)) this.fieldTile[this.idx(p.tx, p.ty)] = f.id;
     for (const b of s.buildings) {
       const d = defOf(b);
       // células ajustadas no Editor de cenário (muro/portão, em meio tile) valem com o prédio pronto; senão a regra do prédio
@@ -329,6 +334,8 @@ export class World implements MapSize {
     // 1 tile de folga entre prédios garante que sempre exista caminho.
     for (let y = ty - 1; y <= ty + d.h; y++)
       for (let x = tx - 1; x <= tx + d.w; x++) if (this.inBounds(x, y) && this.occupied[this.idx(x, y)] !== 0) return false;
+    // campo cercado: o prédio não entra nos canteiros e fica a um tile da cerca (como entre prédios)
+    for (let y = ty - 1; y <= ty + d.h; y++) for (let x = tx - 1; x <= tx + d.w; x++) if (this.inBounds(x, y) && this.fieldTile[this.idx(x, y)] !== 0) return false;
     if (isShore({ type, level }) && tileOf(layoutKey({ type, level }), 0, 0) !== undefined) {
       if (!this.shoreFits(type, tx, ty, flip, level)) return false;
     } else if (this.groundBlock(type, tx, ty, flip, level)) return false;

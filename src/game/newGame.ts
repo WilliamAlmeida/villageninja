@@ -4,6 +4,7 @@ import { BUILDINGS, type BuildingType } from '../data/buildings';
 import { createNinja, createVillager, rollInnateCount } from './entities';
 import { Game, type System } from './game';
 import { createTeam, joinAsMember } from './teams';
+import { addField } from './fields';
 import type { GameState } from './types';
 import { emptyExplored, generateSites, revealStart } from './explore';
 import { emptyRoads } from './roads';
@@ -76,6 +77,7 @@ export function baseState(seed: number, scene: boolean | { w: number; h: number 
     swordsmen: { nextDay: 0, taken: false, done: false },
     sound: { nextDay: 0, raid: null, captive: null, stopped: 0, lost: 0 },
     colonies: {},
+    fields: [],
     res: { ...emptyRes(), wood: 120, stone: 60, food: 80, ryo: 150 },
     items: {},
     nextId,
@@ -99,7 +101,10 @@ export function createNewGame(systems: System[], seed = (Math.random() * 2 ** 31
   // a Residência cresce para a direita e para baixo até 5×5 com a vila: casa e fazenda iniciais deixam esse espaço
   place('house', CENTER_TX - 5, CENTER_TY - 2);
   place('house', CENTER_TX + 5, CENTER_TY - 2);
-  place('farm', CENTER_TX - 1, CENTER_TY + 4);
+  // campo cercado de trigo (game/fields.ts) já semeado, para a primeira colheita vir logo
+  const tiles: [number, number][] = [];
+  for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) tiles.push([CENTER_TX - 1 + x, CENTER_TY + 4 + y]);
+  addField(g, tiles, 'wheat', (p, i) => Object.assign(p, { st: 2, crop: 'wheat', g: 0.45 + (i % 4) * 0.12 }));
 
   const d = doorPos(hk);
   for (let i = 0; i < 6; i++) createVillager(g, d.x + (i - 3) * 14, d.y + 12 + (i % 2) * 10);
