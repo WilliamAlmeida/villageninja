@@ -1113,7 +1113,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .rzoom { position: absolute; right: 0.6rem; bottom: 0.6rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .rzoom button { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; border-radius: 0.6rem; background: rgba(20, 14, 10, 0.85); border: 1px solid rgba(255, 214, 150, 0.3); color: var(--text); }
 .rzoom button:hover { border-color: var(--accent); color: var(--accent); }
-.rsheet { position: absolute; top: 0.6rem; right: 0.6rem; bottom: 0.6rem; width: min(23rem, 48%); overflow-y: auto; overscroll-behavior: contain; padding: 0.7rem 0.75rem; border-radius: 0.9rem; background: var(--bg); border: 1px solid var(--line); box-shadow: var(--shadow); cursor: auto; user-select: text; z-index: 3; animation: pin 0.15s ease-out; }
+.rsheet { position: absolute; top: var(--sm); right: var(--sm); bottom: var(--sm); width: var(--sw); overflow-y: auto; overscroll-behavior: contain; padding: 0.7rem 0.75rem; border-radius: 0.9rem; background: var(--bg); border: 1px solid var(--line); box-shadow: var(--shadow); cursor: auto; user-select: text; z-index: 3; animation: pin 0.15s ease-out; }
 /* fechar no mesmo padrão do drawer */
 .rsheet-x { position: absolute; top: 0.5rem; right: 0.5rem; width: 2.1rem; height: 2.1rem; display: grid; place-items: center; border-radius: 0.6rem; background: var(--card-hi); border: 1px solid var(--line); color: var(--text); z-index: 1; }
 .rsheet .rhead { padding-right: 2.5rem; align-items: flex-start; }
@@ -1125,11 +1125,18 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .rgain > small { color: var(--muted); margin-right: 0.15rem; display: inline-flex; align-items: center; gap: 0.2rem; }
 .bnote > .ic { flex: 0 0 auto; }
 .bnote > span { flex: 1; min-width: 0; }
-.rmapview:has(.rsheet) .rzoom { right: calc(min(23rem, 48%) + 1.2rem); }
+/* painel do lugar: à direita (padrão) ou à esquerda quando taparia o lugar; legenda e zoom ficam do outro lado */
+.rmapview { --sw: min(23rem, 48%); --sm: 0.6rem; --zg: 1.2rem; }
+.rmapview:has(.rsheet) .rzoom { right: calc(var(--sw) + var(--zg)); }
+.rmapview:has(.rsheet) .rlegend { max-width: calc(100% - var(--sw) - 4.6rem); }
+.rmapview.side-l .rsheet { left: var(--sm); right: auto; animation-name: pin-l; }
+.rmapview.side-l .rzoom { left: calc(var(--sw) + var(--zg)); right: auto; }
+.rmapview.side-l .rlegend { left: auto; right: 0.6rem; }
+@keyframes pin-l { from { transform: translateX(-1.2rem); opacity: 0; } }
 @media (max-width: 760px), (max-height: 520px) {
-  .rsheet { width: min(21rem, 62%); top: 0.4rem; right: 0.4rem; bottom: 0.4rem; }
+  .rmapview { --sw: min(21rem, 62%); --sm: 0.4rem; --zg: 0.9rem; }
+  .rsheet { top: var(--sm); bottom: var(--sm); }
   .rlegend .lg { display: none; }
-  .rmapview:has(.rsheet) .rzoom { right: calc(min(21rem, 62%) + 0.9rem); }
 }
 .rhead { display: flex; gap: 0.6rem; align-items: center; }
 .rh-ic { flex: 0 0 auto; width: 3rem; height: 3rem; border-radius: 0.7rem; display: grid; place-items: center; background: var(--card-hi); border: 1px solid var(--line); color: var(--accent); }
@@ -2433,6 +2440,8 @@ h4 > * { image-rendering: auto; }
 .rmapview > :not(button) { image-rendering: auto; }
 .rzoom button, .rsheet-x { background: var(--k2-round) center / 100% 100% no-repeat; border: 0; border-radius: 50%; image-rendering: pixelated; }
 .rzoom button > *, .rsheet-x > * { image-rendering: auto; }
+.rzoom button, .rsheet-x, #panel .close, #win .close { padding: 0; }
+.rzoom button > .ic, .rsheet-x > .ic, #panel .close > .ic, #win .close > .ic { margin: 0; }
 .rsheet {
   --sl: 13 13 13 13 fill; border-radius: 0; background: none; box-shadow: none; border: 0 solid transparent; border-width: 12px;
   border-image-source: var(--k2-panel); border-image-slice: var(--sl); border-image-width: 16px; image-rendering: pixelated;
