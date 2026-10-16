@@ -39,7 +39,6 @@ h3 { font-size: 1.1rem; }
 }
 .brand { display: flex; align-items: center; gap: 0.5rem; color: var(--text); font-weight: 700; font-size: 1.1rem; }
 .brand:hover { text-decoration: none; }
-.brand img { image-rendering: pixelated; }
 .brand span { display: flex; flex-direction: column; line-height: 1.05; }
 .brand small { color: var(--accent); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; }
 .nav { display: flex; gap: 1rem; }
@@ -59,7 +58,7 @@ h3 { font-size: 1.1rem; }
 .btn:hover { background: var(--card-hi); text-decoration: none; }
 .btn:active { transform: translateY(1px); }
 .btn.play {
-  background: url('img/play-button.png') center / 100% 100% no-repeat; border: 0; border-radius: 0; image-rendering: pixelated;
+  background: url('img/play-button.png') center / 100% 100% no-repeat; border: 0; border-radius: 0;
   color: #fff8ec; text-shadow: 0 2px 0 #7a2c00, 0 0 6px rgba(0, 0, 0, 0.35); letter-spacing: 0.03em; padding: 0.55rem 1.4rem;
   filter: drop-shadow(0 0.25rem 0.8rem rgba(255, 138, 43, 0.25));
 }
@@ -75,12 +74,12 @@ h3 { font-size: 1.1rem; }
 /* início */
 .hero {
   position: relative; min-height: min(78vh, 44rem); display: flex; align-items: flex-end;
-  padding: 3rem max(1rem, calc((100% - var(--w)) / 2)); background: var(--hero) center / cover no-repeat; image-rendering: pixelated;
+  padding: 3rem max(1rem, calc((100% - var(--w)) / 2)); background: var(--hero) center / cover no-repeat;
 }
 .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22, 17, 13, 0.15) 0%, rgba(22, 17, 13, 0.55) 45%, var(--bg) 100%); }
-.hero-in { position: relative; max-width: 42rem; image-rendering: auto; }
+.hero-in { position: relative; max-width: 42rem; }
 .hero h1 { display: flex; align-items: center; gap: 1rem; }
-.hero-emblem { width: clamp(4rem, 8vw, 6rem); height: auto; image-rendering: pixelated; filter: drop-shadow(0 0.3rem 0.8rem rgba(0, 0, 0, 0.6)); }
+.hero-emblem { width: clamp(4rem, 8vw, 6rem); height: auto; filter: drop-shadow(0 0.3rem 0.8rem rgba(0, 0, 0, 0.6)); }
 .eyebrow { display: inline-block; color: var(--accent-2); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.6rem; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
 .hero h1 { text-shadow: 0 0.2rem 1rem rgba(0, 0, 0, 0.6); }
 .lead { font-size: 1.15rem; color: #e9dcc6; margin: 0 0 1.4rem; text-shadow: 0 0.1rem 0.6rem rgba(0, 0, 0, 0.7); }
@@ -102,7 +101,7 @@ h3 { font-size: 1.1rem; }
 .show { display: grid; grid-template-columns: 1.35fr 1fr; gap: 2.5rem; align-items: center; }
 .show.flip figure { order: 2; }
 .show figure { margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45); }
-.show img { width: 100%; height: auto; image-rendering: pixelated; }
+.show img { width: 100%; height: auto; backface-visibility: hidden; }
 .show p { color: var(--muted); font-size: 1.05rem; margin: 0; }
 
 .legal { max-width: 46rem; margin: 0 auto; }
@@ -111,9 +110,9 @@ h3 { font-size: 1.1rem; }
 .legal ul { padding-left: 1.2rem; }
 .legal li { margin-bottom: 0.4rem; }
 
-.final { position: relative; text-align: center; background: var(--hero) center / cover no-repeat; image-rendering: pixelated; }
+.final { position: relative; text-align: center; background: var(--hero) center / cover no-repeat; }
 .final::before { content: ""; position: absolute; inset: 0; background: rgba(22, 17, 13, 0.72); }
-.final > * { position: relative; image-rendering: auto; }
+.final > * { position: relative; }
 .final p { color: #e9dcc6; margin: 0 0 1.2rem; }
 
 /* ranking */
@@ -152,7 +151,7 @@ h3 { font-size: 1.1rem; }
 .profile .ph { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
 .profile .ph h1 { margin: 0; }
 .profile .ph .sub { margin: 0.2rem 0 0; }
-.pav { width: 4.5rem; height: 4.5rem; border-radius: 50%; image-rendering: auto; border: 2px solid var(--line); }
+.pav { width: 4.5rem; height: 4.5rem; border-radius: 50%; border: 2px solid var(--line); }
 .lg.big { font-size: 0.95rem; padding: 0.3rem 0.9rem; margin-left: auto; }
 .ptiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem; }
 .ptile { padding: 0.8rem 1rem; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
@@ -186,7 +185,6 @@ h3 { font-size: 1.1rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .foot-brand { display: flex; align-items: center; gap: 0.5rem; }
-.foot-brand img { image-rendering: pixelated; }
 .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; padding: 1.5rem max(1rem, calc((100% - var(--w)) / 2)); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
 
 @media (max-width: 720px) {
@@ -262,7 +260,7 @@ h2.kunai::before { content: ""; position: absolute; left: 0; top: 50%; width: 1.
 .show figure:hover img { transform: scale(1.03); }
 
 /* selo da liga, da arte do jogo */
-.lgb { display: inline-block; width: 1.25rem; height: 1.25rem; margin: -0.2rem 0.3rem -0.2rem 0; vertical-align: middle; image-rendering: pixelated; background-repeat: no-repeat; }
+.lgb { display: inline-block; width: 1.25rem; height: 1.25rem; margin: -0.2rem 0.3rem -0.2rem 0; vertical-align: middle; background-repeat: no-repeat; }
 .lgb.big { width: 3.2rem; height: 3.2rem; margin: 0 auto 0.5rem; display: block; }
 
 /* ranking trancado: linhas de mentira embaçadas e o aviso por cima */
@@ -284,7 +282,7 @@ h2.kunai::before { content: ""; position: absolute; left: 0; top: 50%; width: 1.
 /* entrar */
 .login { position: relative; min-height: 70vh; align-items: center; }
 .login .card { position: relative; z-index: 2; text-align: center; }
-.login-emblem { width: 4.5rem; height: 4.5rem; margin: 0 auto 0.6rem; image-rendering: pixelated; filter: drop-shadow(0 0.3rem 0.8rem rgba(0, 0, 0, 0.6)); }
+.login-emblem { width: 4.5rem; height: 4.5rem; margin: 0 auto 0.6rem; filter: drop-shadow(0 0.3rem 0.8rem rgba(0, 0, 0, 0.6)); }
 .login .sub { text-align: left; }
 .btn.prov.guest { background: var(--card); color: var(--text); }
 .btn.prov.guest:hover { background: var(--card-hi); }
