@@ -81,7 +81,8 @@ As caixas abaixo acompanham o trabalho; itens concluídos registram aprovação 
 - [x] Limpeza de imagens obsoletas — oito derivados/capturas removidos, todas as 45 fontes originais preservadas, inclusive versões anteriores (`f8d7c9d`). Preservar sempre a source de qualquer jutsu em uso.
 - [x] Sensatsu, Reiza e Kajōsatsu — fontes e referências preservadas; sprites aprovadas para implementação e integradas em 2026-10-15: agulhas convergentes, halo com feixes guiados e três sóis orbitais; dano sincronizado com contato (`e70ca36`). Detalhes em `arte/jutsus/hyoton-ranton-shakuton/README.md`.
 - [x] Autor avaliar no jogo Sensatsu, Reiza e Kajōsatsu — resultado visual aprovado em 2026-10-15; controles disponíveis no laboratório, inclusive a fonte do Reiza.
-- [ ] Kage Bunshin, Edo Tensei e Shousen — aparição, invocação e cura.
+- [x] Kage Bunshin, Edo Tensei e Shousen — sprites aprovadas para implementação e integradas em 2026-10-16: fumaça compartilhada, caixão com ninja real e atendimento próximo/gradual (`c01fe7c`). Transparência e ausência de jutsus dos clones preservadas. Fontes/prévia em `arte/jutsus/clones-edo-cura/README.md`.
+- [x] Autor avaliar no jogo Kage Bunshin, Edo Tensei e Shousen — integração e resultado visual aprovados em 2026-10-16; parâmetros disponíveis no laboratório.
 - [ ] Avaliar efeitos compartilhados de impacto, poeira, cortes e chakra para os golpes físicos restantes.
 
 ## Campos cercados (2026-10-16)

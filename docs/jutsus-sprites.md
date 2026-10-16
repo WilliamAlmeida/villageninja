@@ -58,7 +58,7 @@ Cúpula de Terra, Flecha Dourada, Melodia Demoníaca, Separação e Sawarabi no 
 | Concluído; arte aprovada pelo autor em 2026-10-15 | Kaiten | Domo com formação, rotação e dissipação; folha própria 4x2. |
 | Concluído; implementação e visual aprovados pelo autor em 2026-10-15 | Sōshiken, Gatsūga e Nikudan Sensha | Leões acompanhando os punhos; uma broca por participante do Gatsūga (ninja e ninken próximo); bola com costuras e cor da roupa externa. |
 | Concluídos; integração e visual aprovados pelo autor em 2026-10-15 | Sensatsu, Reiza e Kajōsatsu | Agulhas de água convergentes, halo e feixes azul-brancos guiados, três sóis orbitais com vapor. Contato sincronizado e controles no laboratório. Referências e integração em `arte/jutsus/hyoton-ranton-shakuton/README.md`. |
-| Complementar | Kage Bunshin, Edo Tensei e Shousen | Fumaça de criação, surgimento da invocação e aura de cura. |
+| Concluídos; integração e visual aprovados pelo autor em 2026-10-16 | Kage Bunshin, Edo Tensei e Shousen | Fumaça compartilhada, caixão com revelação/saída do ninja real e cura próxima/gradual com chakra na mão. Clones mantêm transparência e não usam jutsus. Integração em `arte/jutsus/clones-edo-cura/README.md`. |
 
 Golpes físicos aproveitam as coreografias atuais do ninja em camadas, com sprites de impacto, poeira,
 cortes e chakra. Sombras e feixes podem combinar comprimento/trajetória controlados por código com
