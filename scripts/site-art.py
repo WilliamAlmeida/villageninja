@@ -13,7 +13,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent / 'server' / 'site' / 'img'
 RAW = ROOT / 'raw'
 
-SCENES = {'hero': 'hero2.png', 'village': 'village-clean.png', 'battle': 'battle2.png', 'arena': 'arena-night.png'}
+# prints reais do jogo (server/site/img/screenshots, recortados sem HUD) valem mais que a arte inventada para vila e arena
+SCENES = {'hero': 'hero2.png', 'village': 'shot-village-day.png', 'battle': 'battle3.png', 'arena': 'shot-arena-2.png', 'duel': 'duel3.png', 'night': 'shot-village-night.png'}
 
 
 def first(*names):
@@ -35,7 +36,7 @@ def trim(im):
 
 
 for name, file in SCENES.items():
-    src = first(file, file.replace('2.png', '.png'))
+    src = first(file, file.replace('3.png', '2.png'), file.replace('2.png', '.png'))
     if src:
         scene(name, src)
 
@@ -48,7 +49,7 @@ if shot.exists():
     im.save(ROOT / 'region.webp', 'WEBP', quality=88, method=6)
     print('region.webp', im.size)
 
-emb = first('emblem2.png', 'emblem.png')
+emb = first('emblem3.png', 'emblem2.png', 'emblem.png')
 if emb:
     im = trim(Image.open(emb).convert('RGBA'))
     side = max(im.size)

@@ -29,11 +29,11 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   const cached = (key: string, render: () => Promise<string>) => cache.remember(`site:page:${lang}:${key}:${origin}`, PAGE_TTL, render).then((b) => html(b));
   switch (path) {
     case '/':
-      return cached('home', async () => homePage(lang, origin, await publicTop(), await news.published(3)));
+      return cached('home', async () => homePage(lang, origin, [], await news.published(3)));
     case '/novidades':
       return cached('novidades', async () => newsListPage(lang, origin, await news.published(50)));
     case '/ranking':
-      return cached('ranking', async () => rankingPage(lang, origin, await publicTop()));
+      return cached('ranking', async () => rankingPage(lang, origin, []));
     case '/entrar':
       return cached('entrar', async () => loginPage(lang, origin));
     case '/privacidade':

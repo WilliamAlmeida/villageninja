@@ -31,7 +31,9 @@ export function page(o: PageOpts): string {
   const desc = o.desc ?? t.metaDesc;
   const img = o.origin + (o.image ?? assetUrl('img/hero.webp'));
   const h = (p: string) => href(o.lang, p);
-  const nav = (key: PageOpts['nav'], url: string, label: string) => `<a href="${url}"${o.nav === key ? ' aria-current="page"' : ''}>${label}</a>`;
+  // Ranking só aparece para quem entrou com conta (site.js mostra): a página é a mesma para todo mundo (cache)
+  const nav = (key: PageOpts['nav'], url: string, label: string, needsAccount = false) =>
+    `<a href="${url}"${o.nav === key ? ' aria-current="page"' : ''}${needsAccount ? ' data-needs-account hidden' : ''}>${label}</a>`;
   return `<!doctype html>
 <html lang="${t.htmlLang}">
 <head>
@@ -58,9 +60,10 @@ export function page(o: PageOpts): string {
 <script src="${assetUrl('site.js')}" defer></script>
 </head>
 <body data-lang="${o.lang}">
-<header class="top">
+<div class="progress" aria-hidden="true"><i data-progress></i></div>
+<header class="top" data-top>
   <a class="brand" href="${h('/')}"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="36" height="36"><span><b>${t.siteName}</b><small>${t.short}</small></span></a>
-  <nav class="nav">${nav('home', h('/'), t.navHome)}${nav('ranking', h('/ranking'), t.navRanking)}${nav('news', h('/novidades'), t.navNews)}</nav>
+  <nav class="nav">${nav('home', h('/'), t.navHome)}${nav('ranking', h('/ranking'), t.navRanking, true)}${nav('news', h('/novidades'), t.navNews)}</nav>
   <div class="top-r">
     <a class="lang" href="${o.lang === 'pt' ? enPath : ptPath}" data-lang-switch="${o.lang === 'pt' ? 'en' : 'pt'}">${t.langOther}</a>
     <span class="who" data-who hidden></span>
@@ -71,7 +74,7 @@ export function page(o: PageOpts): string {
 <main>${o.body}</main>
 <footer class="foot">
   <span class="foot-brand"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="28" height="28">${t.footer}</span>
-  <span><a href="${h('/')}">${t.navHome}</a> · <a href="${h('/ranking')}">${t.navRanking}</a> · <a href="${h('/novidades')}">${t.navNews}</a> · <a href="${h('/privacidade')}">${t.privacy}</a> · <a href="${h('/termos')}">${t.terms}</a> · <a href="/play">${t.playShort}</a></span>
+  <span><a href="${h('/')}">${t.navHome}</a> · <a href="${h('/ranking')}" data-needs-account hidden>${t.navRanking} · </a><a href="${h('/novidades')}">${t.navNews}</a> · <a href="${h('/privacidade')}">${t.privacy}</a> · <a href="${h('/termos')}">${t.terms}</a> · <a href="/play">${t.playShort}</a></span>
 </footer>
 </body>
 </html>`;

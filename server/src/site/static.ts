@@ -5,12 +5,16 @@ import { fileURLToPath } from 'node:url';
 
 const SITE_DIR = fileURLToPath(new URL('../../site/', import.meta.url));
 const GAME_ART = fileURLToPath(new URL('../../../src/art/ui/art/', import.meta.url));
+const GAME_UI = fileURLToPath(new URL('../../../src/art/ui/', import.meta.url));
 const SAFE = /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*$/i;
 
 /** Arquivo no disco para um caminho de /site/ (null se não existe ou é suspeito). */
 function fileFor(rel: string): string | null {
   if (!SAFE.test(rel) || rel.includes('..')) return null;
-  return rel.startsWith('art/') ? GAME_ART + rel.slice(4) : SITE_DIR + rel;
+  if (rel.startsWith('art/')) return GAME_ART + rel.slice(4);
+  // atlas da interface do jogo (selos das ligas): só os PNGs da raiz de src/art/ui
+  if (/^ui\/[a-z0-9-]+\.png$/.test(rel)) return GAME_UI + rel.slice(3);
+  return SITE_DIR + rel;
 }
 
 const versions = new Map<string, { mtime: number; v: string }>();

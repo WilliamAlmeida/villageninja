@@ -202,3 +202,98 @@ h3 { font-size: 1.1rem; }
   .rank .champ, .rank .rec { display: none; }
   .hero { min-height: 70vh; padding-top: 6rem; }
 }
+
+/* ---------- movimento: entrada das seções, chakra, brilho do botão ---------- */
+.reveal { opacity: 0; transform: translateY(1.2rem); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.reveal.in { opacity: 1; transform: none; }
+.show.reveal figure { transform: translateX(-1.5rem); transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.show.flip.reveal figure { transform: translateX(1.5rem); }
+.show.reveal.in figure { transform: none; }
+.rise { opacity: 0; transform: translateY(1rem); animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+.rise.d1 { animation-delay: 0.12s; } .rise.d2 { animation-delay: 0.24s; } .rise.d3 { animation-delay: 0.36s; } .rise.d4 { animation-delay: 0.5s; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.btn.play.glow { animation: glow 2.4s ease-in-out infinite; }
+@keyframes glow {
+  0%, 100% { filter: drop-shadow(0 0.25rem 0.8rem rgba(255, 138, 43, 0.25)); }
+  50% { filter: drop-shadow(0 0.25rem 1.4rem rgba(255, 170, 60, 0.7)) brightness(1.06); }
+}
+.hero-emblem { transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.hero h1:hover .hero-emblem { transform: rotate(-12deg) scale(1.08); }
+.brand img { transition: transform 0.4s; }
+.brand:hover img { transform: rotate(20deg); }
+
+/* partículas de chakra subindo (posições por nth-child; nada de JS) */
+.chakra { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+.chakra i { position: absolute; bottom: -2rem; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--accent-2); opacity: 0;
+  box-shadow: 0 0 0.6rem var(--accent), 0 0 1.4rem rgba(255, 138, 43, 0.5); animation: chakra 9s linear infinite; }
+.chakra i:nth-child(3n) { background: #b36bff; box-shadow: 0 0 0.6rem #b36bff, 0 0 1.4rem rgba(179, 107, 255, 0.5); width: 0.35rem; height: 0.35rem; }
+.chakra i:nth-child(4n) { background: #7cc3ff; box-shadow: 0 0 0.6rem #7cc3ff, 0 0 1.4rem rgba(124, 195, 255, 0.5); }
+.chakra i:nth-child(1) { left: 6%; animation-delay: 0s; } .chakra i:nth-child(2) { left: 14%; animation-delay: 2.1s; }
+.chakra i:nth-child(3) { left: 22%; animation-delay: 4.7s; } .chakra i:nth-child(4) { left: 31%; animation-delay: 1.3s; }
+.chakra i:nth-child(5) { left: 40%; animation-delay: 6.2s; } .chakra i:nth-child(6) { left: 48%; animation-delay: 3.4s; }
+.chakra i:nth-child(7) { left: 55%; animation-delay: 7.9s; } .chakra i:nth-child(8) { left: 63%; animation-delay: 0.8s; }
+.chakra i:nth-child(9) { left: 71%; animation-delay: 5.5s; } .chakra i:nth-child(10) { left: 78%; animation-delay: 2.9s; }
+.chakra i:nth-child(11) { left: 85%; animation-delay: 8.6s; } .chakra i:nth-child(12) { left: 92%; animation-delay: 4.1s; }
+.chakra i:nth-child(13) { left: 36%; animation-delay: 9.3s; } .chakra i:nth-child(14) { left: 66%; animation-delay: 6.9s; }
+@keyframes chakra {
+  0% { transform: translateY(0) translateX(0) scale(0.6); opacity: 0; }
+  10% { opacity: 0.9; }
+  50% { transform: translateY(-45vh) translateX(1.2rem) scale(1); }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-95vh) translateX(-1rem) scale(0.5); opacity: 0; }
+}
+.hero-in, .final > * { z-index: 2; }
+
+/* cabeçalho que encolhe ao rolar e a barra de progresso */
+.top { transition: padding 0.25s, background 0.25s, box-shadow 0.25s; }
+.top.scrolled { padding-top: 0.35rem; padding-bottom: 0.35rem; background: rgba(22, 17, 13, 0.96); box-shadow: 0 0.3rem 1.2rem rgba(0, 0, 0, 0.45); }
+.progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 11; pointer-events: none; }
+.progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffd34d); box-shadow: 0 0 0.5rem var(--accent); transition: width 0.1s linear; }
+
+/* títulos com a kunai e molduras das imagens com cantos de metal */
+h2.kunai { padding-left: 1.9rem; position: relative; }
+h2.kunai::before { content: ""; position: absolute; left: 0; top: 50%; width: 1.4rem; height: 1.4rem; transform: translateY(-50%) rotate(-45deg);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23cfd3d8' d='M12 1l3 9H9z'/%3E%3Cpath fill='%23ff8a2b' d='M10 10h4v8h-4z'/%3E%3Ccircle cx='12' cy='21' r='2' fill='none' stroke='%23ff8a2b' stroke-width='1.5'/%3E%3C/svg%3E") center / contain no-repeat; }
+.frame { position: relative; }
+.frame::before, .frame::after { content: ""; position: absolute; width: 1.6rem; height: 1.6rem; z-index: 2; pointer-events: none; border: 3px solid var(--accent-2); }
+.frame::before { top: -3px; left: -3px; border-right: 0; border-bottom: 0; border-radius: var(--r) 0 0 0; }
+.frame::after { bottom: -3px; right: -3px; border-left: 0; border-top: 0; border-radius: 0 0 var(--r) 0; }
+.show figure img { transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.show figure:hover img { transform: scale(1.03); }
+
+/* selo da liga, da arte do jogo */
+.lgb { display: inline-block; width: 1.25rem; height: 1.25rem; margin: -0.2rem 0.3rem -0.2rem 0; vertical-align: middle; image-rendering: pixelated; background-repeat: no-repeat; }
+.lgb.big { width: 3.2rem; height: 3.2rem; margin: 0 auto 0.5rem; display: block; }
+
+/* ranking trancado: linhas de mentira embaçadas e o aviso por cima */
+.rank-wrap { position: relative; }
+.rank-wrap.locked .table-wrap { filter: blur(5px); opacity: 0.55; pointer-events: none; user-select: none; }
+.lock { display: none; }
+.rank-wrap.locked .lock { display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; padding: 1rem; }
+.lock-in { max-width: 24rem; padding: 1.4rem 1.6rem; text-align: center; background: rgba(33, 25, 18, 0.92); border: 1px solid var(--accent); border-radius: var(--r); box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6); }
+.lock-in p { margin: 0 0 0.9rem; color: #e9dcc6; }
+.empty-row { text-align: center; color: var(--muted); padding: 1.5rem !important; }
+
+/* perfil: retrato na moldura de shuriken que gira devagar */
+.shuriken-frame { position: relative; display: inline-block; width: 5.6rem; height: 5.6rem; flex: none; }
+.shuriken-frame::before { content: ""; position: absolute; inset: 0; animation: spin 24s linear infinite;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23b9bec6' stroke='%23343a42' stroke-width='2' d='M50 2 L58 42 L98 50 L58 58 L50 98 L42 58 L2 50 L42 42 Z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.shuriken-frame .pav { position: absolute; left: 50%; top: 50%; width: 3.8rem; height: 3.8rem; transform: translate(-50%, -50%); border: 2px solid var(--accent-2); background: var(--bg2); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* entrar */
+.login { position: relative; min-height: 70vh; align-items: center; }
+.login .card { position: relative; z-index: 2; text-align: center; }
+.login-emblem { width: 4.5rem; height: 4.5rem; margin: 0 auto 0.6rem; image-rendering: pixelated; filter: drop-shadow(0 0.3rem 0.8rem rgba(0, 0, 0, 0.6)); }
+.login .sub { text-align: left; }
+.btn.prov.guest { background: var(--card); color: var(--text); }
+.btn.prov.guest:hover { background: var(--card-hi); }
+.or { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); font-size: 0.85rem; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.guest-note { margin: 1rem 0 0; padding: 0.7rem 0.9rem; text-align: left; font-size: 0.88rem; color: var(--muted); background: var(--card); border-left: 3px solid var(--accent); border-radius: 0 0.4rem 0.4rem 0; }
+.guest-note b { color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .rise { opacity: 1; transform: none; animation: none; transition: none; }
+  .chakra, .btn.play.glow, .shuriken-frame::before { animation: none; }
+}

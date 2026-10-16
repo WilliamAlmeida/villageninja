@@ -406,7 +406,12 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     expect((await get('/en/terms')).text).toContain('Terms of use');
     expect((await get('/termos')).text).toContain('hreflang="en" href="http://localhost:3010/en/terms"');
     expect((await get('/en/ranking')).text).toContain('Duel leaderboard');
-    expect((await get('/ranking')).text).toContain('Ranking de duelos');
+    const rk = await get('/ranking');
+    expect(rk.text).toContain('Ranking de duelos');
+    expect(rk.text).toContain('rank-wrap locked'); // trancado para quem não entrou com conta (site.js destranca)
+    expect(rk.text).toContain('badge-ranks.png');
+    expect((await get('/site/ui/badge-ranks.png')).type).toContain('image/png');
+    expect((await get('/site/ui/..%2Fart%2Fx.png')).status).toBe(404);
     const css = home.text.match(/href="(\/site\/site\.css\?v=[0-9a-f]+)"/)![1]!;
     const asset = await get(css);
     expect(asset.status).toBe(200);

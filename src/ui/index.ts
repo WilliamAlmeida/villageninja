@@ -116,9 +116,10 @@ export function createUI(app: App, root: HTMLElement) {
     // voltou do login do Discord/Google: abre a aba Conta com o resultado
     const back = arena.socialReturn;
     if (back) {
+      // só o aviso: nada de abrir janela em cima de quem acabou de entrar (o tutorial, quando existir, é que guia)
       arena.socialReturn = null;
-      win.show({ kind: 'duelAccount' });
       if (back.ok) app.game.toast(back.linked ? '{check} Conta vinculada: o ranking agora vai com você em qualquer aparelho.' : `{check} Bem-vindo, ${arena.account?.displayName ?? 'ninja'}.`, 'good');
+      else if (arena.error) app.game.toast(`{alert} ${arena.error}`, 'danger');
       return;
     }
     if (!fresh || !arena.defenses) return;
