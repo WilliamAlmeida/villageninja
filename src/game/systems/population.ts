@@ -7,6 +7,7 @@ import type { Game } from '../game';
 import type { Unit } from '../types';
 import { doorPos } from '../world';
 import { housingOf, needsBuilders } from '../upgrade';
+import { fieldById } from '../fields';
 
 const BIRTH_INTERVAL = 30;
 
@@ -96,19 +97,28 @@ function assignJobs(g: Game) {
     });
   }
   for (const u of villagers) if (u.jobId != null && !g.building(u.jobId)?.built) u.jobId = null;
+  // campos cercados (game/fields.ts): fazendeiro de campo que sumiu volta a ficar livre
+  for (const f of s.fields ?? []) f.workers = f.workers.filter((id) => {
+    const u = g.unit(id);
+    return !!u && !u.dead && u.kind === 'villager' && u.fieldId === f.id;
+  });
+  for (const u of villagers) if (u.fieldId != null && (!fieldById(s, u.fieldId) || !fieldById(s, u.fieldId)!.workers.includes(u.id))) u.fieldId = undefined;
 
-  const unemployed: Unit[] = villagers.filter((u) => u.jobId == null);
+  const unemployed: Unit[] = villagers.filter((u) => u.jobId == null && u.fieldId == null);
   // se há obras, reserva até 2 construtores — tirando gente do emprego se todos estiverem trabalhando
   // (antes a obra ficava parada para sempre quando não sobrava ninguém desempregado)
   const pending = s.buildings.filter(needsBuilders).length;
   const builders = Math.min(2, pending, villagers.length);
   if (unemployed.length < builders) {
-    const food = (u: Unit) => (BUILDINGS[g.building(u.jobId)!.type].job === 'farmer' ? 1 : 0);
-    const employed = villagers.filter((u) => u.jobId != null).sort((a, b) => food(a) - food(b));
+    const food = (u: Unit) => (u.fieldId != null || BUILDINGS[g.building(u.jobId)!.type].job === 'farmer' ? 1 : 0);
+    const employed = villagers.filter((u) => u.jobId != null || u.fieldId != null).sort((a, b) => food(a) - food(b));
     for (const u of employed.slice(0, builders - unemployed.length)) {
-      const job = g.building(u.jobId)!;
-      job.workers = job.workers.filter((id) => id !== u.id);
+      const job = g.building(u.jobId);
+      if (job) job.workers = job.workers.filter((id) => id !== u.id);
+      const fl = fieldById(s, u.fieldId);
+      if (fl) fl.workers = fl.workers.filter((id) => id !== u.id);
       u.jobId = null;
+      u.fieldId = undefined;
       if (!u.hidden) u.state = 'idle';
       u.carry = null;
       unemployed.push(u);
@@ -116,6 +126,25 @@ function assignJobs(g: Game) {
   }
   let free = unemployed.length - builders;
 
+  // campos cercados primeiro (comida): as vagas pedidas recebem fazendeiros como os prédios
+  for (const f of s.fields ?? []) {
+    while (f.workers.length > f.desired) {
+      const u = g.unit(f.workers.pop());
+      if (u) {
+        u.fieldId = undefined;
+        if (!u.hidden) u.state = 'idle';
+      }
+    }
+    while (f.workers.length < f.desired && free > 0) {
+      const u = unemployed.shift();
+      if (!u) break;
+      if (u.jobId != null) continue;
+      u.fieldId = f.id;
+      u.state = u.hidden ? u.state : 'idle';
+      f.workers.push(u.id);
+      free--;
+    }
+  }
   for (const b of s.buildings) {
     if (!b.built) continue;
     const def = defOf(b);

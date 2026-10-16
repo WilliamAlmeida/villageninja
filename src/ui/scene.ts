@@ -9,6 +9,7 @@ import { MINE } from '../data/expeditions';
 import { el } from './dom';
 import { rich } from './icons';
 import { tipAttr } from './popup';
+import { colonyGame, colonyName, colonyPeople } from '../game/colonies';
 
 export class SceneBar {
   readonly root: HTMLElement;
@@ -20,6 +21,7 @@ export class SceneBar {
     this.root.addEventListener('click', (e) => {
       const a = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
       const home = this.app.home;
+      if (a === 'col-home') return this.app.openColony(null);
       const sg = sceneGame(home);
       if (!a || !sg) return;
       if (a === 'view') this.app.setView(true);
@@ -35,6 +37,20 @@ export class SceneBar {
 
   update() {
     const home = this.app.home;
+    // na colônia: o nome dela, quem mora lá e o botão de voltar (a invasão, se houver, espera)
+    const colId = this.app.viewColony;
+    const cg = colId ? colonyGame(home, colId) : null;
+    if (cg) {
+      const people = colonyPeople(cg.state);
+      const html = `<span class="sb-title col">{ship} Colônia · ${colonyName(colId!)}</span><span class="sb-chip" ${tipAttr('Moradores', `${people.filter((u) => !u.ninja).length} morador(es) e ${people.filter((u) => u.ninja).length} ninja(s) na colônia.`, true)}>{users} ${people.length}</span><button class="btn primary" data-act="col-home" ${tipAttr('Voltar à vila', 'A colônia continua fora da tela: produção creditada a cada dia.')}>{castle} Voltar à vila</button>`;
+      this.root.hidden = false;
+      this.root.classList.add('mini');
+      if (html !== this.last) {
+        this.last = html;
+        morph(this.root, rich(html));
+      }
+      return;
+    }
     const sg = sceneGame(home);
     const info = sg?.state.sceneInfo;
     if (!sg || !info) {

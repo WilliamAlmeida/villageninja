@@ -3,8 +3,8 @@ import type { Selection } from '../game/types';
 export type ToastKind = 'info' | 'good' | 'warn' | 'danger';
 
 export interface GameEvents {
-  toast: { text: string; kind: ToastKind; x?: number; y?: number; /** veio do mapa de missão */ scene?: boolean };
-  /** Trocou a tela entre a vila (false) e o mapa de missão (true). */
+  toast: { text: string; kind: ToastKind; x?: number; y?: number; /** veio do mapa de missão */ scene?: boolean; /** veio do mapa de uma colônia (id da ilha) */ colony?: string };
+  /** Trocou a tela entre a vila (false) e outro mapa (true): missão ou colônia. */
   view: boolean;
   select: Selection | null;
   newGame: void;

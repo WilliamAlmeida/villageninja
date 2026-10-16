@@ -1,3 +1,4 @@
+import type { CropId } from '../data/crops';
 // Todo o estado do jogo é dado puro (serializável em JSON).
 import type { ModeKind } from '../data/bijuu';
 import type { KageArtId } from '../data/kageArts';
@@ -203,6 +204,8 @@ export interface Unit {
   summonCd?: number;
   /** Fora do mapa numa expedição (id). Não age nem aparece até voltar. */
   away?: number;
+  /** Fazendeiro de um campo cercado (id do campo; o canteiro da tarefa vai em `taskId`). */
+  fieldId?: number;
   /** Guardião de um local especial (id do local): defende o lugar em vez de marchar. */
   guard?: number;
   /** Bombas já lançadas (o bombardeiro desiste depois de algumas). */
@@ -376,13 +379,16 @@ export interface Building {
 /** Expedição: equipe fora do mapa (mina e, depois, lugares da região). Ver game/expeditions.ts. */
 export interface Expedition {
   id: number;
-  kind: 'mine' | 'region';
+  /** `colony`: moradores e ninjas indo morar numa colônia (game/colonies.ts). */
+  kind: 'mine' | 'region' | 'colony';
   /** Região: lugar do mapa da região e o que a equipe foi fazer lá. */
   node?: string;
   action?: RegionAction;
   teamId: number;
   /** Quem foi (fica fora do mapa até voltar). */
   unitIds: number[];
+  /** Colônia: quem viaja de mudança (saiu da lista da vila; entra na da colônia ao chegar). */
+  passengers?: Unit[];
   /** Mina: entrada de onde saiu. */
   siteId?: number;
   /** Andar atual (0 = a caminho). */
@@ -431,6 +437,8 @@ export interface RegionState {
   /** Ilha já explorada / com posto avançado. */
   explored?: boolean;
   outpost?: boolean;
+  /** Ilha com colônia fundada (o mapa dela fica em `state.colonies[id]`). */
+  colony?: boolean;
   /** Dia em que o vilarejo saqueado manda a vingança. */
   revengeDay?: number;
 }
@@ -622,6 +630,19 @@ export interface SceneInfo {
 
 export type SceneTheme = 'fishing' | 'desert' | 'cliff';
 
+/** Colônia numa ilha (game/colonies.ts): o estado dela é um `GameState` dentro de `state.colonies` da vila. */
+export interface ColonyInfo {
+  /** Ilha do mapa da região (data/region.ts). */
+  node: string;
+  theme?: SceneTheme;
+  /** Dia em que foi fundada. */
+  founded: number;
+  /** Último dia já contado no resumo fora da tela (produção creditada, obras avançadas). */
+  day: number;
+  /** Diário curto (mais novo por último): produção, ameaças, chegadas. */
+  log: string[];
+}
+
 /** Ninja caído, para a Pedra Memorial e o Edo Tensei. */
 export interface Fallen {
   id: number;
@@ -725,6 +746,12 @@ export interface GameState {
   sceneInfo?: SceneInfo;
   /** De que lado as torres e a Residência atiram (num mapa de missão as torres são do inimigo). */
   towersFaction?: Faction;
+  /** Campos cercados (game/fields.ts; save v49: substituem a Fazenda e a Horta de Ervas). */
+  fields: Field[];
+  /** Colônias nas ilhas (id da ilha → mapa dela), só na vila (save v48). */
+  colonies: Record<string, GameState>;
+  /** Só no mapa de uma colônia: de que ilha é e o que já foi contado. */
+  colony?: ColonyInfo;
   res: Record<ResKey, number>;
   /** Estoque de itens fabricados (id → quantidade). */
   items: Record<string, number>;
@@ -781,4 +808,31 @@ export interface ExamResult {
   ranking: { name: string; village: boolean; score: number; promoted: boolean }[];
 }
 
-export type Selection = { kind: 'unit' | 'building' | 'team' | 'site'; id: number };
+export type Selection = { kind: 'unit' | 'building' | 'team' | 'site' | 'field'; id: number };
+
+/** Canteiro (um tile) de um campo cercado (game/fields.ts). `st`: 0 terra crua, 1 arada, 2 plantada, 3 madura. */
+export interface Plot {
+  tx: number;
+  ty: number;
+  st: 0 | 1 | 2 | 3;
+  /** Cultura plantada (a do cercado no momento da semeadura). */
+  crop?: CropId;
+  /** Crescimento 0..1 (plantada) e segundos madura (murcha depois de `FIELD.witherDays`). */
+  g: number;
+  ripe?: number;
+  /** Segundos de umidade que restam (rega, chuva, água vizinha). */
+  wet?: number;
+  /** Fertilidade 0..1 (cansa repetindo a cultura) e a última colhida. */
+  fert: number;
+  last?: CropId;
+}
+
+/** Campo cercado de formato livre: os canteiros ligados (vizinhos) formam um cercado, com uma cultura só. */
+export interface Field {
+  id: number;
+  crop: CropId;
+  plots: Plot[];
+  /** Fazendeiros pedidos e os que estão nele (ids). */
+  desired: number;
+  workers: number[];
+}

@@ -26,10 +26,13 @@ import type { Vfx } from '../data/vfx';
 import { CHEST_LINGER, doneFor, fogVersion, isExplored, isExploredPx } from '../game/explore';
 import { CAVE_PROPS, type CaveDeco, caveDecos, drawCaveDeco, drawCaveFlat } from './cave';
 import { drawThemeDeco, type ThemeDeco, themeDecos } from './themeProps';
+import { themeOf } from '../game/scene';
 import { wallEnds } from '../game/walls';
 import { seasonOf } from '../game/mood';
 import { searchTiles } from '../game/systems/villagers';
 import { draftPaves, isRoad as isRoadNow, paveBlock, type RoadDraft } from '../game/roads';
+import { draftPlots, plotAt, plotBlock } from '../game/fields';
+import { drawFields } from './fields';
 import { buildingCenter, doorPos, doorTile, hasWater, idx, inBounds, nodeArt, T } from '../game/world';
 import { art, artFoot, ART_SCALE, drawWhole } from './art';
 import { drawEffect } from './effects';
@@ -263,7 +266,7 @@ export class Renderer {
     this.level = s.level;
     this.season = seasonOf(s);
     this.kages = s.kageHistory?.length ?? 0;
-    this.theme = s.sceneInfo?.theme ?? '';
+    this.theme = themeOf(s) ?? '';
     this.seed = s.seed;
     let cache = this.maps.get(s);
     if (!cache) {
@@ -416,7 +419,8 @@ export class Renderer {
     ctx.restore();
 
     this.mark('chão');
-    this.drawRoads(g, ov.roadDraft ?? null);
+    this.drawRoads(g, ov.roadMode === 'pave' ? (ov.roadDraft ?? null) : null);
+    this.drawFields(g, ov.roadMode === 'field' ? (ov.roadDraft ?? null) : null, time);
     if (ov.roadMode) this.paintPreview(g, ov);
     this.mark('ruas');
     // decalques: campos com arte isométrica (fazenda, treino, horta) ficam no chão, sob todo mundo; com peças
@@ -590,8 +594,11 @@ export class Renderer {
     }
     for (const d of list) {
       if (d.b || d.tile) continue;
-      const wx = d.u ? d.u.x / TILE : d.deco ? d.deco.x / TILE : d.cave ? d.cave.x / TILE : d.wall ? d.wall.x / TILE : d.origin ? d.origin.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
-      const wy = d.u ? d.u.y / TILE : d.deco ? d.deco.y / TILE : d.cave ? d.cave.y / TILE : d.wall ? d.wall.y / TILE : d.origin ? d.origin.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
+      // enfeite de tema (barco, rede…) ou outra coisa sem posição de mundo: fica fora da conta de profundidade
+      const at = d.u ?? d.deco ?? d.cave ?? d.wall ?? d.origin ?? d.theme;
+      if (!at && !d.n && !d.site) continue;
+      const wx = at ? at.x / TILE : d.n ? d.n.tx + 0.5 : d.site!.tx + 0.5;
+      const wy = at ? at.y / TILE : d.n ? d.n.ty + 0.5 : d.site!.ty + 0.5;
       const col = cols[Math.max(0, Math.floor(wx))];
       if (!col) continue;
       for (const o of col) {
@@ -1709,6 +1716,11 @@ export class Renderer {
     ctx.restore();
   }
 
+  /** Campos cercados: chão de cada canteiro, as plantas pela etapa e a cerca na borda (render/fields.ts). */
+  private drawFields(g: Game, draft: RoadDraft | null, time: number) {
+    drawFields(this.ctx, g, draft, time, this.season === 'winter');
+  }
+
   /** Caminho do losango de um tile (na cena). */
   private tileDiamond(tx: number, ty: number, inset = 0) {
     const ctx = this.ctx;
@@ -1734,7 +1746,11 @@ export class Renderer {
     const i = idx(s, h.tx, h.ty);
     const draft = ov.roadDraft;
     const ok =
-      m === 'pave' ? draft?.get(i) === true || isRoadNow(s, h.tx, h.ty) || !paveBlock(g, h.tx, h.ty, draft ? draftPaves(draft) : 0) : true;
+      m === 'pave'
+        ? draft?.get(i) === true || isRoadNow(s, h.tx, h.ty) || !paveBlock(g, h.tx, h.ty, draft ? draftPaves(draft) : 0)
+        : m === 'field'
+          ? draft?.get(i) === true || !!plotAt(g, h.tx, h.ty) || !plotBlock(g, h.tx, h.ty, draft ? draftPlots(draft) : 0)
+          : true;
     const color = h.del ? '255,120,100' : m === 'clear' ? '255,170,60' : ok ? '140,230,120' : '255,90,80';
     const ctx = this.ctx;
     ctx.save();
@@ -2450,7 +2466,7 @@ function unitTag(u: Unit) {
 /** Animação de trabalho do morador: derrubando árvore, quebrando pedra, capinando/colhendo ou construindo. */
 function workAction(g: Game, u: Unit): WorkAction | undefined {
   if (u.kind !== 'villager') return undefined;
-  if (u.state === 'farming') return 'farm';
+  if (u.state === 'farming' || u.state === 'tending') return 'farm';
   if (u.state === 'build') return 'chop';
   if (u.state === 'gather') {
     const n = g.node(u.taskId);

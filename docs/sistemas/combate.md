@@ -2,7 +2,7 @@
 
 > Detalhe movido do CLAUDE.md (o índice fica lá). Mantenha atualizado ao mexer no sistema.
 
-- Inimigos especiais: animais ladrões (`thief` em `data/animals.ts`: corvo bica a fazenda, macaco rouba ryo/ervas e foge;
+- Inimigos especiais: animais ladrões (`thief` em `data/animals.ts`: corvo bica os canteiros maduros dos campos cercados, macaco rouba ryo/ervas e foge;
   o saque fica em `Unit.loot` e volta ao abater) e renegados com função (`Unit.role`, `data/enemies.ts`: bombardeiro
   derruba prédios pela metade, médico cura os aliados), que entram nas invasões por `raidRoles` (spawner.ts). Animais com golpe (`ability`): aranha (teia que prende,
   projétil com stun), tigre das sombras (`night`: só à noite, bote) e rinoceronte (investida que atropela e danifica prédio).

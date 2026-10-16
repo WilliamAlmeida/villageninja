@@ -36,11 +36,11 @@ const openRow = (g: Game, len = 300) => {
 };
 
 describe('inimigos novos', () => {
-  test('corvos bicam a fazenda, levam comida e devolvem quando abatidos', () => {
+  test('corvos bicam o campo cercado, levam comida e devolvem quando abatidos', () => {
     const g = createNewGame(SYSTEMS, 31);
     noDefenders(g);
-    const farm = g.builtOf('farm')[0]!;
-    const c = buildingCenter(farm);
+    const plot = g.state.fields[0]!.plots[4]!;
+    const c = { x: plot.tx * 32 + 16, y: plot.ty * 32 + 16 };
     g.state.res.food = 100;
     const crow = createAnimal(g, 'crow', c.x, c.y);
     crow.hp = crow.maxHp = 9999; // a Residência do Hokage atira kunai: o corvo não pode cair antes de juntar o saque

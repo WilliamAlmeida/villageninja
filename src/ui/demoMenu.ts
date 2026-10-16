@@ -93,6 +93,18 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
     ['Prédios', [...new Set(s.buildings.map((b) => b.type))].map((t) =>
       view(`b-${t}`, BUILDINGS[t].name, () => ({ kind: 'building', id: s.buildings.find((b) => b.type === t)!.id })),
     )],
+    ['Campos cercados', [
+      view('f-campo', 'Campo de trigo', () => {
+        // o da vitrine (o maior de trigo; o inicial do jogo novo também é de trigo)
+        const f = s.fields.filter((x) => x.crop === 'wheat').sort((a, b) => b.plots.length - a.plots.length)[0];
+        return f ? { kind: 'field', id: f.id } : null;
+      }),
+      view('f-arroz', 'Campo de arroz (beira da água)', () => {
+        const f = s.fields.find((x) => x.crop === 'rice');
+        return f ? { kind: 'field', id: f.id } : null;
+      }),
+      { key: 'cercar', label: 'Cercar campo (pintar)', run: () => ui.build.startField() },
+    ]],
     ['Equipes e locais', [
       ...s.teams.slice(0, 3).map((t, i) => view(`t-${i + 1}`, t.name, () => ({ kind: 'team', id: t.id }))),
       ...[...new Set(s.sites.map((x) => x.kind))].map((k) => view(`s-${k}`, `Local: ${k}`, () => ({ kind: 'site', id: s.sites.find((x) => x.kind === k)!.id }))),
@@ -165,6 +177,8 @@ function groups(app: App, ui: DemoUI): [string, Entry[]][] {
       { key: 'cena-saque', label: 'Saque a um vilarejo', run: () => openScene(app, 'raid') },
       { key: 'cena-pesca', label: 'Saque à Vila dos Pescadores (tema)', run: () => openScene(app, 'raid', 'pesca') },
       { key: 'cena-deserto', label: 'Saque à Cidade dos Mercadores (deserto)', run: () => openScene(app, 'raid', 'mercadores') },
+      { key: 'colonia', label: 'Colônia na Ilha do Recife (tema pesca)', run: () => app.openColony('recife') },
+      view('colonia-regiao', 'Região: ficha da colônia', () => ({ kind: 'region' })),
     ]],
   ];
 }

@@ -6,7 +6,7 @@ import { mulberry32 } from '../core/rng';
 import { defOf } from '../data/buildings';
 import type { GameState } from '../game/types';
 import { centerOf, idx, inBounds, T } from '../game/world';
-import { isStairs, PLATEAU_R } from '../game/scene';
+import { isStairs, PLATEAU_R, themeOf } from '../game/scene';
 import { art, drawShrunk } from './art';
 
 type Ctx = CanvasRenderingContext2D;
@@ -43,7 +43,7 @@ const cache = new WeakMap<GameState, ThemeDeco[]>();
 
 /** Enfeites do tema (o mesmo mapa dá sempre os mesmos); vazio fora dos mapas temáticos. */
 export function themeDecos(s: GameState): ThemeDeco[] {
-  const theme = s.sceneInfo?.theme;
+  const theme = themeOf(s);
   if (!theme) return [];
   const hit = cache.get(s);
   if (hit) return hit;
@@ -65,7 +65,8 @@ export function themeDecos(s: GameState): ThemeDeco[] {
     for (const [n, w] of list) if ((r -= w) < 0) return P[n]!;
     return null;
   };
-  const entry = s.sceneInfo!.entry;
+  // a chegada da equipe fica livre (a colônia não tem: longe de tudo)
+  const entry = s.sceneInfo?.entry ?? { x: -1e9, y: -1e9 };
   const out: ThemeDeco[] = [];
   if (theme === 'cliff') {
     // platô da prova: um bloco de penhasco por tile do anel e a escada de pedra na abertura

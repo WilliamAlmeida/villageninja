@@ -9,6 +9,7 @@ import { CLEAR, clearNode, regrowTime } from '../clearing';
 import { EARTH, earthSpot, earthworkAt, finishEarthwork } from '../earthworks';
 import { marketSale } from '../specialize';
 import { advanceCraft } from '../gear';
+import { fieldById, nextPlot, plotAt, plotNeed, workPlot, workTime } from '../fields';
 import { RES_INFO } from '../../data/resources';
 import type { Game } from '../game';
 import { followPath, setDestination } from '../movement';
@@ -227,6 +228,37 @@ function work(g: Game, u: Unit, dt: number) {
         u.timer = 8;
       }
       break;
+    case 'toPlot': {
+      // fazendeiro indo ao canteiro (campo cercado, game/fields.ts)
+      const at = plotOfTask(g, u);
+      if (!at) u.state = 'idle';
+      else if (followPath(g, u, dt)) {
+        const need = plotNeed(g, at.field, at.plot);
+        if (!need) {
+          u.state = 'idle';
+          break;
+        }
+        u.state = 'tending';
+        u.timer = workTime(need);
+        u.facing = Math.atan2(tileCenter(at.plot.ty) - u.y, tileCenter(at.plot.tx) - u.x);
+      }
+      break;
+    }
+    case 'tending': {
+      const at = plotOfTask(g, u);
+      if (!at) {
+        u.state = 'idle';
+        break;
+      }
+      u.moving = false;
+      u.anim = 0.2;
+      if (u.timer <= 0) {
+        workPlot(g, at.field, at.plot, u);
+        u.state = 'idle';
+        u.timer = 0.3;
+      }
+      break;
+    }
     case 'toCraft':
       if (followPath(g, u, dt)) {
         u.state = 'craft';
@@ -359,6 +391,25 @@ function decide(g: Game, u: Unit) {
   if (job) {
     startJob(g, u, job);
     return;
+  }
+  // fazendeiro de campo cercado: o canteiro que mais precisa (colher, semear, arar, regar)
+  if (u.fieldId != null) {
+    const f = fieldById(g.state, u.fieldId);
+    if (!f) u.fieldId = undefined;
+    else {
+      const p = nextPlot(g, f, u);
+      if (p) {
+        u.taskId = p.ty * g.state.mapW + p.tx;
+        if (setDestination(g, u, tileCenter(p.tx) + rand(-6, 6), tileCenter(p.ty) + 8)) {
+          u.state = 'toPlot';
+          return;
+        }
+      }
+      // nada a fazer agora: espera perto do campo
+      u.state = 'idle';
+      u.timer = rand(2, 4);
+      return;
+    }
   }
   const site = nearestSite(g, u);
   if (site) {
@@ -539,4 +590,11 @@ function wander(g: Game, u: Unit) {
     u.state = 'idle';
     u.timer = 2;
   }
+}
+
+/** Canteiro da tarefa do fazendeiro (`taskId` = índice do tile), se ainda for do campo dele. */
+function plotOfTask(g: Game, u: Unit) {
+  if (u.taskId == null || u.fieldId == null) return null;
+  const at = plotAt(g, u.taskId % g.state.mapW, Math.floor(u.taskId / g.state.mapW));
+  return at && at.field.id === u.fieldId ? at : null;
 }

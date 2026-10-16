@@ -30,7 +30,8 @@
   usa `gpt-6-sol` por padrão (`CODEX_MODEL` troca; os slugs aceitos estão em `~/.codex/models_cache.json`). Em
   `scripts/ui-grid.py` as descrições das casas vão numa linha só: no Windows (`shell=True`) uma quebra de linha no
   argumento engolia tudo depois dela e o Codex desenhava qualquer coisa.
-- Campos andáveis com arte (fazenda, treino, horta) são decalques no chão, desenhados antes das unidades.
+- Campos andáveis com arte (treino; fazenda e horta só nos vilarejos invadidos) são decalques no chão, desenhados antes das unidades.
+  Campos cercados (game/fields.ts) têm desenho provisório em `render/fields.ts` até a folha do Codex (32×32 por cultura e etapa).
 - **Variantes dos prédios repetidos** (docs/gdd-escala-ilhas-pvp.md, seção 4; feitas em 2026-10-15): a casa tem três
   desenhos por nível (`house`, `house-b`, `house-c`, `house-b-2`, `house-c-3`…; a letra entra ANTES do nível) e lenhador,
   pedreira e fazenda dois (`<tipo>`, `<tipo>-b`, também por nível). A escolha é só no desenho, em `render/variants.ts`

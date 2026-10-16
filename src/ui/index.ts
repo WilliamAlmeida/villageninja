@@ -9,6 +9,7 @@ import { orderAttack, orderMove, teamUnits } from '../game/teams';
 import type { Building, Site, Unit } from '../game/types';
 import { isExploredPx } from '../game/explore';
 import { tileCenter, toTile } from '../game/world';
+import { plotAt } from '../game/fields';
 import { BuildUI } from './build';
 import { el } from './dom';
 import { Hud } from './hud';
@@ -58,6 +59,7 @@ export function createUI(app: App, root: HTMLElement) {
     else win.show(view);
   }
   panel.onWindow = (v) => win.show(v);
+  panel.onPaintField = () => build.startField();
   win.onWindow = (v) => win.show(v);
   // servidor de duelos: quando chega resposta da rede, a janela Duelos remonta na hora
   arena.onChange = () => {
@@ -119,6 +121,8 @@ export function createUI(app: App, root: HTMLElement) {
     if (a !== 'select') app.selectTool = false;
     // gestão e construção são da vila: olhando a invasão, volta para a vila primeiro
     if (a !== 'select' && app.viewScene) app.setView(false);
+    // na colônia dá para construir e selecionar; as janelas de gestão são da vila
+    if (a !== 'select' && a !== 'build' && app.viewColony) app.openColony(null);
     if (a === 'build') {
       if (app.buildType || app.roadMode) build.exit();
       build.toggle();
@@ -203,9 +207,9 @@ export function createUI(app: App, root: HTMLElement) {
     const map: Record<string, string> = { b: 'build', n: 'roster', v: 'village', m: 'missions', r: 'world', f: 'crafts', d: 'duels', s: 'select' };
     if (map[k]) dockAction(map[k]);
     if (k === ' ') {
-      // espaço: pausa/continua
+      // espaço: pausa/continua (a velocidade é sempre a da vila: a colônia roda no relógio dela)
       e.preventDefault();
-      const s = app.game.state;
+      const s = app.home.state;
       s.speed = s.speed ? 0 : 1;
     }
   });
@@ -369,6 +373,11 @@ export function createUI(app: App, root: HTMLElement) {
     const b = buildingAt(sx, sy);
     if (b) {
       g.select({ kind: 'building', id: b.id });
+      return;
+    }
+    const pa = plotAt(g, toTile(w.x), toTile(w.y));
+    if (pa) {
+      g.select({ kind: 'field', id: pa.field.id });
       return;
     }
     g.select(null);
@@ -538,10 +547,12 @@ export function createUI(app: App, root: HTMLElement) {
     build.toggle(false);
     win.show(null);
     app.group = group;
-    if (v.kind === 'unit' || v.kind === 'building' || v.kind === 'site') {
+    if (v.kind === 'unit' || v.kind === 'building' || v.kind === 'site' || v.kind === 'field') {
       app.game.select({ kind: v.kind, id: v.id });
       const t = v.kind === 'unit' ? app.game.unit(v.id) : null;
       if (t) app.camera.jump(t.x, t.y);
+      const fp = v.kind === 'field' ? app.game.state.fields.find((f) => f.id === v.id)?.plots[0] : undefined;
+      if (fp) app.camera.jump(tileCenter(fp.tx), tileCenter(fp.ty));
     } else if (v.kind === 'group') panel.show(v);
     else {
       app.game.select(null);

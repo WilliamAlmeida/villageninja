@@ -224,7 +224,12 @@ Só um mapa é simulado em detalhe por vez (como hoje com as cenas). Medir cada 
    própria com dois lutadores, RNG único com semente e matemática inteira (ou tabelas) no combate.
    **Duelo PvP na arena** (6.2) + `game/snapshot.ts` + `scripts/arena-server.ts`: o serviço mínimo e o ninja
    serializado.
-4. **Colônias** (seção 5): estado, Porto, transferência, resumo por dia, 1 tema primeiro (pesca, que já tem mapa).
+4. [x] **Colônias** (seção 5; feito em 2026-10-15, save v48): `state.colonies[ilha]` = `GameState` 48×48 no tema da ilha
+   (`game/colonies.ts`, `data/colonies.ts`, `systems/colonies.ts`), ação "Fundar colônia" no mapa da região com a escolha
+   de quem vai (expedição `kind: 'colony'`, os colonos viajam dentro dela), tetos próprios (`colonyCapOf`), resumo por dia
+   fora da tela e simulação completa na tela (`App.openColony`), tesouro compartilhado com a vila, vitrine
+   `?demo&tela=colonia`, testes em `tests/colonies.test.ts`. Primeiro tema: pesca, na nova Ilha do Recife (`recife`).
+   Detalhe em docs/sistemas/mundo.md.
 5. **Ataque à vila** (6.1) e às colônias (6.3), com RNG com semente se o replay for querido.
 6. Bairro e moradores em resumo (seção 4), só se a medição no celular pedir.
 

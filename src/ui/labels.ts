@@ -1,7 +1,7 @@
 import type { JobType } from '../data/buildings';
 
 export const STATE_LABEL: Record<string, string> = {
-  idle: 'Parado', wander: 'Passeando', toField: 'Indo à fazenda', farming: 'Cultivando', toNode: 'Indo coletar',
+  idle: 'Parado', wander: 'Passeando', toField: 'Indo à fazenda', farming: 'Cultivando', toPlot: 'Indo ao canteiro', tending: 'Cuidando do canteiro', toNode: 'Indo coletar',
   gather: 'Coletando', toDeposit: 'Levando recursos', toShop: 'Indo ao mercado', shop: 'Vendendo', toSite: 'Indo à obra',
   build: 'Construindo', flee: 'Fugindo!', shelter: 'Abrigado', toShelter: 'Indo se abrigar', toKennel: 'Indo para o Canil', kennel: 'Dormindo no Canil', dogPatrol: 'Patrulhando a vila', withOwner: 'Junto do dono (treino)', goHome: 'Indo para casa', sleep: 'Dormindo',
   fight: 'Em combate!', toLearn: 'Indo à Academia', learn: 'Estudando jutsu', toPractice: 'Indo praticar o jutsu', practice: 'Praticando jutsu', toTower: 'Indo para a torre', towerWatch: 'Vigiando a torre', toRest: 'Indo descansar', rest: 'Descansando',

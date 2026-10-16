@@ -6,6 +6,7 @@ import type { Building, Cost, Faction, GameState, ResourceNode, Selection, Team,
 import { canHit, isHostile } from './factions';
 import { housingOf } from './upgrade';
 import { levelDef } from '../data/villageLevels';
+import { COLONY, colonyCapOf } from '../data/colonies';
 import { World } from './world';
 
 export type System = (g: Game, dt: number) => void;
@@ -21,6 +22,10 @@ export class Game {
   selected: Selection | null = null;
   /** Mapa de missão (não é a vila): avisos dele levam a câmera para lá. */
   isScene = false;
+  /** Mapa de uma colônia (id da ilha): avisos dele abrem a colônia. */
+  colonyId: string | null = null;
+  /** Na vila: colônia que está na tela (roda em detalhe; as outras só no resumo do dia). Posto pelo main; não é salvo. */
+  activeColony: string | null = null;
   private unitMap = new Map<number, Unit>();
   private buildingMap = new Map<number, Building>();
   private nodeMap = new Map<number, ResourceNode>();
@@ -195,9 +200,16 @@ export class Game {
     for (const u of this.state.units) if (!u.dead && u.faction === 'village' && (u.kind === 'villager' || u.kind === 'ninja')) n++;
     return n;
   }
-  /** Vagas: as casas, até o teto do nível da vila (`popLimit`). */
+  /** Vagas: as casas, até o teto do nível da vila (`popLimit`); quem mora nas colônias conta no teto da vila. */
   popCap() {
-    return Math.min(this.housingCap(), levelDef(this.state.level).popLimit);
+    if (this.state.colony) return Math.min(this.housingCap(), COLONY.popLimit);
+    return Math.max(0, Math.min(this.housingCap(), levelDef(this.state.level).popLimit - this.colonyPopulation()));
+  }
+  /** Gente da vila que mora nas colônias (game/colonies.ts). */
+  colonyPopulation() {
+    let n = 0;
+    for (const c of Object.values(this.state.colonies ?? {})) for (const u of c.units) if (!u.dead && u.faction === 'village' && (u.kind === 'villager' || u.kind === 'ninja')) n++;
+    return n;
   }
   /** Ninjas vivos da vila. */
   ninjaCount() {
@@ -216,7 +228,7 @@ export class Game {
     return n;
   }
   buildingCap(type: BuildingType) {
-    return maxCountOf(type, this.state.level);
+    return this.state.colony ? colonyCapOf(type) : maxCountOf(type, this.state.level);
   }
   /** Vagas nas casas (sem o teto do nível). */
   housingCap() {
@@ -265,6 +277,6 @@ export class Game {
 
   toast(text: string, kind: ToastKind = 'info', at?: { x: number; y: number }) {
     this.rev++;
-    this.bus.emit('toast', { text, kind, x: at?.x, y: at?.y, scene: this.isScene });
+    this.bus.emit('toast', { text, kind, x: at?.x, y: at?.y, scene: this.isScene, colony: this.colonyId ?? undefined });
   }
 }

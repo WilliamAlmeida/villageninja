@@ -70,3 +70,39 @@
   `scripts/theme-art.py`). Vitrine: `cena-pesca`, `cena-deserto`. A prova do contrato (`createTrialScene`) põe a clareira num platô cercado de
   penhasco (anel de `T.ROCK` de raio `PLATEAU_R`) com a escada de pedra na abertura ao sul (`isStairs`; tema `cliff`, blocos
   `cliff-a/b/c` e `stairs` no mesmo atlas).
+- **Colônias nas ilhas** (2026-10-15, docs/gdd-escala-ilhas-pvp.md seção 5; `game/colonies.ts`, `data/colonies.ts`,
+  `systems/colonies.ts`, save v48): cada colônia é um `GameState` de 48×48 (`baseState(seed, { w, h })`) guardado em
+  `state.colonies[ilha]` da vila, com `colony: ColonyInfo` (ilha, tema, dia da fundação, último dia resumido, diário) e
+  `RegionState.colony` na ilha. O mapa é uma ilha cercada de mar com praia, no tema da ilha (`ISLAND_THEME`; `themeOf(s)`
+  em scene.ts serve o renderer e os enfeites, para cenas e colônias), com o Porto na praia do sul e uma casa (duas se já
+  havia posto avançado), tudo explorado e três bichos da ilha guardando o interior. Primeiro tema: pesca, na **Ilha do
+  Recife** (`recife`, a oeste; rende peixe e pérolas = `food`/`ryo`). **Tesouro compartilhado**: `res` e `items` da colônia
+  são o mesmo objeto da vila (`link` em `colonyGame`; o save guarda uma cópia e o carregar religa) — construir lá paga da
+  vila e o que ela produz entra direto. **Fundar** (mapa da região → ilha explorada → "Fundar colônia", `COLONY.cost`,
+  até `COLONY.max` = 3): o jogador escolhe quantos moradores (os sem emprego vão primeiro) e quais ninjas (`colonists`: sem
+  Kage, ANBU, Sannin, em missão, de vigia ou com cão); `sendColonists` cria o mapa na hora e manda uma expedição
+  `kind: 'colony'` em que os colonos viajam DENTRO dela (`Expedition.passengers`, já fora da lista da vila: equipe,
+  emprego e casa desfeitos em `takeFromHome`); ao chegar (`arriveColony`, chamado por `tickExpeditions`) entram no mapa
+  com ids novos perto do Porto (`settle`). A mesma tela manda mais gente para uma colônia que existe (sem custo). Quem
+  mora lá conta no `popLimit` da vila (`Game.colonyPopulation`, descontado em `popCap`); a colônia tem o próprio teto
+  (`COLONY.popLimit` = 48). **Tetos próprios** (`colonyCapOf`, `countBlock` → `colonyCountBlock` quando `state.colony`):
+  4 casas, 3 de produção SOMADOS (lenhador, pedreira, mina), 1 mercado, 4 torres, 1 porto, 18 canteiros de campo cercado; decorações
+  livres; o resto (Academia, Hospital, Biblioteca, oficinas, Arena…) "só na vila". `Game.buildingCap` usa essa tabela
+  na colônia. **Fora da tela** (`colonySystem`, na vila, depois da região): na virada do dia `colonyDay` credita
+  `colonyIncome` (fórmula fechada por trabalhador, `COLONY_YIELD` por dia, mercado escala com
+  `marketYield`; campos cercados por `fieldDailyYield`, lenhador/pedreira/mina só com o recurso no mapa; mais o `outpost` da ilha, que o posto deixa de pagar
+  quando há colônia), cobra a comida (`FOOD_PER_DAY` × gente × estação), termina obras e upgrades em andamento e sorteia
+  uma ameaça (`COLONY.threatChance`; defesa = `unitPower` dos ninjas + torres × `towerPower` + moradores; perdendo,
+  todos se ferem 30%, metade da produção se perde e, muito abaixo, alguém pode morrer) — sem simular luta, como as
+  expedições. Guarda `colony.day` para não dobrar. **Na tela** (`App.openColony(id)`, `App.viewColony`,
+  `Game.activeColony` posto pelo main; `app.game` passa a ser `colonyGame`): o sistema sincroniza hora/dia/clima/nível
+  e dá `step` com `COLONY_SYSTEMS` (status, população, equipes, moradores, ninjas, inimigos, torres, técnicas,
+  projéteis, efeitos, exploração, natureza — sem tempo, invasões, missões, Kage); `colony.day` acompanha o dia, então o
+  resumo não passa por cima do que foi vivido. Barra do alto (`ui/scene.ts`) mostra "Colônia · ilha", a gente e "Voltar à
+  vila"; o botão Construir e Selecionar funcionam lá (`BuildUI` usa `app.game`), as janelas de gestão voltam à vila
+  primeiro; toasts da colônia levam o id (`toast.colony`) e o toque abre o mapa dela. Ficha da ilha na região: cartão
+  da colônia (gente, prédios, rende por dia, última linha do diário, "Visitar colônia") e a escolha de quem vai; a
+  ilha ganha a cabana do posto e bandeira azul no mapa; colonos em viagem aparecem na trilha e em Expedições
+  ("Colonos"). Vitrine: `?demo&tela=colonia` (colônia no Recife com 6 moradores, 2 Genins, um campo de repolho e uma torre em obra).
+  Testes em `tests/colonies.test.ts`. Pendente para depois: ataque às colônias (GDD 6.3), volta de gente para a vila,
+  temas das outras ilhas (hoje só o Recife tem tema; as outras viram ilha comum).

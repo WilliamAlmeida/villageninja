@@ -8,6 +8,7 @@ import {
   ACTION_LABEL, ACTION_TIME, ANNEX_COST, FAME, OUTPOST_COST, REGION, REGION_NODES, REL, type RegionAction, type RegionNodeDef,
 } from '../data/region';
 import { costLabel, RES_KEYS } from '../data/resources';
+import { COLONY } from '../data/colonies';
 import { ORG, ORG_LAIR } from '../data/org';
 import { createNinja, createVillager } from './entities';
 import { expeditionUnits, teamBusy, unitPower } from './expeditions';
@@ -42,7 +43,7 @@ export const nodePower = (s: GameState, def: RegionNodeDef) => Math.round(def.po
 /** Ações possíveis num lugar (mesmo as que ainda não dá para fazer, que o painel mostra com o motivo). */
 export function nodeActions(def: RegionNodeDef): RegionAction[] {
   if (def.kind === 'village') return ['trade', 'protect', 'raid', 'annex'];
-  if (def.kind === 'island') return def.id === 'templos' ? ['explore', 'outpost', 'train'] : ['explore', 'outpost'];
+  if (def.kind === 'island') return def.id === 'templos' ? ['explore', 'outpost', 'colony', 'train'] : ['explore', 'outpost', 'colony'];
   if (def.kind === 'hideout') return def.id === 'som' ? ['rescue'] : ['assault'];
   return ['contract'];
 }
@@ -51,6 +52,7 @@ export function nodeActions(def: RegionNodeDef): RegionAction[] {
 export function actionCost(def: RegionNodeDef, action: RegionAction): Cost | undefined {
   if (action === 'trade') return def.trade?.give;
   if (action === 'outpost') return OUTPOST_COST;
+  if (action === 'colony') return COLONY.cost;
   if (action === 'annex') return ANNEX_COST;
   return undefined;
 }
@@ -90,8 +92,16 @@ export function actionBlock(g: Game, nodeId: string, action: RegionAction): stri
       break;
     case 'outpost':
       if (!st.explored) return 'Explore a ilha primeiro.';
+      if (st.colony) return 'A ilha já tem uma colônia: ela produz o que o posto produziria.';
       if (st.outpost) return 'A ilha já tem um posto avançado.';
       break;
+    case 'colony': {
+      if (!st.explored) return 'Explore a ilha primeiro.';
+      if (st.colony) return 'A ilha já tem uma colônia.';
+      const n = Object.keys(g.state.colonies ?? {}).length;
+      if (n >= COLONY.max) return `A vila já tem ${COLONY.max} colônias (o máximo).`;
+      break;
+    }
     case 'explore':
       if (st.explored) return 'A ilha já foi explorada.';
       break;
@@ -148,6 +158,7 @@ export function startCovert(g: Game, nodeId: string): Result {
 export function startRegion(g: Game, teamId: number, nodeId: string, action: RegionAction): Result {
   const def = REGION[nodeId];
   if (!def || !nodeActions(def).includes(action)) return fail('Ação inválida.');
+  if (action === 'colony') return fail('Fundar colônia leva moradores e ninjas escolhidos, não uma equipe (game/colonies.ts).');
   const why = actionBlock(g, nodeId, action) ?? teamBusy(g, teamId);
   if (why) return fail(why);
   const cost = actionCost(def, action);
@@ -357,7 +368,7 @@ export function regionDaily(g: Game) {
     const st = regionOf(s, def.id);
     if (st.status === 'protected') add(income, def.tribute);
     if (st.status === 'vassal') add(income, def.tribute, 2);
-    if (st.outpost) add(income, def.outpost);
+    if (st.outpost && !st.colony) add(income, def.outpost); // com colônia, é ela que produz o recurso da ilha
     if (st.status === 'hostile') {
       if (st.revengeDay != null && s.day >= st.revengeDay) {
         st.revengeDay = undefined;

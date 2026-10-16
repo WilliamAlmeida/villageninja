@@ -2659,6 +2659,18 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .rflag::after { content: ''; position: absolute; left: 2px; top: 0; border-left: 1.15rem solid var(--fc); border-top: 0.38rem solid transparent; border-bottom: 0.38rem solid transparent; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5)); animation: rflap 2.4s ease-in-out infinite; transform-origin: 0 50%; }
 .rnode:not(.art) .rflag { left: 62%; top: -0.6rem; }
 .rnode.s-protected .rflag { --fc: var(--good); } .rnode.s-vassal .rflag { --fc: #ffd34d; } .rnode.s-hostile .rflag { --fc: var(--bad); }
+.rnode.col .rflag { --fc: #4da6ff; }
+.colcard .collog { margin: 0.35rem 0 0; }
+.colninjas button .tn { overflow: hidden; text-overflow: ellipsis; }
+#scenebar .sb-title.col { color: #9fd3ff; }
+/* campo cercado: mapinha dos canteiros (cada um na cor da etapa) */
+.plotgrid { display: grid; gap: 2px; margin: 0.5rem auto; width: 100%; }
+.plotgrid i { border-radius: 2px; min-height: 0.9rem; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.plotgrid .pg-raw { background: #9d8a57; }
+.plotgrid .pg-tilled { background: #7a5a36; }
+.plotgrid .pg-dry { background: linear-gradient(to top, #b6c45a calc(var(--g) * 100%), #8a6a44 0); }
+.plotgrid .pg-grow { background: linear-gradient(to top, #6fbf4a calc(var(--g) * 100%), #5b4129 0); }
+.plotgrid .pg-ripe { background: #e8c25a; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0.3rem rgba(255, 211, 77, 0.6); }
 @keyframes rflap { 50% { transform: scaleX(0.82) skewY(4deg); } }
 @media (prefers-reduced-motion: reduce) { .rflag::after { animation: none; } }
 .rlegend .lg i { border-radius: 0; width: 0; height: 0; border: 0; border-left: 0.6rem solid; border-top: 0.25rem solid transparent; border-bottom: 0.25rem solid transparent; background: none; }

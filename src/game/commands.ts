@@ -2,6 +2,7 @@
 import { promoteToSensei } from './teams';
 import { SUB, TILE } from '../config';
 import { BUILDINGS, type BuildingType, defOf, layoutKey, maxCountOf } from '../data/buildings';
+import { colonyCapOf, COLONY_PRODUCTION, COLONY_PRODUCTION_CAP } from '../data/colonies';
 import { UPGRADES } from '../data/upgrades';
 import { tileOf } from '../data/layout';
 import { JUTSU_LIST, JUTSUS, type JutsuDef } from '../data/jutsus';
@@ -43,6 +44,7 @@ export function canBuild(g: Game, type: BuildingType): Result {
  * subindo o nível dos prédios que tem; save antigo acima do teto fica como está, só não constrói o próximo.
  */
 export function countBlock(g: Game, type: BuildingType): string | null {
+  if (g.state.colony) return colonyCountBlock(g, type);
   const cap = g.buildingCap(type);
   if (!Number.isFinite(cap) || g.buildingCount(type) < cap) return null;
   const def = BUILDINGS[type];
@@ -51,6 +53,34 @@ export function countBlock(g: Game, type: BuildingType): string | null {
   if (cap === 0) return `Requer nível ${levelDef(def.minLevel ?? 1).name}.`;
   const more = next > cap ? `suba a vila de nível (${next} no nível ${levelDef(g.state.level + 1).name})` : 'é o máximo do jogo';
   return `Limite de ${cap} ${plural(def.name, cap)} no nível ${lv.name}: ${more}${UPGRADES[type] ? ` ou melhore ${cap === 1 ? 'o que tem' : 'os que tem'}` : ''}.`;
+}
+
+/** Quantos contam no teto deste tipo e o teto (na colônia, a produção conta somada). */
+export function capCount(g: Game, type: BuildingType): { n: number; cap: number } {
+  if (g.state.colony && COLONY_PRODUCTION.includes(type)) {
+    let n = 0;
+    for (const b of g.state.buildings) if (COLONY_PRODUCTION.includes(b.type)) n++;
+    return { n, cap: COLONY_PRODUCTION_CAP };
+  }
+  return { n: g.buildingCount(type), cap: g.buildingCap(type) };
+}
+
+/**
+ * Numa colônia (game/colonies.ts) os tetos são os dela (data/colonies.ts): poucas casas, produção somada, um mercado,
+ * um porto; o resto (Academia, Hospital, Biblioteca, oficinas) só na vila.
+ */
+function colonyCountBlock(g: Game, type: BuildingType): string | null {
+  const def = BUILDINGS[type];
+  const cap = colonyCapOf(type);
+  if (cap === 0) return `${def.name}: só na vila. A colônia é um posto de recursos e de fronteira.`;
+  if (COLONY_PRODUCTION.includes(type)) {
+    let n = 0;
+    for (const b of g.state.buildings) if (COLONY_PRODUCTION.includes(b.type)) n++;
+    if (n < COLONY_PRODUCTION_CAP) return null;
+    return `Limite de ${COLONY_PRODUCTION_CAP} prédios de produção na colônia (fazenda, lenhador, pedreira, mina e horta juntos)${UPGRADES[type] ? ': melhore os que tem' : ''}.`;
+  }
+  if (!Number.isFinite(cap) || g.buildingCount(type) < cap) return null;
+  return `Limite de ${cap} ${plural(def.name, cap)} na colônia${UPGRADES[type] ? `: melhore ${cap === 1 ? 'o que tem' : 'os que tem'}` : ''}.`;
 }
 
 /** Plural simples do nome do prédio para as mensagens de teto ("Casa" → "casas", "Torre de Vigia" → "torres de vigia"). */

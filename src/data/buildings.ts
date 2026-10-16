@@ -98,7 +98,7 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'farm', name: 'Fazenda', icon: '{wheat}', desc: '2 fazendeiros cultivam comida.',
-    w: 3, h: 3, cost: { wood: 25 }, buildTime: 10, workers: 2, job: 'farmer', buildable: true, walkable: true, maxCount: [2, 3, 4, 5],
+    w: 3, h: 3, cost: { wood: 25 }, buildTime: 10, workers: 2, job: 'farmer', buildable: false, walkable: true,
     roof: '#7a5a2a', wall: '#b89a5a',
   },
   {
@@ -159,7 +159,7 @@ const LIST: BuildingDef[] = [
   },
   {
     type: 'herbgarden', name: 'Horta de Ervas', icon: '{herbs}', desc: '2 jardineiros cultivam ervas medicinais.',
-    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 10, workers: 2, job: 'gardener', buildable: true, walkable: true, minLevel: 1, maxCount: [0, 2, 3, 4],
+    w: 2, h: 2, cost: { wood: 30, stone: 10 }, buildTime: 10, workers: 2, job: 'gardener', buildable: false, walkable: true, minLevel: 1,
     roof: '#3c6e3c', wall: '#8fbf6a',
   },
   {

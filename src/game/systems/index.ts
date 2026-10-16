@@ -6,6 +6,8 @@ import { examSystem } from './exam';
 import { exploreSystem } from './explore';
 import { expeditionSystem } from './expeditions';
 import { regionSystem } from './region';
+import { colonySystem } from './colonies';
+import { cropSystem } from './crops';
 import { seasonSystem } from './seasons';
 import { natureSystem } from './nature';
 import { gearSystem } from './gear';
@@ -43,6 +45,7 @@ export const SYSTEMS: System[] = [
   kageSystem,
   bossSystem,
   villagerSystem,
+  cropSystem,
   ninjaSystem,
   hostileSystem,
   towerSystem,
@@ -54,6 +57,7 @@ export const SYSTEMS: System[] = [
   exploreSystem,
   expeditionSystem,
   regionSystem,
+  colonySystem,
   seasonSystem,
   natureSystem,
   gearSystem,
@@ -77,6 +81,7 @@ const LABELS: [System, string][] = [
   [kageSystem, 'kage'],
   [bossSystem, 'chefes'],
   [villagerSystem, 'moradores'],
+  [cropSystem, 'plantações'],
   [ninjaSystem, 'ninjas'],
   [hostileSystem, 'inimigos'],
   [towerSystem, 'torres'],
@@ -88,6 +93,7 @@ const LABELS: [System, string][] = [
   [exploreSystem, 'exploração'],
   [expeditionSystem, 'expedições'],
   [regionSystem, 'região'],
+  [colonySystem, 'colônias'],
   [seasonSystem, 'estações'],
   [natureSystem, 'natureza'],
   [gearSystem, 'equipamento'],
@@ -112,4 +118,22 @@ export const SCENE_SYSTEMS: System[] = [
   effectSystem,
   exploreSystem,
   sceneSystem,
+];
+
+/** Mapa de uma colônia na tela (game/colonies.ts): a vida comum (moradores, população, natureza) e a luta, sem a vila. */
+export const COLONY_SYSTEMS: System[] = [
+  statusSystem,
+  populationSystem,
+  teamSystem,
+  villagerSystem,
+  cropSystem,
+  ninjaSystem,
+  hostileSystem,
+  towerSystem,
+  techniqueSystem,
+  spreadSystem,
+  projectileSystem,
+  effectSystem,
+  exploreSystem,
+  natureSystem,
 ];

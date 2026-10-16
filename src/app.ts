@@ -22,11 +22,15 @@ export interface App {
   viewScene: boolean;
   /** Troca a tela entre a vila e o mapa de missão (cada um guarda a própria câmera). */
   setView(scene: boolean): void;
+  /** Olhando o mapa de uma colônia (id da ilha; game/colonies.ts) em vez da vila. */
+  viewColony: string | null;
+  /** Abre o mapa da colônia (null = volta para a vila). Enquanto aberta, ela roda em detalhe. */
+  openColony(id: string | null): void;
   camera: Camera;
   ghost: Ghost | null;
   buildType: BuildingType | null;
   /** Pintando no mapa: rua, limpar área ou aterrar/cavar (o toque em cima do que já está marcado tira). */
-  roadMode: 'pave' | 'clear' | 'fill' | 'dig' | null;
+  roadMode: 'pave' | 'clear' | 'fill' | 'dig' | 'field' | null;
   /** Ruas pintadas e ainda não confirmadas (só valem no "Pronto"; game/roads.ts). */
   roadDraft: RoadDraft;
   /** Tile sob o mouse nos modos de pintar (a prévia de onde o toque vai cair). */

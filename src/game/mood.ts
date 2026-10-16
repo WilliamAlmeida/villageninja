@@ -19,7 +19,7 @@ export const isSnowing = (s: GameState) => s.weather === 'snow' || (s.weather ==
 export const daysToNextSeason = (s: GameState) => SEASON_DAYS - ((s.day - 1) % SEASON_DAYS);
 
 /** Clima num ponto do mapa (a chuva só vale embaixo das nuvens); sem ponto, o clima do dia. */
-const localWeather = (s: GameState, x?: number, y?: number) => (x == null || y == null ? s.weather : weatherAt(s, seasonOf(s), x, y));
+export const localWeather = (s: GameState, x?: number, y?: number) => (x == null || y == null ? s.weather : weatherAt(s, seasonOf(s), x, y));
 
 /** Multiplicador da colheita (estação × clima no lugar). */
 export const harvestMult = (s: GameState, x?: number, y?: number) => SEASONS[seasonOf(s)].harvest * WEATHERS[localWeather(s, x, y)].harvest;
