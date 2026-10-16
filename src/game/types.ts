@@ -738,7 +738,8 @@ export interface ExamEntrant {
 }
 
 export interface Exam {
-  phase: 'gather' | 'walk' | 'ready' | 'fight' | 'done';
+  /** `bow` (só no duelo): depois da luta os dois voltam ao seu canto e se cumprimentam com o selo. */
+  phase: 'gather' | 'walk' | 'ready' | 'fight' | 'bow' | 'done';
   entrants: ExamEntrant[];
   /** Ids ainda vivos no chaveamento, em ordem. */
   bracket: number[];

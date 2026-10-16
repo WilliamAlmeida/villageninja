@@ -14,6 +14,8 @@ const fail = (error: string): Result => ({ ok: false, error });
 
 /** XP do ninja da vila ao vencer e ao perder o duelo. */
 export const DUEL_XP = { win: 40, lose: 15 };
+/** Quanto a luta espera, no máximo, o campeão e a plateia da equipe sentarem (s); quem não chegar fica para trás. */
+export const DUEL_GATHER = 30;
 
 /** Ninjas da vila que podem duelar (vivos, no mapa, sem missão em andamento). */
 export function duelCandidates(g: Game): Unit[] {
@@ -47,12 +49,18 @@ export function duelBlock(g: Game): string | null {
   return null;
 }
 
-/** Sensei e companheiros de equipe do campeão que estão na vila (vão para a arquibancada). */
+/** Lutando agora: não larga a luta para assistir. */
+const FIGHTING = new Set(['fight', 'flee', 'ko']);
+
+/**
+ * Sensei e colegas de equipe do campeão vão para a arquibancada, largando o que faziam (treino, estudo, casa...). Só
+ * fica de fora quem está lutando ou em missão/expedição; esses não seguem o líder até a arena (followLeader).
+ */
 function teamWatchers(g: Game, mine: Unit): number[] {
   const t = teamOf(g, mine);
   if (!t) return [];
   return teamUnits(g, t)
-    .filter((u) => u !== mine && u.away == null && u.arenaSide == null)
+    .filter((u) => u !== mine && u.away == null && u.missionId == null && u.arenaSide == null && !FIGHTING.has(u.state))
     .map((u) => u.id);
 }
 
@@ -84,13 +92,14 @@ export function startDuel(g: Game, snap: NinjaSnapshot, mineId = duelist(g)?.id)
     next: [],
     round: 1,
     match: 0,
-    timer: 12,
+    timer: DUEL_GATHER,
     duel: true,
     // o resto da equipe do campeão (que o seguiria até o chão de luta) assiste da arquibancada
     watchers: teamWatchers(g, mine),
   };
   for (const id of exam.watchers!) {
     const u = g.unit(id)!;
+    u.hidden = false; // sai de dentro do prédio onde estava
     u.arenaSide = 0;
     u.command = null;
     u.targetId = null;

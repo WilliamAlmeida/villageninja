@@ -280,6 +280,7 @@ export function examLabel(g: Game) {
   if (!ex) return '';
   const stage = ex.duel ? 'Duelo' : ex.bracket.length === 2 ? 'Final' : ex.bracket.length === 4 ? 'Semifinal' : `Rodada ${ex.round}`;
   if (ex.phase === 'gather') return `${stage} · preparando`;
+  if (ex.phase === 'bow') return `${stage} · cumprimento`;
   const nm = (id: number | undefined) => g.unit(id)?.name.replace(' (convidado)', '').split(' ').pop() ?? '?';
   return `${stage}: ${nm(ex.bracket[ex.match])} × ${nm(ex.bracket[ex.match + 1])}`;
 }

@@ -154,20 +154,30 @@ describe('duelo por retrato', () => {
     const s = g.state;
     const [mine, a] = duelCandidates(g);
     const b = createNinja(g, mine!.x + 20, mine!.y, 'genin', 0);
+    const busy = createNinja(g, mine!.x - 20, mine!.y, 'genin', 0);
+    busy.state = 'fight'; // lutando: não vai para a arquibancada nem segue o líder até a arena
     s.teams = [];
-    createTeam(g).memberIds = [mine!.id, a!.id, b.id];
+    createTeam(g).memberIds = [mine!.id, a!.id, b.id, busy.id];
+    a!.state = 'train'; // treinando vai assistir sim
+    b.state = 'follow';
     const other = createNewGame(SYSTEMS, 27);
     const r = startDuel(g, snapshotOf(other, createNinja(other, 10, 10, 'genin', 0)), mine!.id);
     expect(r.ok).toBe(true);
     expect(s.exam?.watchers).toEqual([a!.id, b.id]);
     const guest = s.units.find((u) => u.faction === 'guest')!;
     expect(Math.sin(guest.facing)).toBeGreaterThan(0.5); // sentado olhando para a frente da tela
-    run(g, 30, () => s.exam?.phase === 'fight');
+    run(g, 40, () => s.exam?.phase !== 'gather');
     for (const w of [a!, b]) {
       expect(w.perch).toBeDefined();
       expect(w.arenaSide).toBe(0);
     }
     expect(mine!.arenaSide).toBe(1);
+    expect(busy.arenaSide).toBeUndefined();
+    // fim da luta: os dois no seu canto, virados um para o outro, fazendo o selo antes de encerrar
+    run(g, 240, () => s.exam?.phase === 'bow' && mine!.state === 'bow');
+    const guest2 = s.units.find((u) => u.faction === 'guest' && !u.dead)!;
+    expect(guest2.state).toBe('bow');
+    expect(Math.cos(mine!.facing - Math.atan2(guest2.y - mine!.y, guest2.x - mine!.x))).toBeGreaterThan(0.99);
     run(g, 240, () => !s.exam);
     expect(s.exam).toBeNull();
     for (const w of [a!, b]) {

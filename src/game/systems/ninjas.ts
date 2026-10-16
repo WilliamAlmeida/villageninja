@@ -301,7 +301,7 @@ function run(g: Game, u: Unit, dt: number, night: boolean) {
     case 'follow': {
       const t = teamOf(g, u);
       const leader = t ? teamLeader(g, t) : undefined;
-      if (!t || !leader || leader === u || leader.hidden || u.timer <= 0) {
+      if (!t || !leader || leader === u || leader.hidden || leader.arenaSide != null || u.timer <= 0) {
         u.state = 'idle';
         break;
       }
@@ -398,7 +398,8 @@ function followLeader(g: Game, u: Unit): boolean {
   const t = teamOf(g, u);
   if (!t) return false;
   const leader = teamLeader(g, t);
-  if (!leader || leader === u || leader.hidden || leader.command?.kind === 'retreat') return false;
+  // líder na arena (exame ou duelo): a equipe não vai atrás; quem estava livre já foi posto na arquibancada
+  if (!leader || leader === u || leader.hidden || leader.arenaSide != null || leader.command?.kind === 'retreat') return false;
   const i = Math.max(0, t.memberIds.filter((id) => id !== leader.id).indexOf(u.id));
   const o = formationOffset(i);
   if ((leader.state === 'train' || leader.state === 'toTrain') && !statsMaxed(u.ninja!)) {

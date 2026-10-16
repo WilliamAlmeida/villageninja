@@ -8,6 +8,9 @@ import { followPath, setDestination } from '../movement';
 import type { Exam, Unit } from '../types';
 
 const FIGHT_TIME = 40;
+/** Duelo: tempo máximo para voltar ao canto depois da luta e quanto dura o cumprimento. */
+const BOW_WALK = 7;
+const BOW_TIME = 2.2;
 
 export function examSystem(g: Game, dt: number) {
   const exam = g.state.exam;
@@ -27,9 +30,11 @@ export function examSystem(g: Game, dt: number) {
 
   // quem não está lutando assiste da arquibancada: anda até o chão logo abaixo do lugar e salta para ele
   const seated = [...exam.entrants.map((e) => e.id), ...(exam.watchers ?? [])];
+  // no cumprimento os dois duelistas ficam no chão de luta
   seated.forEach((id, i) => {
     const u = g.unit(id);
     if (!u || u.dead || u.away != null || u === a || u === b) return;
+    if (exam.phase === 'bow' && i < exam.entrants.length) return;
     const seat = spots.seat(i);
     if (u.perch != null) {
       if (Math.hypot(u.x - seat.x, u.y - seat.y) > 2) takeSeat(g, u, arena, seat); // trocou de lugar (chaveamento)
@@ -63,6 +68,26 @@ export function examSystem(g: Game, dt: number) {
         fxText(g, spots.center.x, spots.center.y - 20, 'Hajime!', '#ff8a2b', true);
       }
       break;
+    case 'bow': {
+      // fim do duelo: cada um volta ao seu canto, viram-se um para o outro e fazem o selo (mãos juntas) em respeito
+      if (!a || !b) return finishExam(g);
+      if (a.state !== 'bow') {
+        const okA = walkTo(g, a, spots.left, dt);
+        const okB = walkTo(g, b, spots.right, dt);
+        if (!(okA && okB) && exam.timer > 0) break;
+        for (const [u, o] of [[a, b], [b, a]] as const) {
+          u.state = 'bow';
+          u.moving = false;
+          u.facing = Math.atan2(o.y - u.y, o.x - u.x);
+          const won = exam.bracket[0] === u.id;
+          fxText(g, u.x, u.y - 34, won ? 'Vitória!' : 'Derrota', won ? '#7dff9a' : '#ff6b5b', true);
+        }
+        exam.timer = BOW_TIME;
+        break;
+      }
+      if (exam.timer <= 0) finishExam(g);
+      break;
+    }
     case 'fight': {
       if (!a || !b) return nextMatch(g, exam, a ?? b ?? null);
       if (a.state === 'ko') return nextMatch(g, exam, b);
@@ -99,6 +124,7 @@ const short = (u: Unit) => u.name.replace(' (convidado)', '').split(' ').pop();
 
 function fighters(g: Game, exam: Exam): [Unit | undefined, Unit | undefined] {
   if (exam.phase === 'gather' || exam.phase === 'done') return [undefined, undefined];
+  if (exam.phase === 'bow') return [g.unit(exam.entrants[0]?.id), g.unit(exam.entrants[1]?.id)].map((u) => (u && !u.dead ? u : undefined)) as [Unit | undefined, Unit | undefined];
   // quem saiu em expedição (saves de antes da trava em teamBusy) não luta: o outro passa
   const f = (id: number | undefined) => {
     const u = g.unit(id);
@@ -118,6 +144,7 @@ function walkTo(g: Game, u: Unit, p: { x: number; y: number }, dt: number) {
   return false;
 }
 
+/** Todos sentados, a plateia da equipe também (o timer da fase `gather` é o limite da espera). */
 function everyoneSeated(g: Game, exam: Exam) {
   return [...exam.entrants.map((e) => e.id), ...(exam.watchers ?? [])].every((id) => {
     const u = g.unit(id);
@@ -167,7 +194,21 @@ function nextMatch(g: Game, exam: Exam, winner: Unit | null) {
   }
   if (winner) {
     exam.next.push(winner.id);
-    fxText(g, winner.x, winner.y - 34, 'Vitória!', '#7dff9a', true);
+    if (!exam.duel) fxText(g, winner.x, winner.y - 34, 'Vitória!', '#7dff9a', true);
+  }
+  if (exam.duel) {
+    // duelo: "Fim da luta!", e os dois voltam ao canto para o cumprimento (fase bow) antes de encerrar
+    exam.bracket = exam.next;
+    if (!winner || !a || !b) {
+      exam.phase = 'done';
+      finishExam(g);
+      return;
+    }
+    const c = arenaSpots(arenaOf(g)!).center;
+    fxText(g, c.x, c.y - 20, 'Fim da luta!', '#ffd34d', true);
+    exam.phase = 'bow';
+    exam.timer = BOW_WALK;
+    return;
   }
   exam.match += 2;
   if (exam.match >= exam.bracket.length) {

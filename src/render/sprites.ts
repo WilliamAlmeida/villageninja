@@ -733,6 +733,8 @@ function poseOf(u: Unit, t: number): PoseNow | null {
   if (u.moveJutsu === 'chidori' && u.animKind === 'moves' && u.anim > 0) return { pose: 'strike', frame: 3, h: 0 };
   // nocaute do duelo: caído no chão
   if (u.state === 'ko') return { pose: 'hurt', frame: 2, h: 0 };
+  // fim do duelo: o selo de mãos juntas (um quadro só), cumprimento de respeito
+  if (u.state === 'bow') return { pose: 'cast', frame: 1, h: 0 };
   // de volta da expedição com espólio: anda com o saco no ombro (ciclo de caminhada da folha carry)
   if (u.carrySack && u.anim <= 0) return { pose: 'carry', frame: u.moving ? Math.floor(t * 8 + u.id) % 4 : 1, h: 0 };
   // plateia na arquibancada do Exame: sentado no degrau; treino de chakra (Nin/Gen/Selos/Int) parado: meditando
