@@ -9,6 +9,7 @@ import { wallHit } from '../walls';
 import { dragonPoint } from '../dragonFlight';
 import { rasenganHitFx } from '../rasenganFx';
 import { FX } from '../../data/jutsuFx';
+import { advanceNatureProjectile } from '../natureProjectiles';
 
 export function projectileSystem(g: Game, dt: number) {
   for (const p of g.state.projectiles) {
@@ -17,7 +18,9 @@ export function projectileSystem(g: Game, dt: number) {
     const dragonElapsed = p.dragon?.elapsed ?? 0;
     p.life -= dt;
     let canStrike = true;
-    if (p.dragon) {
+    if (p.natureFlight) {
+      if (!advanceNatureProjectile(g,p,dt)) continue;
+    } else if (p.dragon) {
       const f = p.dragon;
       f.elapsed = Math.min(f.duration, f.elapsed + dt);
       const progress = f.elapsed / f.duration, next = dragonPoint(f, progress);
@@ -61,7 +64,7 @@ export function projectileSystem(g: Game, dt: number) {
       if (PROJECTILE_DEBUG.enabled) PROJECTILE_DEBUG.hits.at(-1)!.projectile = { ...p, dragon: p.dragon ? { ...p.dragon } : undefined };
     }
     // Chegar é cruzar o destino, não estar a menos de OUTRO passo dele.
-    const reached = p.dragon ? p.dragon.elapsed >= p.dragon.duration :
+    const reached = p.natureFlight ? p.natureFlight.elapsed >= p.natureFlight.delay+p.natureFlight.duration : p.dragon ? p.dragon.elapsed >= p.dragon.duration :
       (p.vx !== 0 || p.vy !== 0) && (p.tx-p.x)*p.vx+(p.ty-p.y)*p.vy <= 0;
     if (hit || (p.radius > 0 && reached) || p.life <= 0) explode(g,p,hit);
   }
@@ -74,6 +77,10 @@ function explode(g: Game, p: Projectile, hit: Unit | null) {
   const impactLife = impact ? impact.frames / Math.max(1, impact.fps) : undefined;
   const x = impact?.layer === 'ground' && hit ? hit.x : p.x;
   const y = impact?.layer === 'ground' && hit ? hit.y : p.y;
+  if (p.fx === 'reiza' && p.natureFlight?.launched) {
+    fx(g,'beam',p.natureFlight.sx,p.natureFlight.sy,{fx:'reiza',life:.16,color:p.color,
+      natureFlight:{...p.natureFlight,tx:p.x,ty:p.y,elapsed:p.natureFlight.delay+p.natureFlight.duration}});
+  }
   if (p.cannon) fx(g,'pressure',p.cannon.sx,p.cannon.sy,{
     x2:p.x,y2:p.y,fx:'sekizo',color:p.color,life:.32,
   });

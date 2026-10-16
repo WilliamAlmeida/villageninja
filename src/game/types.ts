@@ -488,6 +488,14 @@ export interface DragonFlight {
   z0?: number;
 }
 
+/** Formação e trajetória das técnicas de água, tempestade e calor; estado transitório. */
+export interface NatureFlight {
+  elapsed: number; delay: number; duration: number;
+  sx: number; sy: number; tx: number; ty: number;
+  bend: number; index: number; count: number; targetId: number;
+  launched: boolean; range: number;
+}
+
 export interface Projectile {
   id: number;
   x: number;
@@ -519,6 +527,7 @@ export interface Projectile {
   dragon?: DragonFlight;
   /** Origem fixa de um canhão de ar do Sekizō. */
   cannon?: { sx: number; sy: number; index: number };
+  natureFlight?: NatureFlight;
 }
 
 /** `harvest`: canteiro recém-colhido (terra à mostra que volta a brotar com o tempo; desenhado no chão). */
@@ -548,6 +557,8 @@ export type EffectKind =
   | 'moment';
 
 export interface Effect {
+  /** Curva residual do Reiza após o contato, sem novo dano. */
+  natureFlight?: NatureFlight;
   kind: EffectKind;
   x: number;
   y: number;

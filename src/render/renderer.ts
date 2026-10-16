@@ -4,7 +4,7 @@ import { RANKS } from '../data/ninja';
 import type { Camera } from '../core/camera';
 import { groundTransform, ISO_K, project, projectAngle } from '../core/iso';
 import { FX } from '../data/jutsuFx';
-import { drawEarthWall, drawJutsuCrater, drawJutsuImpact, drawJutsuOrigin, jutsuOriginBase } from './jutsuSprites';
+import { drawEarthWall, drawJutsuCrater, drawJutsuImpact, drawJutsuOrigin, jutsuOriginBase, drawNatureBeam } from './jutsuSprites';
 import { dragonPoint } from '../game/dragonFlight';
 import { type BuildingType, defOf, layoutKey } from '../data/buildings';
 import type { Game } from '../game/game';
@@ -791,6 +791,9 @@ export class Renderer {
     for (const e of s.effects) {
       if (e.kind === 'wall' || e.kind === 'crater' || e.kind === 'jutsuOrigin' ||
           (e.kind === 'burst' && FX.jutsus[e.fx ?? '']?.impact?.layer === 'ground')) continue; // peças fixas já desenhadas
+      if(e.kind==='beam'&&e.fx==='reiza'&&e.natureFlight){
+        drawNatureBeam(ctx,e.natureFlight,1,(FX.jutsus.reiza?.sprite?.opacity??1)*Math.max(0,1-e.t/e.life));continue;
+      }
       if (e.kind === 'afterimage') {
         this.afterimage(g, e, time);
         continue;

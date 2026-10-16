@@ -49,6 +49,7 @@ import { hasTeammateNear } from './teams';
 import { KAGE_DAMAGE_BONUS } from './kage';
 import { bossDefeated } from './bosses';
 import type { Faction, Projectile, ProjectileKind, Unit } from './types';
+import { holdingNatureJutsu, releaseNatureJutsu } from './natureProjectiles';
 import { KAGE_ARTS } from '../data/kageArts';
 import { jutsuVfx, type Vfx } from '../data/vfx';
 import { BLADES } from '../data/blades';
@@ -92,7 +93,7 @@ export function engage(g: Game, u: Unit, t: Unit, dt: number) {
   u.targetId = t.id;
   u.hidden = false;
   const d = Math.hypot(t.x - u.x, t.y - u.y);
-  if (u.cast || u.dash || u.barrage) return; // selos / investida em andamento (systems/techniques.ts)
+  if (u.cast || u.dash || u.barrage || holdingNatureJutsu(g,u)) return; // selos / investida / emissão em andamento
   if (u.channel) {
     u.moving = false; // segurando a sombra / a mente no outro: o corpo fica parado
     return;
@@ -311,6 +312,7 @@ function releaseJutsu(g: Game, u: Unit, def: JutsuDef, t: Unit) {
   if (def.forbidden) fxMoment(g, u.x, u.y, def.name, def.color);
 
   if (def.id === 'sekizo') { startSekizo(g, u, t, power); return; }
+  if (releaseNatureJutsu(g, u, def, t, power)) return;
   switch (def.effect) {
     case 'projectile':
       if (FX.jutsus[def.id]?.origin) {

@@ -6,6 +6,16 @@ export function effectSystem(g: Game, dt: number) {
   for (let i = 0; i < fx.length; i++) {
     const e = fx[i]!;
     e.t += dt;
+    if (e.kind === 'jutsuOrigin' && e.fx === 'reiza' && e.uid != null) {
+      const u=g.unit(e.uid);
+      if (!u || u.dead || u.hidden || u.stun>0) e.t=e.life;
+      else {
+        e.x=u.x;e.y=u.y;e.facing=u.facing;
+        const active=g.state.projectiles.some(p=>!p.dead&&p.ownerId===u.id&&p.fx==='reiza');
+        if(active)e.life=Math.max(e.life,e.t+.16);
+        else e.life=Math.min(e.life,e.t+.15);
+      }
+    }
     // sombra do Kage Mane: segue os dois e some se um deles cair
     if (e.kind === 'tether') {
       const a = g.unit(e.uid);
