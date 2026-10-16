@@ -82,7 +82,7 @@ async function route(req: Request, url: URL, ip: string, json: (data: unknown, s
   // ---------- conta ----------
   if (is('POST', '/api/auth/guest')) {
     await rateLimit(`guest:${ip}`, 30, 60 * 60_000);
-    const { token, account } = await accounts.createGuest();
+    const { token, account } = await accounts.createGuest(body);
     return json({ token, account });
   }
   if (is('POST', '/api/auth/login')) {

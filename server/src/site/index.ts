@@ -5,7 +5,8 @@ import { publicOrigin } from '../config';
 import { duels } from '../services/duels';
 import { type Lang, ptOf } from './i18n';
 import { privacyPage, termsPage } from './legal';
-import { homePage, loginPage, notFoundPage, rankingPage } from './pages';
+import { news } from '../services/news';
+import { homePage, loginPage, newsListPage, newsPage, notFoundPage, profilePage, rankingPage } from './pages';
 import { assetUrl, serveStatic } from './static';
 
 const PAGE_TTL = 60;
@@ -28,7 +29,9 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   const cached = (key: string, render: () => Promise<string>) => cache.remember(`site:page:${lang}:${key}:${origin}`, PAGE_TTL, render).then((b) => html(b));
   switch (path) {
     case '/':
-      return cached('home', async () => homePage(lang, origin, await publicTop()));
+      return cached('home', async () => homePage(lang, origin, await publicTop(), await news.published(3)));
+    case '/novidades':
+      return cached('novidades', async () => newsListPage(lang, origin, await news.published(50)));
     case '/ranking':
       return cached('ranking', async () => rankingPage(lang, origin, await publicTop()));
     case '/entrar':
@@ -37,6 +40,17 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
       return cached('privacidade', async () => privacyPage(lang, origin));
     case '/termos':
       return cached('termos', async () => termsPage(lang, origin));
+  }
+  const nw = /^\/novidades\/([a-z0-9-]{1,80})$/.exec(path);
+  if (nw) {
+    const n = await cache.remember(`site:news:${nw[1]}`, 60, async () => (await news.bySlug(nw[1]!)) ?? false);
+    if (n) return html(newsPage(lang, origin, n));
+  }
+  const prof = /^\/jogador\/([0-9a-f-]{36})$/i.exec(path);
+  if (prof) {
+    const id = prof[1]!.toLowerCase();
+    const p = await cache.remember(`site:profile:${id}`, 60, async () => (await duels.publicProfile(id)) ?? false);
+    if (p) return html(profilePage(lang, origin, p));
   }
   return html(notFoundPage(lang, origin), 404);
 }
@@ -58,7 +72,7 @@ function staffShell(): Response {
 <header class="top">
   <a class="brand" href="#/"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="32" height="32"><span><b>Painel</b><small>NCF RPG</small></span></a>
   <nav class="nav" data-nav hidden>
-    <a href="#/">Visão geral</a><a href="#/jogadores">Jogadores</a><a href="#/suspeitos">Suspeitos</a><a href="#/avisos">Avisos</a><a href="#/registro">Registro</a>
+    <a href="#/">Visão geral</a><a href="#/jogadores">Jogadores</a><a href="#/suspeitos">Suspeitos</a><a href="#/avisos">Avisos</a><a href="#/noticias">Novidades</a><a href="#/registro">Registro</a>
   </nav>
   <div class="top-r"><span class="who" data-who></span><a class="btn ghost" href="/">Site</a><a class="btn play" href="/play">Jogo</a></div>
 </header>

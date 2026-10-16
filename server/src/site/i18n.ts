@@ -37,6 +37,18 @@ export const T = {
       ['arena', 'Arena', 'Duele com outros jogadores', 'Publique o seu campeão e enfrente o de outras vilas. Ligas de Genin a Sannin, revanche e o relatório de quem desafiou você.'],
     ],
     moreTitle: 'E ainda',
+    navNews: 'Novidades',
+    newsTitle: 'Novidades',
+    newsSub: 'O que mudou no jogo e o que vem por aí.',
+    newsEmpty: 'Nenhuma novidade publicada ainda.',
+    newsAll: 'Todas as novidades',
+    readMore: 'Ler',
+    profile: {
+      league: 'Liga', points: 'Pontos', position: 'Posição', attack: 'Ataques', defense: 'Defesas', champion: 'Campeão',
+      noChampion: 'Ainda não publicou um campeão.', nature: 'Natureza', village: 'Vila', level: 'Nível', stats: 'Atributos',
+      duels: 'Duelos recentes', noDuels: 'Nenhum duelo ainda.', attacked: 'atacou', defended: 'defendeu contra', won: 'vitória', lost: 'derrota',
+      since: 'Na arena desde',
+    },
     rankingTitle: 'Ranking de duelos',
     rankingSub: 'Os campeões com mais pontos na arena.',
     rankingEmpty: 'Ainda ninguém duelou. O primeiro lugar está livre.',
@@ -96,6 +108,18 @@ export const T = {
       ['arena', 'Arena', 'Duel other players', 'Publish your champion and face the champions of other villages. Leagues from Genin to Sannin, revenge matches and a report of who challenged you.'],
     ],
     moreTitle: 'And also',
+    navNews: 'News',
+    newsTitle: 'News',
+    newsSub: 'What changed in the game and what is coming.',
+    newsEmpty: 'No news published yet.',
+    newsAll: 'All news',
+    readMore: 'Read',
+    profile: {
+      league: 'League', points: 'Points', position: 'Rank', attack: 'Attacks', defense: 'Defenses', champion: 'Champion',
+      noChampion: 'No champion published yet.', nature: 'Nature', village: 'Village', level: 'Level', stats: 'Stats',
+      duels: 'Recent duels', noDuels: 'No duels yet.', attacked: 'attacked', defended: 'defended against', won: 'win', lost: 'loss',
+      since: 'In the arena since',
+    },
     rankingTitle: 'Duel leaderboard',
     rankingSub: 'The champions with the most arena points.',
     rankingEmpty: 'Nobody has dueled yet. First place is up for grabs.',
@@ -140,16 +164,28 @@ export function leagueOf(rating: number) {
 }
 
 /** Páginas com nome próprio em inglês (o resto usa o mesmo nome: /ranking ↔ /en/ranking). */
-const EN_SLUG: Record<string, string> = { '/privacidade': '/privacy', '/termos': '/terms', '/entrar': '/sign-in' };
+const EN_SLUG: Record<string, string> = { '/privacidade': '/privacy', '/termos': '/terms', '/entrar': '/sign-in', '/novidades': '/news' };
 const PT_SLUG = Object.fromEntries(Object.entries(EN_SLUG).map(([pt, en]) => [en, pt]));
+/** Começos de caminho com nome próprio (`/jogador/<id>` ↔ `/player/<id>`). */
+const EN_PREFIX: Array<[string, string]> = [['/jogador/', '/player/'], ['/novidades/', '/news/']];
+
+function toEn(pt: string): string {
+  if (EN_SLUG[pt]) return EN_SLUG[pt]!;
+  for (const [a, b] of EN_PREFIX) if (pt.startsWith(a)) return b + pt.slice(a.length);
+  return pt;
+}
 
 /** Caminho em português a partir do caminho em inglês sem o /en (`/privacy` → `/privacidade`). */
-export const ptOf = (enPath: string) => PT_SLUG[enPath] ?? enPath;
+export function ptOf(enPath: string): string {
+  if (PT_SLUG[enPath]) return PT_SLUG[enPath]!;
+  for (const [a, b] of EN_PREFIX) if (enPath.startsWith(b)) return a + enPath.slice(b.length);
+  return enPath;
+}
 
 /** Caminho da página na outra língua: de `pt` vai para o /en (e vice-versa), sempre a partir do caminho em português. */
 export function altPath(lang: Lang, path: string): string {
   if (lang === 'en') return path;
-  const en = EN_SLUG[path] ?? path;
+  const en = toEn(path);
   return en === '/' ? '/en' : `/en${en}`;
 }
 
@@ -158,3 +194,24 @@ export const href = (lang: Lang, ptPath: string) => (lang === 'pt' ? ptPath : al
 
 /** Prefixo dos links internos da língua. */
 export const base = (lang: Lang) => (lang === 'en' ? '/en' : '');
+
+/** Natureza e atributos em cada língua (o site não mostra nomes de jutsus: são do anime). */
+export const NATURE_NAME: Record<string, { pt: string; en: string; color: string }> = {
+  katon: { pt: 'Fogo', en: 'Fire', color: '#ff6a2b' },
+  fuuton: { pt: 'Vento', en: 'Wind', color: '#7fe0a0' },
+  raiton: { pt: 'Raio', en: 'Lightning', color: '#ffe14d' },
+  doton: { pt: 'Terra', en: 'Earth', color: '#c39257' },
+  suiton: { pt: 'Água', en: 'Water', color: '#4da6ff' },
+};
+export const STAT_NAME: Record<string, { pt: string; en: string; color: string }> = {
+  ninjutsu: { pt: 'Ninjutsu', en: 'Ninjutsu', color: '#4da6ff' },
+  taijutsu: { pt: 'Taijutsu', en: 'Taijutsu', color: '#ff8a3d' },
+  genjutsu: { pt: 'Genjutsu', en: 'Genjutsu', color: '#b36bff' },
+  inteligencia: { pt: 'Inteligência', en: 'Intelligence', color: '#5ad1c8' },
+  forca: { pt: 'Força', en: 'Strength', color: '#ff5a5a' },
+  velocidade: { pt: 'Velocidade', en: 'Speed', color: '#ffe14d' },
+  stamina: { pt: 'Stamina', en: 'Stamina', color: '#7ddc6b' },
+  selos: { pt: 'Selos', en: 'Hand seals', color: '#d9d9d9' },
+};
+/** Ordem dos atributos no perfil (a mesma do jogo, src/data/ninja.ts). */
+export const STAT_ORDER = ['ninjutsu', 'taijutsu', 'genjutsu', 'inteligencia', 'forca', 'velocidade', 'stamina', 'selos'];

@@ -14,7 +14,7 @@ export interface PageOpts {
   title?: string;
   desc?: string;
   /** Item do menu marcado. */
-  nav?: 'home' | 'ranking';
+  nav?: 'home' | 'ranking' | 'news';
   body: string;
   /** Imagem de prévia (OG). */
   image?: string;
@@ -60,7 +60,7 @@ export function page(o: PageOpts): string {
 <body data-lang="${o.lang}">
 <header class="top">
   <a class="brand" href="${h('/')}"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="36" height="36"><span><b>${t.siteName}</b><small>${t.short}</small></span></a>
-  <nav class="nav">${nav('home', h('/'), t.navHome)}${nav('ranking', h('/ranking'), t.navRanking)}</nav>
+  <nav class="nav">${nav('home', h('/'), t.navHome)}${nav('ranking', h('/ranking'), t.navRanking)}${nav('news', h('/novidades'), t.navNews)}</nav>
   <div class="top-r">
     <a class="lang" href="${o.lang === 'pt' ? enPath : ptPath}" data-lang-switch="${o.lang === 'pt' ? 'en' : 'pt'}">${t.langOther}</a>
     <span class="who" data-who hidden></span>
@@ -71,7 +71,7 @@ export function page(o: PageOpts): string {
 <main>${o.body}</main>
 <footer class="foot">
   <span class="foot-brand"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="28" height="28">${t.footer}</span>
-  <span><a href="${h('/')}">${t.navHome}</a> · <a href="${h('/ranking')}">${t.navRanking}</a> · <a href="${h('/privacidade')}">${t.privacy}</a> · <a href="${h('/termos')}">${t.terms}</a> · <a href="/play">${t.playShort}</a></span>
+  <span><a href="${h('/')}">${t.navHome}</a> · <a href="${h('/ranking')}">${t.navRanking}</a> · <a href="${h('/novidades')}">${t.navNews}</a> · <a href="${h('/privacidade')}">${t.privacy}</a> · <a href="${h('/termos')}">${t.terms}</a> · <a href="/play">${t.playShort}</a></span>
 </footer>
 </body>
 </html>`;

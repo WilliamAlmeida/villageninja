@@ -23,7 +23,7 @@
     FORBIDDEN: 'Sem permissão para isso.', REASON_REQUIRED: 'Escreva o motivo.', CONFIRM_NAME: 'Digite o nome exato da conta para confirmar.',
     INVALID_NAME: 'Nome inválido (2 a 24 letras, números, espaço, ponto, hífen ou _).', NOT_ON_SELF: 'Não dá para fazer isso com a própria conta.',
     OWN_ROLE: 'Você não pode tirar o próprio admin.', TITLE_REQUIRED: 'O título em português é obrigatório.', INVALID_DATE: 'Datas inválidas (o fim vem depois do início).',
-    MAINTENANCE_NEEDS_END: 'Manutenção precisa de data de fim.', INVALID_URL: 'O link começa com https:// ou /.', OFFLINE: 'Servidor fora do ar.',
+    MAINTENANCE_NEEDS_END: 'Manutenção precisa de data de fim.', SLUG_TAKEN: 'Já existe uma novidade com esse endereço.', INVALID_SLUG: 'Endereço inválido.', INVALID_URL: 'O link começa com https:// ou /.', OFFLINE: 'Servidor fora do ar.',
   };
 
   async function api(path, opts = {}) {
@@ -110,6 +110,7 @@
     jogador: player,
     suspeitos: suspicious,
     avisos: noticesPage,
+    noticias: newsPage,
     registro: logPage,
   };
 
@@ -146,7 +147,8 @@
       const max = Math.max(1, ...a.countries.map((c) => c.n));
       const LOGIN = { discord: 'Discord', google: 'Google', password: 'Apelido e senha', guest: 'Convidados' };
       return `<ul class="list">${a.countries.map((c) => `<li><span>${flagOf(c.country)}</span><span class="meter"><i style="width:${(c.n / max) * 100}%"></i></span><b>${fmtN(c.n)}</b></li>`).join('') || '<li class="muted">Sem país ainda (chega pela Cloudflare).</li>'}</ul>
-        <h3 style="margin:1rem 0 0.3rem;font-size:0.85rem" class="muted">Jeitos de entrar</h3><ul class="list">${a.logins.map((l) => `<li><span>${LOGIN[l.provider] ?? l.provider}</span><b>${fmtN(l.n)}</b></li>`).join('')}</ul>`;
+        <h3 style="margin:1rem 0 0.3rem;font-size:0.85rem" class="muted">Jeitos de entrar</h3><ul class="list">${a.logins.map((l) => `<li><span>${LOGIN[l.provider] ?? l.provider}</span><b>${fmtN(l.n)}</b></li>`).join('')}</ul>
+        <h3 style="margin:1rem 0 0.3rem;font-size:0.85rem" class="muted">De onde vieram</h3><ul class="list">${(a.sources ?? []).map((x) => `<li><span>${esc(x.source)}</span><b>${fmtN(x.n)}</b></li>`).join('')}</ul>`;
     }));
     grid.appendChild(card('', 'Suspeitos (7 dias)', async () => {
       const d = (await api('/api/admin/suspicious')).duels.slice(0, 6);
@@ -160,7 +162,7 @@
     grid.appendChild(card('w12', 'Últimas ações da equipe', async () => logTable((await api('/api/admin/log')).actions.slice(0, 8))));
   }
 
-  const ACT = { login: 'entrou', role: 'papel', rename: 'renomeou', note: 'anotou', ban: 'baniu', unban: 'desbaniu', kick: 'derrubou sessões', 'reset-rating': 'zerou pontos', test: 'conta de teste', delete: 'apagou', 'notice-create': 'criou aviso', 'notice-edit': 'editou aviso', 'notice-delete': 'apagou aviso' };
+  const ACT = { login: 'entrou', role: 'papel', rename: 'renomeou', note: 'anotou', ban: 'baniu', unban: 'desbaniu', kick: 'derrubou sessões', 'reset-rating': 'zerou pontos', test: 'conta de teste', delete: 'apagou', 'notice-create': 'criou aviso', 'notice-edit': 'editou aviso', 'notice-delete': 'apagou aviso', 'news-create': 'criou novidade', 'news-edit': 'editou novidade', 'news-delete': 'apagou novidade' };
   function logTable(rows) {
     if (!rows.length) return '<p class="muted">Nada registrado ainda.</p>';
     return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Em</th><th>Detalhe</th></tr></thead><tbody>${rows.map((a) => `<tr><td>${fmtD(a.at)}</td><td>${esc(a.staffName ?? (a.detail?.via === 'terminal' ? 'terminal' : 'chave de emergência'))}</td><td>${esc(ACT[a.action] ?? a.action)}</td><td>${a.targetId ? `<a href="#/jogador/${a.targetId}">${esc(a.targetName)}</a>` : '—'}</td><td class="muted">${esc(a.detail ? JSON.stringify(a.detail) : '')}</td></tr>`).join('')}</tbody></table></div>`;
@@ -279,7 +281,7 @@
       const isAdmin = !me || me.role === 'admin';
       return `<div class="who-h">${p.avatarUrl ? `<img src="${esc(p.avatarUrl)}" alt="">` : ''}<div><h1 style="margin:0">${esc(p.name)}</h1><span class="muted">${p.username ? `@${esc(p.username)} · ` : ''}${esc(p.id)}</span></div>
           <span>${p.role !== 'player' ? `<span class="pill staff">${p.role}</span>` : ''}${p.bannedAt ? `<span class="pill bad">banido: ${esc(p.banReason ?? '')}</span>` : ''}${p.isTest ? '<span class="pill">teste</span>' : ''}${p.isGuest ? '<span class="pill">convidado</span>' : ''}</span></div>
-        <div class="grid" style="margin-top:1rem"><dl class="kv card w6" style="margin:0"><dt>E-mail</dt><dd>${esc(p.email ?? '—')}</dd><dt>País</dt><dd>${flagOf(p.country)}</dd><dt>Criada</dt><dd>${fmtD(p.createdAt)}</dd><dt>Cadastro</dt><dd>${fmtD(p.registeredAt)}</dd><dt>Visto</dt><dd>${fmtD(p.lastSeenAt)} (${ago(p.lastSeenAt)})</dd><dt>Dias jogados</dt><dd>${p.daysPlayed}</dd><dt>Sessões abertas</dt><dd>${p.sessions}</dd><dt>Entra com</dt><dd>${[...d.identities.map((i) => `${i.provider} (${esc(i.name ?? '')})`), p.hasPassword ? 'apelido e senha' : ''].filter(Boolean).join(', ') || 'só este navegador'}</dd><dt>Nota</dt><dd>${esc(p.note ?? '—')}</dd></dl>
+        <div class="grid" style="margin-top:1rem"><dl class="kv card w6" style="margin:0"><dt>E-mail</dt><dd>${esc(p.email ?? '—')}</dd><dt>País</dt><dd>${flagOf(p.country)}</dd><dt>Criada</dt><dd>${fmtD(p.createdAt)}</dd><dt>Cadastro</dt><dd>${fmtD(p.registeredAt)}</dd><dt>Visto</dt><dd>${fmtD(p.lastSeenAt)} (${ago(p.lastSeenAt)})</dd><dt>Dias jogados</dt><dd>${p.daysPlayed}</dd><dt>Sessões abertas</dt><dd>${p.sessions}</dd><dt>Entra com</dt><dd>${[...d.identities.map((i) => `${i.provider} (${esc(i.name ?? '')})`), p.hasPassword ? 'apelido e senha' : ''].filter(Boolean).join(', ') || 'só este navegador'}</dd><dt>Veio de</dt><dd>${esc([p.ref && `?ref=${p.ref}`, p.refHost].filter(Boolean).join(' · ') || 'direto')}</dd><dt>Nota</dt><dd>${esc(p.note ?? '—')}</dd></dl>
         <dl class="kv card w6" style="margin:0"><dt>Pontos</dt><dd>${d.stats ? `<b>${d.stats.rating}</b> · ataque ${d.stats.wins}V/${d.stats.losses}D · defesa ${d.stats.defWins}V/${d.stats.defLosses}D` : '—'}</dd><dt>Campeão</dt><dd>${d.snapshot ? `${esc(d.snapshot.ninja)} (${esc(d.snapshot.rank)} Nv ${d.snapshot.level}) · força ${fmtN(d.snapshot.power)} · ${fmtD(d.snapshot.updatedAt)}` : 'sem retrato'}</dd></dl></div>
         <div class="acts" style="margin-top:1rem"><button class="btn small" data-a="rename">Renomear</button><button class="btn small" data-a="note">Anotar</button>
           ${p.bannedAt ? '<button class="btn small" data-a="unban">Desbanir</button>' : '<button class="btn small danger" data-a="ban">Banir</button>'}
@@ -363,6 +365,48 @@
       const del = e.target.closest('[data-del]');
       if (del) form('Apagar aviso', '<p class="muted">Some do jogo e do painel, com os números de leitura.</p>', 'Apagar', async () => {
         await api(`/api/admin/notices/${del.dataset.del}`, { method: 'DELETE' });
+        box.reload();
+      }, true);
+    });
+  }
+
+  // ---------- novidades do site ----------
+  function newsPage() {
+    app.innerHTML = `<h1>Novidades do site</h1><p class="muted">Aparecem em /novidades e as três mais novas no início. Texto: linha em branco separa parágrafos; <b>## </b> faz um título; <b>- </b> faz lista; <b>**negrito**</b>; <b>[texto](https://…)</b> faz link. Inglês é opcional (sem ele, o site em inglês mostra o português).</p><p><button class="btn play" data-new>Nova novidade</button></p>`;
+    const g = document.createElement('div');
+    g.className = 'grid';
+    app.appendChild(g);
+    let list = [];
+    const box = card('w12', 'Publicadas e rascunhos', async () => {
+      list = (await api('/api/admin/news')).news;
+      if (!list.length) return '<p class="muted">Nenhuma ainda.</p>';
+      return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Título</th><th>Situação</th><th>Endereço</th><th>Atualizada</th><th></th></tr></thead><tbody>${list.map((n) => `<tr><td><b>${esc(n.titlePt)}</b>${n.titleEn ? `<br><small class="muted">${esc(n.titleEn)}</small>` : ''}</td><td>${n.publishedAt ? `<span class="pill good">publicada</span> <small class="muted">${fmtD(n.publishedAt)}</small>` : '<span class="pill">rascunho</span>'}</td><td>${n.publishedAt ? `<a href="/novidades/${esc(n.slug)}" target="_blank">/novidades/${esc(n.slug)}</a>` : `<span class="muted">/novidades/${esc(n.slug)}</span>`}</td><td class="muted">${fmtD(n.updatedAt)}</td><td><span class="acts"><button class="btn small" data-edit="${n.id}">Editar</button><button class="btn small danger" data-del="${n.id}">Apagar</button></span></td></tr>`).join('')}</tbody></table></div>`;
+    });
+    g.appendChild(box);
+    const edit = (n) => form(n ? 'Editar novidade' : 'Nova novidade',
+      input('titlePt', 'Título (pt)', n?.titlePt ?? '', 'text', 'maxlength="140" required') +
+      input('summaryPt', 'Resumo (pt, aparece no cartão)', n?.summaryPt ?? '', 'text', 'maxlength="300"') +
+      area('bodyPt', 'Texto (pt)', n?.bodyPt ?? '') +
+      input('titleEn', 'Title (en, opcional)', n?.titleEn ?? '', 'text', 'maxlength="140"') +
+      input('summaryEn', 'Summary (en, opcional)', n?.summaryEn ?? '', 'text', 'maxlength="300"') +
+      area('bodyEn', 'Text (en, opcional)', n?.bodyEn ?? '') +
+      input('slug', 'Endereço (vazio = do título)', n?.slug ?? '') +
+      chipField('published', 'Situação', [['1', 'Publicada'], ['0', 'Rascunho']], n?.publishedAt ? '1' : '0'),
+      'Salvar',
+      async (v) => {
+        const body = { ...v, published: v.published === '1' };
+        if (n) await api(`/api/admin/news/${n.id}`, { method: 'PUT', body: JSON.stringify(body) });
+        else await post('/api/admin/news', body);
+        toast('Novidade salva (o site mostra em até 1 min).');
+        box.reload();
+      });
+    app.addEventListener('click', (e) => {
+      if (e.target.closest('[data-new]')) return edit(null);
+      const ed = e.target.closest('[data-edit]');
+      if (ed) return edit(list.find((x) => x.id === Number(ed.dataset.edit)));
+      const del = e.target.closest('[data-del]');
+      if (del) form('Apagar novidade', '<p class="muted">Sai do site. Não tem volta.</p>', 'Apagar', async () => {
+        await api(`/api/admin/news/${del.dataset.del}`, { method: 'DELETE' });
         box.reload();
       }, true);
     });

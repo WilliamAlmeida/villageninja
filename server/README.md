@@ -7,14 +7,23 @@ seção 6). Também serve o **site público** e a API do **painel da equipe**.
 ## Endereços (mesma origem, pelo `scripts/live.ts` do jogo)
 
 - `/play` é o jogo (build do `live.ts`); `/?demo`, `/?tela=…` antigos redirecionam para lá.
-- `/`, `/ranking`, `/entrar`, `/privacidade`, `/termos` é o site em pt-BR; `/en`, `/en/ranking`, `/en/sign-in`,
-  `/en/privacy`, `/en/terms` em inglês (`src/site/`; nomes em inglês em `EN_SLUG`, `i18n.ts`). Nome público: **Ninja
+- `/`, `/ranking`, `/jogador/<id>`, `/novidades`, `/novidades/<slug>`, `/entrar`, `/privacidade`, `/termos` é o site em
+  pt-BR; `/en`, `/en/ranking`, `/en/player/<id>`, `/en/news…`, `/en/sign-in`, `/en/privacy`, `/en/terms` em inglês (`src/site/`; nomes em inglês em `EN_SLUG`, `i18n.ts`). Nome público: **Ninja
   Cursed Fight (NCF RPG)**, sem "Naruto" (marca registrada). Contato das páginas legais: `CONTACT_EMAIL`. Arte do site em
   `site/img/`, gerada por `python scripts/site-art.py` a partir dos originais do Codex em `site/img/raw/` (fora do git). HTML pronto do
   servidor, guardado 60 s no cache; `site.js` (`site/`) faz a parte viva depois (quem está logado, on-line, botões
   de entrar e língua automática na primeira visita). Arquivos em `/site/…?v=<hash>` (cache de um ano); as ilustrações
   do jogo saem de `src/art/ui/art` em `/site/art/`.
 - `/api/*` é a API abaixo.
+
+Perfil público (`duels.publicProfile`): liga, pontos, posição, ataques/defesas, o campeão (patente, nível, natureza,
+atributos; sem nomes de jutsus, que são do anime) e os duelos recentes; conta de teste ou banida dá 404. Novidades
+(`services/news.ts`) são escritas no painel e saem com `renderBody` (parágrafos, `## `, `- `, `**negrito**`, links). A hora
+de publicar é a do banco (`NOW()`): o relógio do Postgres no WSL anda um pouco atrás.
+
+Origem (`services/source.ts`): o site e o jogo guardam no navegador o primeiro `?ref=` e o site anterior (`vn_ref`, 30
+dias) e mandam ao criar o convidado ou a conta pelo Discord/Google (`users.ref`, `ref_host`, hosts agrupados: facebook,
+youtube, tiktok…). O painel mostra em Público ("De onde vieram") e no detalhe do jogador.
 
 ## Cache (Redis)
 
@@ -99,6 +108,7 @@ bun run dev                                         # http://localhost:3012/api/
 | `GET /admin/players?q=&filter=&sort=&page=` · `GET /admin/players/:id` | Lista (30 por página) e detalhe (identidades, placar, retrato, duelos, ações nela) |
 | `POST /admin/players/:id/<rename\|note\|ban\|unban\|kick\|reset-rating\|test\|delete>` | Ações (todas registradas; moderador não age em conta da equipe; apagar só admin, com o nome para confirmar) |
 | `GET/POST /admin/notices` · `PUT/DELETE /admin/notices/:id` | Avisos: tipo, tom, público, período, link e manutenção (`blockFrom`) |
+| `GET/POST /admin/news` · `PUT/DELETE /admin/news/:id` | Novidades do site (rascunho ou publicada) |
 | `GET /notices` · `POST /notices/:id/<read\|click>` | Jogo: avisos valendo para a conta (marca entregue) e a manutenção marcada |
 
 Duelo aberto e largado (fechou o jogo) conta como derrota ao abrir o próximo. O resultado é do cliente (não há replay

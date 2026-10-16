@@ -41,14 +41,14 @@ Decisões do autor (2026-10-16) e ordem de trabalho. Detalhe técnico em `server
 2. [x] **Apps OAuth**: "NCF RPG" no Discord e no Google (projeto `ncf-rpg`), IDs e segredos no `server/.env`. O app do
    Google está em "Testando": para abrir a todos, preencher o Branding (página inicial, `/privacidade`, `/termos`) e
    publicar.
-3. [ ] **Site**:
+3. [x] **Site**:
    - [x] nome público "Ninja Cursed Fight (NCF RPG)" (sem "Naruto": marca registrada; arte também sem personagens do
      anime);
    - [x] arte do Codex (banner, emblema, botão de jogar, vila organizada, luta, arena) e o mapa da região de um print;
    - [x] privacidade e termos em pt/en;
-   - perfil público do jogador;
-   - notícias e novidades;
-   - origem `?ref=`.
+   - [x] perfil público do jogador (`/jogador/<id>`, ligado do ranking);
+   - [x] novidades escritas no painel (`/novidades`, três mais novas no início);
+   - [x] origem `?ref=` e site anterior, gravados na conta e mostrados no painel.
 4. [x] **Painel `/staff`** (detalhe no `server/README.md`):
    - visão geral por quadros, com `daily_stats` feita por um job;
    - jogadores: busca, detalhe e ações (banir, renomear, derrubar sessões, zerar ELO, anotar, papel);

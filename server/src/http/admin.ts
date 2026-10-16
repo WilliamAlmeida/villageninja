@@ -4,6 +4,7 @@ import { sql } from '../db';
 import { ApiError } from '../errors';
 import type { Account } from '../services/accounts';
 import { duels } from '../services/duels';
+import { news } from '../services/news';
 import { notices } from '../services/notices';
 import { panel } from '../services/panel';
 import { staff } from '../services/staff';
@@ -49,6 +50,18 @@ export async function routeAdmin(method: string, path: string, body: Json, json:
   const pl = /^\/api\/admin\/players\/([0-9a-f-]{36})(?:\/([a-z-]+))?$/i.exec(path);
   if (pl && method === 'GET' && !pl[2]) return json(await panel.player(pl[1]!));
   if (pl && method === 'POST' && pl[2]) return json(await panel.act(ctx.actor, pl[1]!, pl[2], body, ctx.ip));
+  // novidades do site
+  if (method === 'GET' && path === '/api/admin/news') return json({ news: await news.all() });
+  if (method === 'POST' && path === '/api/admin/news') return json({ id: await news.create(ctx.actor, body, ctx.ip) });
+  const nw = /^\/api\/admin\/news\/(\d+)$/.exec(path);
+  if (nw && method === 'PUT') {
+    await news.update(ctx.actor, Number(nw[1]), body, ctx.ip);
+    return json({ ok: true });
+  }
+  if (nw && method === 'DELETE') {
+    await news.remove(ctx.actor, Number(nw[1]), ctx.ip);
+    return json({ ok: true });
+  }
   // avisos
   if (method === 'GET' && path === '/api/admin/notices') return json({ notices: await notices.list() });
   if (method === 'POST' && path === '/api/admin/notices') return json({ id: await notices.create(ctx.actor, body, ctx.ip) });

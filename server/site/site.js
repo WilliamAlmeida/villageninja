@@ -20,6 +20,21 @@
     }
   }
 
+  // origem da visita (?ref= e site anterior): o primeiro fica 30 dias e vai junto quando a conta nascer
+  (() => {
+    const KEY = 'vn_ref';
+    try {
+      const cur = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (cur && Date.now() - cur.at < 30 * 864e5) return;
+      const ref = new URLSearchParams(location.search).get('ref');
+      let host = '';
+      try { host = document.referrer ? new URL(document.referrer).hostname : ''; } catch {}
+      if (host === location.hostname) host = '';
+      if (ref || host) localStorage.setItem(KEY, JSON.stringify({ ref: ref ? ref.slice(0, 40) : null, host: host || null, at: Date.now() }));
+    } catch {}
+  })();
+  const origin = () => { try { return JSON.parse(localStorage.getItem('vn_ref') || 'null') || {}; } catch { return {}; } };
+
   // volta do login do Discord/Google com o token no fragmento
   if (location.hash.includes('vn_')) {
     const h = new URLSearchParams(location.hash.slice(1));
@@ -73,6 +88,9 @@
         if (!b) return;
         b.disabled = true;
         const q = new URLSearchParams({ return: next.startsWith('/') && !next.startsWith('//') ? next : '/play' });
+        const o = origin();
+        if (o.ref) q.set('ref', o.ref);
+        if (o.host) q.set('refHost', o.host);
         if (token) { try { q.set('ticket', (await api('/api/auth/link-ticket', { method: 'POST', body: '{}' })).ticket); } catch {} }
         location.href = `/api/auth/${b.dataset.go}/start?${q}`;
       });

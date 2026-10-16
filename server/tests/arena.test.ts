@@ -36,6 +36,10 @@ function makeCode(rank: 'genin' | 'chunin' | 'jounin', level: number, seed: numb
   const g = createNewGame(SYSTEMS, seed);
   const u = createNinja(g, 10, 10, rank, 1);
   u.ninja!.level = level;
+  // atributos fixos por patente: a força (atributos × (nível + 5)) fica previsível; sorteados, o "parecido" às vezes
+  // saía dos ±30% e o teste da procura caía
+  const stats = u.ninja!.stats as unknown as Record<string, number>;
+  for (const k of Object.keys(stats)) stats[k] = rank === 'jounin' ? 40 : rank === 'chunin' ? 20 : 10;
   return encodeSnapshot(snapshotOf(g, u));
 }
 
@@ -315,6 +319,46 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
       expect((await api('POST', `/api/admin/players/${ownerId}/ban`, { reason: 'x' }, mod)).status).toBe(403);
       expect((await act('delete', { confirm: 'Nome Feio Trocado' }, mod)).status).toBe(403);
       expect((await act('delete', { confirm: 'Nome Feio Trocado' })).data.deleted).toBe(true);
+    });
+
+    test('novidades: rascunho fica fora, publicada aparece em pt/en com texto escapado; perfil e origem', async () => {
+      const owner = (await social('dono')).hash.get('vn_token')!;
+      const page = async (p: string) => {
+        const r = await fetch(base + p);
+        return { status: r.status, text: await r.text() };
+      };
+      const draft = await api('POST', '/api/admin/news', { titlePt: 'Rascunho secreto', bodyPt: 'x' }, owner);
+      expect(draft.status).toBe(200);
+      expect((await page('/novidades/rascunho-secreto')).status).toBe(404);
+      const pub = await api('POST', '/api/admin/news', {
+        titlePt: 'Temporada 1 começou', summaryPt: 'Ranking zerado', titleEn: 'Season 1 is live',
+        bodyPt: '## Novo\n\n- item **forte**\n- [ranking](/ranking)\n\n<script>alert(1)</script>', published: true,
+      }, owner);
+      expect(pub.status).toBe(200);
+      expect((await api('POST', '/api/admin/news', { titlePt: 'Temporada 1 começou' }, owner)).data.error).toBe('SLUG_TAKEN');
+      const pt = await page('/novidades/temporada-1-comecou');
+      expect(pt.status).toBe(200);
+      expect(pt.text).toContain('<h2>Novo</h2>');
+      expect(pt.text).toContain('<b>forte</b>');
+      expect(pt.text).toContain('<a href="/ranking">ranking</a>');
+      expect(pt.text).not.toContain('<script>alert');
+      expect((await page('/en/news/temporada-1-comecou')).text).toContain('Season 1 is live');
+      expect((await page('/en/news')).status).toBe(200);
+
+      // origem do convidado e perfil público
+      const g = await api('POST', '/api/auth/guest', { ref: 'TikTok', refHost: 'www.m.facebook.com' });
+      const id = g.data.account.id;
+      const detail = await api('GET', `/api/admin/players/${id}`, undefined, owner);
+      expect(detail.data.player.ref).toBe('tiktok');
+      expect(detail.data.player.refHost).toBe('facebook.com');
+      await (await import('../src/cache')).cache.del('panel:audience');
+      const aud = await api('GET', '/api/admin/audience', undefined, owner);
+      expect(aud.data.sources.map((x: { source: string }) => x.source)).toContain('?ref=tiktok');
+      const prof = await page(`/jogador/${id}`);
+      expect(prof.status).toBe(200);
+      expect(prof.text).toContain(g.data.account.displayName);
+      expect((await page(`/en/player/${id}`)).text).toContain('No champion published yet.');
+      expect((await page('/jogador/00000000-0000-0000-0000-000000000000')).status).toBe(404);
     });
 
     test('avisos: jogador recebe, lido conta no painel; manutenção trava o duelo', async () => {

@@ -39,10 +39,10 @@ function clean(b: NoticeInput) {
   if (!titlePt) throw new ApiError(400, 'TITLE_REQUIRED');
   const url = str(b.actionUrl, 300);
   if (url && !/^(https:\/\/|\/)/.test(url)) throw new ApiError(400, 'INVALID_URL');
-  const startsAt = date(b.startsAt) ?? new Date();
+  const startsAt = date(b.startsAt);
   const endsAt = date(b.endsAt);
   const blockFrom = date(b.blockFrom);
-  if (endsAt && endsAt <= startsAt) throw new ApiError(400, 'INVALID_DATE');
+  if (endsAt && endsAt <= (startsAt ?? new Date())) throw new ApiError(400, 'INVALID_DATE');
   if (blockFrom && !endsAt) throw new ApiError(400, 'MAINTENANCE_NEEDS_END');
   return {
     kind: pick(KINDS, b.kind, 'inbox'),
@@ -114,7 +114,10 @@ export const notices = {
 
   async create(actor: Account | null, b: NoticeInput, ip: string) {
     const v = clean(b);
-    const [row] = await sql`INSERT INTO notices ${sql({ ...v, created_by: actor?.id ?? null })} RETURNING id`;
+    // sem início = agora pela hora do banco (o relógio do Postgres pode estar um pouco atrás)
+    const { starts_at, ...rest } = v;
+    const [row] = await sql`INSERT INTO notices ${sql({ ...rest, created_by: actor?.id ?? null })} RETURNING id`;
+    if (starts_at) await sql`UPDATE notices SET starts_at = ${starts_at} WHERE id = ${row!.id}`;
     await staffLog(actor?.id ?? null, 'notice-create', null, { id: row!.id, title: v.title_pt, maintenance: !!v.block_from }, ip);
     await cache.del('notices:maint');
     return row!.id as number;
@@ -123,7 +126,8 @@ export const notices = {
   async update(actor: Account | null, id: number, b: NoticeInput, ip: string) {
     if (!Number.isInteger(id) || id <= 0) throw new ApiError(400, 'INVALID_ID');
     const v = clean(b);
-    const r = await sql`UPDATE notices SET ${sql(v)} WHERE id = ${id}`;
+    const { starts_at, ...rest } = v;
+    const r = await sql`UPDATE notices SET ${sql(rest)}, starts_at = COALESCE(${starts_at}, starts_at) WHERE id = ${id}`;
     if (!r.count) throw new ApiError(404, 'NOT_FOUND');
     await staffLog(actor?.id ?? null, 'notice-edit', null, { id, title: v.title_pt, active: v.active }, ip);
     await cache.del('notices:maint');

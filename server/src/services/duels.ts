@@ -275,6 +275,38 @@ export const duels = {
     return rows.map((r) => ({ ...r, data: undefined, ninja: r.data ? ninjaOf(r.data) : null }));
   },
 
+  /** Perfil público (site): só conta que joga de verdade (não teste, não banida). */
+  async publicProfile(id: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const [u] = await sql<Array<{ id: string; name: string; createdAt: Date; avatarUrl: string | null }>>`
+      SELECT id, display_name as name, created_at as "createdAt", avatar_url as "avatarUrl" FROM users
+      WHERE id = ${id} AND NOT is_test AND banned_at IS NULL
+    `;
+    if (!u) return null;
+    const [st] = await sql<DuelStats[]>`SELECT rating, wins, losses, def_wins as "defWins", def_losses as "defLosses" FROM duel_stats WHERE user_id = ${id}`;
+    const played = !!st && st.wins + st.losses + st.defWins + st.defLosses > 0;
+    const [pos] = played
+      ? await sql<Array<{ n: number }>>`
+          SELECT count(*)::int + 1 as n FROM duel_stats ds JOIN users x ON x.id = ds.user_id
+          WHERE ds.wins + ds.losses + ds.def_wins + ds.def_losses > 0 AND NOT x.is_test AND x.banned_at IS NULL AND ds.rating > ${st!.rating}`
+      : [];
+    const [snap] = await sql<Array<{ data: NinjaSnapshot; power: number }>>`SELECT data, power FROM snapshots WHERE user_id = ${id} AND kind = 'ninja'`;
+    const recent = await sql<Array<{ at: Date; attacking: boolean; otherId: string; other: string; won: boolean }>>`
+      SELECT d.finished_at as at, (d.attacker_id = ${id}) as attacking, o.id as "otherId", o.display_name as other, d.won
+      FROM duels d JOIN users o ON o.id = CASE WHEN d.attacker_id = ${id} THEN d.defender_id ELSE d.attacker_id END
+      WHERE (d.attacker_id = ${id} OR d.defender_id = ${id}) AND d.finished_at IS NOT NULL AND NOT o.is_test
+      ORDER BY d.finished_at DESC LIMIT 10
+    `;
+    const s = snap?.data;
+    return {
+      ...u,
+      stats: st ?? null,
+      position: pos?.n ?? null,
+      champion: s ? { name: s.name, rank: s.rank, level: s.level, from: s.from ?? null, nature: s.nature, stats: s.stats, power: snap!.power } : null,
+      recent: recent.map((r) => ({ at: r.at, attacking: r.attacking, otherId: r.otherId, other: r.other, won: r.attacking ? r.won : !r.won })),
+    };
+  },
+
   /** Quem enfrentou o meu retrato e como foi; `unseen` = depois da última vez que olhei o relatório. */
   async defenses(userId: string): Promise<{ defenses: Defense[]; unseen: number; rating: number }> {
     const me = await this.stats(userId);

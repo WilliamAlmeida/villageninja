@@ -2,6 +2,7 @@
 // apelido + senha (e e-mail opcional) na mesma conta; login em outro aparelho abre outra sessão da mesma conta.
 import { cache } from '../cache';
 import { sql } from '../db';
+import { normalizeHost, normalizeRef } from './source';
 import { ApiError } from '../errors';
 
 export interface Account {
@@ -62,8 +63,10 @@ export function validateDisplayName(raw: unknown): string {
 }
 
 export const accounts = {
-  async createGuest(): Promise<{ token: string; account: Account }> {
-    const [account] = await sql<Account[]>`INSERT INTO users (display_name) VALUES (${guestName()}) RETURNING ${COLUMNS}`;
+  async createGuest(origin: { ref?: unknown; refHost?: unknown } = {}): Promise<{ token: string; account: Account }> {
+    const [account] = await sql<Account[]>`
+      INSERT INTO users (display_name, ref, ref_host) VALUES (${guestName()}, ${normalizeRef(origin.ref)}, ${normalizeHost(origin.refHost)}) RETURNING ${COLUMNS}
+    `;
     await sql`INSERT INTO user_days (user_id, day) VALUES (${account!.id}, (NOW() AT TIME ZONE 'America/Sao_Paulo')::date) ON CONFLICT DO NOTHING`;
     const token = await this.createSession(account!.id);
     return { token, account: account! };

@@ -120,6 +120,27 @@ export async function migrate() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  // novidades do site (escritas no painel); published_at nulo = rascunho
+  await sql`
+    CREATE TABLE IF NOT EXISTS news (
+      id SERIAL PRIMARY KEY,
+      slug VARCHAR(80) NOT NULL UNIQUE,
+      title_pt VARCHAR(140) NOT NULL,
+      summary_pt VARCHAR(300) NOT NULL DEFAULT '',
+      body_pt TEXT NOT NULL DEFAULT '',
+      title_en VARCHAR(140),
+      summary_en VARCHAR(300),
+      body_en TEXT,
+      published_at TIMESTAMPTZ,
+      created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_news_published ON news (published_at DESC) WHERE published_at IS NOT NULL`;
+  // de onde a conta veio: ?ref= do link e o site de onde a pessoa chegou (o primeiro, guardado 30 dias no navegador)
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ref VARCHAR(40)`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ref_host VARCHAR(80)`;
   await sql`
     CREATE TABLE IF NOT EXISTS notice_views (
       notice_id INT NOT NULL REFERENCES notices(id) ON DELETE CASCADE,
@@ -188,7 +209,7 @@ export async function migrate() {
 
 /** Só para os testes: esvazia tudo. */
 export async function truncateAll() {
-  await sql`TRUNCATE users, sessions, snapshots, duels, duel_stats, user_identities, staff_actions, user_days, daily_stats, notices, notice_views CASCADE`;
+  await sql`TRUNCATE users, sessions, snapshots, duels, duel_stats, user_identities, staff_actions, user_days, daily_stats, notices, notice_views, news CASCADE`;
 }
 
 export async function closeDb() {

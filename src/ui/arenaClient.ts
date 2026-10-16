@@ -7,6 +7,29 @@ import type { DuelResult } from '../game/types';
 const TOKEN_KEY = 'vn_arena_token';
 const URL_KEY = 'vn_arena_url';
 const PENDING_KEY = 'vn_arena_pending';
+/** Origem da visita (?ref= e site anterior), a mesma chave do site (server/site/site.js): vai junto ao criar a conta. */
+const REF_KEY = 'vn_ref';
+
+function visitOrigin(): { ref: string | null; host: string | null } {
+  try {
+    const cur = JSON.parse(store.get(REF_KEY) ?? 'null') as { ref: string | null; host: string | null; at: number } | null;
+    if (cur && Date.now() - cur.at < 30 * 864e5) return cur;
+    if (typeof location === 'undefined') return { ref: null, host: null };
+    const ref = new URLSearchParams(location.search).get('ref')?.slice(0, 40) ?? null;
+    let host: string | null = null;
+    try {
+      host = document.referrer ? new URL(document.referrer).hostname : null;
+    } catch {
+      /* referrer estranho */
+    }
+    if (host === location.hostname) host = null;
+    const o = { ref, host, at: Date.now() };
+    if (ref || host) store.set(REF_KEY, JSON.stringify(o));
+    return o;
+  } catch {
+    return { ref: null, host: null };
+  }
+}
 
 export interface ArenaAccount {
   id: string;
@@ -208,6 +231,7 @@ export class ArenaClient {
     if (q != null) store.set(URL_KEY, q || null);
     this.base = (store.get(URL_KEY) ?? '').replace(/\/+$/, '');
     this.token = store.get(TOKEN_KEY);
+    visitOrigin();
     this.readSocialReturn();
     const p = store.get(PENDING_KEY);
     if (p) {
@@ -341,7 +365,8 @@ export class ArenaClient {
   }
 
   private async guest() {
-    const r = await this.call<{ token: string; account: ArenaAccount }>('POST', '/api/auth/guest', {}, { auth: false });
+    const o = visitOrigin();
+    const r = await this.call<{ token: string; account: ArenaAccount }>('POST', '/api/auth/guest', { ref: o.ref, refHost: o.host }, { auth: false });
     this.token = r.token;
     this.account = r.account;
     store.set(TOKEN_KEY, r.token);
@@ -477,6 +502,9 @@ export class ArenaClient {
       const ticket = this.token ? (await this.call<{ ticket: string }>('POST', '/api/auth/link-ticket', {})).ticket : null;
       const q = new URLSearchParams({ return: location.pathname + location.search });
       if (ticket) q.set('ticket', ticket);
+      const o = visitOrigin();
+      if (o.ref) q.set('ref', o.ref);
+      if (o.host) q.set('refHost', o.host);
       location.href = `${this.base}/api/auth/${provider}/start?${q}`;
       return true;
     });

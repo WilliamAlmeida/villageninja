@@ -9,6 +9,7 @@ import { config } from '../config';
 import { sql } from '../db';
 import { ApiError } from '../errors';
 import { accounts, guestName, type Account } from './accounts';
+import { normalizeHost, normalizeRef } from './source';
 import { staffLog } from './staff';
 
 export type ProviderId = 'discord' | 'google';
@@ -102,6 +103,9 @@ interface StateData {
   verifier: string;
   returnTo: string;
   linkUserId: string | null;
+  /** Origem (?ref= e site anterior) para quando a conta nasce aqui. */
+  ref?: string | null;
+  refHost?: string | null;
 }
 
 /** Nome mostrado a partir do perfil (cabe nas regras do jogo) ou um nome de convidado. */
@@ -129,7 +133,7 @@ export const oauth = {
     const linkUserId = ticket ? await cache.take(`oauth-ticket:${ticket}`) : null;
     const state = randomToken();
     const verifier = randomToken(48);
-    const data: StateData = { provider, verifier, returnTo: safeReturn(query.get('return')), linkUserId };
+    const data: StateData = { provider, verifier, returnTo: safeReturn(query.get('return')), linkUserId, ref: normalizeRef(query.get('ref')), refHost: normalizeHost(query.get('refHost')) };
     await cache.setJson(`oauth-state:${state}`, data, STATE_TTL);
     const def = PROVIDERS[provider];
     const params = new URLSearchParams({
@@ -156,7 +160,7 @@ export const oauth = {
     if (query.get('error') || !query.get('code')) return back('vn_error=OAUTH_CANCELLED');
     try {
       const profile = await this.exchange(provider, origin, query.get('code')!, data.verifier);
-      const { account, linked } = await this.resolve(provider, profile, data.linkUserId);
+      const { account, linked } = await this.resolve(provider, profile, data.linkUserId, { ref: data.ref ?? null, refHost: data.refHost ?? null });
       const token = await accounts.createSession(account.id);
       if (account.role !== 'player') await staffLog(account.id, 'login', null, { provider }, ip);
       return back(`vn_token=${encodeURIComponent(token)}${linked ? '&vn_linked=1' : ''}`);
@@ -192,7 +196,7 @@ export const oauth = {
    * Conta para o perfil: a que já tem esse perfil; senão a do vínculo (convidado ou conta que pediu); senão a conta
    * com o mesmo e-mail confirmado; senão uma conta nova. `linked` = o perfil foi ligado agora a uma conta que já existia.
    */
-  async resolve(provider: ProviderId, p: Profile, linkUserId: string | null): Promise<{ account: Account; linked: boolean }> {
+  async resolve(provider: ProviderId, p: Profile, linkUserId: string | null, origin: { ref: string | null; refHost: string | null } = { ref: null, refHost: null }): Promise<{ account: Account; linked: boolean }> {
     const email = p.email && p.emailVerified ? p.email : null;
     const [known] = await sql<Array<{ userId: string }>>`
       SELECT user_id as "userId" FROM user_identities WHERE provider = ${provider} AND provider_user_id = ${p.id}
@@ -212,7 +216,7 @@ export const oauth = {
     }
     if (!userId) {
       const [row] = await sql<Array<{ id: string }>>`
-        INSERT INTO users (display_name, registered_at) VALUES (${displayNameOf(p)}, NOW()) RETURNING id
+        INSERT INTO users (display_name, registered_at, ref, ref_host) VALUES (${displayNameOf(p)}, NOW(), ${origin.ref}, ${origin.refHost}) RETURNING id
       `;
       userId = row!.id;
     }

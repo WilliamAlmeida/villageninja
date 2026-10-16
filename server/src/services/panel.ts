@@ -110,7 +110,11 @@ export const panel = {
         UNION ALL SELECT 'password', count(*)::int FROM users WHERE password_hash IS NOT NULL AND NOT is_test
         UNION ALL SELECT 'guest', count(*)::int FROM users WHERE registered_at IS NULL AND NOT is_test
       `;
-      return { countries, logins };
+      const sources = await sql`
+        SELECT COALESCE(CASE WHEN ref IS NOT NULL THEN '?ref=' || ref END, ref_host, 'direto') as source, count(*)::int as n
+        FROM users WHERE NOT is_test GROUP BY 1 ORDER BY n DESC LIMIT 10
+      `;
+      return { countries, logins, sources };
     });
   },
 
@@ -151,7 +155,7 @@ export const panel = {
     const rows = await sql<PlayerRow[]>`
       SELECT u.id, u.display_name as name, u.username, u.email, u.role, (u.registered_at IS NULL) as "isGuest",
         u.is_test as "isTest", (u.banned_at IS NOT NULL) as banned, u.country, u.created_at as "createdAt",
-        u.last_seen_at as "lastSeenAt", ds.rating,
+        u.last_seen_at as "lastSeenAt", ds.rating, u.ref, u.ref_host as "refHost",
         ARRAY(SELECT provider FROM user_identities i WHERE i.user_id = u.id ORDER BY provider) as logins
       FROM users u LEFT JOIN duel_stats ds ON ds.user_id = u.id
       WHERE ${where} ORDER BY ${sort}, u.id LIMIT 31 OFFSET ${page * 30}
@@ -165,7 +169,7 @@ export const panel = {
     const [row] = await sql`
       SELECT u.id, u.display_name as name, u.username, u.email, u.role, (u.registered_at IS NULL) as "isGuest",
         u.is_test as "isTest", u.banned_at as "bannedAt", u.ban_reason as "banReason", u.admin_note as note, u.country,
-        u.avatar_url as "avatarUrl", u.created_at as "createdAt", u.registered_at as "registeredAt", u.last_seen_at as "lastSeenAt",
+        u.avatar_url as "avatarUrl", u.ref, u.ref_host as "refHost", u.created_at as "createdAt", u.registered_at as "registeredAt", u.last_seen_at as "lastSeenAt",
         (u.password_hash IS NOT NULL) as "hasPassword",
         (SELECT count(*)::int FROM sessions s WHERE s.user_id = u.id) as sessions,
         (SELECT count(*)::int FROM user_days x WHERE x.user_id = u.id) as "daysPlayed"
