@@ -160,6 +160,75 @@ BATCHES = {
              'stone lanterns around the base; clearly the most important building of the village'),
         ],
     },
+    # Variantes de arte (docs/gdd-escala-ilhas-pvp.md, seção 4): a casa tem duas (-b, -c) e lenhador/pedreira uma (-b), em
+    # cada nível; o jogo escolhe pelo id do prédio (render/variants.ts). `variant`: a referência é a arte de hoje do mesmo
+    # nível, e o pedido é outro prédio do mesmo tipo (telhado, fachada e detalhes diferentes), não o mesmo crescido.
+    'casa-b': {
+        'variant': True,
+        'items': [
+            ('house-b', (2, 2, 2.3),
+             'LEVEL 1: a small one-story house of ANOTHER family of the ninja village: a DARK RED-BROWN ceramic tiled gable '
+             'roof (not blue), walls of horizontal dark wooden planks with a cream plaster band under the eaves, a round '
+             'window, a wooden door with a small cloth awning, a rain barrel and a stack of firewood by the wall'),
+            ('house-b-2', (2, 2, 2.3),
+             'LEVEL 2: THE SAME red-roofed plank house grown on the same plot: a second red-brown roof over an attached side '
+             'room, a covered porch with a bench, a clothesline with hanging cloth, more windows, a wooden vegetable box'),
+            ('house-b-3', (3, 3, 3.8),
+             'LEVEL 3 on a BIGGER plot: a two-story family house with red-brown tiled roofs and dark plank walls, a wooden '
+             'balcony on the upper floor, a side wing with its own roof, a walled yard with a small tree, a well and a '
+             'storage shed; clearly wider and richer than level 2, same style'),
+        ],
+    },
+    'casa-c': {
+        'variant': True,
+        'items': [
+            ('house-c', (2, 2, 2.3),
+             'LEVEL 1: a small one-story house of ANOTHER family of the ninja village: a thick rounded THATCHED straw roof '
+             '(golden-brown) over white plaster walls with dark wooden posts, a stone base, a sliding door with a bamboo '
+             'blind, a small wooden shrine shelf by the door, a stone water basin'),
+            ('house-c-2', (2, 2, 2.3),
+             'LEVEL 2: THE SAME thatched house grown on the same plot: a longer thatched roof plus a smaller thatched roof over '
+             'an attached side room, a wooden veranda along the front, paper lanterns, a flower box, a low bamboo fence'),
+            ('house-c-3', (3, 3, 3.8),
+             'LEVEL 3 on a BIGGER plot: a large two-story farmhouse-style home with a tall thatched roof with a wooden ridge, '
+             'small upper windows under the eaves, a side wing with its own thatched roof, a wooden veranda, a small garden '
+             'with a pond and a stone lantern; clearly wider and richer than level 2, same style'),
+        ],
+    },
+    'lenhador-b': {
+        'variant': True,
+        'items': [
+            ('lumber-b', (2, 2, 2.4),
+             'LEVEL 1: the lumber camp of ANOTHER crew: an open-sided timber shelter with a MOSS-GREEN plank roof on log '
+             'posts, a sawhorse with a half-cut log, logs stacked in a pyramid under the roof, an axe and a two-man saw '
+             'hanging on a rack, a tree stump with an axe in it'),
+            ('lumber-b-2', (2, 2, 2.7),
+             'LEVEL 2: THE SAME green-roofed camp grown and clearly bigger on the same plot: half of the shelter becomes a '
+             'closed log cabin with a door and a window, a second green roof over a drying rack full of planks, a log ramp, '
+             'a hand cart loaded with logs'),
+            ('lumber-b-3', (3, 3, 3.4),
+             'LEVEL 3 on a BIGGER plot: a big timber yard: a two-story log lodge with a moss-green plank roof, a long open '
+             'shed with a sawing bench, a tall wooden log crane with rope and pulley, huge stacks of logs and planks, a loaded '
+             'ox cart; clearly bigger than level 2, same style'),
+        ],
+    },
+    'pedreira-b': {
+        'variant': True,
+        'items': [
+            ('quarry-b', (2, 2, 2.2),
+             'LEVEL 1: the stone quarry of ANOTHER crew: a timber-framed shed with a DARK BROWN wooden plank roof, open on the '
+             'front, a big rough grey boulder being split with iron wedges, a stone-cutting table with chisels and a mallet, '
+             'neat rows of cut sand-colored blocks, a wheelbarrow'),
+            ('quarry-b-2', (2, 2, 2.6),
+             'LEVEL 2: THE SAME brown-roofed quarry grown and clearly bigger on the same plot: the shed gets low stone walls '
+             'and a wooden upper floor, a wooden hoist tripod lifting a block with ropes, a second cutting table, a few stone '
+             'steps down into a shallow cut pit'),
+            ('quarry-b-3', (3, 3, 3.2),
+             'LEVEL 3 on a BIGGER plot: a stone works: a two-story stone warehouse with a brown plank roof, a tall timber '
+             'derrick crane, a sloped wooden ramp down into a quarry pit with cut rock steps, stacks of blocks and gravel '
+             'piles; clearly bigger than level 2, same style'),
+        ],
+    },
 }
 
 
@@ -185,9 +254,33 @@ def template(path, w, h, hh):
     return (W, H), ds
 
 
-def base_of(name):
-    """Prédio da arte: 'academy-3' → 'academy'."""
+def stem(name):
+    """A arte sem o nível: 'academy-3' → 'academy', 'house-b-2' → 'house-b' (o mesmo prédio nos seus níveis)."""
     return re.sub(r'-\d+$', '', name)
+
+
+def base_of(name):
+    """Prédio da arte: 'academy-3' → 'academy'; a variante 'house-b-2' → 'house' (a arte de hoje é a da casa)."""
+    return re.sub(r'(-[bc])?(-\d+)?$', '', name)
+
+
+def level_of(name):
+    m = re.search(r'-(\d+)$', name)
+    return int(m.group(1)) if m else 1
+
+
+def current_art(batch, name):
+    """Lote de variantes: a arte DE HOJE do mesmo prédio no mesmo nível ('house-b-2' → house-2), sozinha sobre branco."""
+    lv = level_of(name)
+    cur = base_of(name) + (f'-{lv}' if lv > 1 else '')
+    p = OUT / batch / f'_hoje-{cur}.png'
+    if p.exists():
+        return p
+    im = Image.open(art_file(cur)).convert('RGBA')
+    out = Image.new('RGBA', im.size, (255, 255, 255, 255))
+    out.paste(im, (0, 0), im)
+    out.convert('RGB').save(p)
+    return p
 
 
 def identity_sheet(batch, name):
@@ -217,11 +310,21 @@ def generate(batch, cfg, i, item):
     if src.exists():
         return src
     before = cfg['items'][i - 1][0] if i else None
-    prev = OUT / batch / f'_{before}.png' if before and base_of(before) == base_of(name) else None
+    # o nível anterior do MESMO prédio (a variante 'house-c' não cresce da 'house-b-3')
+    prev = OUT / batch / f'_{before}.png' if before and stem(before) == stem(name) else None
     # imagens de referência na ordem em que o texto as cita (a numeração muda com o que entra)
     refs = [tpl]
     parts = []
-    if base_of(name) not in cfg.get('redesign', ()):
+    if cfg.get('variant'):
+        # variante (seção 4 do GDD de escala): a arte de hoje do mesmo nível é a régua de tamanho, paleta e acabamento;
+        # o pedido é OUTRO prédio do mesmo tipo, não uma cópia
+        refs.append(current_art(batch, name))
+        parts.append(f'Image {len(refs)} is the CURRENT level-{level_of(name)} version of this building type in the game. '
+                     'This image must be ANOTHER building of the same type and level from the same village, NOT a copy of '
+                     'it: same footprint, same overall size and proportions, same pixel scale, palette, materials and '
+                     'finish, but clearly different at a glance (roof shape and color, facade layout, details) as described. '
+                     'The background must be PURE WHITE like image 2: no dark backdrop, no glow, no vignette, no ground. ')
+    elif base_of(name) not in cfg.get('redesign', ()):
         refs.append(identity_sheet(batch, name))
         parts.append(f'Image {len(refs)} shows the CURRENT versions of this building at its levels, left to right: keep its '
                      'identity (shape, colors, emblem) but follow the new size of image 1. ')
@@ -250,6 +353,8 @@ def process(batch, item, meta):
     src = OUT / batch / f'_{name}.png'
     im = Image.open(src).convert('RGBA')
     a = np.array(im)[:, :, 3] > 40
+    if a.mean() > 0.9:  # o Codex às vezes desenha fundo escuro (vinheta): remove-bg só tira o branco; gere de novo (--refazer)
+        print(f'AVISO {name}: a imagem está quase toda opaca; o fundo não era branco (--refazer={name})')
     x0, y0, x1, y1 = main_object(a)
     crop = im.crop((x0, y0, x1, y1))
     m = np.array(crop)[:, :, 3] > 40
