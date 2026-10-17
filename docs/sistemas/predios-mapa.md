@@ -25,14 +25,19 @@
   pinta canteiros tile a tile em **formato livre** (rascunho `FieldDraft` como as ruas, vale no "Pronto"; `commitFields`
   paga `FIELD.cost` de madeira por canteiro, tira árvore/toco/rua embaixo e refaz os cercados com `regroup`).
   Canteiros vizinhos (4 lados) = um cercado com **uma cultura** (`Field.crop`); partir ao meio vira dois com a mesma
-  cultura, juntar fica com a do maior. **Teto total de canteiros** por nível (`FIELD.maxPlots` 18/36/48/60; colônia
+  cultura, juntar fica com a do maior. **Teto total de canteiros** por nível (`FIELD.maxPlots` 18/36/48/100: no nível 3 a vila chega a 170 pessoas e come ~850/dia, ~1.060 no
+  inverno; com 60 o save do autor passava fome mesmo com o solo cheio; colônia
   `FIELD.colonyPlots` 18; `plotCap`). `World.fieldTile` marca o campo de cada tile; prédio não entra no canteiro e fica a
   um tile da cerca. **Canteiro** (`Plot`): `st` 0 terra crua → 1 arada → 2 plantada (`g` 0..1 por dias de jogo × estação
   da cultura × água) → 3 madura (`ripe` conta; passados `FIELD.witherDays` murcha e volta a arada). Água: vizinho de água
   (`isPaddy`) ou debaixo da chuva local fica úmido; seco cresce `FIELD.dryGrowth`. **Culturas** (`CROPS`): trigo, nabo
   (rápido, aguenta frio), repolho (outono), arroz (só em canteiro vizinho de água, rende muito), abóbora (lenta, rende
   mais, a geada do inverno mata) e ervas (nível 1, era a Horta). **Solo** (`fert`): repetir a cultura tira
-  `FIELD.fertStep`, trocar devolve; rende 50–100%. **Fazendeiros**: `Unit.fieldId` + `Field.desired/workers`
+  `FIELD.fertStep`, trocar devolve; rende 50–100%. **Rotação automática** (`sowCrop`): o canteiro semeia a cultura
+  do cercado, mas se ela acabou de sair dali (ou não dá na estação) planta a outra do mesmo recurso que mais rende
+  agora; abóbora só se amadurecer antes do inverno. Ervas não têm par e repetem. No save do autor o solo foi de 2% a
+  85% em 20 dias. **Nascer exige estoque** (`birthFood` em systems/population.ts): `BIRTH_STOCK_DAYS` = 2 dias do que
+  a vila come, senão a gente nova comia toda a sobra e vinha a fome. **Fazendeiros**: `Unit.fieldId` + `Field.desired/workers`
   (`assignJobs` enche os campos antes dos prédios; `maxWorkers` = 1 por `FIELD.plotsPerWorker` canteiros); a tarefa é
   o canteiro mais importante e livre (`nextPlot`: colher > semear > arar > regar; `taskId` = índice do tile), estados
   `toPlot`/`tending` em villagers.ts, `workPlot` aplica. Corvos bicam canteiro maduro (volta a arado) e levam comida.

@@ -4,12 +4,12 @@
 // plantada (cresce por dias de jogo, conforme a estação e a água) → madura; os fazendeiros do cercado fazem o
 // trabalho canteiro a canteiro (arar, semear, regar, colher). Teto total de canteiros por nível da vila.
 import { DAY_LENGTH } from '../config';
-import { CROPS, type CropId, FIELD } from '../data/crops';
-import { SEASON_ORDER, WEATHERS } from '../data/seasons';
+import { CROP_LIST, CROPS, type CropId, FIELD } from '../data/crops';
+import { SEASON_DAYS, SEASON_ORDER, WEATHERS } from '../data/seasons';
 import { costLabel } from '../data/resources';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
-import { isSnowing, localWeather, seasonOf } from './mood';
+import { daysToNextSeason, isSnowing, localWeather, seasonOf } from './mood';
 import type { Cost, Field, GameState, Plot, Unit } from './types';
 import { inTerritory } from './village';
 import { idx, inBounds, T, tileCenter } from './world';
@@ -264,17 +264,44 @@ export type PlotWork = 'harvest' | 'sow' | 'till' | 'water';
 /** O que o canteiro pede agora (null = nada). */
 export function plotNeed(g: Game, f: Field, p: Plot): PlotWork | null {
   if (p.st === 3) return 'harvest';
-  if (p.st === 1) return canSow(g, f, p) ? 'sow' : null;
+  if (p.st === 1) return sowCrop(g, f, p) ? 'sow' : null;
   if (p.st === 0) return 'till';
   if (p.st === 2 && !(p.wet && p.wet > 0)) return 'water';
   return null;
 }
 
-/** Dá para semear a cultura do cercado aqui agora? (arroz só na beira da água; nada que pare na estação) */
-function canSow(g: Game, f: Field, p: Plot) {
-  const c = CROPS[f.crop];
+/** Dá para semear a cultura aqui agora? (arroz só na beira da água; nada que pare na estação nem que a geada mate) */
+function sowable(g: Game, crop: CropId, p: Plot) {
+  const c = CROPS[crop];
+  if ((c.minLevel ?? 0) > g.state.level) return false;
   if (c.paddy && !isPaddy(g.state, p.tx, p.ty)) return false;
-  return c.season[SEASON_ORDER.indexOf(seasonOf(g.state))]! > 0;
+  const si = SEASON_ORDER.indexOf(seasonOf(g.state));
+  if (!(c.season[si]! > 0)) return false;
+  // a geada mata: só planta se der tempo de amadurecer antes do inverno
+  return !c.frost || (si < 3 && c.days / c.season[si]! <= daysToNextSeason(g.state) + (2 - si) * SEASON_DAYS);
+}
+
+/**
+ * O que semear no canteiro (rotação automática): a cultura do cercado; se ela acabou de sair dali (cansaria o solo) ou
+ * não dá nesta estação, a outra do mesmo recurso que mais rende agora. Assim o solo descansa sozinho e o cercado não
+ * fica parado no inverno. null = nada para semear.
+ */
+export function sowCrop(g: Game, f: Field, p: Plot): CropId | null {
+  if (p.last !== f.crop && sowable(g, f.crop, p)) return f.crop;
+  const si = SEASON_ORDER.indexOf(seasonOf(g.state));
+  const res = CROPS[f.crop].res;
+  let best: CropId | null = null;
+  let bv = 0;
+  for (const c of CROP_LIST) {
+    if (c.id === p.last || c.res !== res || !sowable(g, c.id, p)) continue;
+    const v = (c.yield / c.days) * c.season[si]!;
+    if (v > bv) {
+      best = c.id;
+      bv = v;
+    }
+  }
+  // sem outra do mesmo recurso (ervas), repete a do cercado
+  return best ?? (sowable(g, f.crop, p) ? f.crop : null);
 }
 
 const PRIO: Record<PlotWork, number> = { harvest: 0, sow: 1, till: 2, water: 3 };
@@ -325,7 +352,7 @@ export function workPlot(g: Game, f: Field, p: Plot, u: Unit) {
     fxText(g, u.x, u.y - 20, `${c.res === 'food' ? '{food}' : '{herbs}'} +${amount}`, '#ffe08a');
     fx(g, 'chips', x, y, { color: c.fruit, life: 0.5 });
   } else if (need === 'sow') {
-    Object.assign(p, { st: 2, crop: f.crop, g: 0, ripe: undefined });
+    Object.assign(p, { st: 2, crop: sowCrop(g, f, p)!, g: 0, ripe: undefined });
   } else if (need === 'till') {
     p.st = 1;
     fx(g, 'chips', x, y, { color: '#8a6a3a', life: 0.4 });

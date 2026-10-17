@@ -5,7 +5,7 @@ import { DAY_LENGTH, SAVE_VERSION, SIM_DT } from '../src/config';
 import { CROPS, FIELD } from '../src/data/crops';
 import { SEASON_DAYS } from '../src/data/seasons';
 import {
-  addField, commitFields, cropBlock, cropTick, draftField, type FieldDraft, isPaddy, plotAt, plotBlock, plotCap, plotCount, setFieldCrop, workPlot,
+  addField, commitFields, cropBlock, cropTick, draftField, type FieldDraft, isPaddy, plotAt, plotBlock, plotCap, plotCount, setFieldCrop, sowCrop, workPlot,
 } from '../src/game/fields';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
@@ -162,6 +162,45 @@ describe('campos cercados', () => {
     const tired = p.fert;
     harvest('turnip');
     expect(p.fert).toBeGreaterThan(tired);
+  });
+
+  test('rotação automática: o cercado alterna a cultura sozinho e o solo não cansa', () => {
+    const g = setup(307);
+    g.state.day = 1; // primavera
+    const { x0, y0 } = freeSpot(g, 1, 1);
+    const f = addField(g, [[x0, y0]], 'wheat');
+    const p = f.plots[0]!;
+    const u = g.villagers()[0]!;
+    expect(sowCrop(g, f, p)).toBe('wheat');
+    for (let i = 0; i < 6; i++) {
+      Object.assign(p, { st: 1 });
+      workPlot(g, f, p, u); // semeia
+      if (i % 2) expect(p.crop).not.toBe('wheat');
+      else expect(p.crop).toBe('wheat');
+      expect(CROPS[p.crop!].res).toBe('food');
+      Object.assign(p, { st: 3, g: 1 });
+      workPlot(g, f, p, u); // colhe
+    }
+    expect(p.fert).toBe(1);
+    // ervas não têm par do mesmo recurso: repetem
+    g.state.level = 1;
+    const h = addField(g, [[x0 + 6, y0 + 6]], 'herbs', (q) => Object.assign(q, { st: 1 as const, last: 'herbs' as const }));
+    expect(sowCrop(g, h, h.plots[0]!)).toBe('herbs');
+  });
+
+  test('rotação: no inverno planta o que aguenta o frio; abóbora só se amadurecer antes da geada', () => {
+    const g = setup(308);
+    const { x0, y0 } = freeSpot(g, 1, 1);
+    const f = addField(g, [[x0, y0]], 'pumpkin', (q) => Object.assign(q, { st: 1 as const }));
+    const p = f.plots[0]!;
+    g.state.day = SEASON_DAYS * 3 + 1; // inverno
+    const w = sowCrop(g, f, p)!;
+    expect(w).not.toBe('pumpkin');
+    expect(CROPS[w].frost).toBeFalsy();
+    g.state.day = SEASON_DAYS * 3; // último dia do outono: não dá tempo
+    expect(sowCrop(g, f, p)).not.toBe('pumpkin');
+    g.state.day = 1; // primavera: dá
+    expect(sowCrop(g, f, p)).toBe('pumpkin');
   });
 
   test('migração v48 → v49: Fazenda e Horta viram campos com os mesmos trabalhadores', () => {

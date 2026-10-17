@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SAVE_VERSION, SIM_DT } from '../src/config';
+import { FOOD_PER_DAY, SAVE_VERSION, SIM_DT } from '../src/config';
 import { JUTSUS } from '../src/data/jutsus';
 import { awakenKekkei, awakenOptions, childOf, clanMembers, clanOf, foundClan, surname } from '../src/game/clans';
 import { jutsuOptions, recruitNinja } from '../src/game/commands';
@@ -9,6 +9,7 @@ import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
+import { BIRTH_STOCK_DAYS, birthFood, births } from '../src/game/systems/population';
 import type { Unit } from '../src/game/types';
 
 const run = (g: Game, seconds: number) => {
@@ -47,6 +48,17 @@ describe('famílias e clãs', () => {
     run(g, 35);
     const born = g.state.units.filter((u) => u.heritage?.parents);
     expect(born.length).toBeGreaterThan(0);
+  });
+
+  test('só nasce gente com comida guardada para alguns dias', () => {
+    const g = createNewGame(SYSTEMS, 5);
+    g.state.flags.starving = false;
+    const need = birthFood(g);
+    expect(need).toBeGreaterThanOrEqual(g.population() * FOOD_PER_DAY * BIRTH_STOCK_DAYS);
+    g.state.res.food = need - 1;
+    expect(births(g, true)).toBe(false);
+    g.state.res.food = need + 100;
+    expect(births(g, true)).toBe(true);
   });
 
   test('fundar clã: requisitos e parentes entram', () => {

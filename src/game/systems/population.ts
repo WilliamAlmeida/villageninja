@@ -1,5 +1,6 @@
 import { pick } from '../../core/rng';
-import { birthMult } from '../mood';
+import { birthMult, foodMult } from '../mood';
+import { FOOD_PER_DAY } from '../../config';
 import { BUILDINGS, defOf } from '../../data/buildings';
 import { childOf, clanOf } from '../clans';
 import { createVillager } from '../entities';
@@ -31,10 +32,15 @@ export function populationSystem(g: Game, dt: number) {
   }
 }
 
+/** Dias de comida que a vila precisa ter guardados para nascer alguém (senão a gente nova come a sobra e vem a fome). */
+export const BIRTH_STOCK_DAYS = 2;
+/** Estoque mínimo de comida para um nascimento ou migrante: `BIRTH_STOCK_DAYS` dias do que a vila come (com a estação). */
+export const birthFood = (g: Game) => Math.max(40, g.population() * FOOD_PER_DAY * foodMult(g.state) * BIRTH_STOCK_DAYS);
+
 /** Um nascimento (casal numa casa) ou um migrante, se houver vaga e comida; diz se chegou alguém. `quiet`: sem aviso (resumo da colônia). */
 export function births(g: Game, quiet = false): boolean {
   const s = g.state;
-  if (g.population() >= g.popCap() || s.res.food < 40 || s.flags.starving) return false;
+  if (g.population() >= g.popCap() || s.res.food < birthFood(g) || s.flags.starving) return false;
   const houses = s.buildings.filter((b) => b.built && defOf(b).housing);
   if (!houses.length) return false;
   // casas com um casal (2+ moradores) têm filhos; sem casal, chega um migrante

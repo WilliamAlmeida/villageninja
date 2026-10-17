@@ -829,7 +829,7 @@ export class Panel {
       <div class="td-chips"><span class="mchip">{todo} Crua ${st.raw}</span><span class="mchip">{shovel} Arada ${st.tilled}</span><span class="mchip">{leaf} Crescendo ${st.growing}${st.dry ? ` <small>(${st.dry} seco)</small>` : ''}</span><span class="mchip">{check} Madura ${st.ripe}</span></div>
       ${this.plotGrid(g, f)}
       <div class="td-chips"><span class="mchip" ${tipAttr('Próxima colheita', 'Do canteiro plantado mais adiantado, no ritmo de hoje (estação e água).', true)}>{clock} ${Number.isFinite(st.nextDays) ? `${st.nextDays < 1 ? 'menos de 1 dia' : `${Math.ceil(st.nextDays)} dia(s)`}` : st.ripe ? 'Agora' : '—'}</span>
-        <span class="mchip" ${tipAttr('Solo', `Repetir a mesma cultura cansa a terra (rende até a metade); trocar de cultura descansa. Média do cercado: ${Math.round(st.fert * 100)}%.`, true)}>{leaf} Solo ${Math.round(st.fert * 100)}%</span></div></div>`;
+        <span class="mchip" ${tipAttr('Solo', `Repetir a mesma cultura cansa a terra (rende até a metade); trocar descansa. O cercado alterna sozinho: depois da colheita planta outra cultura que dê na estação e volta para a escolhida. Média do cercado: ${Math.round(st.fert * 100)}%.`, true)}>{leaf} Solo ${Math.round(st.fert * 100)}%</span></div></div>`;
     // cultura
     html += `<div class="bsec"><h4>{target} Cultura ${infoTip('Cultura', 'Vale para o que for semeado daqui em diante; o que já cresce continua. Cada cultura tem o tempo, o que rende e as estações dela.')}</h4><div class="chips cropchips">`;
     for (const cr of CROP_LIST) {

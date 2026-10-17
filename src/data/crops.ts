@@ -60,7 +60,7 @@ export const FIELD = {
   /** Custo da cerca por canteiro pintado. */
   cost: { wood: 3 },
   /** Teto total de canteiros por nível da vila (substitui o teto de fazendas e hortas). */
-  maxPlots: [18, 36, 48, 60] as [number, number, number, number],
+  maxPlots: [18, 36, 48, 100] as [number, number, number, number],
   /** Teto de canteiros numa colônia. */
   colonyPlots: 18,
   /** Segundos de trabalho no canteiro: arar, semear, regar, colher. */
