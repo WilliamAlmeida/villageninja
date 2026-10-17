@@ -200,10 +200,10 @@ export class Game {
     for (const u of this.state.units) if (!u.dead && u.faction === 'village' && (u.kind === 'villager' || u.kind === 'ninja')) n++;
     return n;
   }
-  /** Vagas: as casas, até o teto do nível da vila (`popLimit`); quem mora nas colônias conta no teto da vila. */
+  /** Vagas: as casas, até o teto do nível da vila (`popLimit`). Cada colônia tem o próprio teto (`COLONY.popLimit`). */
   popCap() {
     if (this.state.colony) return Math.min(this.housingCap(), COLONY.popLimit);
-    return Math.max(0, Math.min(this.housingCap(), levelDef(this.state.level).popLimit - this.colonyPopulation()));
+    return Math.max(0, Math.min(this.housingCap(), levelDef(this.state.level).popLimit));
   }
   /** Gente da vila que mora nas colônias (game/colonies.ts). */
   colonyPopulation() {

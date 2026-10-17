@@ -1,5 +1,6 @@
 import type { App } from '../app';
 import { BUILDING_LIST, BUILDINGS, type BuildingType, defOf } from '../data/buildings';
+import { colonyCapOf } from '../data/colonies';
 import { capCount, canBuild, canMove, costLabel, moveBuilding, placeBuilding, placeError, shoreSpot } from '../game/commands';
 import { isShore, toTile } from '../game/world';
 import { levelDef } from '../data/villageLevels';
@@ -402,10 +403,12 @@ Custo: ${plainTokens(costLabel(EARTH.fillCost))} por tile (devolvido se desmarca
     const g = this.app.game;
     this.bar.querySelectorAll<HTMLElement>('[data-type]').forEach((c) => {
       const type = c.dataset.type as BuildingType;
-      // prédio único que a vila já tem (pronto ou em obra) sai da lista; volta se for demolido
+      // prédio único que a vila já tem (pronto ou em obra) sai da lista; volta se for demolido. Na colônia, o que é
+      // "só na vila" (Academia, Hospital, oficinas…) nem aparece
       const have = !!BUILDINGS[type].unique && g.state.buildings.some((b) => b.type === type);
-      if (c.hidden !== have) c.hidden = have;
-      if (have) return;
+      const off = have || (!!g.state.colony && colonyCapOf(type) === 0);
+      if (c.hidden !== off) c.hidden = off;
+      if (off) return;
       const r = canBuild(g, type);
       c.classList.toggle('off', !r.ok);
       const min = BUILDINGS[c.dataset.type as BuildingType].minLevel ?? 0;

@@ -85,14 +85,19 @@
   `kind: 'colony'` em que os colonos viajam DENTRO dela (`Expedition.passengers`, já fora da lista da vila: equipe,
   emprego e casa desfeitos em `takeFromHome`); ao chegar (`arriveColony`, chamado por `tickExpeditions`) entram no mapa
   com ids novos perto do Porto (`settle`). A mesma tela manda mais gente para uma colônia que existe (sem custo). Quem
-  mora lá conta no `popLimit` da vila (`Game.colonyPopulation`, descontado em `popCap`); a colônia tem o próprio teto
-  (`COLONY.popLimit` = 48). **Tetos próprios** (`colonyCapOf`, `countBlock` → `colonyCountBlock` quando `state.colony`):
+  mora lá **não** ocupa vaga na vila (2026-10-17: o teto é separado; `Game.colonyPopulation` só informa); a colônia tem o
+  próprio teto (`COLONY.popLimit` = 48). **Volta para a vila** (`sendHome`, ficha da ilha → "Trazer para a vila", escolha
+  de moradores e ninjas por `homecomers`): saem da colônia na hora e viajam numa expedição `kind: 'colony'` com
+  `toHome: true` (save v50), desembarcando no Porto da vila (`settle`); respeita as vagas de moradia e o teto de ninjas da
+  vila contando quem já está a caminho (`homeBlock`, `comingHome`). Assim um morador da colônia vira ninja na Academia
+  (só na vila) e pode voltar depois. **Tetos próprios** (`colonyCapOf`, `countBlock` → `colonyCountBlock` quando `state.colony`):
   4 casas, 3 de produção SOMADOS (lenhador, pedreira, mina), 1 mercado, 4 torres, 1 porto, 18 canteiros de campo cercado; decorações
   livres; o resto (Academia, Hospital, Biblioteca, oficinas, Arena…) "só na vila". `Game.buildingCap` usa essa tabela
   na colônia. **Fora da tela** (`colonySystem`, na vila, depois da região): na virada do dia `colonyDay` credita
   `colonyIncome` (fórmula fechada por trabalhador, `COLONY_YIELD` por dia, mercado escala com
   `marketYield`; campos cercados por `fieldDailyYield`, lenhador/pedreira/mina só com o recurso no mapa; mais o `outpost` da ilha, que o posto deixa de pagar
-  quando há colônia), cobra a comida (`FOOD_PER_DAY` × gente × estação), termina obras e upgrades em andamento e sorteia
+  quando há colônia), cobra a comida (`FOOD_PER_DAY` × gente × estação), faz nascer gente pela regra da tela (`births` de
+  systems/population.ts, sem aviso por bebê, na metade do ritmo; a felicidade é a da vila, copiada em `colonySystem`), termina obras e upgrades em andamento e sorteia
   uma ameaça (`COLONY.threatChance`; defesa = `unitPower` dos ninjas + torres × `towerPower` + moradores; perdendo,
   todos se ferem 30%, metade da produção se perde e, muito abaixo, alguém pode morrer) — sem simular luta, como as
   expedições. Guarda `colony.day` para não dobrar. **Na tela** (`App.openColony(id)`, `App.viewColony`,
@@ -101,10 +106,11 @@
   projéteis, efeitos, exploração, natureza — sem tempo, invasões, missões, Kage); `colony.day` acompanha o dia, então o
   resumo não passa por cima do que foi vivido. Barra do alto (`ui/scene.ts`) mostra "Colônia · ilha", a gente e "Voltar à
   vila"; a barra de recursos (`ui/hud.ts`) segue o tesouro comum, mas População e Ninjas passam a
-  contar os da colônia (com o teto dela) e a Felicidade (só da vila) some; o botão Construir e Selecionar funcionam lá (`BuildUI` usa `app.game`), as janelas de gestão voltam à vila
+  contar os da colônia (com o teto dela) e a Felicidade (só da vila) some; o botão Construir e Selecionar funcionam lá (`BuildUI` usa `app.game`; o menu esconde o que é "só na vila",
+  `colonyCapOf` = 0), as janelas de gestão voltam à vila
   primeiro; toasts da colônia levam o id (`toast.colony`) e o toque abre o mapa dela. Ficha da ilha na região: cartão
   da colônia (gente, prédios, rende por dia, última linha do diário, "Visitar colônia") e a escolha de quem vai; a
   ilha ganha a cabana do posto e bandeira azul no mapa; colonos em viagem aparecem na trilha e em Expedições
   ("Colonos"). Vitrine: `?demo&tela=colonia` (colônia no Recife com 6 moradores, 2 Genins, um campo de repolho e uma torre em obra).
-  Testes em `tests/colonies.test.ts`. Pendente para depois: ataque às colônias (GDD 6.3), volta de gente para a vila,
+  Testes em `tests/colonies.test.ts`. Pendente para depois: ataque às colônias (GDD 6.3),
   temas das outras ilhas (hoje só o Recife tem tema; as outras viram ilha comum).

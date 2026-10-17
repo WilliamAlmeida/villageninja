@@ -3,7 +3,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { COLONY, COLONY_PRODUCTION_CAP, colonyCapOf } from '../src/data/colonies';
-import { colonyGame, colonyIncome, colonists, colonyPeople, createColony, sendColonists } from '../src/game/colonies';
+import { colonyGame, colonyIncome, colonists, colonyPeople, createColony, homecomers, sendColonists, sendHome } from '../src/game/colonies';
 import { canBuild, countBlock } from '../src/game/commands';
 import { createDemoGame } from '../src/game/demo';
 import type { Game } from '../src/game/game';
@@ -63,7 +63,7 @@ describe('colônias nas ilhas', () => {
     expect(c.colony?.theme).toBe('fishing');
     expect(c.buildings.some((b) => b.type === 'port' && b.built)).toBe(true);
     expect(c.buildings.some((b) => b.type === 'house' && b.built)).toBe(true);
-    // a mudança: saíram da vila, entraram na colônia (a soma conta no teto da vila)
+    // a mudança: saíram da vila, entraram na colônia (o teto da colônia é dela; a vila ganha a vaga de volta)
     expect(colonyPeople(c).length).toBe(3);
     expect(colonyPeople(c).filter((u) => u.ninja).length).toBe(1);
     expect(g.population()).toBe(pop - 3);
@@ -116,6 +116,63 @@ describe('colônias nas ilhas', () => {
     const ryo = g.state.res.ryo;
     regionDaily(g);
     expect(g.state.res.ryo - ryo).toBeLessThan(20);
+  });
+
+  test('teto separado: quem mora na colônia não ocupa vaga na vila', () => {
+    const g = setup(507);
+    const cap = g.popCap();
+    found(g, 2, 1);
+    expect(g.popCap()).toBe(cap);
+  });
+
+  test('fora da tela também nasce gente na colônia (casal numa casa, vaga e comida), sem aviso por bebê', () => {
+    const g = setup(508);
+    const cg = found(g, 4, 0);
+    const c = cg.state;
+    // um casal numa casa da colônia
+    const house = c.buildings.find((b) => b.type === 'house' && b.built)!;
+    for (const u of colonyPeople(c).slice(0, 2)) u.homeId = house.id;
+    // e vaga: uma segunda casa (a primeira já está cheia com os 4)
+    cg.addBuilding({ id: cg.newId(), type: 'house', tx: house.tx - 6, ty: house.ty, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
+    const before = colonyPeople(c).length;
+    g.state.res.food = 2000;
+    g.state.day += 1;
+    c.colony!.day = g.state.day - 1;
+    colonySystem(g, SIM_DT);
+    expect(colonyPeople(c).length).toBeGreaterThan(before);
+    expect(c.colony!.log.at(-1)).toContain('nasceram');
+    // sem comida não nasce ninguém
+    const n = colonyPeople(c).length;
+    g.state.res.food = 0;
+    g.state.day += 1;
+    colonySystem(g, SIM_DT);
+    expect(colonyPeople(c).length).toBe(n);
+  });
+
+  test('mudar da colônia para a vila: saem na hora, chegam no Porto da vila e respeitam as vagas', () => {
+    const g = setup(509);
+    const cg = found(g, 3, 1);
+    const pop = g.population();
+    const ninjas = g.ninjaCount();
+    const { ninjas: ns } = homecomers(cg);
+    expect(sendHome(g, 'recife', { villagers: 0, ninjaIds: [] }).ok).toBe(false); // ninguém escolhido
+    expect(sendHome(g, 'recife', { villagers: 2, ninjaIds: [ns[0]!.id] }).ok).toBe(true);
+    expect(colonyPeople(cg.state).length).toBe(1);
+    const e = g.state.expeditions.at(-1)!;
+    expect(e.toHome).toBe(true);
+    run(g, COLONY.travel + 5, () => e.status === 'done');
+    expect(e.status).toBe('done');
+    expect(g.population()).toBeGreaterThanOrEqual(pop + 3); // a vila pode ter tido um nascimento na viagem
+    expect(g.ninjaCount()).toBe(ninjas + 1);
+    // ids novos e válidos na vila
+    expect(g.state.units.filter((u) => !u.dead).every((u) => g.unit(u.id) === u)).toBe(true);
+    // sem vaga de moradia na vila: não dá
+    const cg2 = colonyGame(g, 'recife')!;
+    expect(homecomers(cg2).villagers.length).toBe(1);
+    const cap = g.popCap();
+    g.popCap = () => g.population();
+    expect(sendHome(g, 'recife', { villagers: 1, ninjaIds: [] }).ok).toBe(false);
+    g.popCap = () => cap;
   });
 
   test('tetos próprios da colônia: 4 casas, 3 de produção somados, 1 mercado, 4 torres, canteiros; Academia só na vila', () => {

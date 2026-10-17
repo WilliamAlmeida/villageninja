@@ -287,6 +287,9 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
     // v48: colônias nas ilhas (game/colonies.ts); nenhuma ainda
     s.colonies ??= {};
   },
+  49: () => {
+    // v50: mudança de volta da colônia para a vila (`Expedition.toHome`, opcional: sem ele a viagem é para a colônia)
+  },
   48: (s) => {
     // v49: Fazenda e Horta de Ervas viram campos cercados (game/fields.ts), na vila e em cada colônia
     farmsToFields(s);

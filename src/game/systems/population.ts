@@ -9,7 +9,7 @@ import { doorPos } from '../world';
 import { housingOf, needsBuilders } from '../upgrade';
 import { fieldById } from '../fields';
 
-const BIRTH_INTERVAL = 30;
+export const BIRTH_INTERVAL = 30;
 
 /** Nascimentos/migrantes, distribuição de casas e de empregos. */
 export function populationSystem(g: Game, dt: number) {
@@ -31,11 +31,12 @@ export function populationSystem(g: Game, dt: number) {
   }
 }
 
-function births(g: Game) {
+/** Um nascimento (casal numa casa) ou um migrante, se houver vaga e comida; diz se chegou alguém. `quiet`: sem aviso (resumo da colônia). */
+export function births(g: Game, quiet = false): boolean {
   const s = g.state;
-  if (g.population() >= g.popCap() || s.res.food < 40 || s.flags.starving) return;
+  if (g.population() >= g.popCap() || s.res.food < 40 || s.flags.starving) return false;
   const houses = s.buildings.filter((b) => b.built && defOf(b).housing);
-  if (!houses.length) return;
+  if (!houses.length) return false;
   // casas com um casal (2+ moradores) têm filhos; sem casal, chega um migrante
   const people = g.villagers();
   const couples = houses
@@ -55,8 +56,9 @@ function births(g: Game) {
     u.heritage = child.heritage;
     u.look = { ...u.look, ...child.look };
     const clan = clanOf(g, u);
-    g.toast(`{baby} ${u.name} nasceu (filho(a) de ${a.name.split(' ').pop()} e ${b.name.split(' ').pop()})${clan ? ` · clã ${clan.name}` : ''}!`, 'good', u);
-  } else g.toast(`{luggage} ${u.name} chegou à vila!`, 'good', u);
+    if (!quiet) g.toast(`{baby} ${u.name} nasceu (filho(a) de ${a.name.split(' ').pop()} e ${b.name.split(' ').pop()})${clan ? ` · clã ${clan.name}` : ''}!`, 'good', u);
+  } else if (!quiet) g.toast(`{luggage} ${u.name} chegou ${g.state.colony ? 'à colônia' : 'à vila'}!`, 'good', u);
+  return true;
 }
 
 function shuffle<T>(arr: T[]): T[] {

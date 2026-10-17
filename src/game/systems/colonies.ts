@@ -13,6 +13,7 @@ export function colonySystem(home: Game, dt: number) {
     const c = cols[id]!;
     const cg = colonyGame(home, id)!;
     c.level = s.level;
+    c.happiness = s.happiness; // a colônia não tem felicidade própria: vale a da vila (nascimentos, trabalho)
     if (home.activeColony === id) {
       c.time = s.time;
       c.day = s.day;

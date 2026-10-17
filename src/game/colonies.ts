@@ -12,7 +12,7 @@ import { createAnimal } from './entities';
 import { unitPower } from './expeditions';
 import type { Game } from './game';
 import { Game as GameClass } from './game';
-import { foodMult } from './mood';
+import { birthMult, foodMult } from './mood';
 import { missionOfTeam } from './missions';
 import { recordFallen } from './memorial';
 import { baseState } from './newGame';
@@ -21,6 +21,7 @@ import { actionBlock, nodePower, regionOf } from './region';
 import { guard, ISLAND_FAUNA, placeBuilt, unstick } from './scene';
 import { shoreSpot } from './commands';
 import { COLONY_SYSTEMS } from './systems';
+import { BIRTH_INTERVAL, births } from './systems/population';
 import { completeBuilding } from './systems/villagers';
 import { leaveTeam, teamOf } from './teams';
 import type { Cost, Expedition, GameState, Unit } from './types';
@@ -125,11 +126,71 @@ export function sendColonists(home: Game, nodeId: string, picks: ColonyPicks): R
   return { ok: true };
 }
 
+// ------------------------------------------------------------------ voltar para a vila
+/** Quem pode se mudar da colônia para a vila agora: moradores (os sem emprego primeiro) e ninjas fora de luta. */
+export function homecomers(cg: Game): { villagers: Unit[]; ninjas: Unit[] } {
+  const free = (u: Unit) => !u.dead && u.faction === 'village' && u.combatTimer <= 0 && u.onTower == null;
+  const villagers = cg.state.units.filter((u) => u.kind === 'villager' && free(u)).sort((a, b) => Number(a.jobId != null) - Number(b.jobId != null));
+  const ninjas = cg.state.units.filter((u) => u.kind === 'ninja' && !!u.ninja && free(u));
+  return { villagers, ninjas };
+}
+
+/** Gente a caminho da vila vindo das colônias: total e quantos são ninjas. */
+export function comingHome(home: Game) {
+  let people = 0;
+  let ninjas = 0;
+  for (const e of home.state.expeditions)
+    if (e.kind === 'colony' && e.toHome && e.status === 'going')
+      for (const u of e.passengers ?? []) {
+        people++;
+        if (u.ninja) ninjas++;
+      }
+  return { people, ninjas };
+}
+
+/** Por que não dá para trazer `n` pessoas (`ns` ninjas) para a vila agora (null = dá). */
+export function homeBlock(home: Game, n: number, ns: number): string | null {
+  const coming = comingHome(home);
+  const room = home.popCap() - home.population() - coming.people;
+  if (n > room) return room > 0 ? `A vila só tem ${room} vaga(s) de moradia agora.` : 'A vila não tem vaga de moradia: construa ou melhore casas.';
+  const nroom = home.ninjaCap() - home.ninjaCount() - coming.ninjas;
+  if (ns > nroom) return nroom > 0 ? `A vila só cabe mais ${nroom} ninja(s) neste nível.` : `A vila já está no teto de ${home.ninjaCap()} ninjas deste nível.`;
+  return null;
+}
+
+/**
+ * Muda gente da colônia para a vila (o caminho inverso de `sendColonists`): saem da colônia na hora, viajam dentro da
+ * expedição e desembarcam no Porto da vila. Respeita as vagas de moradia e o teto de ninjas da vila.
+ */
+export function sendHome(home: Game, id: string, picks: ColonyPicks): Result {
+  const cg = colonyGame(home, id);
+  if (!cg) return fail('Essa colônia não existe.');
+  if (!home.findBuilt('port')) return fail('A vila precisa de um Porto para receber quem vem das ilhas.');
+  const { villagers, ninjas } = homecomers(cg);
+  const want = Math.max(0, Math.floor(picks.villagers));
+  if (want > villagers.length) return fail(`Só ${villagers.length} morador(es) podem vir agora.`);
+  const ns = picks.ninjaIds.map((nid) => ninjas.find((u) => u.id === nid)).filter((u): u is Unit => !!u);
+  if (ns.length !== picks.ninjaIds.length) return fail('Algum ninja escolhido não pode vir agora (em luta ou de vigia).');
+  const going = [...villagers.slice(0, want), ...ns];
+  if (!going.length) return fail('Escolha quem vem para a vila.');
+  const why = homeBlock(home, going.length, ns.length);
+  if (why) return fail(why);
+  const name = colonyName(id);
+  const e: Expedition = {
+    id: home.newId(), kind: 'colony', node: id, action: 'colony', teamId: -1, unitIds: [], passengers: [], floor: 0, toHome: true,
+    timer: COLONY.travel, status: 'going', loot: {}, day: home.state.day, log: [`Moradores de ${name} partiram para a vila.`],
+  };
+  for (const u of going) e.passengers!.push(takeFromHome(cg, u));
+  home.state.expeditions.push(e);
+  home.toast(`{ship} ${going.length} pessoa(s) partiram de ${name} para a vila.`, 'info');
+  return { ok: true };
+}
+
 /** Gente a caminho desta colônia (ainda no barco). */
 const travelling = (home: Game, nodeId: string) =>
-  home.state.expeditions.reduce((n, e) => n + (e.kind === 'colony' && e.node === nodeId && e.status === 'going' ? (e.passengers?.length ?? 0) : 0), 0);
+  home.state.expeditions.reduce((n, e) => n + (e.kind === 'colony' && !e.toHome && e.node === nodeId && e.status === 'going' ? (e.passengers?.length ?? 0) : 0), 0);
 
-/** Tira a unidade da vila (equipe, emprego, casa) para viajar/morar noutro mapa. */
+/** Tira a unidade do mapa onde mora (equipe, emprego, casa) para viajar/morar noutro: vila ou colônia. */
 function takeFromHome(home: Game, u: Unit): Unit {
   if (u.ninja) leaveTeam(home, u.id);
   for (const b of home.state.buildings) if (b.workers.includes(u.id)) b.workers = b.workers.filter((id) => id !== u.id);
@@ -139,7 +200,7 @@ function takeFromHome(home: Game, u: Unit): Unit {
   return u;
 }
 
-/** Entram no mapa da colônia (ids novos), perto do Porto. */
+/** Entram no mapa (ids novos), perto do Porto: o da colônia ao chegar lá, o da vila ao voltar. */
 export function settle(cg: Game, units: Unit[]) {
   const port = cg.findBuilt('port') ?? cg.state.buildings[0];
   const c = centerOf(cg.state);
@@ -172,16 +233,15 @@ export function arriveColony(home: Game, e: Expedition) {
   const people = e.passengers ?? [];
   e.passengers = [];
   e.status = 'done';
-  if (!cg) {
-    // a colônia não existe mais: voltam para a vila
-    const hk = home.hokage();
-    const p = hk ? doorPos(hk) : { x: 0, y: 0 };
-    people.forEach((u, i) => {
-      u.id = home.newId();
-      Object.assign(u, { x: p.x + (i - people.length / 2) * 16, y: p.y + 22, state: 'idle', hidden: false, homeId: null, jobId: null });
-      home.addUnit(u);
-    });
-    e.log.push('A colônia não existia mais: todos voltaram.');
+  if (e.toHome || !cg) {
+    // de volta à vila (ou a colônia não existe mais): desembarcam no Porto da vila
+    settle(home, people);
+    const text = e.toHome ? `${people.length} pessoa(s) chegaram da colônia de ${colonyName(e.node!)} à vila.` : 'A colônia não existia mais: todos voltaram.';
+    e.log.push(text);
+    if (e.toHome) {
+      if (cg) logColony(cg.state, `${people.length} pessoa(s) se mudaram para a vila.`);
+      home.toast(`{ship} ${text}`, 'good');
+    }
     return;
   }
   settle(cg, people);
@@ -323,6 +383,10 @@ export function colonyDay(home: Game, id: string, day: number) {
   const people = colonyPeople(c);
   const eat = Math.round(people.length * FOOD_PER_DAY * foodMult(home.state));
   home.state.res.food = Math.max(0, home.state.res.food - eat);
+  // nascimentos: a mesma regra da tela (casal numa casa, vaga e comida), na metade do ritmo — quem não olha paga um pouco
+  let born = 0;
+  const tries = Math.round((DAY_LENGTH / BIRTH_INTERVAL) * birthMult(home.state) * 0.5);
+  for (let k = 0; k < tries && births(cg, true); k++) born++;
   // obras: um dia fora da tela termina o que estava em andamento
   for (const b of c.buildings) {
     if (!b.built) {
@@ -368,7 +432,7 @@ export function colonyDay(home: Game, id: string, day: number) {
     }
   }
   const got = Object.keys(income).length ? costLabel(income) : 'nada';
-  logColony(c, `Dia ${day}: produziu ${got}${eat ? `, comeu {food} ${eat}` : ''}.${threat ? ` ${threat}` : ''}`);
+  logColony(c, `Dia ${day}: produziu ${got}${eat ? `, comeu {food} ${eat}` : ''}.${born ? ` {baby} ${born} nasceram.` : ''}${threat ? ` ${threat}` : ''}`);
   home.toast(`{ship} ${def.name}: ${got}.${threat ? ` ${threat}` : ''}`, bad ? 'warn' : 'good');
 }
 

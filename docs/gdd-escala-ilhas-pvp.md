@@ -123,8 +123,9 @@ onde o jogador constrói, mas que só é simulado em detalhe enquanto está na t
 - **Tetos próprios e pequenos**: 4 casas, 3 de produção, 1 mercado, 4 torres, 1 porto. Sem Academia, Hospital,
   Biblioteca: tudo isso fica na vila. A colônia é um lugar de recurso e de fronteira, não uma segunda vila.
 - **Pessoas**: moradores e ninjas são **transferidos** pelo Porto (expedição `kind: 'colony'`, viagem de 14 h de jogo
-  como o posto). Quem está na colônia sai da lista da vila (`away`) e entra na da colônia: a soma respeita o
-  `popLimit` da vila, mas o custo de desenho/simulação é de um mapa por vez.
+  como o posto). Quem está na colônia sai da lista da vila e entra na da colônia, com teto próprio (2026-10-17: não
+  ocupa mais vaga na vila; o custo de desenho/simulação é de um mapa por vez, e fora da tela a colônia é só um resumo por dia).
+  O caminho inverso existe (`sendHome`): moradores voltam para virar ninjas na Academia.
 - **Fora da tela, resumo por dia** (`systems/colonies.ts`, na virada do dia como `region.ts` faz hoje): produção =
   soma do que os prédios produziriam (fórmula fechada por trabalhador), comida consumida, uma rolagem de ameaça
   (bichos da ilha, piratas) resolvida como as expedições (`expeditions.ts`: perdas em fração, sem simular luta). Ao

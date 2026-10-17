@@ -395,6 +395,8 @@ export interface Expedition {
   unitIds: number[];
   /** Colônia: quem viaja de mudança (saiu da lista da vila; entra na da colônia ao chegar). */
   passengers?: Unit[];
+  /** Colônia: a mudança é da colônia de volta para a vila (sem = da vila para a colônia). */
+  toHome?: boolean;
   /** Mina: entrada de onde saiu. */
   siteId?: number;
   /** Andar atual (0 = a caminho). */

@@ -26,7 +26,7 @@ import regionMap from '../art/region/region.jpg';
 import regionPlaces from '../art/region/region-places.png';
 import { RES_INFO, RES_KEYS, type ResKey } from '../data/resources';
 import { activeExpeditions, chooseExpedition, expeditionUnits, floorPower, mineBlock, startMine, teamBusy, teamMinePower, unitPower } from '../game/expeditions';
-import { colonists, colonySummary, sendColonists } from '../game/colonies';
+import { colonists, colonyGame, colonySummary, homeBlock, homecomers, sendColonists, sendHome } from '../game/colonies';
 import { cropBlock, fieldById, fieldStats, isPaddy, maxWorkers, removeField, setFieldCrop, setFieldWorkers } from '../game/fields';
 import { CROP_LIST, CROPS, type CropId, FIELD } from '../data/crops';
 import { COLONY } from '../data/colonies';
@@ -381,6 +381,8 @@ export class Panel {
   private regionTeam: number | null = null;
   /** Colônia: quem o jogador escolheu mandar (moradores por quantidade, ninjas por id). Só interface. */
   private colonyPick = { villagers: 2, ninjaIds: [] as number[] };
+  /** Quem volta da colônia aberta na ficha para a vila (ids de ninja são os da colônia). */
+  private homePick = { villagers: 0, ninjaIds: [] as number[] };
   /** Aba do painel do prédio (geral × lá dentro). */
   private buildingTab: BuildingTab = 'main';
   /** Pedido para abrir uma tela de gestão na janela central. */
@@ -1024,17 +1026,19 @@ export class Panel {
       const tm = g.team(e.teamId);
       const c = tm?.color ?? '#fff';
       const travel = ACTION_TIME[e.action!].travel;
-      const k = e.status === 'going' ? 1 - Math.max(0, e.timer) / travel : e.status === 'return' ? Math.max(0, e.timer) / travel : 1;
+      // mudança da colônia para a vila anda no sentido da volta
+      const homeward = e.status === 'return' || (!!e.toHome && e.status === 'going');
+      const k = homeward ? Math.max(0, e.timer) / travel : e.status === 'going' ? 1 - Math.max(0, e.timer) / travel : 1;
       // trilha desenhada no terreno pelas estradas (por terra: chão batido; pelo mar: rastro do barco), pegadas na cor da
       // equipe andando no sentido da viagem; a equipe é um desenho pequeno: carroça vazia na ida, cheia na volta com
       // espólio, vazia se recuaram ou não havia o que trazer, sem carroça (feridos) se perderam; no mar, o barco
       const trail = regionTrail(def);
       const p = trail.at(k);
-      const back = e.status === 'return' ? 'back' : '';
+      const back = homeward ? 'back' : '';
       if (trail.land) routes += `<g class="land ${back}" style="--c:${c}"><path class="edge" d="${trail.land}"/><path class="bed" d="${trail.land}"/><path class="steps" d="${trail.land}"/></g>`;
       if (trail.sea) routes += `<g class="sea ${back}" style="--c:${c}"><path class="edge" d="${trail.sea}"/><path class="bed" d="${trail.sea}"/><path class="steps" d="${trail.sea}"/></g>`;
       const st = e.status === 'going' ? 'a caminho' : e.status === 'return' ? 'voltando' : e.status === 'scene' ? 'invasão jogável' : 'no serviço';
-      const tip = e.kind === 'colony' ? tipAttr('Colonos', `Mudança para ${def.name} · ${st}`) : tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`);
+      const tip = e.kind === 'colony' ? tipAttr('Colonos', `${e.toHome ? `Mudança de ${def.name} para a vila` : `Mudança para ${def.name}`} · ${st}`) : tipAttr(esc(tm?.name ?? 'Equipe'), `${ACTION_LABEL[e.action!]} em ${def.name} · ${st}`);
       if (e.status === 'going' || e.status === 'return') {
         const haul = e.status === 'going' ? 'cart' : e.outcome === 'lose' ? 'none' : Object.values(e.loot).some((v) => (v ?? 0) > 0) ? 'loot' : 'cart';
         const name = `${p.sea ? 'boat' : 'trip'}-${haul}`;
@@ -1104,12 +1108,13 @@ export class Panel {
       else {
         // colônia fundada: gente, prédios, o que rende por dia fora da tela, o diário e o botão de visitar
         html += `<div class="bsec colcard"><div class="rrel-top"><b>{houses} Colônia</b><span class="mpill good">{check} Fundada no dia ${col.day}</span></div>
-          <div class="td-chips"><span class="mchip" ${tipAttr('Gente', 'Moradores e ninjas que moram lá (contam no teto de população da vila).', true)}>{users} ${col.villagers} + {ninja} ${col.ninjas}${col.travelling ? ` <small>(+${col.travelling} a caminho)</small>` : ''}</span><span class="mchip" ${tipAttr('Prédios', `${col.buildings} prontos${col.building ? `, ${col.building} em obra (ficam prontos no próximo dia fora da tela)` : ''}.`, true)}>{hammer} ${col.buildings}${col.building ? ` <small>+${col.building}</small>` : ''}</span></div>
+          <div class="td-chips"><span class="mchip" ${tipAttr('Gente', `Moradores e ninjas que moram lá (teto próprio de ${COLONY.popLimit}; não ocupam vaga na vila).`, true)}>{users} ${col.villagers} + {ninja} ${col.ninjas}${col.travelling ? ` <small>(+${col.travelling} a caminho)</small>` : ''}</span><span class="mchip" ${tipAttr('Prédios', `${col.buildings} prontos${col.building ? `, ${col.building} em obra (ficam prontos no próximo dia fora da tela)` : ''}.`, true)}>{hammer} ${col.buildings}${col.building ? ` <small>+${col.building}</small>` : ''}</span></div>
           <div class="rgain" ${tipAttr('Resumo por dia', 'Fora da tela, a cada virada do dia: o que os trabalhadores renderiam (fórmula fechada), menos a comida que comem, e uma chance de ameaça (piratas, feras) resolvida sem luta.', true)}><small>Rende por dia</small>${gains(col.income)}</div>
           ${col.log.length ? `<p class="hint collog">${esc(col.log.at(-1)!)}</p>` : ''}
           <div class="actions"><button class="btn primary" data-act="col-visit" data-arg="${def.id}" ${tipAttr('Visitar', 'Abre o mapa da colônia: lá dá para construir, dar ordens e ver quem mora. Enquanto está na tela ela roda em detalhe.')}>{map} Visitar colônia</button></div></div>`;
       }
       if (st.explored && (col || !actionBlock(g, def.id, 'colony'))) html += this.colonyPickSection(col != null);
+      if (col) html += this.homePickSection(def.id);
     } else if (def.id === 'som') {
       const c = s.sound.captive ? g.unit(s.sound.captive.id) : null;
       html += `<p class="hint">${c ? `{alert} Preso lá: <b>${esc(c.name)}</b>. Prazo: fim do dia ${s.sound.captive!.until}; depois ele recebe o selo amaldiçoado.` : 'Ninguém da vila está preso lá.'} Guardam o lugar: <b>${SOUND_MEMBERS.hakkotsu.name}</b>, ${esc(SOUND_MEMBERS.hakkotsu.title)}, e dois membros.</p>`;
@@ -1184,13 +1189,38 @@ export class Panel {
     const home = this.app.home;
     const { villagers, ninjas } = colonists(home);
     const pick = this.pickFor();
-    let html = `<div class="bsec"><h4>{users} Quem vai ${infoTip('Colonos', `Moradores sem emprego vão primeiro. Ninjas livres: sem o Kage, ANBU, Sannin, quem está em missão, de vigia ou com cão. Quem vai sai da vila e passa a morar na colônia (até ${COLONY.popLimit} pessoas lá; continuam contando no teto da vila). Viagem de ${COLONY.travel}s.`)}</h4>
+    let html = `<div class="bsec"><h4>{users} Quem vai ${infoTip('Colonos', `Moradores sem emprego vão primeiro. Ninjas livres: sem o Kage, ANBU, Sannin, quem está em missão, de vigia ou com cão. Quem vai sai da vila e passa a morar na colônia (até ${COLONY.popLimit} pessoas lá, no teto próprio da colônia: deixam vaga na vila). Viagem de ${COLONY.travel}s.`)}</h4>
       <div class="workers"><button class="btn" data-act="col-v" data-arg="-1">{minus}</button><span class="wnum"><b>${pick.villagers}</b><small>de ${villagers.length} morador(es)</small></span><button class="btn primary" data-act="col-v" data-arg="1">{plus}</button></div>`;
     html += ninjas.length
       ? `<div class="fchips rteams colninjas">${ninjas.map((u) => `<button data-act="col-n" data-arg="${u.id}" class="${pick.ninjaIds.includes(u.id) ? 'on' : ''}">${this.face(u)}<span class="tn">${esc(u.name.split(' ').pop()!)}</span><small>{swords}${Math.round(unitPower(u))}</small></button>`).join('')}</div>`
       : `<p class="hint">Nenhum ninja livre para ir agora.</p>`;
     if (exists)
       html += `<div class="actions"><button class="btn primary" data-act="col-send" ${blocked(home, [!this.pickCount() && 'Escolha quem vai.', !home.findBuilt('port') && 'Precisa de um Porto para chegar às ilhas.'])}>{ship} Enviar ${this.pickCount()} pessoa(s)</button></div>`;
+    return html + `</div>`;
+  }
+
+  /** A volta presa ao que pode vir agora da colônia `id`. */
+  private homePickFor(id: string) {
+    const cg = colonyGame(this.app.home, id);
+    if (!cg) return { villagers: 0, ninjaIds: [] as number[] };
+    const { villagers, ninjas } = homecomers(cg);
+    return { villagers: Math.min(this.homePick.villagers, villagers.length), ninjaIds: this.homePick.ninjaIds.filter((nid) => ninjas.some((u) => u.id === nid)) };
+  }
+
+  /** Colônia → vila: quantos moradores e quais ninjas se mudam para a vila (lá os moradores podem virar ninjas na Academia). */
+  private homePickSection(id: string) {
+    const home = this.app.home;
+    const cg = colonyGame(home, id);
+    if (!cg) return '';
+    const { villagers, ninjas } = homecomers(cg);
+    const pick = this.homePickFor(id);
+    const n = pick.villagers + pick.ninjaIds.length;
+    let html = `<div class="bsec"><h4>{castle} Trazer para a vila ${infoTip('Mudar para a vila', `Moradores e ninjas da colônia se mudam para a vila pelo Porto (viagem de ${COLONY.travel}s). Na vila, os moradores podem virar ninjas na Academia e depois voltar para a colônia. Precisa de vaga de moradia na vila e respeita o teto de ninjas dela.`)}</h4>
+      <div class="workers"><button class="btn" data-act="home-v" data-arg="-1">{minus}</button><span class="wnum"><b>${pick.villagers}</b><small>de ${villagers.length} morador(es)</small></span><button class="btn primary" data-act="home-v" data-arg="1">{plus}</button></div>`;
+    html += ninjas.length
+      ? `<div class="fchips rteams colninjas">${ninjas.map((u) => `<button data-act="home-n" data-arg="${u.id}" class="${pick.ninjaIds.includes(u.id) ? 'on' : ''}">${this.face(u)}<span class="tn">${esc(u.name.split(' ').pop()!)}</span><small>{swords}${Math.round(unitPower(u))}</small></button>`).join('')}</div>`
+      : `<p class="hint">Nenhum ninja na colônia.</p>`;
+    html += `<div class="actions"><button class="btn" data-act="home-send" data-arg="${id}" ${blocked(home, [!n && 'Escolha quem vem.', !home.findBuilt('port') && 'A vila precisa de um Porto.', n ? homeBlock(home, n, pick.ninjaIds.length) : null])}>{ship} Trazer ${n} pessoa(s)</button></div>`;
     return html + `</div>`;
   }
 
@@ -1242,7 +1272,7 @@ export class Panel {
 
   /** Onde a expedição foi: "Mina · andar 2/5" ou "Ação · lugar da região". */
   private expWhere(e: Expedition) {
-    if (e.kind === 'colony') return `Mudança · ${REGION[e.node!]?.name ?? ''}`;
+    if (e.kind === 'colony') return e.toHome ? `Mudança · ${REGION[e.node!]?.name ?? ''} → vila` : `Mudança · ${REGION[e.node!]?.name ?? ''}`;
     return e.kind === 'mine' ? `Mina · andar ${e.floor}/${MINE.floors}` : `${ACTION_LABEL[e.action!]} · ${REGION[e.node!]?.name ?? ''}`;
   }
 
@@ -3675,6 +3705,20 @@ export class Panel {
         if (!this.regionNode) return;
         const r = sendColonists(this.app.home, this.regionNode, this.pickFor());
         if (r.ok) this.colonyPick.ninjaIds = [];
+        return this.report(r);
+      }
+      case 'home-v':
+        this.homePick.villagers = Math.max(0, Math.min(COLONY.popLimit, this.homePick.villagers + Number(arg)));
+        return this.report({ ok: true });
+      case 'home-n': {
+        const id = Number(arg);
+        this.homePick.ninjaIds = this.homePick.ninjaIds.includes(id) ? this.homePick.ninjaIds.filter((x) => x !== id) : [...this.homePick.ninjaIds, id];
+        return this.report({ ok: true });
+      }
+      case 'home-send': {
+        const id = String(arg);
+        const r = sendHome(this.app.home, id, this.homePickFor(id));
+        if (r.ok) this.homePick = { villagers: 0, ninjaIds: [] };
         return this.report(r);
       }
       case 'col-visit':
