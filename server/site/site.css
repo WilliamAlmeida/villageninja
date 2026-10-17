@@ -301,8 +301,8 @@ h2.kunai::before { content: ""; position: absolute; left: 0; top: 50%; width: 1.
 .splash .sp { display: block; position: fixed; inset: 0; z-index: 100; pointer-events: none; animation: sp-safe 0s 6s forwards; }
 .sp-half { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #2a1f15 0%, var(--bg) 70%);
   transition: transform 0.85s cubic-bezier(0.7, 0, 0.25, 1); }
-.sp-half.l { clip-path: inset(0 50% 0 0); }
-.sp-half.r { clip-path: inset(0 0 0 50%); }
+.sp-half.l { clip-path: inset(0 calc(50% - 1px) 0 0); } /* as metades se cobrem 2px: sem fresta no meio */
+.sp-half.r { clip-path: inset(0 0 0 calc(50% - 1px)); }
 .sp.open .sp-half.l { transform: translateX(-52%); }
 .sp.open .sp-half.r { transform: translateX(52%); }
 /* folha com 8 quadros lado a lado (scripts/site-art.py): toca uma vez e para no pergaminho aberto */
