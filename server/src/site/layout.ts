@@ -33,7 +33,8 @@ function bootScript(lang: Lang, enPath: string): string {
 /** Pergaminho que se abre ao carregar (folha img/scroll-sheet.png; site.js abre as duas metades quando a página carrega). */
 function splash(loading: string): string {
   const half = (side: string) => `<div class="sp-half ${side}"><div class="sp-scroll"></div></div>`;
-  return `<div class="sp" aria-hidden="true" style="--sheet:url('${assetUrl('img/scroll-sheet.png')}')">${half('l')}${half('r')}<span class="sp-load">${loading}</span></div>`;
+  // enquanto carrega aparece uma peça só (sem emenda no meio); as metades só entram na hora de abrir
+  return `<div class="sp" aria-hidden="true" style="--sheet:url('${assetUrl('img/scroll-sheet.png')}')">${half('whole')}${half('l')}${half('r')}<span class="sp-load">${loading}</span></div>`;
 }
 
 export function page(o: PageOpts): string {

@@ -14,6 +14,9 @@ const html = (body: string, status = 200, maxAge = PAGE_TTL) =>
   new Response(body, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': status === 200 ? `public, max-age=${maxAge}` : 'no-store' } });
 
 /** Ranking do site, guardado 30 s (a home e a página do ranking usam o mesmo). */
+
+// páginas em cache por processo: depois de reiniciar (deploy) o Redis não devolve o HTML velho com o CSS antigo
+const BOOT = Date.now().toString(36);
 export const publicTop = () => cache.remember('site:top50', 30, () => duels.publicTop(50));
 
 export async function handleSite(req: Request, url: URL): Promise<Response> {
@@ -30,7 +33,7 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   const origin = publicOrigin(req);
   // painel da equipe: casca estática (os dados chegam pela API, um quadro por vez); fora do Google e sem cache
   if (raw === '/staff') return staffShell();
-  const cached = (key: string, render: () => Promise<string>) => cache.remember(`site:page:${lang}:${key}:${origin}`, PAGE_TTL, render).then((b) => html(b));
+  const cached = (key: string, render: () => Promise<string>) => cache.remember(`site:page:${BOOT}:${lang}:${key}:${origin}`, PAGE_TTL, render).then((b) => html(b));
   switch (path) {
     case '/':
       return cached('home', async () => homePage(lang, origin, [], await news.published(3)));
