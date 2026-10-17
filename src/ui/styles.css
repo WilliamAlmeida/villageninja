@@ -717,6 +717,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .fchips button.on { border-color: var(--accent); color: var(--accent); background: rgba(255, 138, 43, 0.1); font-weight: 700; }
 .fchips button.bad:not(.on) { color: #ff9a9a; }
 .fchips .lbl { color: var(--muted); font-size: 0.85rem; display: inline-flex; gap: 0.25rem; align-items: center; margin-right: 0.15rem; }
+.rdrops { display: flex; align-items: center; gap: 0.3rem; margin-left: auto; flex: 0 0 auto; }
 .rsort { margin-left: auto; }
 
 /* ações em lote: botões com chave liga/desliga */
@@ -761,11 +762,12 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   .ncard { grid-template-columns: 3.6rem minmax(0, 1fr); }
   .nc-face { width: 3.6rem; height: 3.6rem; }
 }
-/* celular deitado: filtros, ordem e ações numa linha só, rolando para o lado */
+/* celular deitado: etiquetas e ações rolam para o lado; os dropdowns ficam fora da rolagem (senão cortam o menu) */
 @media (max-height: 520px) {
-  .rfilters, .wtools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
-  .rfilters::-webkit-scrollbar, .wtools::-webkit-scrollbar { display: none; }
-  .rfilters .fchips { flex-wrap: nowrap; flex: 0 0 auto; }
+  .rfilters { flex-wrap: nowrap; }
+  .rfilters .fchips { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+  .rfilters .fchips::-webkit-scrollbar, .wtools::-webkit-scrollbar { display: none; }
+  .wtools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
   .rfilters .fchips button, .wtools .btn { flex: 0 0 auto; white-space: nowrap; }
   .rsort { margin-left: 0; }
   .rsort[open] .rsort-menu { position: absolute; top: calc(100% + 0.2rem); right: 0; min-width: max(100%, 12rem); }

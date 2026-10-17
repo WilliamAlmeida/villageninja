@@ -429,6 +429,26 @@ export class Panel {
       this.setHover(row ? Number(row.dataset.arg) : null);
     });
     this.root.addEventListener('pointerleave', () => this.setHover(null));
+    // um toque fora do dropdown aberto o fecha (o painel para o toque com stopPropagation, por isso captura)
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        this.root.querySelectorAll<HTMLDetailsElement>('details.rsort[open]').forEach((d) => {
+          if (!d.contains(e.target as Node)) d.open = false;
+        });
+      },
+      true,
+    );
+    // toggle não sobe, por isso captura: abrir um dropdown de ninjas fecha o outro
+    this.root.addEventListener(
+      'toggle',
+      (e) => {
+        const d = e.target as HTMLDetailsElement;
+        if (!d.open || !d.matches('details.rsort')) return;
+        this.root.querySelectorAll<HTMLDetailsElement>('details.rsort[open]').forEach((o) => { if (o !== d) o.open = false; });
+      },
+      true,
+    );
     this.root.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.pressing = true;
@@ -2438,7 +2458,7 @@ export class Panel {
     const taken = MIST_BLADES.filter((b) => s.blades.includes(b)).length;
     const onMap = new Set(s.units.filter((u) => !u.dead && u.swordsman).map((u) => u.swordsman));
     const known = s.level >= SWORDSMEN_ORG.minVillage;
-    let html = `<section class="kpanel ocard"><div class="kp-head">{swords}<b ${tipAttr(SWORDSMEN_ORG.name, 'Começam depois da primeira invasão do Quinteto do Som. Invadem a vila em dupla com escolta. Cada invasão rende no máximo UMA espada: o primeiro espadachim derrubado cai e deixa a espada; os outros somem na névoa e voltam. Com as sete na vila, continuam vindo atrás delas.', true)}>${SWORDSMEN_ORG.name}</b><small>${taken}/7 espadas</small></div>`;
+    let html = `<section class="kpanel ocard"><div class="kp-head">{swords}<b ${tipAttr(SWORDSMEN_ORG.name, 'Começam depois da primeira invasão do Quinteto do Som. Invadem a vila em dupla com escolta. Cada invasão rende no máximo UMA espada: o primeiro espadachim derrubado cai e deixa a espada; os outros caem ou somem na névoa e voltam. Com as sete na vila, continuam vindo atrás delas, sem as espadas e às vezes com capangas.', true)}>${SWORDSMEN_ORG.name}</b><small>${taken}/7 espadas</small></div>`;
     html += `<div class="o-prog"><div class="o-count"><b>${taken}/7 derrotados</b><div class="nc-bar"><i style="width:${(taken / 7) * 100}%"></i></div></div><span class="o-next">{clock} ${known ? (st.nextDay ? `Próxima invasão: dia ${st.nextDay}` : 'Logo') : 'A partir da Vila Oculta'}</span></div><div class="ogrid">`;
     for (const id of MIST_BLADES) {
       const d = SWORDSMEN[id];
@@ -3139,18 +3159,27 @@ export class Panel {
       anbu: ['ANBU', (u) => !!u.ninja!.anbu],
       kage: ['Kage', (u) => u.ninja!.rank === 'kage'],
     };
-    // filtros (os de status só aparecem com alguém; os de graduação sempre) e a ordem, numa faixa
+    // filtros de status em etiquetas; graduação e ordem em dropdowns fora da rolagem (no celular o menu senão é cortado)
     html += `<div class="rfilters"><div class="fchips">`;
     for (const [k, [label, fn]] of Object.entries(tests) as [RosterFilter, [string, (u: Unit) => boolean]][]) {
+      if (RANK_FILTERS.includes(k)) continue;
       const n = ninjas.filter(fn).length;
-      if (!n && k !== this.rosterFilter && k !== 'all' && !RANK_FILTERS.includes(k)) continue;
+      if (!n && k !== this.rosterFilter && k !== 'all') continue;
       html += `<button data-act="r-filter" data-arg="${k}" class="${this.rosterFilter === k ? 'on' : ''} ${k === 'hurt' || k === 'worn' ? 'bad' : ''}">${label} <small>${n}</small></button>`;
     }
+    html += `</div><div class="rdrops">`;
+    const rankLabel = RANK_FILTERS.includes(this.rosterFilter) ? tests[this.rosterFilter][0] : 'Todas';
+    html += `<details class="rsort"><summary class="rsort-head" ${tipAttr('Graduação', 'Toque para ver só uma graduação.', true)}><span class="lbl">Graduação</span><b>${rankLabel}</b></summary><div class="rsort-menu">`;
+    for (const k of RANK_FILTERS) {
+      const [label, fn] = tests[k];
+      html += `<button class="rsort-item ${this.rosterFilter === k ? 'on' : ''}" data-act="r-filter" data-arg="${k}">${label} <small>${ninjas.filter(fn).length}</small></button>`;
+    }
+    html += `</div></details>`;
     const sortLabel = ROSTER_SORTS.find(([key]) => key === this.rosterSort)?.[1] ?? 'Nível';
-    html += `</div><details class="rsort"><summary class="rsort-head" ${tipAttr('Ordenar lista', 'Toque para escolher como ordenar os ninjas.', true)}><span class="lbl">Ordenar</span><b>${sortLabel}</b></summary><div class="rsort-menu">`;
+    html += `<details class="rsort"><summary class="rsort-head" ${tipAttr('Ordenar lista', 'Toque para escolher como ordenar os ninjas.', true)}><span class="lbl">Ordenar</span><b>${sortLabel}</b></summary><div class="rsort-menu">`;
     for (const [k, label, tip] of ROSTER_SORTS)
       html += `<button class="rsort-item ${this.rosterSort === k ? 'on' : ''}" data-act="r-sort" data-arg="${k}" ${tipAttr(label, tip)}>${label}</button>`;
-    html += `</div></details></div>`;
+    html += `</div></details></div></div>`;
     const RANK_N: Record<string, number> = { genin: 0, chunin: 1, jounin: 2, kage: 3 };
     const by: Record<RosterSort, (a: Unit, z: Unit) => number> = {
       level: (a, z) => z.ninja!.level - a.ninja!.level || z.ninja!.xp - a.ninja!.xp,
@@ -3168,18 +3197,11 @@ export class Panel {
     return { html, t, b };
   }
 
-  /** Faixa de ações em lote da lista de ninjas: equipar, ensinar e os automáticos (chave liga/desliga). */
+  /** Faixa da lista de ninjas: só a proteção dos novatos (equipar e ensino ficam nas janelas de oficina e academia). */
   private rosterTools() {
-    const g = this.app.game;
-    const f = g.state.flags;
-    const free = g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && !u.ninja.learning && u.ninja.jutsu.includes(null)).length;
-    const tog = togBtn;
+    const f = this.app.game.state.flags;
     return `<div class="wtools">
-      <button class="btn primary" data-act="gear-all" ${tipAttr('Equipar', 'Passa o melhor do estoque para cada ninja; os mais fortes escolhem primeiro.')}>{kunai} Equipar</button>
-      ${tog('gear-auto', !!f.autoGear, '{gear} Auto-equipar', 'Equipamento automático', 'Ligado: a cada poucos segundos o que for fabricado vai sozinho para quem precisa.')}
-      ${tog('rookies', !!f.shelterRookies, '{shield} Proteger novatos', 'Proteger novatos', `Ligado: Genins fogem para casa (ou para o Hospital) quando chega um inimigo ${CARE.danger}× mais forte que eles, e saem quando o perigo passa. Só vale se houver um Chunin ou acima na vila para defender; uma ordem sua sempre manda.`)}
-      <button class="btn" data-act="teach-all" ${blocked(g, [!g.findBuilt('academy') && 'Construa a Academia Ninja.', !free && 'Ninguém com espaço livre para jutsu.'])} ${tipAttr('Ensinar', 'Cada ninja com espaço livre vai estudar o melhor jutsu que pode aprender (pela natureza, rank e atributos dele). Paga o ryo de cada jutsu.')}>{books} Ensinar (${free})</button>
-      ${tog('auto-teach', !!f.autoTeach, '{scroll} Auto-ensino', 'Ensino automático', `Ligado: a Academia manda sozinha quem tiver espaço livre estudar (até ${maxLearners(g)} ao mesmo tempo, para não esvaziar a defesa). Jutsus proibidos ficam de fora.`)}
+      ${togBtn('rookies', !!f.shelterRookies, '{shield} Proteger novatos', 'Proteger novatos', `Ligado: Genins fogem para casa (ou para o Hospital) quando chega um inimigo ${CARE.danger}× mais forte que eles, e saem quando o perigo passa. Só vale se houver um Chunin ou acima na vila para defender; uma ordem sua sempre manda.`)}
     </div>`;
   }
 
@@ -3810,6 +3832,7 @@ export class Panel {
         return this.report({ ok: true });
       case 'r-filter':
         this.rosterFilter = arg as RosterFilter;
+        (btn.closest('details.rsort') as HTMLDetailsElement | null)?.removeAttribute('open');
         return this.report({ ok: true });
       case 'r-sort':
         this.rosterSort = arg as RosterSort;
