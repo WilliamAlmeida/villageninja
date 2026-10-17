@@ -375,9 +375,9 @@ preloadArt((k) => bar && (bar.style.width = `${Math.round(k * 100)}%`)).then(() 
   setTimeout(() => loading?.remove(), 400);
 });
 
-// PWA: manifesto e ícone (de public/, servidos fora do bundle — por isso entram aqui e não no index.html)
+// PWA: manifesto e ícones — o da aba é o mesmo do app (de public/, servidos fora do bundle — por isso entram aqui e não no index.html)
 // + service worker: tornam o jogo instalável (abre em tela cheia, deitado, sem a barra do navegador)
-for (const [rel, href] of [['manifest', '/app.webmanifest'], ['apple-touch-icon', '/app-icons/apple-touch-icon.png']]) {
+for (const [rel, href] of [['manifest', '/app.webmanifest'], ['icon', '/app-icons/icon-192.png'], ['apple-touch-icon', '/app-icons/apple-touch-icon.png']]) {
   const link = document.createElement('link');
   link.rel = rel!;
   link.href = href!;
