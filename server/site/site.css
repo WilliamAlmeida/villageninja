@@ -295,3 +295,23 @@ h2.kunai::before { content: ""; position: absolute; left: 0; top: 50%; width: 1.
   .reveal, .rise { opacity: 1; transform: none; animation: none; transition: none; }
   .chakra, .btn.play.glow, .shuriken-frame::before { animation: none; }
 }
+
+/* ---------- abertura: pergaminho que desenrola e se parte em dois ---------- */
+.sp { display: none; }
+.splash .sp { display: block; position: fixed; inset: 0; z-index: 100; pointer-events: none; animation: sp-safe 0s 6s forwards; }
+.sp-half { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #2a1f15 0%, var(--bg) 70%);
+  transition: transform 0.85s cubic-bezier(0.7, 0, 0.25, 1); }
+.sp-half.l { clip-path: inset(0 50% 0 0); }
+.sp-half.r { clip-path: inset(0 0 0 50%); }
+.sp.open .sp-half.l { transform: translateX(-52%); }
+.sp.open .sp-half.r { transform: translateX(52%); }
+/* folha com 8 quadros lado a lado (scripts/site-art.py): toca uma vez e para no pergaminho aberto */
+.sp-scroll { width: min(86vw, 44rem); aspect-ratio: 640 / 300; background: var(--sheet) 0 0 / 800% 100% no-repeat;
+  animation: sp-unroll 0.7s steps(7) 0.1s forwards; filter: drop-shadow(0 1rem 2rem rgba(0, 0, 0, 0.6)); }
+@keyframes sp-unroll { to { background-position: 100% 0; } }
+.sp-load { position: absolute; left: 0; right: 0; top: calc(50% + min(86vw, 44rem) * 0.26); text-align: center; color: var(--muted); font-size: 0.9rem;
+  letter-spacing: 0.04em; animation: sp-pulse 1.2s ease-in-out infinite; transition: opacity 0.3s; }
+.sp.open .sp-load { opacity: 0; }
+@keyframes sp-pulse { 50% { opacity: 0.45; } }
+/* se o script não rodar, a abertura some sozinha */
+@keyframes sp-safe { to { visibility: hidden; } }

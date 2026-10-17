@@ -12,15 +12,25 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const safeNext = (n) => (n && n.startsWith('/') && !n.startsWith('//') ? n : '/play');
 
-  // língua: na primeira visita, quem não usa português vai para /en (a escolha manual fica guardada)
+  // língua: a troca automática na primeira visita é feita no <head> (layout.ts); aqui só guarda a escolha manual
   document.querySelectorAll('[data-lang-switch]').forEach((a) => a.addEventListener('click', () => store.set(LANG, a.dataset.langSwitch)));
-  if (lang === 'pt' && !store.get(LANG) && !location.hash) {
-    const pref = (navigator.languages && navigator.languages[0]) || navigator.language || 'pt';
-    if (!/^pt/i.test(pref)) {
-      const sw = document.querySelector('[data-lang-switch]');
-      if (sw) { store.set(LANG, 'en'); location.replace(sw.getAttribute('href') + location.search); return; }
-    }
-  }
+
+  // abertura: o pergaminho termina de desenrolar e, com a página carregada, se parte em dois e abre (uma vez por visita)
+  (() => {
+    const root = document.documentElement;
+    const sp = document.querySelector('.sp');
+    if (!sp || !root.classList.contains('splash')) { if (sp) sp.remove(); return; }
+    const t0 = performance.now();
+    const open = () => {
+      const wait = Math.max(0, 900 - (performance.now() - t0)); // deixa o pergaminho terminar de desenrolar
+      setTimeout(() => {
+        sp.classList.add('open');
+        try { sessionStorage.setItem('vn_splash', '1'); } catch {}
+        setTimeout(() => { root.classList.remove('splash'); sp.remove(); }, 900);
+      }, wait);
+    };
+    if (document.readyState === 'complete') open(); else addEventListener('load', open, { once: true });
+  })();
 
   // origem da visita (?ref= e site anterior): o primeiro fica 30 dias e vai junto quando a conta nascer
   (() => {

@@ -397,6 +397,9 @@ describe.skipIf(!dbOk)('servidor de duelos', () => {
     expect(home.text).toContain('<html lang="pt-BR">');
     expect(home.text).toContain('href="/play"');
     expect(home.text).toContain('hreflang="en"');
+    // abertura do pergaminho e troca de língua antes de desenhar (no <head>)
+    expect(home.text).toContain('class="sp"');
+    expect(home.text).toContain('location.replace("/en"');
     const en = await get('/en');
     expect(en.text).toContain('<html lang="en">');
     expect(en.text).toContain('Ninja Cursed Fight');

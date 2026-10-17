@@ -21,6 +21,21 @@ export interface PageOpts {
   origin: string;
 }
 
+/**
+ * Roda antes de desenhar a página: a troca automática de língua (quem não usa português vai para /en na primeira visita)
+ * acontece aqui, sem mostrar a página em português antes; e liga a abertura do pergaminho na primeira página da visita.
+ */
+function bootScript(lang: Lang, enPath: string): string {
+  const toEn = lang === 'pt' ? `if(!s.getItem('vn_site_lang')&&!location.hash&&!/^pt/i.test((navigator.languages&&navigator.languages[0])||navigator.language||'pt')){s.setItem('vn_site_lang','en');location.replace(${JSON.stringify(enPath)}+location.search)}` : '';
+  return `(function(){var d=document.documentElement;try{var s=localStorage;${toEn}if(!sessionStorage.getItem('vn_splash')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)d.classList.add('splash')}catch(e){}})()`;
+}
+
+/** Pergaminho que se abre ao carregar (folha img/scroll-sheet.png; site.js abre as duas metades quando a página carrega). */
+function splash(loading: string): string {
+  const half = (side: string) => `<div class="sp-half ${side}"><div class="sp-scroll"></div></div>`;
+  return `<div class="sp" aria-hidden="true" style="--sheet:url('${assetUrl('img/scroll-sheet.png')}')">${half('l')}${half('r')}<span class="sp-load">${loading}</span></div>`;
+}
+
 export function page(o: PageOpts): string {
   const t = T[o.lang];
   const ptPath = o.path;
@@ -56,10 +71,13 @@ export function page(o: PageOpts): string {
 <link rel="icon" href="${assetUrl('img/emblem-64.png')}">
 <link rel="manifest" href="/app.webmanifest">
 <link rel="preload" as="image" href="${assetUrl('img/hero.webp')}">
+<link rel="preload" as="image" href="${assetUrl('img/scroll-sheet.png')}">
 <link rel="stylesheet" href="${assetUrl('site.css')}">
+<script>${bootScript(o.lang, enPath)}</script>
 <script src="${assetUrl('site.js')}" defer></script>
 </head>
 <body data-lang="${o.lang}">
+${splash(t.loading)}
 <div class="progress" aria-hidden="true"><i data-progress></i></div>
 <header class="top" data-top>
   <a class="brand" href="${h('/')}"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="36" height="36"><span><b>${t.siteName}</b><small>${t.short}</small></span></a>
