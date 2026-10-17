@@ -58,6 +58,27 @@ describe('expedições às minas', () => {
     expect(Object.keys(e.loot).length === 0 || gained).toBe(true);
   });
 
+  test('andar resolvido sozinho: descer vai mesmo para o próximo andar (e vira mapa jogado se não houver outro aberto)', () => {
+    const { g, cave, team } = setup(83);
+    expect(startMine(g, team.id, cave.id).ok).toBe(true);
+    const e = g.state.expeditions[0]!;
+    // como se outro mapa estivesse aberto quando chegaram: o andar 1 foi resolvido sozinho e pede a decisão
+    const other = createNewGame(SYSTEMS, 84).state;
+    g.state.scene = other;
+    Object.assign(e, { status: 'choice', floor: 1, timer: 0 });
+    expect(chooseExpedition(g, e.id, true).ok).toBe(true);
+    expect(e.floor).toBe(2);
+    expect(e.status as string).toBe('explore');
+    expect(g.state.scene).toBe(other); // o outro mapa continua
+    // sem outro mapa aberto, descer abre o andar seguinte como mapa jogado
+    g.state.scene = null;
+    e.status = 'choice';
+    expect(chooseExpedition(g, e.id, true).ok).toBe(true);
+    expect(e.floor).toBe(3);
+    expect(e.status as string).toBe('scene');
+    expect((g.state.scene as typeof other | null)?.sceneInfo?.expId).toBe(e.id);
+  });
+
   test('regras: equipe em expedição não pega missão nem parte de novo; feridos não partem', () => {
     const { g, cave, team } = setup(82);
     expect(startMine(g, team.id, cave.id).ok).toBe(true);

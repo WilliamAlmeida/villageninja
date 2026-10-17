@@ -96,10 +96,17 @@ export function chooseExpedition(g: Game, id: number, deeper: boolean): Result {
     } else goBack(e, 'Voltando para a vila com o saque.');
     return { ok: true };
   }
+  // andar resolvido sozinho (havia outro mapa aberto quando chegaram): o próximo vira mapa jogado se não houver mais nenhum
   if (deeper && e.floor < MINE.floors) {
-    e.status = 'explore';
-    e.timer = MINE.floorTime;
-    note(e, `Descendo ao andar ${e.floor + 1}…`);
+    e.floor++;
+    note(e, `Descendo ao andar ${e.floor}…`);
+    if (!g.state.scene) {
+      g.state.scene = createMineScene(g, e, e.floor);
+      e.status = 'scene';
+    } else {
+      e.status = 'explore';
+      e.timer = MINE.floorTime;
+    }
   } else goBack(e, 'Voltando para a vila com o saque.');
   return { ok: true };
 }
