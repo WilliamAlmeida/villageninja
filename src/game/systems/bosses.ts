@@ -1,6 +1,7 @@
 import { DAY_LENGTH } from '../../config';
 import { rand, weightedPick } from '../../core/rng';
-import { BOSS_WARNING, BOSS_WEIGHTS, BOSSES } from '../../data/bosses';
+import { BIJUU_FREE_WEIGHT, BOSS_WARNING, BOSS_WEIGHTS, BOSSES } from '../../data/bosses';
+import { bijuuFree } from '../bijuu';
 import { spawnBoss } from '../bosses';
 import type { Game } from '../game';
 import { edgePoint } from './spawner';
@@ -20,7 +21,9 @@ export function bossSystem(g: Game, dt: number) {
   s.bossTimer -= dt;
   if (s.bossTimer > 0) return;
   s.bossTimer = DAY_LENGTH * rand(4, 6);
-  const kind = weightedPick(BOSS_WEIGHTS[Math.min(3, s.level)]!, ([, w]) => w)![0];
+  // ainda há fera solta: a Fera Colossal aparece um pouco mais (no nível 3, uma a cada ~30 dias)
+  const free = bijuuFree(g).length > 0;
+  const kind = weightedPick(BOSS_WEIGHTS[Math.min(3, s.level)]!, ([k, w]) => (k === 'titan' && free ? w + BIJUU_FREE_WEIGHT : w))![0];
   const p = edgePoint(g);
   s.pendingBoss = { kind, x: p.x, y: p.y, t: BOSS_WARNING };
   g.toast(`{bell} Batedores avistaram: ${BOSSES[kind].icon} ${BOSSES[kind].name}! Chega em ${BOSS_WARNING}s — prepare os ninjas.`, 'danger', p);

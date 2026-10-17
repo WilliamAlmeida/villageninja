@@ -31,7 +31,7 @@ export const BIJUU_MAX_TAILS = [2, 4, 7, 9];
 export const bijuuScale = (tails: number) => ({ hp: 0.7 + tails * 0.22, damage: 0.8 + tails * 0.09, size: 1.15 + tails * 0.07 });
 
 /** Selar a fera num ninja (aba Kage): custo, nível mínimo do ninja. */
-export const SEAL = { cost: { ryo: 600, paper: 20 }, minLevel: 12 };
+export const SEAL = { cost: { ryo: 3000, paper: 150 }, minLevel: 12 };
 
 /** Modos de combate (manto de chakra): bônus enquanto duram (game/modes.ts). */
 export type ModeKind = 'bijuu' | 'gates' | 'raiton' | 'susanoo';

@@ -77,7 +77,8 @@
   seguem a força militar da vila (`villageMight`) mais que os dias.
 - **Bestas com cauda (Bijuu)** (`data/bijuu.ts`, `game/bijuu.ts`, seção na aba Kage; arte `bijuu-1..9`, folhas de bicho do
   Codex): a Fera Colossal (chefe `titan`) é uma das nove, até o limite de caudas do nível da vila (`BIJUU_MAX_TAILS`,
-  `pickBijuu` prefere as maiores e pula as que a vila já tem); vencida vai para o jarro (`state.bijuu.jar`) e o Kage sela
+  `pickBijuu` prefere as maiores e pula as que a vila já tem; enquanto houver fera solta, `bijuuFree`, a Fera ganha
+  `BIJUU_FREE_WEIGHT` = +0,4 no sorteio dos chefes: no nível 3 vira 1 chefe em 6, uma a cada ~30 dias, em vez de ~40); vencida vai para o jarro (`state.bijuu.jar`) e o Kage sela
   num ninja de nível 12+ (`sealBijuu`): o Jinchuuriki (`NinjaInfo.bijuu`) veste o manto da fera quando a luta aperta.
   Jinchuuriki que cai solta a fera (`hostFell`). **Modos de combate** (`game/modes.ts`, `Unit.mode`, um por vez): manto
   da fera (mais dano por cauda, segura golpes, regenera; 4+ caudas soltam ondas de chakra; descontrolado, pegam aliados),

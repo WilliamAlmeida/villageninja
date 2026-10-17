@@ -17,11 +17,17 @@ export function bijuuTaken(g: Game): Set<number> {
   return out;
 }
 
+/** Feras soltas (nem no jarro nem num Jinchuuriki) até o limite de caudas do nível da vila. */
+export function bijuuFree(g: Game): number[] {
+  const max = BIJUU_MAX_TAILS[Math.min(BIJUU_MAX_TAILS.length - 1, g.state.level)]!;
+  const taken = bijuuTaken(g);
+  return BIJUU.map((b) => b.tails).filter((n) => n <= max && !taken.has(n));
+}
+
 /** Qual fera desperta: uma das soltas até o limite de caudas do nível da vila, de preferência a de mais caudas. */
 export function pickBijuu(g: Game): number {
   const max = BIJUU_MAX_TAILS[Math.min(BIJUU_MAX_TAILS.length - 1, g.state.level)]!;
-  const taken = bijuuTaken(g);
-  const free = BIJUU.map((b) => b.tails).filter((n) => n <= max && !taken.has(n));
+  const free = bijuuFree(g);
   if (!free.length) return Math.max(1, Math.ceil(Math.random() * max)); // todas presas: uma "sombra" de qualquer uma
   // sorteio puxado para as maiores
   const w = free.map((n) => n * n);

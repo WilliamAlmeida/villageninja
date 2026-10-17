@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { BIJUU_MAX_TAILS, MODES, SEAL } from '../src/data/bijuu';
-import { bijuuTaken, jinchuuriki, sealBijuu } from '../src/game/bijuu';
+import { bijuuFree, bijuuTaken, jinchuuriki, sealBijuu } from '../src/game/bijuu';
+import { bossSystem } from '../src/game/systems/bosses';
 import { spawnBoss } from '../src/game/bosses';
 import { castJutsu, killUnit } from '../src/game/combat';
 import { createNinja, createRogue } from '../src/game/entities';
@@ -34,7 +35,7 @@ describe('bestas com cauda (Bijuu)', () => {
     expect(g.state.bijuu.jar).toEqual([tails]);
     const host = createNinja(g, at.x, at.y, 'jounin', 0);
     host.ninja!.level = SEAL.minLevel;
-    Object.assign(g.state.res, { ryo: 5000, paper: 100 });
+    Object.assign(g.state.res, { ryo: 99999, paper: 9999 });
     expect(sealBijuu(g, host.id, tails).ok).toBe(true);
     expect(host.ninja!.bijuu).toBe(tails);
     expect(g.state.bijuu.jar).toEqual([]);
@@ -78,4 +79,26 @@ describe('bestas com cauda (Bijuu)', () => {
     expect(s.version).toBe(SAVE_VERSION);
     expect(s.bijuu).toEqual({ jar: [] });
   });
+});
+
+describe('Bijuu solta aparece mais', () => {
+  const titans = (jar: number[]) => {
+    const g = createNewGame(SYSTEMS, 2400);
+    g.state.level = 3;
+    g.state.day = 50;
+    g.state.bijuu.jar = jar;
+    let n = 0;
+    for (let i = 0; i < 2500; i++) {
+      g.state.pendingBoss = null;
+      g.state.bossTimer = 0;
+      bossSystem(g, SIM_DT);
+      if ((g.state.pendingBoss as { kind: string } | null)?.kind === 'titan') n++;
+    }
+    return n;
+  };
+
+  test('com fera solta a Fera Colossal vem mais do que com as nove presas', () => {
+    expect(bijuuFree(createNewGame(SYSTEMS, 2401)).length).toBeGreaterThan(0);
+    expect(titans([1, 2, 3, 4])).toBeGreaterThan(titans([1, 2, 3, 4, 5, 6, 7, 8, 9]) * 1.1);
+  }, 30000);
 });

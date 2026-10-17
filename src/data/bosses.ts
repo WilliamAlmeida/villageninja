@@ -39,5 +39,8 @@ export const BOSS_WEIGHTS: Record<number, [BossKind, number][]> = {
   3: [['titan', 1], ['order', 2], ['war', 2], ['golem', 1], ['hydra', 2]],
 };
 
+/** Peso somado à Fera Colossal enquanto houver Bijuu solta (no nível 3: 1,4 de 8,4 = 1 chefe em 6, uma a cada ~30 dias). */
+export const BIJUU_FREE_WEIGHT = 0.4;
+
 /** Segundos de aviso antes da ameaça chegar. */
 export const BOSS_WARNING = 30;
