@@ -4,7 +4,7 @@ import { ACTION_TIME, REL } from '../src/data/region';
 import { refreshDerived } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
-import { actionBlock, regionDaily, regionOf, startRegion } from '../src/game/region';
+import { actionBlock, covertBlock, regionDaily, regionOf, startCovert, startRegion } from '../src/game/region';
 import { migrate } from '../src/game/save';
 import { SYSTEMS } from '../src/game/systems';
 import { teamUnits } from '../src/game/teams';
@@ -108,6 +108,26 @@ describe('mapa da região', () => {
     g.addBuilding({ id: g.newId(), type: 'port', tx: hk.tx + 8, ty: hk.ty + 6, built: true, progress: 99, desired: 0, workers: [], cd: 0 });
     act(g, team.id, 'sapos', 'contract');
     expect(teamUnits(g, team).some((u) => u.ninja!.contract === 'toad')).toBe(true);
+  });
+
+  test('missão secreta da ANBU: vão escondidos, voltam com parte do saque e sem infâmia', () => {
+    const { g, team } = setup(97, 30);
+    const us = teamUnits(g, team);
+    for (const u of us) u.ninja!.anbu = true;
+    expect(covertBlock(g, 'pesca')).toBeNull();
+    const before = { ...g.state.res };
+    const infamy = g.state.infamy;
+    expect(startCovert(g, 'pesca').ok).toBe(true);
+    const e = g.state.expeditions.at(-1)!;
+    expect(us.every((u) => u.away === e.id && u.hidden)).toBe(true);
+    expect(covertBlock(g, 'montanha')).toContain('já está');
+    const t = ACTION_TIME.covert;
+    run(g, t.travel * 2 + t.work + 5, () => e.status === 'done');
+    expect(e.status).toBe('done');
+    expect(us.every((u) => u.away == null && !u.hidden)).toBe(true);
+    expect(Object.values(e.loot).some((v) => v)).toBe(true);
+    expect(g.state.infamy).toBe(infamy);
+    expect(Object.keys(e.loot).some((k) => (g.state.res as Record<string, number>)[k]! > (before as Record<string, number>)[k]!)).toBe(true);
   });
 
   test('migra saves da versão 11 (região, honra e infâmia)', () => {

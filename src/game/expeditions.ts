@@ -299,7 +299,7 @@ function finish(g: Game, e: Expedition) {
   const got = Object.keys(e.loot).length ? costLabel(e.loot) : 'nada';
   note(e, `De volta à vila! Trouxeram: ${got}.`);
   const tm = g.team(e.teamId);
-  g.toast(`${e.kind === 'mine' ? '{pickaxe}' : '{map}'} ${tm?.name ?? 'A equipe'} voltou${e.kind === 'mine' ? ' da mina' : ''} com ${got}.`, 'good', p);
+  g.toast(`${e.kind === 'mine' ? '{pickaxe}' : '{map}'} ${tm?.name ?? (e.action === 'covert' ? 'A ANBU' : 'A equipe')} voltou${e.kind === 'mine' ? ' da mina' : ''} com ${got}.`, 'good', p);
 }
 
 function lost(g: Game, e: Expedition) {

@@ -2818,17 +2818,26 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 .njs > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .njs i { flex: 0 0 auto; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: 0.25rem; font-style: normal; font-size: 0.78rem; font-weight: 700; color: #fff; background: var(--c); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3); text-shadow: 0 1px 1px #000; }
 .njs.empty { justify-content: center; color: var(--muted); }
-/* faixa da equipe do ninja selecionado, embaixo da lista */
-.rstrip { position: sticky; bottom: 0; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.5rem; margin-top: 0.5rem; padding: 0.45rem 0.55rem; border-radius: var(--r); background: linear-gradient(180deg, rgba(60, 40, 24, 0.97), rgba(31, 20, 13, 0.985)); border: 1px solid #8a5b25; }
-.rs-team, .rs-mission { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+/* faixa da equipe do ninja selecionado, embaixo da lista: uma linha (equipe · retratos · missão · ações) na caixa do kit,
+   com a cor da equipe numa tarja à esquerda */
+.rstrip {
+  position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; padding: 0.35rem 0.5rem 0.35rem 0.85rem;
+  --sl: 10 10 10 10 fill; border: 0 solid transparent; border-width: 4px 5px; border-radius: 0; background: none; box-shadow: 0 -0.4rem 0.8rem rgba(0, 0, 0, 0.35);
+  border-image-source: var(--k2-hud-slot); border-image-slice: var(--sl); border-image-width: 10px; border-image-repeat: stretch; image-rendering: pixelated;
+}
+.rstrip > * { image-rendering: auto; }
+.rstrip::before { content: ""; position: absolute; left: 0.2rem; top: 0.3rem; bottom: 0.3rem; width: 0.25rem; border-radius: 0.15rem; background: var(--c); }
+.rs-team, .rs-mission { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; line-height: 1.15; }
+.rs-team small, .rs-mission small { font-size: 0.72rem; color: var(--muted); }
+.rs-team b { display: flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
 .rs-team .dot { background: var(--c); }
-.rs-faces { display: flex; gap: 0.25rem; flex: 1 1 auto; min-width: 0; overflow: hidden; }
-.rs-face { width: 2.2rem; height: 2.2rem; padding: 0; border-radius: 0.3rem; overflow: hidden; background: rgba(0,0,0,0.3); border: 1px solid #8a5b25; }
+.rs-faces { display: flex; gap: 0.3rem; flex: 0 0 auto; }
+.rs-face { width: 2.3rem; height: 2.3rem; padding: 0; border-radius: 0.3rem; overflow: hidden; background: rgba(0, 0, 0, 0.3); border: 1px solid #8a5b25; }
 .rs-face img { width: 100%; height: 100%; object-fit: cover; }
-.rs-mission { flex-wrap: wrap; }
-.rs-mission small { color: var(--muted); width: 100%; }
-.rs-mission b { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 700px) { .rstrip { grid-template-columns: 1fr; } }
+.rs-mission { flex: 1 1 auto; padding-left: 0.75rem; border-left: 1px solid rgba(138, 91, 37, 0.5); }
+.rs-mission b, .rs-mission .hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-acts { display: flex; gap: 0.35rem; flex: 0 0 auto; }
+@media (max-width: 700px) { .rstrip { flex-wrap: wrap; } .rs-mission { border-left: 0; padding-left: 0; } }
 
 /* ficha: cartão da equipe */
 .fteam { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.5rem; border-radius: var(--r); background: rgba(0,0,0,0.25); border: 1px solid var(--line); }
@@ -2974,3 +2983,24 @@ h4:not(.plain) { margin: 0.95rem 0 0.45rem; }
 #alertbox .dl-report .dl-dstats > div { background: rgba(0, 0, 0, 0.35); }
 #alertbox .dl-report .dl-defs li { background: rgba(0, 0, 0, 0.35); }
 #alertbox .dl-report .hint { margin: 0.4rem 0 0; color: #cdbf9f; }
+
+/* cartões das organizações (Bingo Book/Kage): retrato sem gradiente atrás; o check de quem já caiu é o mesmo das lâminas
+   (canto de cima à esquerda, pequeno, sem bolinha) e é o único: a legenda embaixo não repete o ícone */
+.om-face { background: none; }
+.om-check, .kfill .om-check { top: 0.25rem; left: 0.3rem; right: auto; width: auto; height: auto; border: 0; border-radius: 0; background: none; color: var(--good); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9)); z-index: 1; }
+.om-check .ic { width: 0.9rem; height: 0.9rem; }
+
+/* cartão do clã: fundador, dia, membros e ninjas em etiquetas com ícone; especialidade e naturezas em três colunas */
+.clanbody .mt { margin-bottom: 0.3rem; }
+.cl-facts { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.45rem; }
+.cl-facts > span { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.5rem; border-radius: 0.35rem; background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(138, 91, 37, 0.45); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-facts .ic { color: #f0dcb4; }
+.cl-traits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; padding-top: 0.4rem; border-top: 1px solid rgba(138, 91, 37, 0.35); }
+.cl-traits > span { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.cl-traits small { font-size: 0.72rem; color: var(--muted); }
+.cl-traits b { font-size: 0.9rem; }
+.cl-nat { color: var(--c); }
+.cl-nats { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+.cl-nats i { display: grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 0.25rem; font-style: normal; font-size: 0.82rem; color: #fff; background: color-mix(in srgb, var(--c) 70%, #000); border: 1px solid color-mix(in srgb, var(--c) 80%, #fff); text-shadow: 0 1px 1px #000; }
+.clancard .btnrow { margin-top: 0.45rem; }
+@media (max-width: 700px) { .cl-traits { grid-template-columns: 1fr 1fr; } }

@@ -50,6 +50,10 @@ export const RANKS: Record<Rank, RankDef> = {
   kage: { name: 'Kage', statCap: 10, maxJutsuRank: 5, minLevel: 10, promoteCost: { ryo: 500 }, vest: '#f1ece0', unique: true, minVillageLevel: 2 },
 };
 
+/** Patente que aparece (selo, cor do cartão): o Kage vem acima de tudo; o Sannin, acima da patente de origem. */
+export const rankKey = (n: { rank: Rank; sannin?: unknown }): Rank | 'sannin' => (n.rank !== 'kage' && n.sannin ? 'sannin' : n.rank);
+export const rankName = (n: { rank: Rank; sannin?: unknown }) => (rankKey(n) === 'sannin' ? 'Sannin' : RANKS[n.rank].name);
+
 export const JUTSU_RANK_LABEL = ['E', 'D', 'C', 'B', 'A', 'S'];
 
 /** XP para o próximo nível: igual ao de antes até o 20 e mais íngreme depois (o atributo já bate no teto da patente;
