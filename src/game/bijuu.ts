@@ -13,7 +13,7 @@ type Result = { ok: true } | { ok: false; error: string };
 export function bijuuTaken(g: Game): Set<number> {
   const s = g.state;
   const out = new Set<number>(s.bijuu?.jar ?? []);
-  for (const u of s.units) if (!u.dead && u.faction === 'village' && u.ninja?.bijuu) out.add(u.ninja.bijuu);
+  for (const u of s.units) if (!u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.bijuu) out.add(u.ninja.bijuu);
   return out;
 }
 
@@ -54,7 +54,7 @@ export const jinchuurikiCandidates = (g: Game) =>
     .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja && !u.ninja.bijuu && u.ninja.level >= SEAL.minLevel)
     .sort((a, b) => b.ninja!.level - a.ninja!.level);
 
-export const jinchuuriki = (g: Game) => g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.ninja?.bijuu);
+export const jinchuuriki = (g: Game) => g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.bijuu);
 
 export function sealBlock(g: Game, u: Unit | undefined, tails: number): string | null {
   if (!g.state.bijuu.jar.includes(tails)) return 'Essa fera não está no jarro.';

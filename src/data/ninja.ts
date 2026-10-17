@@ -50,9 +50,17 @@ export const RANKS: Record<Rank, RankDef> = {
   kage: { name: 'Kage', statCap: 10, maxJutsuRank: 5, minLevel: 10, promoteCost: { ryo: 500 }, vest: '#f1ece0', unique: true, minVillageLevel: 2 },
 };
 
-/** Patente que aparece (selo, cor do cartão): o Kage vem acima de tudo; o Sannin, acima da patente de origem. */
-export const rankKey = (n: { rank: Rank; sannin?: unknown }): Rank | 'sannin' => (n.rank !== 'kage' && n.sannin ? 'sannin' : n.rank);
-export const rankName = (n: { rank: Rank; sannin?: unknown }) => (rankKey(n) === 'sannin' ? 'Sannin' : RANKS[n.rank].name);
+/**
+ * Patente que aparece (selo, cor do cartão): o Kage vem acima de tudo; o Sannin, acima da patente de origem; o ANBU,
+ * acima do Chunin/Jounin que foi nomeado (a patente segue valendo para teto de atributo e jutsus).
+ */
+export const rankKey = (n: { rank: Rank; sannin?: unknown; anbu?: boolean }): Rank | 'sannin' | 'anbu' =>
+  n.rank === 'kage' ? 'kage' : n.sannin ? 'sannin' : n.anbu ? 'anbu' : n.rank;
+const SHOWN_NAME = { sannin: 'Sannin', anbu: 'ANBU' } as const;
+export const rankName = (n: { rank: Rank; sannin?: unknown; anbu?: boolean }) => {
+  const k = rankKey(n);
+  return k === 'sannin' || k === 'anbu' ? SHOWN_NAME[k] : RANKS[k].name;
+};
 
 export const JUTSU_RANK_LABEL = ['E', 'D', 'C', 'B', 'A', 'S'];
 

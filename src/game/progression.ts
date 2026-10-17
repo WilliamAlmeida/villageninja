@@ -1,7 +1,7 @@
 // Evolução dos ninjas: XP, níveis, treino de atributos e promoção.
 import { trainMult } from './upgrade';
 import { pick } from '../core/rng';
-import { RANKS, rankName, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
+import { RANKS, STAT_INFO, STAT_KEYS, xpToNext, type StatKey } from '../data/ninja';
 import { refreshDerived } from './entities';
 import { fxText } from './fx';
 import { catchingUp } from './care';
@@ -26,7 +26,7 @@ export const statsMaxed = (n: NinjaInfo) => STAT_KEYS.every((k) => n.stats[k] >=
 export function trainBlocked(n: NinjaInfo): string | null {
   if (!statsMaxed(n)) return null;
   const cap = statCapOf(n);
-  const who = rankName(n);
+  const who = RANKS[n.rank].name;
   if (cap >= 10) return `Todos os atributos já estão no máximo (${cap}).`;
   const next = n.rank === 'genin' ? 'Promova a Chunin para treinar até 7.' : n.rank === 'chunin' ? 'Promova a Jounin para treinar até 9.' : `Só o Kage e os Sannin passam de ${cap}.`;
   return `Todos os atributos já estão no máximo para ${who} (${cap}). ${next}`;
@@ -37,7 +37,7 @@ export function focusCapped(n: NinjaInfo, k: StatKey): string | null {
   const cap = statCapOf(n);
   if (n.stats[k] < cap) return null;
   const label = STAT_INFO[k].label;
-  const who = rankName(n);
+  const who = RANKS[n.rank].name;
   if (cap >= 10) return `${label} já está no máximo (${cap}).`;
   const next =
     n.rank === 'genin' ? `Promova a Chunin para subir até ${RANKS.chunin.statCap}.`

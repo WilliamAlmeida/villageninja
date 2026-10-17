@@ -16,7 +16,7 @@ type Result = { ok: true } | { ok: false; error: string };
 export const statCapOf = (n: NinjaInfo) => (n.sannin ? Math.max(RANKS[n.rank].statCap, SANNIN.statCap) : RANKS[n.rank].statCap);
 
 /** Sannin vivos da vila. */
-export const sannins = (g: Game) => g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.ninja?.sannin);
+export const sannins = (g: Game) => g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.sannin);
 export const sanninOf = (g: Game, path: SanninPath) => sannins(g).find((u) => u.ninja!.sannin === path);
 
 /** Jounins que podem ser nomeados (nível alto, sem título). */

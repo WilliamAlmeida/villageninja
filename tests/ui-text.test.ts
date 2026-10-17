@@ -42,3 +42,11 @@ test('occupantsOf lista quem está escondido dentro do prédio', () => {
   Object.assign(b!, { x: d.x + 300, y: d.y, hidden: true, state: 'sleep' });
   expect(occupantsOf(g, hk).map((u) => u.id)).toEqual([a!.id]);
 });
+
+test('selo da patente: Kage > Sannin > ANBU > patente de origem', async () => {
+  const { rankName } = await import('../src/data/ninja');
+  expect(rankName({ rank: 'jounin', anbu: true })).toBe('ANBU');
+  expect(rankName({ rank: 'jounin', anbu: true, sannin: 'snake' })).toBe('Sannin');
+  expect(rankName({ rank: 'kage', sannin: 'toad' })).toBe('Kage');
+  expect(rankName({ rank: 'chunin' })).toBe('Chunin');
+});

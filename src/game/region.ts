@@ -114,7 +114,7 @@ export function actionBlock(g: Game, nodeId: string, action: RegionAction): stri
 
 /** ANBU livres para uma missão secreta (na vila, sem lutar, com vida). */
 export const covertAgents = (g: Game) =>
-  g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.ninja?.anbu && u.away == null && !u.origin && u.combatTimer <= 0 && u.hp >= u.maxHp * 0.5);
+  g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.anbu && u.away == null && !u.origin && u.combatTimer <= 0 && u.hp >= u.maxHp * 0.5);
 
 /** Por que a missão secreta não dá agora (null = pode). */
 export function covertBlock(g: Game, nodeId: string): string | null {

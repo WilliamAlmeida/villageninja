@@ -745,6 +745,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
 .rbadge.r-chunin { color: #c9a6ff; border-color: rgba(201, 166, 255, 0.45); }
 .rbadge.r-jounin { color: var(--warn); border-color: rgba(255, 211, 77, 0.5); }
 .rbadge.r-sannin { color: #ff7a7a; border-color: rgba(255, 122, 122, 0.55); }
+.rbadge.r-anbu { color: #d6d8e6; border-color: rgba(214, 216, 230, 0.5); }
 .rbadge.r-kage { color: var(--accent); border-color: rgba(255, 138, 43, 0.6); background: rgba(255, 138, 43, 0.1); }
 .rbadge.nat { color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, transparent); }
 .nc-bar { height: 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
@@ -1409,7 +1410,7 @@ h4 { color: #dcc5a3; font-weight: 900; font-size: 0.82rem; letter-spacing: 0.05e
 .kp-head > b { font-size: 1.45rem; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
 .kp-head > small { color: var(--muted); font-size: 0.95rem; margin-left: 0.4rem; }
 .ssec .kp-head { flex-wrap: wrap; }
-.ssec .s-costs { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; flex-wrap: wrap; }
+.kp-head .s-costs { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; flex-wrap: wrap; }
 /* Kage atual */
 .kbody { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 0.9rem; align-items: stretch; padding: 0.7rem; border-radius: 0.65rem; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); }
 .k-face { position: relative; width: 13rem; height: auto; min-height: 20rem; border-radius: 0.55rem; border: 2px solid #8a5b25; background: #3b2919 center / cover no-repeat; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0.3rem 0.8rem rgba(0, 0, 0, 0.4); }

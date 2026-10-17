@@ -265,6 +265,11 @@ function perkArt(perk: string): string {
  * - ações em lote: verbo curto com a contagem entre parênteses ("Ensinar (4)"), a explicação vai na dica;
  * - custo: etiqueta dentro do botão, à direita (`costTag`), sem parênteses.
  */
+/** Custo em fichas (uma por recurso), como no canto do título dos Sannin e das Bestas. */
+const costChips = (cost: Partial<Record<ResKey, number>>) =>
+  RES_KEYS.filter((k) => cost[k])
+    .map((k) => `<span class="lchip">${costLabel({ [k]: cost[k] })}</span>`)
+    .join('');
 const togBtn = (act: string, on: boolean, label: string, title: string, tip: string, arg = '') =>
   `<button class="btn tog ${on ? 'on' : ''}" data-act="${act}" ${arg ? `data-arg="${arg}"` : ''} ${tipAttr(title, tip)}>${label}<i class="sw"></i></button>`;
 /** Papel de luta (game/tactics.ts): ícone e etiqueta com a explicação na dica. */
@@ -650,7 +655,7 @@ export class Panel {
         <div class="fh-name">${title}</div><div class="badges topbadges">
         ${u.faction === 'enemy'
           ? `<span class="badge enemy">${u.role ? ROGUE_ROLES[u.role].name : 'Renegado'} · ${RANKS[n.rank].name}</span>`
-          : `<span class="rbadge r-${rank} ibadge" ${tipAttr('Patente', rankLabel, true)}>${rankLabel}</span>`}
+          : `<span class="rbadge r-${rank} ibadge" ${tipAttr('Patente', rank === 'anbu' ? `ANBU (nomeado entre os ${RANKS[n.rank].name}s)` : rankLabel, true)}>${rankLabel}</span>`}
         <span class="rbadge ibadge nat" style="--c:${nat.color}" ${tipAttr('Natureza do chakra', `${nat.kanji} ${nat.name}. Vantagem contra ${NATURES[nat.beats].name}.`, true)}>${nat.kanji}</span>${role ? roleBadge(role, true) : ''}</div>
         <div class="fh-state">{eye} <span data-t="state"></span></div></div></div>
         <div class="fquick"><span ${tipAttr('Nível', 'Sobe enchendo a barra de XP; cada nível dá atributos.', true)}><small>Nível</small><b>${n.level}</b></span>
@@ -2319,9 +2324,7 @@ export class Panel {
   /** Os Três Sannin: emblema do caminho, o Sannin (ou os candidatos), o animal com a técnica e o botão. */
   private sanninSection() {
     const g = this.app.game;
-    const costs = RES_KEYS.filter((k) => SANNIN.cost[k])
-      .map((k) => `<span class="lchip">${costLabel({ [k]: SANNIN.cost[k] })}</span>`)
-      .join('');
+    const costs = costChips(SANNIN.cost);
     let html = `<section class="kpanel ssec"><div class="kp-head">{sparkle}<b>Os Três Sannin</b><small>Jounins Nv ${SANNIN.minLevel}+</small><span class="s-costs">${costs}</span></div><div class="sgrid">`;
     const cands = sanninCandidates(g);
     for (const path of ['toad', 'snake', 'slug'] as const) {
@@ -2361,7 +2364,7 @@ export class Panel {
     const hosts = jinchuuriki(g);
     const cands = jinchuurikiCandidates(g);
     const tip = tipAttr('Bestas com cauda', `A Fera Colossal é uma das nove bestas (mais caudas com a vila maior). Vencida, fica selada num jarro: escolha um ninja de nível ${SEAL.minLevel}+ para guardá-la. O Jinchuuriki veste o manto de chakra da fera quando a luta aperta (mais dano e velocidade, segura golpes; de 4 caudas em diante solta ondas de chakra, e quanto mais caudas mais risco de perder o controle e ferir os aliados). Se ele cair, a fera se solta.`, true);
-    let html = `<section class="kpanel bjsec"><div class="kp-head">{beast}<b ${tip}>Bestas com cauda</b><small>${hosts.length} Jinchuuriki · ${s.bijuu.jar.length} no jarro · selar: ${costLabel(SEAL.cost)}</small></div><div class="bjgrid">`;
+    let html = `<section class="kpanel bjsec"><div class="kp-head">{beast}<b ${tip}>Bestas com cauda</b><small>Ninjas Nv ${SEAL.minLevel}+</small><span class="s-costs">${costChips(SEAL.cost)}</span></div><div class="bjgrid">`;
     for (const b of BIJUU) {
       const host = hosts.find((u) => u.ninja!.bijuu === b.tails);
       const jar = s.bijuu.jar.includes(b.tails);
@@ -3120,7 +3123,7 @@ export class Panel {
       genin: ['Genin', (u) => u.ninja!.rank === 'genin'],
       chunin: ['Chunin', (u) => u.ninja!.rank === 'chunin'],
       jounin: ['Jounin', (u) => u.ninja!.rank === 'jounin'],
-      sannin: ['Sannin', (u) => !!u.ninja!.sannin],
+      sannin: ['Sannin', (u) => rankKey(u.ninja!) === 'sannin'], // o Kage que foi Sannin fica só no filtro Kage
       anbu: ['ANBU', (u) => !!u.ninja!.anbu],
       kage: ['Kage', (u) => u.ninja!.rank === 'kage'],
     };

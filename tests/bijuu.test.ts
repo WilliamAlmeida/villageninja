@@ -40,6 +40,9 @@ describe('bestas com cauda (Bijuu)', () => {
     expect(g.state.bijuu.jar).toEqual([]);
     expect(jinchuuriki(g)).toContain(host);
     expect(bijuuTaken(g).has(tails)).toBe(true);
+    // clone (Kage Bunshin, marionete) leva a ficha do dono, com a fera junto: não é outro Jinchuuriki
+    g.state.units.push({ ...structuredClone(host), id: g.state.nextId++, kind: 'clone', ownerId: host.id });
+    expect(jinchuuriki(g).length).toBe(1);
     killUnit(g, host, null);
     expect(host.ninja!.bijuu).toBeUndefined();
     expect(bijuuTaken(g).has(tails)).toBe(false);
