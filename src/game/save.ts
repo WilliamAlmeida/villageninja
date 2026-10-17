@@ -290,6 +290,24 @@ const MIGRATIONS: Record<number, (s: any) => void> = {
   49: () => {
     // v50: mudança de volta da colônia para a vila (`Expedition.toHome`, opcional: sem ele a viagem é para a colônia)
   },
+  50: (s) => {
+    // v51: Jounin vira ANBU ou Sannin (um ou outro) e depois Kage, que deixa os dois. Kage que ainda era Sannin perde o
+    // título (a vaga do caminho abre); quem era ANBU e Sannin fica Sannin (a nomeação mais recente)
+    for (const c of [s, ...Object.values(s.colonies ?? {})])
+      for (const u of (c as GameState).units ?? []) {
+        const n = u.ninja;
+        if (!n?.sannin) continue;
+        if (n.rank === 'kage') {
+          n.sannin = undefined;
+          u.sage = undefined;
+          u.sanninCd = undefined;
+        } else if (n.anbu) n.anbu = false;
+      }
+    // oficinas (Forja, Farmácia, Selos) passam a ter 1 artesão por nível: as que tinham a vaga pedida pedem as novas
+    for (const c of [s, ...Object.values(s.colonies ?? {})] as GameState[])
+      for (const b of c.buildings ?? [])
+        if ((b.type === 'forge' || b.type === 'pharmacy' || b.type === 'sealshop') && b.desired >= 1) b.desired = b.level ?? 1;
+  },
   48: (s) => {
     // v49: Fazenda e Horta de Ervas viram campos cercados (game/fields.ts), na vila e em cada colônia
     farmsToFields(s);

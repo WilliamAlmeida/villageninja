@@ -16,8 +16,8 @@ import type { Cost, Unit } from './types';
 type Result = { ok: true } | { ok: false; error: string };
 
 export const ANBU = {
-  /** Vagas: base + 1 por nível da Torre de Inteligência acima do 1. */
-  slots: 3,
+  /** Vagas por nível da vila (com a Torre de Inteligência): no nível máximo, uma por máscara. */
+  slots: [3, 3, 5, 8],
   cost: { ryo: 500 } as Cost,
   /** Emboscada: dano do golpe que sai da invisibilidade; segundos visível depois de atacar ou apanhar. */
   ambush: 1.6,
@@ -41,10 +41,8 @@ export const freeMask = (g: Game) => MASK_LIST.find((m) => !anbus(g).some((u) =>
 
 const village = (u: Unit) => !u.dead && u.faction === 'village' && u.kind === 'ninja' && !!u.ninja;
 export const anbus = (g: Game) => g.state.units.filter((u) => village(u) && u.ninja!.anbu);
-export const anbuSlots = (g: Game) => {
-  const intel = g.findBuilt('intel');
-  return intel ? ANBU.slots + Math.max(0, (intel.level ?? 1) - 1) : 0;
-};
+export const anbuSlots = (g: Game) =>
+  g.findBuilt('intel') ? Math.min(MASK_LIST.length, ANBU.slots[Math.min(g.state.level, ANBU.slots.length - 1)]!) : 0;
 
 /** Quem pode entrar: Chunin ou Jounin (não Kage nem Sannin), do mais forte para o mais fraco. */
 export const anbuCandidates = (g: Game) =>
@@ -58,7 +56,8 @@ export function anbuBlock(g: Game, u?: Unit): string | null {
   if (anbus(g).length >= anbuSlots(g)) return `A ANBU está completa (${anbuSlots(g)} vagas).`;
   if (!u) return 'Escolha um Chunin ou Jounin.';
   if (u.ninja!.anbu) return 'Já é da ANBU.';
-  if (u.ninja!.sannin || u.ninja!.rank === 'kage' || u.ninja!.rank === 'genin') return 'Só Chunins e Jounins entram na ANBU.';
+  if (u.ninja!.sannin) return 'Sannin não entra na ANBU: é um caminho ou o outro.';
+  if (u.ninja!.rank === 'kage' || u.ninja!.rank === 'genin') return 'Só Chunins e Jounins entram na ANBU.';
   if (!g.canAfford(ANBU.cost)) return `Custa ${costLabel(ANBU.cost)}.`;
   return null;
 }

@@ -21,10 +21,13 @@ export const housingOf = (b: Building) => {
   return base && b.type === 'house' ? base * levelOf(b) : base;
 };
 
-/** Máximo de trabalhadores (lenhador e pedreira ganham +1 por nível). */
+/** Oficinas: um artesão por nível, todos na mesma peça (2 fazem no dobro do tempo). */
+export const WORKSHOPS = new Set<Building['type']>(['forge', 'pharmacy', 'sealshop']);
+
+/** Máximo de trabalhadores (lenhador e pedreira +1 por nível; oficina 1 / 2 / 3). */
 export const workersOf = (b: Building) => {
   const base = defOf(b).workers ?? 0;
-  return base && (b.type === 'lumber' || b.type === 'quarry') ? base + levelOf(b) - 1 : base;
+  return base && (b.type === 'lumber' || b.type === 'quarry' || WORKSHOPS.has(b.type)) ? base + levelOf(b) - 1 : base;
 };
 
 /** Comida por colheita da fazenda (2 → 3 → 4). */
@@ -36,8 +39,7 @@ export const towerDamage = (b: Building, base: number) => base + (b.type === 'to
 export const towerRange = (b: Building, base: number) => base * (b.type === 'tower' ? levelStep(levelOf(b), 0.15) : 1);
 /** Hospital: cura 1× → 1,5× → 2×. */
 export const healMult = (b: Building) => (b.type === 'hospital' ? levelStep(levelOf(b), 0.5) : 1);
-/** Oficina (Forja, Farmácia, Selos): fabricação mais rápida por nível (1×, 1,4×, 2×) e fila maior (5, 7, 9). */
-export const craftMult = (b: Building) => [1, 1.4, 2][Math.min(3, levelOf(b)) - 1]!;
+/** Oficina (Forja, Farmácia, Selos): fila maior por nível (5, 7, 9); a velocidade vem dos artesãos (`workersOf`). */
 export const queueMax = (b: Building) => MAX_QUEUE + (levelOf(b) - 1) * 2;
 /** Campo de treino: o melhor da vila vale para todos (1× → 1,3× → 1,6×). */
 export function trainMult(g: Game) {
@@ -145,7 +147,9 @@ export function syncHokage(g: Game) {
 /** Sobe o prédio para o nível `next`; com terreno maior, tira árvore/rocha e rua de baixo e refaz a colisão. */
 function growTo(g: Game, b: Building, next: number) {
   const grew = defOf({ type: b.type, level: next, flip: b.flip }).w !== defOf(b).w;
+  const full = b.desired >= workersOf(b);
   b.level = next;
+  if (full) b.desired = workersOf(b); // estava com todas as vagas pedidas: pede a nova também
   if (!grew) return;
   const d = defOf(b);
   for (const n of [...g.state.nodes]) if (n.tx >= b.tx && n.tx < b.tx + d.w && n.ty >= b.ty && n.ty < b.ty + d.h) g.removeNode(n.id);

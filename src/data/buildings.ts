@@ -163,13 +163,13 @@ const LIST: BuildingDef[] = [
     roof: '#3c6e3c', wall: '#8fbf6a',
   },
   {
-    type: 'forge', name: 'Forja', icon: '{anvil}', desc: 'Um ferreiro fabrica armas e coletes com ferro.',
+    type: 'forge', name: 'Forja', icon: '{anvil}', desc: 'Ferreiros (1 por nível) fabricam armas e coletes com ferro.',
     w: 2, h: 2, cost: { wood: 50, stone: 40, ryo: 60 }, buildTime: 18, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 1,
     sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#5a3a2a', wall: '#9a8a7a',
   },
   {
-    type: 'pharmacy', name: 'Farmácia', icon: '{flask}', desc: 'Um boticário prepara pílulas com ervas.',
+    type: 'pharmacy', name: 'Farmácia', icon: '{flask}', desc: 'Boticários (1 por nível) preparam pílulas com ervas.',
     w: 2, h: 2, cost: { wood: 40, stone: 20, ryo: 50 }, buildTime: 16, workers: 1, job: 'crafter', unique: true, buildable: true, lights: true, minLevel: 1,
     sizes: { 3: [3, 3] }, // nível 3 maior (padrão novo da arte, save v38)
     roof: '#2e7d6b', wall: '#f0ead8',

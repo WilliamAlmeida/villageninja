@@ -19,10 +19,10 @@ export const statCapOf = (n: NinjaInfo) => (n.sannin ? Math.max(RANKS[n.rank].st
 export const sannins = (g: Game) => g.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.sannin);
 export const sanninOf = (g: Game, path: SanninPath) => sannins(g).find((u) => u.ninja!.sannin === path);
 
-/** Jounins que podem ser nomeados (nível alto, sem título). */
+/** Jounins que podem ser nomeados (nível alto, sem título: Sannin e ANBU são caminhos separados). */
 export const sanninCandidates = (g: Game) =>
   g.state.units
-    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.rank === 'jounin' && !u.ninja.sannin && u.ninja.level >= SANNIN.minLevel)
+    .filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village' && u.ninja?.rank === 'jounin' && !u.ninja.sannin && !u.ninja.anbu && u.ninja.level >= SANNIN.minLevel)
     .sort((a, b) => b.ninja!.level - a.ninja!.level);
 
 export function sanninBlock(g: Game, u: Unit | undefined, path: SanninPath): string | null {
@@ -32,6 +32,7 @@ export function sanninBlock(g: Game, u: Unit | undefined, path: SanninPath): str
   if (!u) return `Precisa de um Jounin de nível ${SANNIN.minLevel}+.`;
   if (u.ninja?.rank !== 'jounin') return 'Só um Jounin pode virar Sannin.';
   if (u.ninja.sannin) return 'Já é Sannin.';
+  if (u.ninja.anbu) return 'É da ANBU: Sannin e ANBU são caminhos separados (dispense da ANBU antes).';
   if (u.ninja.level < SANNIN.minLevel) return `Precisa de nível ${SANNIN.minLevel}.`;
   if (!g.canAfford(SANNIN.cost)) return `Custa ${costLabel(SANNIN.cost)}.`;
   return null;
@@ -54,6 +55,18 @@ export function nameSannin(g: Game, unitId: number, path: SanninPath): Result {
   g.toast(`{crown} ${u!.name} agora é o ${d.title}! Técnica lendária: ${d.art}.`, 'good', u);
   if (path === 'snake') grantBlade(g, 'kusanagi', 'O caminho das serpentes', u); // a Kusanagi vem com o título
   return { ok: true };
+}
+
+/**
+ * Deixa o título (ao virar Kage): sai a técnica lendária e a vaga do caminho abre. O contrato do animal fica (a
+ * invocação é do ninja) e a Kusanagi segue com a vila.
+ */
+export function leaveSannin(u: Unit) {
+  const n = u.ninja;
+  if (!n?.sannin) return;
+  n.sannin = undefined;
+  u.sage = undefined;
+  u.sanninCd = undefined;
 }
 
 // ------------------------------------------------------------------ técnicas lendárias

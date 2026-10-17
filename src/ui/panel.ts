@@ -95,7 +95,7 @@ import { drawInterior } from '../render/interior';
 import { setShown } from './anim';
 import { esc, el, sideBySide } from './dom';
 import { MAX_BUILDING_LEVEL, UPGRADES } from '../data/upgrades';
-import { craftMult, housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
+import { housingOf, levelOf, queueMax, startUpgrade, upgradeStatus, upgradeTime, workersOf } from '../game/upgrade';
 import { atlasCell, pxIco, rich } from './icons';
 import { GLYPHS } from './glyphs';
 import { morph } from './morph';
@@ -1764,7 +1764,7 @@ export class Panel {
     for (const r of recipes) {
       const locked = (r.minLevel ?? 0) > g.state.level;
       const keep = bd.keep?.[r.id] ?? 0;
-      const time = Math.round(r.craftTime / craftMult(bd));
+      const time = Math.round(r.craftTime / Math.max(1, bd.workers.length)); // artesãos na bancada somam
       html += `<div class="wsrow ${locked ? 'locked' : ''}"><span class="ws-ic">${itemPx(r)}</span><div class="wsr-main"><div class="wsr-top"><span class="wsr-name" ${tipAttr(r.name, `${r.desc} (${SLOT_LABEL[r.slot]})`)}>${esc(r.name)}</span><span class="mchip">${stock(g, r.id)} no estoque</span></div>
         <div class="wsr-cost">${costLabel(r.cost)} · ${time}s</div>`;
       if (locked) html += `<div class="why">{lock} Requer ${levelDef(r.minLevel!).name}</div>`;

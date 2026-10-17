@@ -3,6 +3,7 @@ import { RANKS } from '../data/ninja';
 import { DEFAULT_KAGE_ART } from '../data/kageArts';
 import { levelDef } from '../data/villageLevels';
 import { refreshDerived } from './entities';
+import { leaveSannin } from './sannin';
 import { leaveTeam } from './teams';
 import { fx, fxText } from './fx';
 import type { Game } from './game';
@@ -62,7 +63,9 @@ export function crownKage(g: Game) {
   }
   u.ninja!.rank = 'kage';
   u.ninja!.kageArt ??= DEFAULT_KAGE_ART;
+  // Kage é o fim do caminho: deixa a ANBU e o título de Sannin (a vaga do caminho abre para outro Jounin)
   u.ninja!.anbu = false;
+  leaveSannin(u);
   leaveTeam(g, u.id); // o Kage não tem equipe: a ANBU o protege
   refreshDerived(u);
   u.hp = u.maxHp;

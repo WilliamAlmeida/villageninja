@@ -33,7 +33,8 @@
   Região (nó `covil`, ação `assault`) e a Ordem recruta membros novos (`regroup`, `org.cycle`: +30% de vida por volta até `ORG.cycleMax` = 5, `cycleHpMult`; sem teto, no dia 599 a 20ª volta tinha
   vida ×7 e a dupla não caía);
   covil destruído (`org.wins`), ela some `ORG.restDays` e se reergue do zero. Vida cresce com a quantidade de Jounins da vila. Seção na aba Kage.
-- **ANBU** (`game/anbu.ts`, seção na aba Kage): o Kage nomeia Chunins/Jounins (Torre de Inteligência; 3 vagas); saem das
+- **ANBU** (`game/anbu.ts`, seção na aba Kage): o Kage nomeia Chunins/Jounins (Torre de Inteligência; vagas pelo nível da vila, `ANBU.slots` 3/3/5/8: no nível
+  máximo uma por máscara); saem das
   equipes comuns e só formam equipe entre si (`teamKind`/`teamFit` em teams.ts: o Kage não tem equipe, ANBU só com ANBU,
   Sannin só com Sannin; `enforceTeamRules` roda na automação e no "Montar" e conserta saves antigos);
   a máscara é escolhida ao nomear (`NinjaInfo.mask`, qualquer animal) e dá +1 no atributo que ela representa (`maskKey`). Invisíveis (`cloak`) só com inimigo à vista (`ANBU.alert`) e até atacar — emboscada (`anbuAmbush`) —, ficam na
@@ -43,3 +44,8 @@
   caminho: sapo/serpente/lesma) com contrato do animal (invoca mais), teto de atributo 10 (`statCapOf`) e técnica
   lendária: Modo Sábio (`Unit.sage`, +40% dano/+30% velocidade; visual: contorno de energia laranja seguindo a silhueta do sprite, `solidArt` em
   `sageGlow`, e chamas subindo pelas bordas, `sageWisps`), Troca de Pele (`sanninSurvive`), Selo da Força de Cem.
+  **Caminho do Jounin**: ANBU **ou** Sannin (um bloqueia o outro em `anbuBlock`/`sanninBlock`) e depois Kage, que deixa
+  os dois (`crownKage` → `leaveSannin`: sai o título e a técnica, a vaga do caminho abre; o contrato do animal fica).
+  Save v51 conserta: Kage que era Sannin perde o título; ANBU e Sannin juntos fica só Sannin. Selo do cartão
+  (`rankKey`/`rankName`): Kage > Sannin > ANBU > patente. Clone (Kage Bunshin, marionete) leva a ficha do dono mas não
+  conta como Sannin, ANBU nem Jinchuuriki (`kind === 'ninja'` nas listas).

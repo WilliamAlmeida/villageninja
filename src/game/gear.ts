@@ -2,7 +2,7 @@
 import { type BuildingType, defOf } from '../data/buildings';
 import { CARRY, ITEM_LIST, ITEMS, type ItemDef, type ItemSlot } from '../data/items';
 import { noteUse, storeWorn, takeWorn, wornStock } from './wear';
-import { craftMult, queueMax } from './upgrade';
+import { queueMax } from './upgrade';
 import { levelDef } from '../data/villageLevels';
 import { refreshDerived } from './entities';
 import { fx, fxText } from './fx';
@@ -214,7 +214,7 @@ export function advanceCraft(g: Game, buildingId: number, dt: number): boolean {
   if (!b.craft && b.queue?.length) b.craft = { itemId: b.queue.shift()!, progress: 0 };
   if (!b.craft) return false;
   const def = ITEMS[b.craft.itemId]!;
-  b.craft.progress += dt * craftMult(b); // upgrade da oficina fabrica mais rápido
+  b.craft.progress += dt; // cada artesão na bancada soma o seu tempo: 2 fazem no dobro da velocidade
   if (b.craft.progress >= def.craftTime) {
     if (def.blade) {
       // lâmina lendária: entra na lista da vila (única, nunca some)

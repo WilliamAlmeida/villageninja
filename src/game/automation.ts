@@ -20,7 +20,7 @@ type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
 
 // ------------------------------------------------------------------ oficinas: fabricar sozinho
-/** A partir do nível 2 a oficina mantém o estoque sozinha (velocidade e fila por nível: craftMult/queueMax). */
+/** A partir do nível 2 a oficina mantém o estoque sozinha (artesãos e fila por nível: workersOf/queueMax). */
 export const AUTO_CRAFT_LEVEL = 2;
 export const canAutoCraft = (b: Building) => b.built && levelOf(b) >= AUTO_CRAFT_LEVEL;
 

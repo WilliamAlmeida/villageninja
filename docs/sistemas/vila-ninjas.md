@@ -69,7 +69,8 @@
 - **Equipamento automático** (`autoEquipAll`/`setAutoGear` em gear.ts, `systems/gear.ts`, `state.flags.autoGear`): botões
   na lista de ninjas e nas oficinas. Promovido a Chunin numa equipe sem sensei vira o sensei (`promoteToSensei`).
 - **Automação e fim de jogo** (`game/automation.ts`, `systems/automation.ts` a cada 2 s): Forja/Farmácia/Selos têm
-  upgrade (arte `-2/-3`; `craftMult`/`queueMax` em upgrade.ts) e do nível 2 em diante fabricam sozinhas para manter o
+  upgrade (arte `-2/-3`; 1 artesão por nível em `workersOf`, cada um na bancada soma o tempo na mesma peça — 2× e 3× —,
+  e `queueMax` em upgrade.ts; save v51 pede as vagas novas) e do nível 2 em diante fabricam sozinhas para manter o
   estoque (`Building.keep`, `autoCraftTick`); Academia ensina em lote/sozinha (`teachAll`, `flags.autoTeach`, até
   `maxLearners`, sem proibidos); equipes sem sensei recebem um (`autoSenseiTick`, `flags.autoSensei`); destinos do ryo:
   mercenários na Mesa de Missões (`hireMercenary`) e cristal/aço negro no Mercado (`buyRare`). Janela "Oficinas" (tecla

@@ -7,6 +7,7 @@ import type { Game } from '../src/game/game';
 import { advanceCraft, enqueueCraft } from '../src/game/gear';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
+import { workersOf } from '../src/game/upgrade';
 import { SYSTEMS } from '../src/game/systems';
 import { createTeam, joinAsMember } from '../src/game/teams';
 
@@ -28,16 +29,17 @@ describe('automação e destinos para o ryo', () => {
     expect(f1.queue!.length).toBe(3);
   });
 
-  test('oficina de nível maior fabrica mais rápido e tem fila maior', () => {
+  test('oficina de nível maior tem mais artesãos (cada um soma na peça) e fila maior', () => {
     const g = createNewGame(SYSTEMS, 702);
     rich(g);
     const a = place(g, 'forge', 1);
     const b = place(g, 'forge', 3);
     enqueueCraft(g, a.id, 'kunai');
     enqueueCraft(g, b.id, 'kunai');
+    expect([workersOf(a), workersOf(b)]).toEqual([1, 3]);
     advanceCraft(g, a.id, 1);
-    advanceCraft(g, b.id, 1);
-    expect(b.craft!.progress).toBeCloseTo(a.craft!.progress * 2);
+    for (let i = 0; i < workersOf(b); i++) advanceCraft(g, b.id, 1); // três artesãos na bancada
+    expect(b.craft!.progress).toBeCloseTo(a.craft!.progress * 3);
     for (let i = 0; i < 10; i++) enqueueCraft(g, b.id, 'kunai');
     expect(b.queue!.length + 1).toBe(9);
   });
