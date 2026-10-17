@@ -787,7 +787,7 @@ button:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
   scrollbar-width: thin;
 }
 .tcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name side" "sensei side" "faces side"; gap: 0.15rem 0.6rem; padding: 0.55rem 0.7rem; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); border-left: 0.25rem solid var(--c); text-align: left; }
-.tcard.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 12px rgba(255, 138, 43, 0.25); }
+.tcard.on { border-color: var(--accent); }
 .tcard:hover { background: var(--card-hi); }
 .tc-name { grid-area: name; font-weight: 800; font-size: 1rem; display: flex; align-items: center; }
 .tc-sensei { grid-area: sensei; font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; gap: 0.25rem; }

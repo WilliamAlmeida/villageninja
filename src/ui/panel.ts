@@ -3224,12 +3224,12 @@ export class Panel {
     let list = `<div class="wtools thead"><button class="btn primary" data-act="team-auto" ${blocked(g, [!free && 'Todos os ninjas já estão em equipes.'], undefined, 'Ninguém sem equipe')} ${tipAttr(
       'Montar automaticamente',
       'Completa as vagas das equipes que já existem e cria novas com quem está sem equipe, equilibrando a força e dando um sensei Chunin+ a cada uma quando houver.',
-    )}>{users} Montar${free ? ` (${free})` : ''}</button>
-      <button class="btn" data-act="team-new">{plus} Nova equipe</button>
+    )}>Montar${free ? ` (${free})` : ''}</button>
+      <button class="btn" data-act="team-new">Nova equipe</button>
       <button class="btn tog ${g.state.flags.autoSensei ? 'on' : ''}" data-act="auto-sensei" ${tipAttr(
         'Senseis automáticos',
         'Ligado: equipe sem sensei recebe um sozinha (um Chunin+ da própria equipe ou o Jounin livre mais forte).',
-      )}>{crown} Auto-sensei<i class="sw"></i></button></div>`;
+      )}>Auto-sensei<i class="sw"></i></button></div>`;
     list += `<h4>Equipes da vila</h4><div class="tcards">`;
     for (const tm of g.state.teams) list += this.teamCard(tm, sel?.id === tm.id);
     if (!g.state.teams.length) list += `<p class="hint">Nenhuma equipe ainda. Monte automaticamente ou crie uma vazia.</p>`;
