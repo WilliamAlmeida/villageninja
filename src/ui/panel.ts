@@ -146,7 +146,7 @@ const WINDOW_TABS: Record<string, [View['kind'], string][]> = {
   // duelos on-line (ui/arenaClient.ts + server/): abas só com texto (pedido do autor)
   duels: [['duels', 'Duelo'], ['duelRank', 'Ranking'], ['duelDefenses', 'Defesas'], ['duelAccount', 'Conta']],
 };
-const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: `${pxIco('castle')} Vila`, world: `${pxIco('map')} Mundo`, duels: '{swords} Duelos' };
+const GROUP_TITLE: Record<string, string> = { ninjas: '{ninja} Ninjas', village: `${pxIco('castle')} Vila`, world: `${pxIco('map')} Mundo`, duels: `${pxIco('swords')} Duelos` };
 const TAB_GROUP: Partial<Record<View['kind'], string>> = { roster: 'ninjas', teams: 'ninjas', clans: 'ninjas', team: 'ninjas', village: 'village', kage: 'village', bingo: 'village', stats: 'village', expeditions: 'world', region: 'world', duels: 'duels', duelRank: 'duels', duelDefenses: 'duels', duelAccount: 'duels' };
 
 type BuildingTab = 'main' | 'inside';
@@ -2799,36 +2799,48 @@ export class Panel {
     return html + `</ul></div>`;
   }
 
+  /**
+   * Conta da arena como um perfil: emblema da liga, nome (lápis para trocar), apelido e placar, selo de conta salva ou
+   * de convidado; embaixo os jeitos de entrar lado a lado e, numa linha, o servidor e o "Sair".
+   */
   private duelAccountTab() {
     const a = arena.account;
-    let html = `<div class="bsec"><h4>Sua conta ${infoTip('Conta', 'A conta serve para os duelos e o ranking: o jogo continua salvo neste aparelho. Entrando com Discord ou Google você usa a mesma conta em qualquer aparelho.')}</h4>`;
+    let html = `<div class="bsec dl-account"><h4>Sua conta ${infoTip('Conta', 'A conta serve para os duelos e o ranking: o jogo continua salvo neste aparelho. Entrando com Discord ou Google você usa a mesma conta em qualquer aparelho.')}</h4>`;
     if (!a) return html + `<p class="hint">${arena.offline ? 'Sem conexão com o servidor.' : 'Conectando...'}</p></div>`;
     if (!arena.providers && !arena.offline) void arena.loadProviders();
     const providers = arena.providers ?? [];
     const logins = a.logins ?? [];
-    html += `<div class="dl-acc"><div><small>Nome na arena</small><b>${esc(a.displayName)}</b></div><button class="btn warn" data-act="arena-rename">{edit} Trocar nome</button></div>`;
-    if (a.isGuest)
-      html += `<p class="hint">Você está como <b>convidado</b>: a conta vale só neste navegador. ${providers.length ? 'Entre com Discord ou Google para guardar o ranking e jogar em outro aparelho.' : 'Crie um apelido e uma senha para não perder o ranking e para entrar em outro aparelho.'}</p>`;
-    else html += `<div class="dl-acc">${a.username ? `<div><small>Apelido</small><b>${esc(a.username)}</b></div>` : ''}${a.email ? `<div><small>E-mail</small><b>${esc(a.email)}</b></div>` : ''}</div>`;
+    const st = arena.stats;
+    const rating = st?.rating ?? 1000;
+    const sub = [a.username && `@${esc(a.username)}`, a.email && esc(a.email)].filter(Boolean).join(' · ');
+    const state = a.isGuest
+      ? `<span class="mpill risky" ${tipAttr('Convidado', 'A conta vale só neste navegador: ligue Discord ou Google (ou crie apelido e senha) para não perder o ranking.', true)}>{alert} Convidado</span>`
+      : `<span class="mpill safe" ${tipAttr('Conta salva', 'Entra em qualquer aparelho pelos jeitos ligados abaixo.', true)}>{shield} Conta salva</span>`;
+    html += `<div class="acc-hero">${this.leagueBadge(rating, 'dl-lg big')}<div class="acc-main">
+      <div class="acc-name"><b>${esc(a.displayName)}</b><button class="btn mini ghost" data-act="arena-rename" ${tipAttr('Trocar nome', 'Nome que aparece na arena e no ranking.')}>{edit}</button></div>
+      ${sub ? `<small>${sub}</small>` : ''}
+      <div class="acc-chips">${state}<span class="mchip gold">{trophy} ${rating}</span><span class="mchip">${esc(leagueOf(rating).name)}</span>${st ? `<span class="mchip">${st.wins}V ${st.losses}D</span>` : ''}</div></div></div>`;
     // jeitos de entrar: cada provedor ligado no servidor, ligado ou não a esta conta
-    if (providers.length) {
-      html += `<div class="dl-logins">`;
+    if (providers.length || a.isGuest) {
+      html += `<h5>${a.isGuest ? 'Salvar a conta com' : 'Jeitos de entrar'}</h5><div class="acc-logins">`;
       for (const p of providers) {
         const on = logins.includes(p.id);
-        html += on
-          ? `<div class="dl-login on"><span>{${p.id}} <b>${esc(p.name)}</b> <span class="mpill safe">ligado</span></span><button class="btn" data-act="arena-unlink" data-arg="${p.id}" ${blocked(this.app.game, [logins.length < 2 && 'É o único jeito de entrar nesta conta.'])}>Desligar</button></div>`
-          : `<div class="dl-login"><button class="btn ${a.isGuest ? 'primary' : ''}" data-act="arena-social" data-arg="${p.id}">{${p.id}} ${a.isGuest ? 'Entrar' : 'Ligar'} com ${esc(p.name)}</button></div>`;
+        html += `<div class="acc-login ${on ? 'on' : ''}"><span class="acc-prov">{${p.id}}<b>${esc(p.name)}</b></span>${
+          on
+            ? `<span class="mpill safe">Ligado</span><button class="btn mini ghost" data-act="arena-unlink" data-arg="${p.id}" ${blocked(this.app.game, [logins.length < 2 && 'É o único jeito de entrar nesta conta.'])}>Desligar</button>`
+            : `<button class="btn mini ${a.isGuest ? 'primary' : ''}" data-act="arena-social" data-arg="${p.id}">${a.isGuest ? 'Entrar' : 'Ligar'}</button>`
+        }</div>`;
       }
+      if (a.isGuest && !providers.length) html += `<button class="btn primary" data-act="arena-register">{userplus} Criar apelido e senha</button>`;
+      if (a.isGuest) html += `<button class="btn ghost" data-act="arena-login">{key} Já tenho apelido e senha</button>`;
       html += `</div>`;
     }
-    html += `<div class="actions">`;
-    if (a.isGuest && !providers.length) html += `<button class="btn primary" data-act="arena-register">{userplus} Criar apelido e senha</button>`;
-    if (a.isGuest) html += `<button class="btn" data-act="arena-login">{key} Já tenho apelido e senha</button>`;
-    else html += `<button class="btn danger" data-act="arena-logout">{x} Sair da conta</button>`;
-    html += `</div>`;
-    if (a.role === 'mod' || a.role === 'admin') html += `<p class="hint">Conta da equipe: painel em <a href="/staff" target="_blank" rel="noopener">/staff</a>.</p>`;
-    html += `</div><div class="bsec"><h4>Servidor</h4><p class="hint">${arena.base ? esc(arena.base) : 'Mesma origem do jogo (/api)'} · ${arena.offline ? 'sem conexão' : `${arena.online} jogador(es) on-line`}</p></div>`;
-    return html;
+    // rodapé: servidor (a origem fica na dica), painel da equipe e o "Sair", discreto
+    const where = arena.base ? esc(arena.base) : 'mesma origem do jogo (/api)';
+    html += `<div class="acc-foot"><span class="acc-srv" ${tipAttr('Servidor', `Duelos em ${where}.`, true)}><span class="dot" style="--c:${arena.offline ? 'var(--bad)' : 'var(--good)'}"></span>${arena.offline ? 'Sem conexão' : `${arena.online} on-line`}</span>`;
+    if (a.role === 'mod' || a.role === 'admin') html += `<a class="acc-staff" href="/staff" target="_blank" rel="noopener">{shield} Painel da equipe</a>`;
+    if (!a.isGuest) html += `<button class="btn mini ghost acc-out" data-act="arena-logout">{x} Sair da conta</button>`;
+    return html + `</div></div>`;
   }
 
   /** Publica o retrato do campeão no servidor. */
