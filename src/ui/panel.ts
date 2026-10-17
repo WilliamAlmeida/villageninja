@@ -2337,7 +2337,7 @@ export class Panel {
         html += `<button class="sc-who" data-act="pick" data-arg="${who.id}">${pimg(unitPortrait(who))}<span class="sc-tag"><b>${esc(who.name.split(' ').pop()!)}</b><small>Nv ${who.ninja!.level}</small></span></button>`;
       else {
         const sel = this.sanninSel[path];
-        html += `<div class="sc-cands"><small>${cands.length ? 'Candidatos disponíveis' : esc(sanninBlock(g, undefined, path) ?? 'Sem candidatos.')}</small>`;
+        html += `<div class="sc-cands"><small>${cands.length ? '' : esc(sanninBlock(g, undefined, path) ?? 'Sem candidatos.')}</small>`;
         for (const c of cands.slice(0, 2))
           html += `<button class="sc-cand ${sel === c.id ? 'on' : ''}" data-act="sannin-sel" data-arg="${path}:${c.id}">${this.face(c)}<span><b>${esc(c.name.split(' ').pop()!)}</b><small>Nv ${c.ninja!.level}</small></span></button>`;
         html += `</div>`;
