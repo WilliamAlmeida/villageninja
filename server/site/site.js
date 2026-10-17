@@ -111,20 +111,18 @@
   }
 
   // ---------- quem está logado (convidado não conta como logado no site) ----------
+  const ME = 'vn_site_me';
+  const forget = () => { if (store.get(ME)) { store.set(ME, null); window.vnWho(null); } };
   let me = null;
   const whoReady = token
     ? api('/api/me').then(({ account: a }) => {
         me = a || null;
-        if (!a || a.isGuest) return;
-        const who = document.querySelector('[data-who]');
-        if (who) {
-          who.innerHTML = `${a.avatarUrl ? `<img src="${esc(a.avatarUrl)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<span>${esc(a.displayName)}</span>${a.role === 'mod' || a.role === 'admin' ? ` · <a href="/staff">${lang === 'pt' ? 'Painel' : 'Staff'}</a>` : ''}`;
-          who.hidden = false;
-        }
-        document.querySelectorAll('[data-login]').forEach((el) => (el.hidden = true));
-        document.querySelectorAll('[data-needs-account]').forEach((el) => (el.hidden = false));
+        if (!a || a.isGuest) { forget(); return; }
+        // guarda para a próxima página já abrir com o nome no menu (vnWhoCached, layout.ts)
+        store.set(ME, JSON.stringify({ k: token.slice(-16), displayName: a.displayName, avatarUrl: a.avatarUrl || null, role: a.role }));
+        window.vnWho(a);
         unlockRanking();
-      }).catch(() => {})
+      }).catch((e) => { if (e && !(e instanceof Error)) forget(); }) // resposta do servidor (token inválido); queda de rede mantém
     : Promise.resolve();
 
   // ---------- página Entrar: convidado (temporário), Discord ou Google ----------

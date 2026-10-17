@@ -51,7 +51,7 @@ export async function handleSite(req: Request, url: URL): Promise<Response> {
   const nw = /^\/novidades\/([a-z0-9-]{1,80})$/.exec(path);
   if (nw) {
     const n = await cache.remember(`site:news:${nw[1]}`, 60, async () => (await news.bySlug(nw[1]!)) ?? false);
-    if (n) return html(newsPage(lang, origin, n));
+    if (n) return html(newsPage(lang, origin, n, await cache.remember('site:news:latest', 60, () => news.published(4))));
   }
   const prof = /^\/jogador\/([0-9a-f-]{36})$/i.exec(path);
   if (prof) {

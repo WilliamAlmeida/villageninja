@@ -136,28 +136,51 @@ const newsTitle = (lang: Lang, n: NewsRow) => (lang === 'en' && n.titleEn) || n.
 const newsSummary = (lang: Lang, n: NewsRow) => (lang === 'en' && n.summaryEn) || n.summaryPt;
 const newsDate = (lang: Lang, d: Date | null) => (d ? new Date(d).toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US', { day: '2-digit', month: 'long', year: 'numeric' }) : '');
 
-/** Cartões de novidades (início e lista). */
-export function newsCards(lang: Lang, rows: NewsRow[]): string {
+/** Capa da novidade: uma das artes do site, sempre a mesma para a mesma notícia (a notícia não tem imagem própria). */
+const COVERS = ['village', 'battle', 'arena', 'duel', 'region', 'night'];
+const newsCover = (n: NewsRow) => assetUrl(`img/${COVERS[n.id % COVERS.length]}.webp`);
+const newsText = (lang: Lang, n: NewsRow) => (lang === 'en' && n.bodyEn) || n.bodyPt;
+const readMin = (text: string) => Math.max(1, Math.round(text.split(/\s+/).filter(Boolean).length / 200));
+const isNew = (n: NewsRow) => !!n.publishedAt && Date.now() - new Date(n.publishedAt).getTime() < 7 * 864e5;
+
+function newsCard(lang: Lang, n: NewsRow, big = false): string {
+  const t = T[lang];
+  return `<a class="news-card${big ? ' big' : ''} reveal" href="${href(lang, `/novidades/${n.slug}`)}">
+    <span class="nc-img" style="background-image:url('${newsCover(n)}')">${isNew(n) ? `<b class="nc-new">${t.newsNew}</b>` : ''}</span>
+    <span class="nc-in"><span class="nc-meta"><time>${newsDate(lang, n.publishedAt)}</time><span>${readMin(newsText(lang, n))} ${t.newsMin}</span></span>
+    <h3>${esc(newsTitle(lang, n))}</h3>${newsSummary(lang, n) ? `<p>${esc(newsSummary(lang, n))}</p>` : ''}<span class="more">${t.readMore} →</span></span></a>`;
+}
+
+/** Cartões de novidades (início e lista); `lead` = a mais recente em destaque, na largura toda. */
+export function newsCards(lang: Lang, rows: NewsRow[], lead = false): string {
   const t = T[lang];
   if (!rows.length) return `<p class="empty">${t.newsEmpty}</p>`;
-  return `<div class="news">${rows
-    .map((n) => `<a class="news-card" href="${href(lang, `/novidades/${n.slug}`)}"><time>${newsDate(lang, n.publishedAt)}</time><h3>${esc(newsTitle(lang, n))}</h3><p>${esc(newsSummary(lang, n))}</p><span class="more">${t.readMore} →</span></a>`)
-    .join('')}</div>`;
+  return `<div class="news">${rows.map((n, i) => newsCard(lang, n, lead && i === 0)).join('')}</div>`;
 }
+
+/** Faixa de topo com arte ao fundo (lista e notícia). */
+const banner = (img: string, inner: string, cls = '') => `<section class="nbanner${cls}" style="--hero:url('${img}')"><div class="nbanner-in">${inner}</div></section>`;
 
 export function newsListPage(lang: Lang, origin: string, rows: NewsRow[]): string {
   const t = T[lang];
-  const body = `<section class="sec page-h"><h1>${t.newsTitle}</h1><p class="sub">${t.newsSub}</p></section><section class="sec">${newsCards(lang, rows)}</section>`;
+  const head = banner(assetUrl('img/night.webp'), `<span class="eyebrow rise d1">${t.siteName}</span><h1 class="rise d2">${t.newsTitle}</h1><p class="lead rise d3">${t.newsSub}</p>`);
+  const body = `${head}<section class="sec news-list">${newsCards(lang, rows, true)}</section>`;
   return page({ lang, path: '/novidades', nav: 'news', title: t.newsTitle, body, origin });
 }
 
-export function newsPage(lang: Lang, origin: string, n: NewsRow): string {
+export function newsPage(lang: Lang, origin: string, n: NewsRow, more: NewsRow[] = []): string {
   const t = T[lang];
-  const text = (lang === 'en' && n.bodyEn) || n.bodyPt;
-  const body = `<section class="sec page-h legal article"><p><a href="${href(lang, '/novidades')}">← ${t.newsAll}</a></p><time class="muted">${newsDate(lang, n.publishedAt)}</time><h1>${esc(newsTitle(lang, n))}</h1>
-    ${newsSummary(lang, n) ? `<p class="lead-s">${esc(newsSummary(lang, n))}</p>` : ''}${renderBody(text)}
-    <p style="margin-top:2rem"><a class="btn play big" href="/play">${t.play}</a></p></section>`;
-  return page({ lang, path: `/novidades/${n.slug}`, nav: 'news', title: newsTitle(lang, n), desc: newsSummary(lang, n) || undefined, body, origin });
+  const text = newsText(lang, n);
+  const summary = newsSummary(lang, n);
+  const head = banner(newsCover(n), `<a class="back rise d1" href="${href(lang, '/novidades')}">← ${t.newsAll}</a>
+    <h1 class="rise d2">${esc(newsTitle(lang, n))}</h1>
+    <p class="nc-meta rise d3"><time>${newsDate(lang, n.publishedAt)}</time><span>${readMin(text)} ${t.newsMin}</span></p>`, ' article-h');
+  const others = more.filter((m) => m.id !== n.id).slice(0, 3);
+  const body = `${head}<section class="sec article">
+    ${summary ? `<p class="lead-s">${esc(summary)}</p>` : ''}<div class="prose">${renderBody(text)}</div>
+    <div class="cta-card frame"><div><h2>${t.newsCta}</h2><p>${t.newsCtaSub}</p></div><a class="btn play big" href="/play">${t.play}</a></div>
+  </section>${others.length ? `<section class="sec news-more"><div class="sec-h"><h2 class="kunai">${t.newsMore}</h2><a class="more" href="${href(lang, '/novidades')}">${t.newsAll} →</a></div>${newsCards(lang, others)}</section>` : ''}`;
+  return page({ lang, path: `/novidades/${n.slug}`, nav: 'news', title: newsTitle(lang, n), desc: summary || undefined, image: newsCover(n), body, origin });
 }
 
 export function notFoundPage(lang: Lang, origin: string): string {

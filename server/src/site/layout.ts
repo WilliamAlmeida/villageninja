@@ -30,6 +30,13 @@ function bootScript(lang: Lang, enPath: string): string {
   return `(function(){var d=document.documentElement;try{var s=localStorage;${toEn}if(!sessionStorage.getItem('vn_splash')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)d.classList.add('splash')}catch(e){}})()`;
 }
 
+/**
+ * Quem está logado, desenhado no menu SEM esperar a rede: `vnWho(a)` (a = conta guardada em `vn_site_me` pelo site.js na
+ * última visita, presa ao token) roda logo depois do cabeçalho e do rodapé, antes de a página aparecer; o site.js confere
+ * com /api/me depois e chama de novo (ou `vnWho(null)` se a conta saiu). Assim "Entrar" e o Ranking não piscam.
+ */
+const WHO_SCRIPT = `window.vnWho=function(a){var d=document,q=function(s){return d.querySelectorAll(s)},e=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})};var w=d.querySelector('[data-who]');if(w){w.innerHTML=a?(a.avatarUrl?'<img src="'+e(a.avatarUrl)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'<span>'+e(a.displayName)+'</span>'+(a.role==='mod'||a.role==='admin'?' · <a href="/staff">'+(d.body.dataset.lang==='pt'?'Painel':'Staff')+'</a>':''):'';w.hidden=!a}q('[data-login]').forEach(function(x){x.hidden=!!a});q('[data-needs-account]').forEach(function(x){x.hidden=!a})};window.vnWhoCached=function(){try{var t=localStorage.getItem('vn_arena_token'),m=t&&JSON.parse(localStorage.getItem('vn_site_me')||'null');if(m&&m.k===t.slice(-16))vnWho(m)}catch(e){}}`;
+
 /** Pergaminho que se abre ao carregar (folha img/scroll-sheet.png; site.js abre as duas metades quando a página carrega). */
 function splash(loading: string): string {
   const half = (side: string) => `<div class="sp-half ${side}"><div class="sp-scroll"></div></div>`;
@@ -74,7 +81,7 @@ export function page(o: PageOpts): string {
 <link rel="preload" as="image" href="${assetUrl('img/hero.webp')}">
 <link rel="preload" as="image" href="${assetUrl('img/scroll-sheet.png')}">
 <link rel="stylesheet" href="${assetUrl('site.css')}">
-<script>${bootScript(o.lang, enPath)}</script>
+<script>${bootScript(o.lang, enPath)};${WHO_SCRIPT}</script>
 <script src="${assetUrl('site.js')}" defer></script>
 </head>
 <body data-lang="${o.lang}">
@@ -90,11 +97,13 @@ ${splash(t.loading)}
     <a class="btn play" href="/play">${t.playShort}</a>
   </div>
 </header>
+<script>vnWhoCached()</script>
 <main>${o.body}</main>
 <footer class="foot">
   <span class="foot-brand"><img src="${assetUrl('img/emblem-64.png')}" alt="" width="28" height="28">${t.footer}</span>
   <span><a href="${h('/')}">${t.navHome}</a> · <a href="${h('/ranking')}" data-needs-account hidden>${t.navRanking} · </a><a href="${h('/novidades')}">${t.navNews}</a> · <a href="${h('/privacidade')}">${t.privacy}</a> · <a href="${h('/termos')}">${t.terms}</a> · <a href="/play">${t.playShort}</a></span>
 </footer>
+<script>vnWhoCached()</script>
 </body>
 </html>`;
 }

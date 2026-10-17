@@ -50,6 +50,11 @@ export const T = {
     newsEmpty: 'Nenhuma novidade publicada ainda.',
     newsAll: 'Todas as novidades',
     readMore: 'Ler',
+    newsNew: 'Novo',
+    newsMin: 'min de leitura',
+    newsMore: 'Mais novidades',
+    newsCta: 'Veja de perto no jogo',
+    newsCtaSub: 'Grátis, direto no navegador, no celular ou no PC.',
     profile: {
       league: 'Liga', points: 'Pontos', position: 'Posição', attack: 'Ataques', defense: 'Defesas', champion: 'Campeão',
       noChampion: 'Ainda não publicou um campeão.', nature: 'Natureza', village: 'Vila', level: 'Nível', stats: 'Atributos',
@@ -128,6 +133,11 @@ export const T = {
     newsEmpty: 'No news published yet.',
     newsAll: 'All news',
     readMore: 'Read',
+    newsNew: 'New',
+    newsMin: 'min read',
+    newsMore: 'More news',
+    newsCta: 'See it in the game',
+    newsCtaSub: 'Free, right in the browser, on phone or PC.',
     profile: {
       league: 'League', points: 'Points', position: 'Rank', attack: 'Attacks', defense: 'Defenses', champion: 'Champion',
       noChampion: 'No champion published yet.', nature: 'Nature', village: 'Village', level: 'Level', stats: 'Stats',
