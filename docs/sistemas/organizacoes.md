@@ -12,14 +12,16 @@
   `craftBlock`; Raijin `kageOnly`). Sem "Manter" nem lote.
 - **Espadachins da Névoa** (`data/swordsmen.ts`, `game/swordsmen.ts`, `state.swordsmen`): da Vila Oculta em diante invadem
   em dupla com escolta (`swordsmenTick`), caçam ninjas em vez de roubar (`swordsmanPrey`). Só UMA espada por invasão: o
-  primeiro derrubado cai e deixa a lâmina (`swordsmanFall` em `killUnit`); os outros somem na névoa (cloak + fuga) e voltam.
-  Tomadas as sete, continuam vindo atrás delas (o primeiro derrubado cai e dá ryo). Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
+  primeiro derrubado cai e deixa a lâmina (`swordsmanFall` em `killUnit`); os outros, derrubados, caem de vez (ryo) ou, com
+  `fleeChance` (30%), somem na névoa (cloak + fuga) e voltam. Espadachim cuja espada já é da vila vem sem ela e, com
+  `henchChance` (50%), a invasão traz `hench` (2–4) capangas a mais. Tomadas as sete, continuam vindo atrás delas (o primeiro derrubado cai e dá ryo). Sprite montado como ninja com a lâmina (`swordsmanPortrait`). Ordem do Eclipse, Espadachins e
   Quinteto do Som ficam na aba **Bingo Book** da janela Vila (`View 'bingo'`); a aba Kage tem o Kage, a ANBU e os Sannin
   No Bingo Book todos aparecem pelo sprite (`artPortrait(org-<id>, true)` / `swordsmanPortrait`), num padrão só (os bustos
   pintados da Ordem saíram; o atlas dos selos é `badge-ranks.png`); `.bingo` deixa todos os cartões com a mesma altura).
 - **Quinteto do Som** (`data/sound.ts`, `game/sound.ts`, `state.sound`, arte `sound-<membro>` via `scripts/sound-sprites.sh`):
-  da Vila Oculta em diante, 4 membros invadem para RAPTAR o ninja mais talentoso (`soundTarget`: kekkei genkai, nível,
-  atributos; nunca Kage nem Sannin). `soundBrain` (hostiles): vão atrás dele (até dentro de casa), um carrega
+  da Vila Oculta em diante, 4 membros invadem para RAPTAR um ninja (`soundTarget`: nunca Kage nem Sannin; em geral o mais
+  talentoso — kekkei genkai, nível, atributos —, mas `SOUND.pickTop` 30% um dos 5 mais talentosos e `pickAny` 30% um
+  qualquer, senão no fim de jogo nunca davam conta). `soundBrain` (hostiles): vão atrás dele (até dentro de casa), um carrega
   (`Unit.carrying`/`captiveOf`; o raptado não é alvo, `canHit`) e foge devagar levando o dobro de dano, os outros cobrem e
   os ninjas da vila por perto recebem ordem de atacar quem carrega. Matam no máximo `SOUND.maxKills` (4) por invasão; dali em
   diante o golpe deles NOCAUTEIA (`soundKnockout`, `raid.kills`). Impedido: recompensa e honra. Levado: fica `away = WITH_SOUND`, o nó `som` (Esconderijo do Som) aparece na

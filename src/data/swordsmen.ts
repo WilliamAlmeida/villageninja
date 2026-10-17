@@ -1,7 +1,7 @@
 // Os Sete Espadachins da Névoa: renegados que carregam as sete lâminas lendárias. Da Vila Oculta em diante invadem a
 // vila de tempos em tempos (2 deles com uma escolta). Cada invasão rende no máximo UMA espada: o primeiro espadachim
-// derrubado cai de vez e a espada fica com a vila; os outros, derrubados, somem na névoa e voltam numa próxima.
-// Tomadas as sete, a organização acaba.
+// derrubado cai de vez e a espada fica com a vila; os outros, derrubados, podem sumir na névoa (`fleeChance`) e voltar
+// numa próxima, ou caem de vez. Tomadas as sete, continuam vindo sem elas, às vezes com capangas.
 import type { MistBlade } from './blades';
 import type { Nature } from './natures';
 
@@ -24,6 +24,11 @@ export const SWORDSMEN_ORG = {
   /** Espadachins por invasão (os que ainda têm espada) e renegados de escolta. */
   perRaid: 2,
   escort: 3,
+  /** Espadachim cuja espada já é da vila vem sem ela; aí, com esta chance, a invasão traz capangas a mais. */
+  henchChance: 0.5,
+  hench: [2, 4] as [number, number],
+  /** Depois da espada da invasão, quem é derrubado tem esta chance de sumir na névoa; senão cai de vez. */
+  fleeChance: 0.3,
   /** Força: atributos e multiplicador de vida (cresce com os Jounins da vila, como a Ordem). */
   stats: 2.8,
   hpMult: 2.6,

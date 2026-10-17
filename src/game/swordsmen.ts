@@ -1,8 +1,8 @@
 // Os Espadachins da Névoa (data/swordsmen.ts): invasões de tempos em tempos com dois espadachins (dos que ainda têm a
 // espada) e uma escolta de renegados. O primeiro espadachim derrubado na invasão cai de vez e a espada dele fica com a
-// vila; os outros, derrubados, somem na névoa e voltam numa próxima. Tomadas as sete, continuam vindo atrás delas (o
-// primeiro derrubado cai e dá ryo). Só começam depois da primeira invasão do Quinteto do Som (ordem da história).
-import { rand, randi } from '../core/rng';
+// vila; os outros, derrubados, caem de vez ou às vezes somem na névoa e voltam numa próxima. Tomadas as sete, continuam
+// vindo atrás delas, sem elas e às vezes com capangas (o primeiro derrubado cai e dá ryo). Só começam depois da primeira invasão do Quinteto do Som (ordem da história).
+import { chance, rand, randi } from '../core/rng';
 import { bladeItem, BLADES, MIST_BLADES, type MistBlade } from '../data/blades';
 import { STAT_KEYS } from '../data/ninja';
 import { costLabel } from '../data/resources';
@@ -29,7 +29,7 @@ export function createSwordsman(g: Game, id: MistBlade, x: number, y: number): U
   const n = u.ninja!;
   n.nature = d.nature;
   n.level = 25;
-  n.equip.weapon = bladeItem(id);
+  if (!g.state.blades.includes(id)) n.equip.weapon = bladeItem(id); // a espada já é da vila: vem sem ela
   u.look = { ...u.look, cloth: o.cloth, hair: d.hair };
   for (const k of STAT_KEYS) n.stats[k] = Math.min(10, o.stats * 2.4 + rand(0, 1.5));
   refreshDerived(u);
@@ -64,9 +64,17 @@ export function swordsmenTick(g: Game) {
     fx(g, 'smoke', u.x, u.y, { r: 26, life: 1, color: '#c8d4e0' });
   });
   for (let i = 0; i < SWORDSMEN_ORG.escort; i++) createRogue(g, p.x + rand(-20, 20), p.y + rand(10, 30), s.day, { rank: 'chunin', stats: 1.6 });
+  // sem as espadas, compensam com capangas
+  const bare = who.some((id) => s.blades.includes(id));
+  const hench = bare && chance(SWORDSMEN_ORG.henchChance) ? randi(SWORDSMEN_ORG.hench[0], SWORDSMEN_ORG.hench[1]) : 0;
+  for (let i = 0; i < hench; i++) {
+    const h = createRogue(g, p.x + rand(-30, 30), p.y + rand(-30, 30), s.day, { rank: chance(0.3) ? 'jounin' : 'chunin', stats: 1.8 });
+    scaleThreat(h, Math.sqrt(threatScale(g)));
+  }
   s.flags.raidActive = true;
-  const names = who.map((id) => `${SWORDSMEN[id].name} (${BLADES[id].name})`).join(' e ');
-  g.toast(`{swords} Os ${SWORDSMEN_ORG.name} atacam: ${names}! Derrube um para tomar a espada dele.`, 'danger', p);
+  const names = who.map((id) => (s.blades.includes(id) ? SWORDSMEN[id].name : `${SWORDSMEN[id].name} (${BLADES[id].name})`)).join(' e ');
+  const tail = who.some((id) => !s.blades.includes(id)) ? ' Derrube um para tomar a espada dele.' : ' Vêm sem as espadas, atrás delas.';
+  g.toast(`{swords} Os ${SWORDSMEN_ORG.name} atacam: ${names}${hench ? `, com ${hench} capangas` : ''}!${tail}`, 'danger', p);
 }
 
 /** Alvo do espadachim fora do alcance de visão: o ninja da vila (à vista, fora de casa) mais perto. */
@@ -107,7 +115,12 @@ export function swordsmanFall(g: Game, u: Unit): boolean {
     }
     return false;
   }
-  // já tomaram uma espada nesta invasão: este some na névoa
+  // já tomaram uma espada nesta invasão: este cai de vez ou, às vezes, some na névoa
+  if (!chance(SWORDSMEN_ORG.fleeChance)) {
+    g.give(SWORDSMEN_ORG.fleeReward);
+    g.toast(`{crown} ${d.name} caiu! +${costLabel(SWORDSMEN_ORG.fleeReward)}.`, 'good', u);
+    return false;
+  }
   u.hp = Math.max(1, Math.round(u.maxHp * 0.3));
   u.cloak = true;
   u.state = 'escape';

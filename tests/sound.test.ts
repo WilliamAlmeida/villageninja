@@ -34,11 +34,21 @@ describe('Quinteto do Som', () => {
   test('invadem atrás do mais talentoso (kekkei genkai primeiro; nunca o Kage)', () => {
     const g = createNewGame(SYSTEMS, 2201);
     const v = village(g);
-    expect(soundTarget(g)?.id).toBe(v.gifted.id);
+    expect(soundTarget(g, true)?.id).toBe(v.gifted.id);
     g.state.sound.nextDay = g.state.day;
     soundTick(g, 0.1);
     expect(soundOnMap(g).length).toBe(4);
-    expect(g.state.sound.raid?.targetId).toBe(v.gifted.id);
+    expect(g.state.sound.raid!.targetId).not.toBe(v.kage.id);
+  });
+
+  test('às vezes vão atrás de outro ninja que não o mais talentoso (nunca o Kage)', () => {
+    const g = createNewGame(SYSTEMS, 2209);
+    const v = village(g);
+    const seen = new Set<number>();
+    for (let i = 0; i < 200; i++) seen.add(soundTarget(g)!.id);
+    expect(seen.has(v.gifted.id)).toBe(true);
+    expect(seen.has(v.other.id)).toBe(true);
+    expect(seen.has(v.kage.id)).toBe(false);
   });
 
   test('derrubar quem carrega solta o raptado; sem rapto, a invasão conta como impedida', () => {

@@ -11,6 +11,7 @@ import { createNewGame } from '../src/game/newGame';
 import { nameSannin } from '../src/game/sannin';
 import { migrate } from '../src/game/save';
 import { createSwordsman, swordsmenOnMap, swordsmenTick } from '../src/game/swordsmen';
+import { SWORDSMEN_ORG } from '../src/data/swordsmen';
 import { SYSTEMS } from '../src/game/systems';
 import { canHit } from '../src/game/factions';
 import { autoTeams, createTeam, enforceTeamRules, joinAsMember, teamOf } from '../src/game/teams';
@@ -51,27 +52,49 @@ describe('Espadachins da Névoa', () => {
     swordsmenTick(g);
     const on = swordsmenOnMap(g);
     expect(on.length).toBe(2);
+    expect(on.every((u) => u.ninja!.equip.weapon !== bladeItem(u.swordsman!))).toBe(true); // vêm sem as espadas
     const ryo = g.state.res.ryo;
     killUnit(g, on[0]!, null);
     expect(on[0]!.dead).toBe(true);
     expect(g.state.res.ryo).toBeGreaterThan(ryo);
-    killUnit(g, on[1]!, null);
-    expect(on[1]!.dead).toBe(false); // some na névoa
   });
 
-  test('só uma espada por invasão: o primeiro cai e deixa a espada, o segundo some na névoa', () => {
-    const g = createNewGame(SYSTEMS, 2102);
-    const a = createSwordsman(g, 'zabuza', 500, 500);
-    const b = createSwordsman(g, 'samehada', 540, 500);
-    killUnit(g, a, null);
-    expect(a.dead).toBe(true);
-    expect(g.state.blades).toEqual(['zabuza']);
-    expect(g.state.items[bladeItem('zabuza')]).toBe(1);
-    killUnit(g, b, null);
-    expect(b.dead).toBeFalsy();
-    expect(b.cloak).toBe(true);
-    expect(b.state).toBe('escape');
-    expect(g.state.blades).toEqual(['zabuza']);
+  test('sem as espadas, às vezes trazem capangas a mais', () => {
+    const counts = new Set<number>();
+    for (let i = 0; i < 20; i++) {
+      const g = createNewGame(SYSTEMS, 2110 + i);
+      g.state.level = 2;
+      g.state.sound.stopped = 1;
+      g.state.blades = [...MIST_BLADES];
+      g.state.swordsmen.nextDay = g.state.day;
+      const before = g.state.units.filter((u) => u.faction === 'enemy').length;
+      swordsmenTick(g);
+      counts.add(g.state.units.filter((u) => u.faction === 'enemy').length - before);
+    }
+    expect(Math.min(...counts)).toBe(2 + SWORDSMEN_ORG.escort);
+    expect(Math.max(...counts)).toBeGreaterThan(2 + SWORDSMEN_ORG.escort);
+  });
+
+  test('só uma espada por invasão: o primeiro cai e deixa a espada; o segundo cai de vez ou some na névoa', () => {
+    const fled: boolean[] = [];
+    for (let i = 0; i < 40; i++) {
+      const g = createNewGame(SYSTEMS, 2102);
+      const a = createSwordsman(g, 'zabuza', 500, 500);
+      const b = createSwordsman(g, 'samehada', 540, 500);
+      killUnit(g, a, null);
+      expect(a.dead).toBe(true);
+      expect(g.state.blades).toEqual(['zabuza']);
+      expect(g.state.items[bladeItem('zabuza')]).toBe(1);
+      killUnit(g, b, null);
+      expect(g.state.blades).toEqual(['zabuza']);
+      if (!b.dead) {
+        expect(b.cloak).toBe(true);
+        expect(b.state).toBe('escape');
+      }
+      fled.push(!b.dead);
+    }
+    expect(fled.some((f) => f)).toBe(true);
+    expect(fled.some((f) => !f)).toBe(true);
   });
 
   test('tomadas as sete, a organização acaba', () => {

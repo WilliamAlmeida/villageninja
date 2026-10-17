@@ -1,6 +1,6 @@
 // O Quinteto do Som (data/sound.ts): invasão para raptar o ninja mais talentoso, a IA de quem carrega e de quem dá
 // cobertura, as técnicas de cada um, o resgate no esconderijo e o selo amaldiçoado de quem não foi resgatado a tempo.
-import { rand, randi } from '../core/rng';
+import { pick, rand, randi } from '../core/rng';
 import { STAT_KEYS } from '../data/ninja';
 import { costLabel } from '../data/resources';
 import { SOUND, SOUND_MEMBERS, SOUND_RAIDERS, type SoundId } from '../data/sound';
@@ -22,18 +22,26 @@ const carrierOf = (g: Game) => g.state.units.find((u) => !u.dead && u.carrying !
 /** Ninjas da vila que passaram para o lado do Som (selo amaldiçoado). */
 export const cursedOnes = (g: Game) => g.state.units.filter((u) => !u.dead && u.cursed && u.faction === 'enemy');
 
-/** O alvo do rapto: o ninja mais talentoso (kekkei genkai primeiro, depois nível e atributos); nunca Kage nem Sannin. */
-export function soundTarget(g: Game): Unit | null {
-  let best: Unit | null = null;
-  let bs = -1;
+/**
+ * O alvo do rapto (nunca Kage nem Sannin): na maioria das vezes o mais talentoso (kekkei genkai primeiro, depois nível e
+ * atributos), mas às vezes um dos talentosos ou um ninja qualquer (`SOUND.pickTop`/`pickAny`) — no fim de jogo o mais
+ * talentoso vive cercado de Jounins e o rapto nunca dava certo. `best` força o mais talentoso.
+ */
+export function soundTarget(g: Game, best = false): Unit | null {
+  const list: { u: Unit; score: number }[] = [];
   for (const u of g.state.units) {
     const n = u.ninja;
     if (u.dead || u.faction !== 'village' || u.kind !== 'ninja' || !n || u.away != null || u.origin != null) continue;
     if (n.rank === 'kage' || n.sannin) continue;
-    const score = (n.kekkei ? 1000 : 0) + n.level * 10 + STAT_KEYS.reduce((a, k) => a + n.stats[k], 0);
-    if (score > bs) [best, bs] = [u, score];
+    list.push({ u, score: (n.kekkei ? 1000 : 0) + n.level * 10 + STAT_KEYS.reduce((a, k) => a + n.stats[k], 0) });
   }
-  return best;
+  if (!list.length) return null;
+  list.sort((a, b) => b.score - a.score);
+  if (best) return list[0]!.u;
+  const r = Math.random();
+  if (r < SOUND.pickAny) return pick(list).u;
+  if (r < SOUND.pickAny + SOUND.pickTop) return pick(list.slice(0, 5)).u;
+  return list[0]!.u;
 }
 
 /** Cria um membro do Som. */

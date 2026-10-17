@@ -24,6 +24,9 @@ export const SOUND = {
   minVillage: 2,
   /** Intervalo (dias) entre as invasões. */
   every: [6, 9] as [number, number],
+  /** Alvo do rapto: chance de ser um ninja qualquer, de ser um dos 5 mais talentosos; o resto, o mais talentoso. */
+  pickAny: 0.3,
+  pickTop: 0.3,
   /** Segundos tentando pegar o alvo antes de desistir e ir embora. */
   patience: 180,
   /** Dias para resgatar o raptado no esconderijo. */
