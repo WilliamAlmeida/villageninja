@@ -30,7 +30,8 @@
   própria (`useArt`: Inferno, Corpo de Ferro –50% dano, Prisão d'Água, Trovão Veloz, Miragem, Mortos-vivos, Ninho,
   Repulsão). Da Vila Oculta em diante as 3 duplas atacam a cada 4–6 dias e caçam o ninja mais forte (`orgBrain`; caça
   em `Unit.life`, depois recuam). Quem cai entra em `state.org.down`; caídas as duplas, o covil aparece na
-  Região (nó `covil`, ação `assault`) e a Ordem recruta membros novos (`regroup`, `org.cycle`: +30% de vida por volta);
+  Região (nó `covil`, ação `assault`) e a Ordem recruta membros novos (`regroup`, `org.cycle`: +30% de vida por volta até `ORG.cycleMax` = 5, `cycleHpMult`; sem teto, no dia 599 a 20ª volta tinha
+  vida ×7 e a dupla não caía);
   covil destruído (`org.wins`), ela some `ORG.restDays` e se reergue do zero. Vida cresce com a quantidade de Jounins da vila. Seção na aba Kage.
 - **ANBU** (`game/anbu.ts`, seção na aba Kage): o Kage nomeia Chunins/Jounins (Torre de Inteligência; 3 vagas); saem das
   equipes comuns e só formam equipe entre si (`teamKind`/`teamFit` em teams.ts: o Kage não tem equipe, ANBU só com ANBU,

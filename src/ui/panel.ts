@@ -2285,7 +2285,7 @@ export class Panel {
     const g = this.app.game;
     const o = g.state.org;
     const emblem = atlasCell(ICONS, 'eclipse', 'o-emb') ?? '{skull}';
-    let html = `<section class="kpanel ocard"><div class="o-head">${emblem}<div><b>${ORG.name}</b><small>8 lendários · atacam em duplas · caídas as três, voltam com membros novos${(o.cycle ?? 0) ? ` (${o.cycle}ª volta, mais fortes)` : ''}</small></div></div>`;
+    let html = `<section class="kpanel ocard"><div class="o-head">${emblem}<div><b>${ORG.name}</b><small>8 lendários · atacam em duplas · caídas as três, voltam com membros novos${(o.cycle ?? 0) ? ` (${o.cycle}ª volta, ${o.cycle! >= ORG.cycleMax ? 'no auge da força' : 'mais fortes'})` : ''}</small></div></div>`;
     if (o.done) return html + `<p class="hint">{check} Destruída${(o.wins ?? 0) > 1 ? ` ${o.wins} vezes` : ''}. Vai se reerguer com membros novos (dia ${o.nextDay}).</p></section>`;
     const known = g.state.level >= ORG.minVillage;
     html += `<div class="o-prog"><div class="o-count"><b>${o.down.length}/8 derrotados</b><div class="nc-bar"><i style="width:${(o.down.length / 8) * 100}%"></i></div></div>

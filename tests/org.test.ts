@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { SAVE_VERSION, SIM_DT } from '../src/config';
-import { ORG_PAIRS } from '../src/data/org';
+import { ORG, ORG_PAIRS } from '../src/data/org';
 import { applyDamage, killUnit } from '../src/game/combat';
 import { refreshDerived } from '../src/game/entities';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
-import { createOrgMember, orgOnMap, orgTick, prepareDefense } from '../src/game/org';
+import { createOrgMember, cycleHpMult, orgOnMap, orgTick, prepareDefense } from '../src/game/org';
 import { actionBlock, startRegion } from '../src/game/region';
 import { migrate } from '../src/game/save';
 import { sceneGame } from '../src/game/scene';
@@ -51,6 +51,13 @@ describe('Ordem do Eclipse', () => {
     const on = orgOnMap(g);
     expect(on.map((u) => u.org).sort()).toEqual([...ORG_PAIRS[0]!].sort());
     expect(on.find((u) => u.org === 'goen')!.maxHp).toBeGreaterThan(plain);
+  });
+
+  test('a força ganha por volta tem teto', () => {
+    expect(cycleHpMult(0)).toBe(1);
+    expect(cycleHpMult(1)).toBeCloseTo(1 + ORG.cycleHp);
+    expect(cycleHpMult(ORG.cycleMax)).toBeCloseTo(1 + ORG.cycleHp * ORG.cycleMax);
+    expect(cycleHpMult(20)).toBe(cycleHpMult(ORG.cycleMax));
   });
 
   test('covil destruído: some uns dias e depois se reergue do zero', () => {

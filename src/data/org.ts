@@ -29,6 +29,8 @@ export const ORG = {
   hunt: 150,
   /** Vida a mais por vez que a Ordem se reergueu (+30% a cada ciclo). */
   cycleHp: 0.3,
+  /** Voltas que ainda somam vida (teto: +150% na 5ª; depois ela volta igual, a escala pela força da vila segue valendo). */
+  cycleMax: 5,
   /** Dias de sossego depois que o covil cai, até ela se reerguer. */
   restDays: 10,
   /** Recompensa por membro derrotado e pela destruição da Ordem. */

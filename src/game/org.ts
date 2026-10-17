@@ -33,6 +33,9 @@ export const nextPair = (s: GameState) => ORG_PAIRS.find((p) => p.some((id) => !
 /** Membros da Ordem vivos no mapa agora. */
 export const orgOnMap = (g: Game) => g.state.units.filter((u) => !u.dead && u.org);
 
+/** Vida a mais pelas voltas da Ordem, com teto (`ORG.cycleMax`): não cresce para sempre com o tempo de jogo. */
+export const cycleHpMult = (cycle = 0) => 1 + ORG.cycleHp * Math.min(cycle, ORG.cycleMax);
+
 /** Cria um membro da Ordem (renegado lendário com a técnica própria). */
 export function createOrgMember(g: Game, id: OrgMemberId, x: number, y: number): Unit {
   const d = ORG_MEMBERS[id];
@@ -48,7 +51,7 @@ export function createOrgMember(g: Game, id: OrgMemberId, x: number, y: number):
   for (const k of STAT_KEYS) u.ninja!.stats[k] = Math.min(10, d.stats * 2.5 + rand(0, 1.5));
   refreshDerived(u);
   const elite = g.state.units.filter((o) => !o.dead && o.faction === 'village' && o.ninja && (o.ninja.rank === 'jounin' || o.ninja.rank === 'kage')).length;
-  u.maxHp = Math.round(u.maxHp * d.hpMult * Math.min(3, 1 + elite * 0.12) * (1 + ORG.cycleHp * (g.state.org.cycle ?? 0)));
+  u.maxHp = Math.round(u.maxHp * d.hpMult * Math.min(3, 1 + elite * 0.12) * cycleHpMult(g.state.org.cycle));
   u.hp = u.maxHp;
   scaleThreat(u, threatScale(g)); // vila grande: a ameaça vem à altura dela
   u.chakra = u.maxChakra;
