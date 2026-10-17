@@ -7,6 +7,7 @@ import { el, esc, fmt } from './dom';
 import { rich } from './icons';
 import { MOOD, SEASONS, WEATHERS } from '../data/seasons';
 import { daysToNextSeason, moodFactors, seasonOf } from '../game/mood';
+import { colonyGame, colonyName } from '../game/colonies';
 import { canFullscreen, IOS_HINT, isFullscreen, isIOS, isStandalone, toggleFullscreen, watchFullscreen } from './fullscreen';
 
 const MAX_TOASTS = 4;
@@ -18,6 +19,8 @@ export class Hud {
   readonly toasts: HTMLElement;
   onMenu: () => void = () => {};
   private vals = new Map<string, HTMLElement>();
+  /** Onde a barra está contando (id da colônia aberta ou '' = vila), para trocar as dicas só quando muda. */
+  private where = '';
 
   constructor(private app: App) {
     this.top = el(
@@ -148,10 +151,23 @@ export class Hud {
       set(k, fmt(s.res[k]));
       this.vals.get(k)!.parentElement!.hidden = s.res[k] <= 0;
     }
-    const pop = g.population();
-    const cap = g.popCap();
+    // na colônia: gente, ninjas e teto são os dela (o tesouro é o mesmo da vila; a felicidade é só da vila)
+    const colId = this.app.viewColony;
+    const cg = colId ? colonyGame(g, colId) : null;
+    const pg = cg ?? g;
+    const pop = pg.population();
+    const cap = pg.popCap();
     set('pop', `${pop}/${cap}`);
-    set('ninjas', String(s.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village').length));
+    set('ninjas', String(pg.state.units.filter((u) => !u.dead && u.kind === 'ninja' && u.faction === 'village').length));
+    if (this.where !== (colId ?? '')) {
+      this.where = colId ?? '';
+      const name = cg ? colonyName(colId!) : '';
+      this.vals.get('pop')!.parentElement!.dataset.tip = cg
+        ? `Moradores e ninjas da colônia ${name} / vagas de moradia dela. Construa casas lá para crescer.`
+        : 'Moradores e ninjas / vagas de moradia. Construa ou melhore casas para a vila crescer.';
+      this.vals.get('ninjas')!.parentElement!.dataset.tip = cg ? `Ninjas que moram na colônia ${name}.` : 'Ninjas da vila. Recrute moradores na Academia.';
+      this.vals.get('moodchip')!.hidden = !!cg;
+    }
     set('day', String(s.day));
     set('clock', clockLabel(s));
     this.html(this.vals.get('sun')!, isNight(s) ? '{moon}' : '{sun}');

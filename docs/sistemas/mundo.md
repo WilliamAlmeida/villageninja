@@ -100,7 +100,8 @@
   e dá `step` com `COLONY_SYSTEMS` (status, população, equipes, moradores, ninjas, inimigos, torres, técnicas,
   projéteis, efeitos, exploração, natureza — sem tempo, invasões, missões, Kage); `colony.day` acompanha o dia, então o
   resumo não passa por cima do que foi vivido. Barra do alto (`ui/scene.ts`) mostra "Colônia · ilha", a gente e "Voltar à
-  vila"; o botão Construir e Selecionar funcionam lá (`BuildUI` usa `app.game`), as janelas de gestão voltam à vila
+  vila"; a barra de recursos (`ui/hud.ts`) segue o tesouro comum, mas População e Ninjas passam a
+  contar os da colônia (com o teto dela) e a Felicidade (só da vila) some; o botão Construir e Selecionar funcionam lá (`BuildUI` usa `app.game`), as janelas de gestão voltam à vila
   primeiro; toasts da colônia levam o id (`toast.colony`) e o toque abre o mapa dela. Ficha da ilha na região: cartão
   da colônia (gente, prédios, rende por dia, última linha do diário, "Visitar colônia") e a escolha de quem vai; a
   ilha ganha a cabana do posto e bandeira azul no mapa; colonos em viagem aparecem na trilha e em Expedições
