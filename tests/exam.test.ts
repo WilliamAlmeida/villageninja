@@ -4,7 +4,7 @@ import { SAVE_VERSION, SIM_DT } from '../src/config';
 import { createAnimal, createNinja } from '../src/game/entities';
 import { examStatus, setExamSize, startExam } from '../src/game/exam';
 import { arenaRing, keepInRing } from '../src/game/arena';
-import { push } from '../src/game/movement';
+import { push, setDestination } from '../src/game/movement';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
 import { migrate } from '../src/game/save';
@@ -143,6 +143,25 @@ describe('Exame Chunin', () => {
     run(g, 400);
     expect(g.state.exam).toBeNull();
     expect(g.state.units.some((u) => !u.dead && u.perch != null)).toBe(false);
+  });
+
+  test('no Exame a arena fecha: quem não participa sai e não volta a entrar', () => {
+    const g = setup(14, 3);
+    const arena = g.findBuilt('arena')!;
+    const inside = (u: { x: number; y: number }) => u.x >= arena.tx * 32 && u.x < (arena.tx + 6) * 32 && u.y >= arena.ty * 32 && u.y < (arena.ty + 6) * 32;
+    const v = g.state.units.find((u) => u.kind === 'villager')!;
+    v.x = (arena.tx + 3) * 32;
+    v.y = (arena.ty + 4) * 32;
+    v.path = [];
+    v.hasGoal = false;
+    expect(startExam(g).ok).toBe(true);
+    // fechada: destino lá dentro não vale para quem é de fora
+    const out = g.state.units.find((u) => u.kind === 'villager' && u !== v)!;
+    expect(setDestination(g, out, (arena.tx + 3) * 32, (arena.ty + 3) * 32)).toBe(false);
+    run(g, 15);
+    expect(g.state.exam).not.toBeNull();
+    expect(inside(v)).toBe(false);
+    expect(g.state.units.filter((u) => !u.dead && u.faction === 'village' && u.arenaSide == null && u.perch == null && inside(u))).toEqual([]);
   });
 
   test('exige arena e genins de nível 2+', () => {

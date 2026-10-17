@@ -41,6 +41,22 @@ export function keepInRing(g: Game, u: Unit, p: { x: number; y: number }, margin
   return { x: ring.cx + (dx / d) * max, y: ring.cy + (dy / d) * max };
 }
 
+/** Terreno da arena (px). */
+export type Fence = { x0: number; y0: number; x1: number; y1: number };
+export const inFence = (f: Fence, x: number, y: number) => x >= f.x0 && x < f.x1 && y >= f.y0 && y < f.y1;
+
+/**
+ * Durante o Exame ou um duelo a arena fica fechada para quem não participa (moradores e ninjas de fora atrapalhavam o
+ * espetáculo): o caminho deles não entra no terreno dela. Quem está lutando (invasão) passa. null = aberta.
+ */
+export function arenaFence(g: Game, u: Unit): Fence | null {
+  if (!g.state.exam || u.arenaSide != null || u.perch != null || u.combatTimer > 0) return null;
+  const b = g.findBuilt('arena');
+  if (!b) return null;
+  const d = BUILDINGS.arena;
+  return { x0: b.tx * TILE, y0: b.ty * TILE, x1: (b.tx + d.w) * TILE, y1: (b.ty + d.h) * TILE };
+}
+
 /** Distância de luta que cabe na arena (quem luta de longe não foge para fora). */
 export function ringDesired(g: Game, u: Unit, desired: number) {
   const ring = ringOf(g, u);

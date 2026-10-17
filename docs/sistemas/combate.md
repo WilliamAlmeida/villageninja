@@ -16,7 +16,10 @@
 - **Arena do Exame redonda** (6×6, coliseu com portão na frente-esquerda; muro, portão e peças no layout.json; `game/arena.ts`): os dois do duelo ficam no círculo (`arenaRing`): Shunshin e Kawarimi
   só pousam dentro (`keepInRing`), a distância de luta cabe nele (`ringDesired`) e andar não tira ninguém; empurrado para
   fora por um golpe (`Unit.knockT`, setado em `push`) perde (ring-out, `systems/exam.ts`). Migração 23 desloca a arena que
-  cresceu e encostou noutro prédio. **Plateia na arquibancada**: quem não luta anda até o chão logo abaixo do seu lugar
+  cresceu e encostou noutro prédio. **Arena fechada no Exame/duelo** (`arenaFence`): o caminho de quem não participa
+  (moradores e ninjas fora do combate) não entra no terreno dela e destino lá dentro falha (`setDestination` passa a cerca
+  ao A*); `clearArena` (systems/exam.ts, a cada 0,5 s) tira quem está dentro e refaz a rota de quem cortava por ela.
+  **Plateia na arquibancada**: quem não luta anda até o chão logo abaixo do seu lugar
   (`arenaSpots.seat(i)`/`below`, pontos `seat1…8` do Editor de cenário ou um arco no fundo) e salta para ele (`takeSeat`,
   `Unit.perch` = id da arena); o renderer o desenha logo depois da peça mais ao fundo (a arquibancada), sem deixá-la
   transparente. Chamado para lutar ou fim do exame: desce (`leaveSeat`). **Vagas** 4 ou 8 no drawer da arena

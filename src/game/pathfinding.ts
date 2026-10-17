@@ -1,4 +1,5 @@
 import { CELL, MAX_MAP_H, MAX_MAP_W, SUB } from '../config';
+import { type Fence, inFence } from './arena';
 import type { World } from './world';
 import { isRoadCell, ROAD } from './roads';
 
@@ -116,13 +117,14 @@ export function findPath(w: World, sx: number, sy: number, gx: number, gy: numbe
 }
 
 /** Caminho entre dois pontos (px). */
-export function findPathPx(w: World, ax: number, ay: number, bx: number, by: number, maxIter = 6000 * SUB * SUB): number[] | null {
+export function findPathPx(w: World, ax: number, ay: number, bx: number, by: number, maxIter = 6000 * SUB * SUB, fence?: Fence | null): number[] | null {
   const c = (v: number, max: number) => Math.max(0, Math.min(max - 1, Math.floor(v / CELL)));
-  return findCells(w, c(ax, w.fineW), c(ay, w.fineH), c(bx, w.fineW), c(by, w.fineH), maxIter);
+  const f = fence && { x0: Math.floor(fence.x0 / CELL), y0: Math.floor(fence.y0 / CELL), x1: Math.ceil(fence.x1 / CELL), y1: Math.ceil(fence.y1 / CELL) };
+  return findCells(w, c(ax, w.fineW), c(ay, w.fineH), c(bx, w.fineW), c(by, w.fineH), maxIter, f);
 }
 
 /** A* nas células: lista de índices de célula (sem a inicial) ou null. Destino bloqueado vai para a célula livre mais perto. */
-export function findCells(w: World, sx: number, sy: number, gx: number, gy: number, maxIter: number): number[] | null {
+export function findCells(w: World, sx: number, sy: number, gx: number, gy: number, maxIter: number, fence?: Fence | null): number[] | null {
   // começando dentro de um muro (empurrado, nasceu num prédio): sai pela célula livre mais perto
   let pre: number | null = null;
   if (!w.walkableCell(sx, sy)) {
@@ -137,6 +139,9 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
   if (!g) return null;
   [gx, gy] = g;
   if (w.region[w.fidx(gx, gy)] !== w.region[w.fidx(sx, sy)]) return null;
+  // cerca (arena fechada no Exame, em células): destino dentro não vale; quem está dentro só pode sair por ela
+  if (fence && inFence(fence, gx, gy)) return null;
+  if (fence && inFence(fence, sx, sy)) fence = null;
   const start = w.fidx(sx, sy);
   const goal = w.fidx(gx, gy);
   const FW = w.fineW;
@@ -168,7 +173,7 @@ export function findCells(w: World, sx: number, sy: number, gx: number, gy: numb
       const ny = cy + dy;
       if (!w.inFine(nx, ny)) continue;
       const ni = w.fidx(nx, ny);
-      if (closed[ni] === gen || !w.walkableCell(nx, ny)) continue;
+      if (closed[ni] === gen || !w.walkableCell(nx, ny) || (fence && inFence(fence, nx, ny))) continue;
       if (dx !== 0 && dy !== 0 && (!w.walkableCell(cx + dx, cy) || !w.walkableCell(cx, cy + dy))) continue;
       const ng = gScore[cur]! + cost * (isRoadCell(w.state, nx, ny) ? ROAD.pathCost : 1) + (w.soft[ni] ? SOFT_COST : 0);
       if (seen[ni] !== gen || ng < gScore[ni]!) {

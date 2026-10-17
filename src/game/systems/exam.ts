@@ -1,13 +1,56 @@
 // Execução do Exame Chunin na arena: arquibancada → caminhada → "VS" → luta → próximo duelo.
 import { engage } from '../combat';
 import { arenaOf, arenaSpots, finishExam, leaveSeat, takeSeat } from '../exam';
-import { ARENA_RING, arenaRing } from '../arena';
+import { ARENA_RING, arenaFence, arenaRing, inFence } from '../arena';
+import { TILE } from '../../config';
 import { fxText } from '../fx';
 import type { Game } from '../game';
 import { followPath, setDestination } from '../movement';
 import type { Exam, Unit } from '../types';
 
 const FIGHT_TIME = 40;
+/** De quanto em quanto tempo (s) a arena é esvaziada de quem não participa. */
+const CLEAR_EVERY = 0.5;
+const lastClear = new WeakMap<Game, number>();
+
+/**
+ * Arena fechada no Exame/duelo (`arenaFence`): quem não participa e está dentro sai pelo portão; quem vinha com o
+ * caminho cortando por ela refaz a rota (o destino lá dentro é largado). Moradores e ninjas da vila.
+ */
+function clearArena(g: Game) {
+  const t = g.state.time;
+  if (t - (lastClear.get(g) ?? -Infinity) < CLEAR_EVERY) return;
+  lastClear.set(g, t);
+  for (const u of g.state.units) {
+    if (u.dead || u.hidden || u.away != null || u.faction !== 'village' || (u.kind !== 'villager' && u.kind !== 'ninja')) continue;
+    const f = arenaFence(g, u);
+    if (!f) continue;
+    const walk = u.kind === 'villager' ? 'wander' : 'patrol'; // estados que só seguem o caminho e depois voltam à rotina
+    if (inFence(f, u.x, u.y)) {
+      if (u.hasGoal && !inFence(f, u.goalX, u.goalY)) continue; // já está saindo
+      // sai pela borda mais perto do lado em que está (as paredes levam o caminho até o portão)
+      const mx = (f.x0 + f.x1) / 2;
+      const my = (f.y0 + f.y1) / 2;
+      const dx = u.x - mx || 1;
+      const dy = u.y - my;
+      const k = Math.min((f.x1 - mx) / Math.abs(dx), dy ? (f.y1 - my) / Math.abs(dy) : Infinity);
+      if (setDestination(g, u, mx + dx * k + Math.sign(dx) * TILE, my + dy * k + Math.sign(dy) * TILE)) u.state = walk;
+      continue;
+    }
+    if (!u.hasGoal || !u.path.some((c) => {
+      const p = g.world.cellCenter(c);
+      return inFence(f, p.x, p.y);
+    })) continue;
+    // o caminho de antes do Exame cortava a arena: refaz por fora (destino lá dentro: volta à rotina)
+    if (inFence(f, u.goalX, u.goalY) || !setDestination(g, u, u.goalX, u.goalY)) {
+      u.path.length = 0;
+      u.hasGoal = false;
+      u.state = 'idle';
+      u.timer = 0;
+    }
+  }
+}
+
 /** Duelo: tempo máximo para voltar ao canto depois da luta e quanto dura o cumprimento. */
 const BOW_WALK = 7;
 const BOW_TIME = 2.2;
@@ -25,6 +68,7 @@ export function examSystem(g: Game, dt: number) {
     return;
   }
   const spots = arenaSpots(arena);
+  clearArena(g);
   exam.timer -= dt;
   const [a, b] = fighters(g, exam);
 

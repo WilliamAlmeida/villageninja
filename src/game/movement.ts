@@ -5,6 +5,7 @@ import { sageSpeed } from './sannin';
 import { modeSpeed } from './modes';
 import { bladeMove } from './blades';
 import type { Game } from './game';
+import { arenaFence } from './arena';
 import { findPathPx } from './pathfinding';
 import type { Unit } from './types';
 import { toCell } from './world';
@@ -21,7 +22,7 @@ export function setDestination(g: Game, u: Unit, x: number, y: number): boolean 
     u.path.length = 0;
     return false;
   }
-  const p = findPathPx(g.world, u.x, u.y, x, y);
+  const p = findPathPx(g.world, u.x, u.y, x, y, undefined, arenaFence(g, u)); // Exame/duelo: arena fechada para quem não participa
   if (!p) {
     failed.set(u, { cell: goal, until: g.state.time + 1.5 });
     u.hasGoal = false;
