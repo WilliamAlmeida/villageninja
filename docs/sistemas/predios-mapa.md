@@ -27,7 +27,7 @@
   Canteiros vizinhos (4 lados) = um cercado com **uma cultura** (`Field.crop`); partir ao meio vira dois com a mesma
   cultura, juntar fica com a do maior. **Teto total de canteiros** por nível (`FIELD.maxPlots` 18/36/48/100: no nível 3 a vila chega a 170 pessoas e come ~850/dia, ~1.060 no
   inverno; com 60 o save do autor passava fome mesmo com o solo cheio; colônia
-  `FIELD.colonyPlots` 18; `plotCap`). `World.fieldTile` marca o campo de cada tile; prédio não entra no canteiro e fica a
+  `FIELD.colonyPlots` 36: com 18, a colônia cheia de 48 comia ~85/dia a mais do que plantava; `plotCap`). `World.fieldTile` marca o campo de cada tile; prédio não entra no canteiro e fica a
   um tile da cerca. **Canteiro** (`Plot`): `st` 0 terra crua → 1 arada → 2 plantada (`g` 0..1 por dias de jogo × estação
   da cultura × água) → 3 madura (`ripe` conta; passados `FIELD.witherDays` murcha e volta a arada). Água: vizinho de água
   (`isPaddy`) ou debaixo da chuva local fica úmido; seco cresce `FIELD.dryGrowth`. **Culturas** (`CROPS`): trigo, nabo
@@ -45,7 +45,8 @@
   colheita, solo, cultura em chips (bloqueadas com o motivo), fazendeiros, "Aumentar ou recortar" e "Desfazer".
   Migração v49 (`farmsToFields`): cada Fazenda vira 3×3 de trigo e cada Horta 2×2 de ervas nos mesmos tiles, já
   crescendo, com os mesmos trabalhadores, na vila e nas colônias. Jogo novo começa com 3×3 de trigo semeado. Colônia
-  fora da tela: `fieldDailyYield`. Vitrine: um campo de cada cultura em etapas variadas (`f-campo`, `f-arroz`, `cercar`).
+  fora da tela: `fieldDailyYield` (com a rotação de `sowCrop`: meio a meio com a outra cultura; no inverno, só a que
+  aguenta o frio). Vitrine: um campo de cada cultura em etapas variadas (`f-campo`, `f-arroz`, `cercar`).
   Testes em `tests/fields.test.ts`. **Arte pendente**: folha do Codex de 32×32 por cultura e etapa, chão do canteiro e
   peças de cerca (lados do losango, cantos, portão) no lugar do desenho provisório.
 - **Tamanho do mapa por estado** (`GameState.mapW/mapH`; `VILLAGE_W/H` = 112×112 e `SCENE_W/H` = 72×48 em config.ts):

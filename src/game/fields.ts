@@ -437,14 +437,22 @@ export function fieldStats(g: Game, f: Field) {
   return { raw, tilled, growing, ripe, dry, fert: f.plots.length ? fert / f.plots.length : 1, nextDays: soonest, paddy: f.plots.filter((p) => isPaddy(g.state, p.tx, p.ty)).length };
 }
 
-/** Rende por dia (fórmula fechada, para o resumo da colônia fora da tela): cada canteiro cuidado dá a cultura/dias. */
+/**
+ * Rende por dia (fórmula fechada, para o resumo da colônia fora da tela): cada canteiro cuidado dá cultura/dias × estação,
+ * com a mesma rotação da tela (`sowCrop`): alterna a do cercado com a outra que mais rende agora (meio a meio, e o solo
+ * fica cheio) e, quando a do cercado não dá na estação (inverno), planta só a outra.
+ */
 export function fieldDailyYield(g: Game, f: Field, farmers: number): Cost {
-  const c = CROPS[f.crop];
   const si = SEASON_ORDER.indexOf(seasonOf(g.state));
-  const tended = Math.min(f.plots.length, farmers * FIELD.plotsPerWorker);
-  const n = c.paddy ? Math.min(tended, f.plots.filter((p) => isPaddy(g.state, p.tx, p.ty)).length) : tended;
-  const v = Math.round(((n * c.yield) / c.days) * c.season[si]!);
-  return v > 0 ? { [c.res]: v } : {};
+  const rate = (id: CropId | null) => (id ? (CROPS[id].yield / CROPS[id].days) * CROPS[id].season[si]! : 0);
+  const res = CROPS[f.crop].res;
+  let v = 0;
+  for (const p of f.plots.slice(0, Math.min(f.plots.length, farmers * FIELD.plotsPerWorker))) {
+    const alt = sowCrop(g, f, { ...p, last: f.crop });
+    v += sowable(g, f.crop, p) ? (alt && alt !== f.crop ? (rate(f.crop) + rate(alt)) / 2 : rate(f.crop)) : rate(alt);
+  }
+  v = Math.round(v);
+  return v > 0 ? { [res]: v } : {};
 }
 
 /** Descrição curta de quanto custa a cerca de `n` canteiros (barra de pintar). */

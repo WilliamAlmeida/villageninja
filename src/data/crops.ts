@@ -62,7 +62,7 @@ export const FIELD = {
   /** Teto total de canteiros por nível da vila (substitui o teto de fazendas e hortas). */
   maxPlots: [18, 36, 48, 100] as [number, number, number, number],
   /** Teto de canteiros numa colônia. */
-  colonyPlots: 18,
+  colonyPlots: 36,
   /** Segundos de trabalho no canteiro: arar, semear, regar, colher. */
   work: { till: 3, sow: 2, water: 1.5, harvest: 3 },
   /** Umidade (dias) que uma rega, a chuva ou a água vizinha deixa; seco cresce na metade. */

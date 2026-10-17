@@ -5,7 +5,7 @@ import { DAY_LENGTH, SAVE_VERSION, SIM_DT } from '../src/config';
 import { CROPS, FIELD } from '../src/data/crops';
 import { SEASON_DAYS } from '../src/data/seasons';
 import {
-  addField, commitFields, cropBlock, cropTick, draftField, type FieldDraft, isPaddy, plotAt, plotBlock, plotCap, plotCount, setFieldCrop, sowCrop, workPlot,
+  addField, commitFields, cropBlock, cropTick, draftField, fieldDailyYield, type FieldDraft, isPaddy, plotAt, plotBlock, plotCap, plotCount, setFieldCrop, sowCrop, workPlot,
 } from '../src/game/fields';
 import type { Game } from '../src/game/game';
 import { createNewGame } from '../src/game/newGame';
@@ -201,6 +201,18 @@ describe('campos cercados', () => {
     expect(sowCrop(g, f, p)).not.toBe('pumpkin');
     g.state.day = 1; // primavera: dá
     expect(sowCrop(g, f, p)).toBe('pumpkin');
+  });
+
+  test('conta fora da tela (colônia) usa a rotação: no inverno a abóbora dá lugar a outra e rende', () => {
+    const g = setup(309);
+    const { x0, y0 } = freeSpot(g, 2, 1);
+    const f = addField(g, [[x0, y0], [x0 + 1, y0]], 'pumpkin');
+    g.state.day = SEASON_DAYS * 3 + 1; // inverno
+    expect(fieldDailyYield(g, f, 1).food ?? 0).toBeGreaterThan(0);
+    // trigo no inverno (0,2) alterna com o nabo (0,7): rende mais que só trigo
+    f.crop = 'wheat';
+    const w = CROPS.wheat;
+    expect(fieldDailyYield(g, f, 1).food!).toBeGreaterThan(Math.round(((2 * w.yield) / w.days) * w.season[3]));
   });
 
   test('migração v48 → v49: Fazenda e Horta viram campos com os mesmos trabalhadores', () => {
