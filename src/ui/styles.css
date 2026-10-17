@@ -292,10 +292,12 @@ h4 small { text-transform: none; letter-spacing: 0; }
   #win .box { width: 100vw; height: 100vh; border-radius: 0; }
   #win .tabs { border-radius: 0; }
 }
-/* desktop largo: com o painel lateral aberto, a janela encolhe para a esquerda e os dois ficam visíveis (dom.ts SIDE_BY_SIDE) */
+/* desktop largo: com o painel lateral aberto, a janela é empurrada para a esquerda (centrada no que sobra) e só encolhe
+   se não couber; o fundo escuro continua na tela toda, com o drawer por cima dele (dom.ts SIDE_BY_SIDE) */
 @media (hover: hover) and (min-width: 1100px) {
-  :root:has(#panel:not([hidden])) #win { right: calc(min(24rem, 46vw) + 60px + 1rem + var(--safe-r)); }
-  :root:has(#panel:not([hidden])) #win .box { width: min(62rem, 100% - 2rem); }
+  #win { transition: padding-right 0.2s ease-out; }
+  :root:has(#panel:not([hidden])) #win { padding-right: calc(min(24rem, 46vw) + 60px + 1rem + var(--safe-r)); }
+  :root:has(#panel:not([hidden])) #win .box { max-width: calc(100% - 2rem); }
   :root:has(#panel:not([hidden])) #panel { z-index: 16; }
 }
 

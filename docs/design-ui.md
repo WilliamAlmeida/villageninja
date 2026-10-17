@@ -32,7 +32,7 @@ padrão e o gosto, com o nome do componente para achar no código (`src/ui/panel
 | Para | Gestão: Vila/Kage/Bingo/Estatísticas, Ninjas/Equipes/Clãs, Missões, Mundo, Oficinas | O que foi tocado no mapa: ninja, prédio, local, grupo |
 | Abre por | Botões de baixo e atalhos (B, N, V, M, R, F, S) | Toque/clique no mapa |
 | Celular | Tela cheia | Lateral, compacto |
-| Desktop largo | Encolhe para a esquerda quando o drawer abre (os dois visíveis) | Ao lado da janela |
+| Desktop largo | O drawer abre e a janela é **empurrada** para a esquerda (centrada no que sobra, mesma largura); só encolhe se não couber. O fundo escuro segue na tela toda | Ao lado da janela, por cima do fundo escuro |
 
 - Tela nova de gestão = **aba** de uma janela existente (grupo em `WINDOW_TABS`), não outro painel.
 - Ninja aberto a partir de uma lista da janela mostra **"Voltar para …"** no topo do drawer.
